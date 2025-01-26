@@ -2,7 +2,7 @@
 
 
 
-files=$(find ./src/ -type f -name *.cpp)
+files=$(find ./src/ -type f -name *.c)
 
 name="out"
 compiler_flag="-ggdb"
