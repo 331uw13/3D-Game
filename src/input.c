@@ -48,8 +48,6 @@ void handle_userinput(struct state_t* gst) {
 
     if(IsKeyPressed(KEY_SPACE) && gst->player_onground) {
 
-        printf("jump.\n");
-
         gst->player_velocity.y += gst->player_jump_force;
         gst->player_onground = 0;
     }

@@ -7,6 +7,7 @@
 
 #include "state.h"
 #include "input.h"
+#include "util.h"
 
 #define SCRN_W 800
 #define SCRN_H 600
@@ -41,6 +42,8 @@ void loop(struct state_t* gst) {
     Model testcube = LoadModelFromMesh(GenMeshCube(2.0, 2.0, 2.0));
     Model testfloor = LoadModelFromMesh(GenMeshCube(40.0, 0.25, 40.0));
 
+    Model testmodel = LoadModel("res/models/street-lamp.glb");
+
 
     testcube.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID4x4_TEXID];
     testcube.materials[0].shader = gst->light_shader;
@@ -48,27 +51,26 @@ void loop(struct state_t* gst) {
     testfloor.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID9x9_TEXID];
     testfloor.materials[0].shader = gst->light_shader;
 
+    testmodel.materials[0].shader = gst->light_shader;
+    testmodel.transform = MatrixTranslate(-5.0, -2.0, -4.0);
+
+    Color testcube_color = { 255.0, 0.0, 0.0, 255 };
 
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
+        double time = GetTime();
 
         // --- update movement. ---
-        
 
-        //UpdateCamera(&gst->cam, CAMERA_FIRST_PERSON);
-
-
-
-
-
+        /*
         struct box_t floorbox = {
             (Vector3) { 0.0, -2.0, 0.0 },
             (Vector3) { 40.0, 0.25, 40.0 }
         };
 
         int hit = check_player_collision(gst, &floorbox);      
-
+        */
 
         handle_userinput(gst);
 
@@ -90,8 +92,6 @@ void loop(struct state_t* gst) {
 
         // --- misc. ---
 
-        gst->lights[0].position.x = sin(GetTime()*1.25)*5.0;
-
         testcube.transform = MatrixMultiply(testcube.transform, MatrixRotateZ(-0.012));
         testcube.transform = MatrixMultiply(testcube.transform, MatrixRotateY(-0.012));
         testcube.transform = MatrixMultiply(testcube.transform, MatrixRotateX(-0.012));
@@ -112,16 +112,31 @@ void loop(struct state_t* gst) {
             {
                 BeginShaderMode(gst->light_shader);
 
-                DrawModel(testcube,(Vector3){ 0.0, 0.0, 8.0 }, 1.0, ORANGE);
-                DrawModel(testfloor, (Vector3){ 0.0, -2.0, 0.0 }, 1.0, WHITE);
 
-                DrawCubeV((Vector3){ -6.0, -0.5, 2.0 }, gst->player_size, (Color){ 200, 30, 30, 255 });
+                rainbow_palette(sin(time), &testcube_color.r, &testcube_color.g, &testcube_color.b);
+
+                DrawModel(testcube,(Vector3){ 0.0, 0.0, 8.0 }, 1.0, testcube_color);
+                DrawModel(testfloor, (Vector3){ 0.0, -2.0, 0.0 }, 1.0, WHITE);
+            
+                DrawMesh(testmodel.meshes[0], testmodel.materials[0], testmodel.transform);
+
+
+            
 
                 EndShaderMode();
 
 
                 for(int i = 0; i < gst->num_lights; i++) {
-                    DrawSphere(gst->lights[i].position, 0.8, gst->lights[i].color);
+                    DrawSphere(gst->lights[i].position, 0.1, WHITE);
+                    
+                    float rad = 0.2;
+                    float remove = 100 / 3;
+                    float alpha = 100;
+                    for(int k = 0; k < 3; k++) {
+                        DrawSphere(gst->lights[i].position, rad, (Color){255, 180, 40, alpha });
+                        alpha -= remove;
+                        rad += 0.1;
+                    }
                 }
 
             }
@@ -174,7 +189,7 @@ void loop(struct state_t* gst) {
 
     UnloadModel(testcube);
     UnloadModel(testfloor);
-    
+    UnloadModel(testmodel);
 
 }
 
@@ -213,15 +228,15 @@ void first_setup(struct state_t* gst) {
     gst->cam.position = (Vector3){ 0.0, 1.0, 0.0 };
     gst->cam.target = (Vector3){ 0.0, 0.0, 1.0 };
     gst->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
-    gst->cam.fovy = 70.0;
+    gst->cam.fovy = 80.0;
     gst->cam.projection = CAMERA_PERSPECTIVE;
 
 
     // --- setup player. ---
     gst->player_size = (Vector3){ 1.0, 2.0, 1.0 };
     gst->player_velocity = (Vector3) { 0 };
-    gst->player_walkspeed = 1.2;
-    gst->player_jump_force = 0.3;
+    gst->player_walkspeed = 0.8;
+    gst->player_jump_force = 0.126;
     gst->player_mass = 1.0;
     gst->player_gravity = 0.6;
     gst->player_run_mult = 2.3;
@@ -261,8 +276,9 @@ void first_setup(struct state_t* gst) {
     
     gst->lights[gst->num_lights] 
         = CreateLight(gst, LIGHT_POINT, 
-                (Vector3){ 3.0, 3, -2.0 }, (Vector3){0,0,0},
-                (Color){ 200, 140, 80, 255 }, gst->light_shader);
+                (Vector3){ -4.05, 2.01, -4.0 }, (Vector3){0,0,0},
+                (Color){ 200, 100, 30, 255 }, gst->light_shader);
+
 
 
 }
