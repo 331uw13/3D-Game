@@ -4,29 +4,30 @@
 
 #include <rcamera.h> // raylib camera
 
-#define RLIGHTS_IMPLEMENTATION
 #include "lib/rlights.h" // raylib light implementation
 
 #define CAMERA_SENSETIVITY 0.125
 
 #define MAX_TEXTURES 16
+#define NONE_TEXID -1
 #define GRID4x4_TEXID 0
 #define GRID6x6_TEXID 1
 #define GRID9x9_TEXID 2
+#define ENEMY_0_TEXID 3
+
+
+#include "player.h"
+#include "object.h"
+#include "enemy.h"
 
 
 struct state_t {
 
-    Camera   cam;
-    Vector3  player_size;
-    Vector3  player_velocity;
-    float    player_walkspeed;
-    float    player_run_mult; // if shift is held down while walking walkspeed is multiplied with this number.
-    float    player_jump_force;
-    float    player_mass;
-    float    player_gravity;
-    int      player_onground;
+    float dt; // previous frame time.
 
+    struct player_t player;
+
+    Camera   cam;
     Light   lights[MAX_LIGHTS];
     Shader  light_shader;
     unsigned int num_lights;
@@ -34,12 +35,19 @@ struct state_t {
     Texture tex[MAX_TEXTURES];
     unsigned int num_textures;
 
-};
+    int draw_debug;
 
-// used for checking collisions
-struct box_t {
-    Vector3 pos;
-    Vector3 size;
+
+    struct obj_t* objects;
+    size_t objarray_size;
+    size_t num_objects;
+
+
+    struct enemy_t* enemies;
+    size_t enemyarray_size;
+    size_t num_enemies;
+
+
 };
 
 

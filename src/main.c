@@ -4,13 +4,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <raymath.h>
+#include <time.h>
 
 #include "state.h"
 #include "input.h"
 #include "util.h"
 
-#define SCRN_W 800
-#define SCRN_H 600
+#define SCRN_W 1200
+#define SCRN_H 700
 
 #define GLSL_VERSION 330
 
@@ -19,61 +20,51 @@ void cleanup(struct state_t* gst);
 
 
 
-
-int check_player_collision(struct state_t* gst, struct box_t* box) {
-    int res = 0;
-
-    struct box_t playerbox = { 
-        gst->cam.position,
-        gst->player_size
-    };
-
-    
-
-
-    return res;
-}
-
-
-
 void loop(struct state_t* gst) {
 
-
-    Model testcube = LoadModelFromMesh(GenMeshCube(2.0, 2.0, 2.0));
+    
     Model testfloor = LoadModelFromMesh(GenMeshCube(40.0, 0.25, 40.0));
-
-    Model testmodel = LoadModel("res/models/street-lamp.glb");
-
-
-    testcube.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID4x4_TEXID];
-    testcube.materials[0].shader = gst->light_shader;
-
     testfloor.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID9x9_TEXID];
     testfloor.materials[0].shader = gst->light_shader;
 
-    testmodel.materials[0].shader = gst->light_shader;
-    testmodel.transform = MatrixTranslate(-5.0, -2.0, -4.0);
 
-    Color testcube_color = { 255.0, 0.0, 0.0, 255 };
+    create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
+    
+    create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
+            (Vector3) { -6.0, 2.0, 3.0 } /* position */
+
+            );
+
+
+    create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
+            (Vector3) { 6.0, 2.0, -3.0 } /* position */
+
+            );
+
+
+
+    // TODO: light management?
+    for(int i = 0; i < gst->num_lights; i++) {
+        UpdateLightValues(gst->light_shader, gst->lights[i]);
+    }
 
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
         double time = GetTime();
 
+        gst->dt = dt;
+
         // --- update movement. ---
 
-        /*
-        struct box_t floorbox = {
-            (Vector3) { 0.0, -2.0, 0.0 },
-            (Vector3) { 40.0, 0.25, 40.0 }
-        };
-
-        int hit = check_player_collision(gst, &floorbox);      
-        */
-
         handle_userinput(gst);
-
+        update_player(gst, &gst->player);
        
 
 
@@ -82,22 +73,6 @@ void loop(struct state_t* gst) {
         float camposf3[3] = { gst->cam.position.x, gst->cam.position.y, gst->cam.position.z };
         SetShaderValue(gst->light_shader, 
                 gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-
-
-        for(int i = 0; i < gst->num_lights; i++) {
-            UpdateLightValues(gst->light_shader, gst->lights[i]);
-        }
-
-
-
-        // --- misc. ---
-
-        testcube.transform = MatrixMultiply(testcube.transform, MatrixRotateZ(-0.012));
-        testcube.transform = MatrixMultiply(testcube.transform, MatrixRotateY(-0.012));
-        testcube.transform = MatrixMultiply(testcube.transform, MatrixRotateX(-0.012));
-
-
-
 
 
         // --- render. ---
@@ -112,20 +87,39 @@ void loop(struct state_t* gst) {
             {
                 BeginShaderMode(gst->light_shader);
 
+                // draw objects
+                for(size_t i = 0; i < gst->num_objects; i++) {
+                    struct obj_t* obj = &gst->objects[i];
+                    DrawMesh(
+                            obj->model.meshes[0],
+                            obj->model.materials[0],
+                            obj->model.transform
+                            );
+                
+                }
 
-                rainbow_palette(sin(time), &testcube_color.r, &testcube_color.g, &testcube_color.b);
+                for(size_t i = 0; i < gst->num_enemies; i++) {
+                    struct enemy_t* enemy = &gst->enemies[i];
+                    update_enemy(gst, enemy);
 
-                DrawModel(testcube,(Vector3){ 0.0, 0.0, 8.0 }, 1.0, testcube_color);
-                DrawModel(testfloor, (Vector3){ 0.0, -2.0, 0.0 }, 1.0, WHITE);
-            
-                DrawMesh(testmodel.meshes[0], testmodel.materials[0], testmodel.transform);
+                    DrawMesh(
+                            enemy->model.meshes[0],
+                            enemy->model.materials[0],
+                            enemy->model.transform
+                            );
+                }
 
 
-            
+                DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
+
 
                 EndShaderMode();
 
 
+                //DrawSphere(gst->enemies[0].travel_dest, 0.4, RED);
+
+
+                /*
                 for(int i = 0; i < gst->num_lights; i++) {
                     DrawSphere(gst->lights[i].position, 0.1, WHITE);
                     
@@ -138,6 +132,7 @@ void loop(struct state_t* gst) {
                         rad += 0.1;
                     }
                 }
+                */
 
             }
             EndMode3D();
@@ -155,31 +150,11 @@ void loop(struct state_t* gst) {
 
 
                 DrawText(TextFormat("FPS(%i)", GetFPS()),
-                        15.0, 10.0, 20.0, PURPLE);
-
-                DrawText("-- Velocity,",
-                        15.0, 38.0, 20.0, BLUE
-                        );
-                DrawText(TextFormat("x: %0.3f", gst->player_velocity.x),
-                        40.0, 60.0, 20.0, BLUE);
-                DrawText(TextFormat("y: %0.3f", gst->player_velocity.y),
-                        40.0, 60.0+20, 20.0, BLUE);
-                DrawText(TextFormat("z: %0.3f", gst->player_velocity.z),
-                        40.0, 60.0+40, 20.0, BLUE);
+                        15.0, 10.0, 20.0, WHITE);
 
 
-
-                DrawText("-- Position,",
-                        15.0, 120.0, 20.0, RED
-                        );
-                DrawText(TextFormat("x: %0.3f", gst->cam.position.x),
-                        40.0, 120.0+20, 20.0, RED);
-                DrawText(TextFormat("y: %0.3f", gst->cam.position.y),
-                        40.0, 120.0+40, 20.0, RED);
-                DrawText(TextFormat("z: %0.3f", gst->cam.position.z),
-                        40.0, 120.0+60, 20.0, RED);
-
-
+                DrawText(TextFormat("DrawDebug (%s)", gst->draw_debug ? "ON" : "OFF"),
+                        15.0, GetScreenHeight() - 30.0, 20.0, (Color){80,150,160,255});
 
             }
 
@@ -187,10 +162,7 @@ void loop(struct state_t* gst) {
         EndDrawing();
     }
 
-    UnloadModel(testcube);
     UnloadModel(testfloor);
-    UnloadModel(testmodel);
-
 }
 
 
@@ -201,6 +173,8 @@ void cleanup(struct state_t* gst) {
         UnloadTexture(gst->tex[i]);
     }
 
+    free_objarray(gst);
+    free_enemyarray(gst);
     UnloadShader(gst->light_shader);
     CloseWindow();
 }
@@ -225,29 +199,30 @@ void first_setup(struct state_t* gst) {
 
     // --- setup camera for 3D world. ---
     gst->cam = (Camera){ 0 };
-    gst->cam.position = (Vector3){ 0.0, 1.0, 0.0 };
+    gst->cam.position = (Vector3){ 0.0, 3.0, 0.0 };
     gst->cam.target = (Vector3){ 0.0, 0.0, 1.0 };
     gst->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     gst->cam.fovy = 80.0;
     gst->cam.projection = CAMERA_PERSPECTIVE;
 
 
-    // --- setup player. ---
-    gst->player_size = (Vector3){ 1.0, 2.0, 1.0 };
-    gst->player_velocity = (Vector3) { 0 };
-    gst->player_walkspeed = 0.8;
-    gst->player_jump_force = 0.126;
-    gst->player_mass = 1.0;
-    gst->player_gravity = 0.6;
-    gst->player_run_mult = 2.3;
-    gst->player_onground = 1;
-
+    init_player_struct(&gst->player);
 
     // --- misc. ---
     DisableCursor();
     SetTargetFPS(120);
     gst->num_textures = 0;
     gst->num_lights = 0;
+    gst->draw_debug = 0;
+    
+    gst->objects = NULL;
+    gst->objarray_size = 0;
+    gst->num_objects = 0;
+    
+    gst->enemies = NULL;
+    gst->enemyarray_size = 0;
+    gst->num_enemies = 0;
+
 
     // --- setup shaders. ---
     
@@ -260,26 +235,29 @@ void first_setup(struct state_t* gst) {
     gst->light_shader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(gst->light_shader, "matModel");
     gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(gst->light_shader, "viewPos");
     int ambientloc = GetShaderLocation(gst->light_shader, "ambient");
-    SetShaderValue(gst->light_shader, ambientloc, (float[4]){ 0.1, 0.1, 0.1, 1.0}, SHADER_UNIFORM_VEC4);
-
+    int fogdensityloc = GetShaderLocation(gst->light_shader, "fogDensity");
+    SetShaderValue(gst->light_shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
+    float fog_density = 0.045;
+    SetShaderValue(gst->light_shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
     
     // --- load textures. ---
-
     
     load_tex(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);
     load_tex(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
     load_tex(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
+    load_tex(gst, "res/textures/enemy.png", ENEMY_0_TEXID);
 
 
 
     // --- add lights. ---
     
     gst->lights[gst->num_lights] 
-        = CreateLight(gst, LIGHT_POINT, 
+        = CreateLight(gst, LIGHT_DIRECTIONAL, 
                 (Vector3){ -4.05, 2.01, -4.0 }, (Vector3){0,0,0},
                 (Color){ 200, 100, 30, 255 }, gst->light_shader);
 
 
+    SetRandomSeed(time(0));
 
 }
 
