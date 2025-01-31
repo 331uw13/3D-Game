@@ -56,6 +56,7 @@ struct enemy_t* create_enemy(
     ptr = &gst->enemies[id];
     ptr->id = id;
     ptr->health = max_health;
+    ptr->max_health = max_health;
     ptr->position = position;
     ptr->hitbox = hitbox;
     ptr->dest_reached = 1;
@@ -63,15 +64,20 @@ struct enemy_t* create_enemy(
     ptr->travel_start = position;
     ptr->travelled = 0.0;
     ptr->state = ENEMY_SEARCH;
+    ptr->knockback_velocity = (Vector3) { 0.0, 0.0, 0.0 };
+    ptr->hit_direction = (Vector3) { 0.0, 0.0, 0.0 };
+    ptr->rotation_from_hit = (Vector3) { 0.0, 0.0, 0.0 };
+    ptr->was_hit = 0;
+    ptr->forward_angle = 0.0;
+    ptr->angle_change = 0.0;
+    ptr->previous_angle = 0.0;
+    ptr->angle_reached = 0;
 
-    ptr->model_loaded = setup_3Dmodel(gst, &ptr->model, model_filepath, position);
+    ptr->model_loaded = setup_3Dmodel(gst, &ptr->model, model_filepath, texture_id, position);
     if(!ptr->model_loaded) {
         goto error;
     }
    
-    if(texture_id >= 0) {
-        ptr->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[texture_id];
-    }
 
     gst->enemyarray_size = new_num_elem;
 
@@ -91,6 +97,41 @@ void move_enemy(struct enemy_t* enemy, Vector3 position) {
     }
 }
 
+void enemy_pick_random_destination(struct enemy_t* enemy) {
+    
+    
+    int valid_pos = 0;
+    Vector3 p = (Vector3) { 0 };
+
+    while(!valid_pos) {
+    
+        p = (Vector3){
+                GetRandomValue(
+                        enemy->position.x - ENEMY_RND_SEARCH_RADIUS,
+                        enemy->position.x + ENEMY_RND_SEARCH_RADIUS
+                        ),
+                    
+                enemy->position.y,
+
+                GetRandomValue(
+                        enemy->position.z - ENEMY_RND_SEARCH_RADIUS,
+                        enemy->position.z + ENEMY_RND_SEARCH_RADIUS
+                        )
+        };
+
+        if(Vector3Distance(p, enemy->position) >= ENEMY_RND_SEARCH_MIN_RADIUS) {
+            valid_pos = 1;
+        }
+
+
+    }
+    
+    enemy->travel_dest = p;
+
+
+}
+
+
 
 void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
 
@@ -98,12 +139,60 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         return;
     }
 
-    if(enemy->state == ENEMY_SEARCH) {
+    
+    Vector3 pos = enemy->position;
+
+
+    pos.y = sin(enemy->id*3 + GetTime()*3.0)*0.20 + 2.0;
+    move_enemy(enemy, pos);
+    
+    enemy->was_hit = 
+        !FloatEquals(enemy->knockback_velocity.x, 0.0) &&
+        !FloatEquals(enemy->knockback_velocity.y, 0.0) &&
+        !FloatEquals(enemy->knockback_velocity.z, 0.0)
+        ;
+
+
+    if(enemy->was_hit) {
+        const float hit_force_f = 0.9;
+        pos = Vector3Add(pos, enemy->knockback_velocity);
+        enemy->knockback_velocity.x *= hit_force_f;
+        enemy->knockback_velocity.y *= hit_force_f;
+        enemy->knockback_velocity.z *= hit_force_f;
+
+        enemy->rotation_from_hit.x *= 0.94;
+        enemy->rotation_from_hit.z *= 0.94;
+
+        enemy->model.transform = MatrixRotateXYZ((Vector3){
+                enemy->rotation_from_hit.z, 
+                enemy->forward_angle,
+                enemy->rotation_from_hit.x 
+                });
         
-        Vector3 pos = enemy->position;
+        enemy->dest_reached = 1;
+        move_enemy(enemy, pos);
+    
+    }
+    else if(enemy->state == ENEMY_TURNING) {
+
+        float angle = lerp(enemy->angle_change, enemy->previous_angle, enemy->forward_angle);
+        enemy->model.transform = MatrixRotateXYZ((Vector3){ 0.0, angle, 0.0 });
+        enemy->angle_change += gst->dt * 2.0;
+
+        if(enemy->angle_change >= 1.0) {
+            enemy->state = ENEMY_SEARCH;
+        }
+
+        move_enemy(enemy, pos);
+    }
+    else if(enemy->state == ENEMY_SEARCH) {
+        
+
 
         if(enemy->dest_reached) {
             enemy->travelled = 0.0;
+
+            /*
             enemy->travel_dest.x 
                 = GetRandomValue(
                         pos.x - ENEMY_RANDOM_SEARCH_RADIUS,
@@ -115,20 +204,35 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
                         pos.z - ENEMY_RANDOM_SEARCH_RADIUS,
                         pos.z + ENEMY_RANDOM_SEARCH_RADIUS
                         );
+                        */
+            enemy_pick_random_destination(enemy);
+
             enemy->travel_start = enemy->position;
             enemy->dest_reached = 0;
 
+            enemy->state = ENEMY_TURNING;
+            
+            enemy->angle_change = 0.0;
+            enemy->previous_angle = enemy->forward_angle;
+            enemy->forward_angle = angle_xz(pos, enemy->travel_dest);
 
-
-            Vector3 diff = Vector3Subtract(pos, enemy->travel_dest);
-            float angle = -(atan2(diff.z, diff.x) + M_PI);
-
+      
+            /*
+            float angle = enemy->forward_angle;
             enemy->model.transform = MatrixRotateXYZ((Vector3){ 0.0, angle, 0.0 });
-
+            */
+            
+            return;
         }
- 
+        
 
-        // smooth and normalize the start and end.
+        // change the current angle to forward angle smoothly.
+        
+
+
+
+        // smooth the start and end.
+        // -------- TODO: make this better:
         float t = 0.5+0.5*sin(enemy->travelled - (M_PI/2.0));
 
         pos.x = lerp(t, enemy->travel_start.x, enemy->travel_dest.x);
@@ -139,7 +243,7 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         
         // try to normalize the speed.
         // otherwise smaller distances the enemy moves slower.
-        float n = Vector3Distance(enemy->travel_start, enemy->travel_dest) / ENEMY_RANDOM_SEARCH_RADIUS;
+        float n = Vector3Distance(enemy->travel_start, enemy->travel_dest) / ENEMY_RND_SEARCH_RADIUS;
         n = 1.0 / n;
 
 
@@ -151,12 +255,8 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         }
 
 
-
-
-
         move_enemy(enemy, pos);
-    
-
+        
         return;
     }
 

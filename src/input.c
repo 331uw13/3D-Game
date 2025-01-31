@@ -1,24 +1,32 @@
 #include <raylib.h>
 #include <rcamera.h>
+#include <raymath.h>
+#include <stdio.h>
 
 #include "state.h"
 
 
 #define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)
 
-#include <stdio.h>
+
+
+
+
 void handle_userinput(struct state_t* gst) {
 
     Vector2 md = GetMouseDelta();
     float dt = GetFrameTime();
 
-    CameraYaw(&gst->cam, (-md.x * CAMERA_SENSETIVITY) * dt, 0);
-    CameraPitch(&gst->cam, (-md.y * CAMERA_SENSETIVITY) * dt, 1, 0, 0);
+    CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY) * dt, 0);
+    CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY) * dt, 1, 0, 0);
+
+    gst->player.cam_yaw = (-md.x * CAMERA_SENSETIVITY) * dt;
+    gst->player.looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
 
     
     float camspeed = gst->player.walkspeed;
 
-    if(IsKeyDown(KEY_LEFT_SHIFT)) {
+    if(IsKeyDown(KEY_LEFT_SHIFT) && !gst->player.is_aiming) {
         camspeed *= gst->player.run_mult;
     }
     
@@ -37,10 +45,17 @@ void handle_userinput(struct state_t* gst) {
         gst->player.velocity.x += camspeed;
     }
 
+
+    // handle jump.
     if(IsKeyPressed(KEY_SPACE) && gst->player.onground) {
 
+        gst->player.velocity.y = 0;
         gst->player.velocity.y += gst->player.jump_force;
-        gst->player.onground = 0;
+        
+        gst->player.num_jumps_inair++;
+        if(gst->player.num_jumps_inair >= gst->player.max_jumps) {
+            gst->player.onground = 0;
+        }
     }
 
     // Y  movement.
@@ -48,15 +63,17 @@ void handle_userinput(struct state_t* gst) {
     gst->player.velocity.y = CLAMP(gst->player.velocity.y,
             -5.0, 5.0);
 
-    CameraMoveUp(&gst->cam, gst->player.velocity.y);
+    CameraMoveUp(&gst->player.cam, gst->player.velocity.y);
 
 
-    if(gst->cam.position.y > 2) {
+    if(gst->player.cam.position.y > 2.1) {
         gst->player.velocity.y -= gst->player.gravity * dt;
     }
     else {
+        // Player is on ground
         gst->player.onground = 1;
         gst->player.velocity.y = 0.0;
+        gst->player.num_jumps_inair = 0;
     }
 
 
@@ -69,8 +86,8 @@ void handle_userinput(struct state_t* gst) {
     gst->player.velocity.z = CLAMP(gst->player.velocity.z, -vmax, vmax);
     gst->player.velocity.x = CLAMP(gst->player.velocity.x, -vmax, vmax);
 
-    CameraMoveForward(&gst->cam, gst->player.velocity.z, 1);
-    CameraMoveRight(&gst->cam, gst->player.velocity.x, 1);
+    CameraMoveForward(&gst->player.cam, gst->player.velocity.z, 1);
+    CameraMoveRight(&gst->player.cam, gst->player.velocity.x, 1);
     
 
 
@@ -79,16 +96,20 @@ void handle_userinput(struct state_t* gst) {
     gst->player.velocity.x *= f;
 
 
-    gst->player.position = gst->cam.position;
+    gst->player.position = gst->player.cam.position;
 
 
     // ----- User interaction ---------
 
-
-
     if(IsKeyPressed(KEY_Y)) {
         gst->draw_debug = !gst->draw_debug;
     }
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        player_shoot(gst, &gst->player);
+    }
+
+    gst->player.is_aiming = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
 }
 

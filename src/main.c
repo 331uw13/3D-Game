@@ -38,7 +38,6 @@ void loop(struct state_t* gst) {
 
             );
 
-
     create_enemy(gst,
             "res/models/enemy.glb", ENEMY_0_TEXID,
             ENEMY_0_MAX_HEALTH,
@@ -46,6 +45,15 @@ void loop(struct state_t* gst) {
             (Vector3) { 6.0, 2.0, -3.0 } /* position */
 
             );
+
+    create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
+            (Vector3) { 6.0, 0.0, -7.0 } /* position */
+
+            );
+
 
 
 
@@ -70,7 +78,7 @@ void loop(struct state_t* gst) {
 
         // --- update lights. ---
         
-        float camposf3[3] = { gst->cam.position.x, gst->cam.position.y, gst->cam.position.z };
+        float camposf3[3] = { gst->player.cam.position.x, gst->player.cam.position.y, gst->player.cam.position.z };
         SetShaderValue(gst->light_shader, 
                 gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
@@ -83,11 +91,12 @@ void loop(struct state_t* gst) {
 
 
             // Draw 3D stuff
-            BeginMode3D(gst->cam);
+            BeginMode3D(gst->player.cam);
             {
                 BeginShaderMode(gst->light_shader);
 
-                // draw objects
+                // Draw objects
+                //
                 for(size_t i = 0; i < gst->num_objects; i++) {
                     struct obj_t* obj = &gst->objects[i];
                     DrawMesh(
@@ -98,6 +107,9 @@ void loop(struct state_t* gst) {
                 
                 }
 
+
+                // Draw enemies.
+                //
                 for(size_t i = 0; i < gst->num_enemies; i++) {
                     struct enemy_t* enemy = &gst->enemies[i];
                     update_enemy(gst, enemy);
@@ -107,16 +119,24 @@ void loop(struct state_t* gst) {
                             enemy->model.materials[0],
                             enemy->model.transform
                             );
+
+
+                    
                 }
 
 
                 DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
 
 
+                // Draw player holding a gun.
+
+
+                player_render(gst, &gst->player);
+
+    
                 EndShaderMode();
 
-
-                //DrawSphere(gst->enemies[0].travel_dest, 0.4, RED);
+                    //DrawSphere(gst->enemies[0].travel_dest, 0.4, RED);
 
 
                 /*
@@ -175,6 +195,7 @@ void cleanup(struct state_t* gst) {
 
     free_objarray(gst);
     free_enemyarray(gst);
+    free_player(&gst->player);
     UnloadShader(gst->light_shader);
     CloseWindow();
 }
@@ -197,16 +218,6 @@ void first_setup(struct state_t* gst) {
 
     InitWindow(SCRN_W, SCRN_H, "Game");
 
-    // --- setup camera for 3D world. ---
-    gst->cam = (Camera){ 0 };
-    gst->cam.position = (Vector3){ 0.0, 3.0, 0.0 };
-    gst->cam.target = (Vector3){ 0.0, 0.0, 1.0 };
-    gst->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
-    gst->cam.fovy = 80.0;
-    gst->cam.projection = CAMERA_PERSPECTIVE;
-
-
-    init_player_struct(&gst->player);
 
     // --- misc. ---
     DisableCursor();
@@ -246,8 +257,10 @@ void first_setup(struct state_t* gst) {
     load_tex(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
     load_tex(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
     load_tex(gst, "res/textures/enemy.png", ENEMY_0_TEXID);
+    load_tex(gst, "res/textures/gun_0.png", GUN_0_TEXID);
 
 
+    init_player_struct(gst, &gst->player);
 
     // --- add lights. ---
     

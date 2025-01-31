@@ -53,14 +53,11 @@ struct obj_t* create_object(
 
     newobjptr = &gst->objects[id];
     newobjptr->id = id;
-    newobjptr->model_loaded = setup_3Dmodel(gst, &newobjptr->model, model_filepath, init_pos);
+    newobjptr->model_loaded = setup_3Dmodel(gst, &newobjptr->model, model_filepath, texture_id, init_pos);
     if(!newobjptr->model_loaded) {
         goto error;
     }
     
-    if(texture_id >= 0) {
-        newobjptr->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[texture_id];
-    }
     
     printf("\033[34m >> Created Object. ID(%li), Model '%s'\033[35m objarray_size: %li\033[0m\n", 
             id, model_filepath, gst->objarray_size);

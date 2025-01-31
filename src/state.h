@@ -14,7 +14,7 @@
 #define GRID6x6_TEXID 1
 #define GRID9x9_TEXID 2
 #define ENEMY_0_TEXID 3
-
+#define GUN_0_TEXID 4
 
 #include "player.h"
 #include "object.h"
@@ -27,7 +27,6 @@ struct state_t {
 
     struct player_t player;
 
-    Camera   cam;
     Light   lights[MAX_LIGHTS];
     Shader  light_shader;
     unsigned int num_lights;

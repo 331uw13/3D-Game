@@ -7,21 +7,35 @@
 struct state_t;
 
 
-#define ENEMY_RANDOM_SEARCH_RADIUS 10.0
+#define ENEMY_RND_SEARCH_RADIUS 10.0
+#define ENEMY_RND_SEARCH_MIN_RADIUS 3.0
 
 // enemy state
-#define ENEMY_SEARCH 1
-
+#define ENEMY_TURNING 1
+#define ENEMY_SEARCH 2
 
 struct enemy_t {    
     long int id;
     int health;
+    int max_health;
     Vector3 position;
     Vector3 hitbox;
 
     Model model;
     int model_loaded;
 
+    float angle_change;
+    float forward_angle;
+    float previous_angle;
+    int angle_reached; // TODO: needed ??
+
+    // when enemy gets hit. velocity is applied.
+    Vector3 knockback_velocity;
+    Vector3 hit_direction;
+    Vector3 rotation_from_hit;
+
+    float hit_force_friction;
+    int was_hit;
 
     int dest_reached;
     Vector3 travel_dest;
@@ -47,6 +61,7 @@ struct enemy_t* create_enemy(
 
 void draw_enemy_hitbox(struct enemy_t* enemy);
 void move_enemy(struct enemy_t* enemy, Vector3 position);
+
 void update_enemy(struct state_t* gst, struct enemy_t* enemy);
 
 

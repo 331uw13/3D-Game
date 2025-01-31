@@ -23,8 +23,15 @@ void matrix_addtransl(Matrix* m, float x, float y, float z) {
     m->m14 = z;
 }
 
+void add_movement_vec3(Vector3* v1, Vector3 dir, float f) {
+    dir.x *= f;
+    dir.y *= f;
+    dir.z *= f;
+    *v1 = Vector3Add(*v1, dir);
+}
 
-int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath, Vector3 init_pos) {
+
+int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath, int texture_id, Vector3 init_pos) {
     int ok = 0;
 
     if(!FileExists(model_filepath)) {
@@ -37,12 +44,20 @@ int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath,
     model->materials[0].shader = gst->light_shader;
     model->transform = MatrixTranslate(init_pos.x, init_pos.y, init_pos.z);
 
+    if(texture_id >= 0) {
+        model->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[texture_id];
+    }
 
     ok = 1;
 
 error:
 
     return ok;
+}
+
+float angle_xz(Vector3 a, Vector3 b) {
+    Vector3 diff = Vector3Subtract(a, b);
+    return -(atan2(diff.z, diff.x) + M_PI);
 }
 
 float normalize(float t, float min, float max) {
