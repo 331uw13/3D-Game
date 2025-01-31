@@ -71,7 +71,6 @@ struct enemy_t* create_enemy(
     ptr->forward_angle = 0.0;
     ptr->angle_change = 0.0;
     ptr->previous_angle = 0.0;
-    ptr->angle_reached = 0;
 
     ptr->model_loaded = setup_3Dmodel(gst, &ptr->model, model_filepath, texture_id, position);
     if(!ptr->model_loaded) {

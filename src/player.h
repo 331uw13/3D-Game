@@ -46,6 +46,7 @@ void free_player(struct player_t* p);
 
 void player_shoot(struct state_t* gst, struct player_t* p);
 void player_render(struct state_t* gst, struct player_t* p);
+void kill_projectile(struct state_t* gst, struct projectile_t* proj);
 void update_projectiles(struct state_t* gst, struct player_t* p);
 
 // updates player's variables. not movement

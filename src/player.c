@@ -5,7 +5,7 @@
 #include "state.h"
 #include "player.h"
 #include "util.h"
-
+#include "projectile_lights.h"
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
 
@@ -34,10 +34,10 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     setup_weapon(
             &p->gun,
-            45.5, /* projectile speed */
+            40.0, /* projectile speed */
             10.0, /* projectile damage */
             0.2,  /* knockback */
-            2.0,  /* projectile max lifetime */
+            6.0,  /* projectile max lifetime */
             (Vector3){ 0.2, 0.2, 0.2 } /* hitbox size */
             );
 
@@ -67,9 +67,16 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         p->gun.proj_nextindex = 0;
     }
 
+
+    proj->light_index = gst->next_projlight_index;
+    enable_projectile_light(gst, proj->light_index, proj->position);
 }
 
-
+void kill_projectile(struct state_t* gst, struct projectile_t* proj) {
+    proj->lifetime = 0.0;
+    proj->alive = 0;
+    disable_projectile_light(gst, proj->light_index);
+}
 
 void update_projectiles(struct state_t* gst, struct player_t* p) {
    
@@ -82,12 +89,23 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
 
         proj->lifetime += gst->dt;
         if(proj->lifetime >= p->gun.proj_max_lifetime) {
-            proj->lifetime = 0.0;
-            proj->alive = 0;
+            kill_projectile(gst, proj);
+            continue;
         }
 
         add_movement_vec3(&proj->position, proj->direction, gst->dt * p->gun.proj_speed);
    
+
+        Light* light = &gst->projectile_lights[proj->light_index];
+        float lightpos[3] = { 
+            proj->position.x,
+            proj->position.y,
+            proj->position.z
+        };
+    
+        SetShaderValue(gst->light_shader, light->positionLoc, lightpos, SHADER_UNIFORM_VEC3);
+        
+
 
         BoundingBox proj_boundingbox
             = (BoundingBox)
@@ -134,6 +152,7 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
                 float random_r_z = (float)GetRandomValue(-5.0, 5.0) / 10.0;
                 enemy->rotation_from_hit = (Vector3){ random_r_x, 0.0, random_r_z };
 
+                kill_projectile(gst, proj);
                 printf("\033[31m>> ENEMY HIT (%li) |  Health: %i\033[0m\n", enemy->id, enemy->health);
             }
 
@@ -170,8 +189,14 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
 
         // TODO shader for projectiles.
-        
-        DrawSphere(proj->position, 0.2, RED); 
+                
+        BeginShaderMode(p->gun.projectile_shader);
+       
+        DrawSphere(proj->position, 0.2, (Color){ 255, 255, 255, 255 });
+        DrawSphere(proj->position, 0.3, (Color){ 10, 255, 255, 150 });
+
+
+        EndShaderMode();
     }
 
 

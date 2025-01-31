@@ -83,6 +83,8 @@ void loop(struct state_t* gst) {
                 gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
 
+
+
         // --- render. ---
 
         BeginDrawing();
@@ -197,6 +199,7 @@ void cleanup(struct state_t* gst) {
     free_enemyarray(gst);
     free_player(&gst->player);
     UnloadShader(gst->light_shader);
+    UnloadShader(gst->player.gun.projectile_shader);
     CloseWindow();
 }
 
@@ -233,7 +236,7 @@ void first_setup(struct state_t* gst) {
     gst->enemies = NULL;
     gst->enemyarray_size = 0;
     gst->num_enemies = 0;
-
+    gst->next_projlight_index = 0;
 
     // --- setup shaders. ---
     
@@ -243,14 +246,31 @@ void first_setup(struct state_t* gst) {
             TextFormat("res/shaders/fog.fs", GLSL_VERSION)
             );
 
+    gst->player.gun.projectile_shader
+        = LoadShader(
+            TextFormat("res/shaders/projectile.vs", GLSL_VERSION),
+            TextFormat("res/shaders/projectile.fs", GLSL_VERSION)
+            );
+
+
     gst->light_shader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(gst->light_shader, "matModel");
     gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(gst->light_shader, "viewPos");
     int ambientloc = GetShaderLocation(gst->light_shader, "ambient");
     int fogdensityloc = GetShaderLocation(gst->light_shader, "fogDensity");
-    SetShaderValue(gst->light_shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
     float fog_density = 0.045;
+    SetShaderValue(gst->light_shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
     SetShaderValue(gst->light_shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
-    
+   
+    // make all lights disabled
+    for(int i = 0; i < (MAX_LIGHTS + MAX_PROJECTILE_LIGHTS); i++) {
+        int enabled = 0;
+        int loc = GetShaderLocation(gst->light_shader, TextFormat("lights[%i].enabled", i));
+        SetShaderValue(gst->light_shader, loc, &enabled, SHADER_UNIFORM_INT);
+        
+        loc = GetShaderLocation(gst->light_shader, TextFormat("projlights[%i].enabled", i));
+        SetShaderValue(gst->light_shader, loc, &enabled, SHADER_UNIFORM_INT);
+    }
+
     // --- load textures. ---
     
     load_tex(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);

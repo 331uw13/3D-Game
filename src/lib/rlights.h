@@ -34,7 +34,8 @@
 // ---------------------------------------------------
 // Somewhat modified version from the original implementation.
 // moved functions definitions to separate file 
-// and moved 'lightsCount' to be held in state struct (gst->num_lights).
+// moved 'lightsCount' to be held in state struct (gst->num_lights).
+// added 'MAX_PROJECTILE_LIGHTS'
 // ---------------------------------------------------
 
 
@@ -45,8 +46,8 @@
 //----------------------------------------------------------------------------------
 // Defines and Macros
 //----------------------------------------------------------------------------------
-#define MAX_LIGHTS  8         // Max dynamic lights supported by shader
-
+#define MAX_LIGHTS  4   // Max dynamic lights supported by shader
+#define MAX_PROJECTILE_LIGHTS  64  // Max dynamic lights following projectiles
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
@@ -92,6 +93,7 @@ extern "C" {            // Prevents name mangling of functions
 //----------------------------------------------------------------------------------
 Light CreateLight(struct state_t* gst, int type, Vector3 position, Vector3 target, Color color, Shader shader);   // Create a light and get shader locations
 void UpdateLightValues(Shader shader, Light light);         // Send light properties to shader
+
 
 
 #ifdef __cplusplus

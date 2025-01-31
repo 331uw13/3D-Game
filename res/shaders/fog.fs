@@ -16,8 +16,10 @@ out vec4 finalColor;
 // NOTE: Add here your custom variables
 
 #define     MAX_LIGHTS              4
+#define     MAX_PROJECTILE_LIGHTS   64
 #define     LIGHT_DIRECTIONAL       0
 #define     LIGHT_POINT             1
+
 
 struct MaterialProperty {
     vec3 color;
@@ -35,6 +37,8 @@ struct Light {
 
 // Input lighting values
 uniform Light lights[MAX_LIGHTS];
+uniform Light projlights[MAX_PROJECTILE_LIGHTS];
+
 uniform vec4 ambient;
 uniform vec3 viewPos;
 uniform float fogDensity;
@@ -67,6 +71,31 @@ void main()
             specular += specCo;
         }
     }
+
+    // calculate projectile lights
+
+    for (int i = 0; i < MAX_PROJECTILE_LIGHTS; i++)
+    {
+        if (projlights[i].enabled == 1)
+        {
+            vec3 light = vec3(0.0);
+
+            if (projlights[i].type == LIGHT_DIRECTIONAL) {
+                light = -normalize(projlights[i].target - projlights[i].position);
+            }
+            if (projlights[i].type == LIGHT_POINT) {
+                light = normalize(projlights[i].position - fragPosition);
+            }
+
+            float NdotL = max(dot(normal, light), 0.0);
+            lightDot += projlights[i].color.rgb*NdotL;
+
+            float specCo = 0.0;
+            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // Shine: 16.0
+            specular += specCo;
+        }
+    }
+
 
     finalColor = (texelColor*((colDiffuse + vec4(specular,1))*vec4(lightDot, 1.0)));
     finalColor += texelColor*(ambient/10.0);

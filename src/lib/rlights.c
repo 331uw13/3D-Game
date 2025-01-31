@@ -58,3 +58,6 @@ void UpdateLightValues(Shader shader, Light light)
     SetShaderValue(shader, light.colorLoc, color, SHADER_UNIFORM_VEC4);
 }
 
+
+
+

@@ -21,6 +21,7 @@
 #include "enemy.h"
 
 
+
 struct state_t {
 
     float dt; // previous frame time.
@@ -30,6 +31,10 @@ struct state_t {
     Light   lights[MAX_LIGHTS];
     Shader  light_shader;
     unsigned int num_lights;
+
+    // projectile lights.
+    Light         projectile_lights[MAX_PROJECTILE_LIGHTS];
+    unsigned int  next_projlight_index;
 
     Texture tex[MAX_TEXTURES];
     unsigned int num_textures;

@@ -27,7 +27,6 @@ struct enemy_t {
     float angle_change;
     float forward_angle;
     float previous_angle;
-    int angle_reached; // TODO: needed ??
 
     // when enemy gets hit. velocity is applied.
     Vector3 knockback_velocity;

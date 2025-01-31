@@ -8,6 +8,7 @@
 
 #define WEAPON_MAX_PROJECTILES 256
 
+
 struct projectile_t {
     
     Vector3 position;
@@ -16,6 +17,8 @@ struct projectile_t {
 
     float lifetime;
     int alive;
+
+    unsigned int light_index;
 };
 
 struct weapon_t {
@@ -34,6 +37,7 @@ struct weapon_t {
     Vector3 proj_hitbox;
     float proj_max_lifetime;
 
+    Shader  projectile_shader;
 };
 
 
