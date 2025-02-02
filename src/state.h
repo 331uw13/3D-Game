@@ -19,6 +19,12 @@
 #include "player.h"
 #include "object.h"
 #include "enemy.h"
+#include "psystem.h"
+
+
+#define MAX_SHADERS 4
+#define DEFAULT_SHADER 0
+#define TEST_PSYS_SHADER 1
 
 
 
@@ -29,7 +35,14 @@ struct state_t {
     struct player_t player;
 
     Light   lights[MAX_LIGHTS];
-    Shader  light_shader;
+    
+    /*
+    Shader  default_shader;
+    Shader  particle_shader;
+    */
+
+    Shader shaders[MAX_SHADERS];
+
     unsigned int num_lights;
 
     // projectile lights.

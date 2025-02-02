@@ -60,17 +60,24 @@ void main()
         {
             vec3 light = vec3(0.0);
 
-            if (lights[i].type == LIGHT_DIRECTIONAL) light = -normalize(lights[i].target - lights[i].position);
-            if (lights[i].type == LIGHT_POINT) light = normalize(lights[i].position - fragPosition);
+            if (lights[i].type == LIGHT_DIRECTIONAL) { 
+                light = -normalize(lights[i].target - lights[i].position);
+            }
+            if (lights[i].type == LIGHT_POINT) { 
+                light = normalize(lights[i].position - fragPosition);
+            }
 
             float NdotL = max(dot(normal, light), 0.0);
             lightDot += lights[i].color.rgb*NdotL;
 
             float specCo = 0.0;
-            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // Shine: 16.0
+            if (NdotL > 0.0) { 
+                specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // Shine: 16.0
+            }
             specular += specCo;
         }
     }
+
 
     // calculate projectile lights
 
@@ -78,21 +85,26 @@ void main()
     {
         if (projlights[i].enabled == 1)
         {
-            vec3 light = vec3(0.0);
+            vec3 lightdir = normalize(projlights[i].position - fragPosition);
+           
 
-            if (projlights[i].type == LIGHT_DIRECTIONAL) {
-                light = -normalize(projlights[i].target - projlights[i].position);
-            }
-            if (projlights[i].type == LIGHT_POINT) {
-                light = normalize(projlights[i].position - fragPosition);
-            }
+            // fix the light radius.
+            float lradius = 2.5;
+            float dist = distance(projlights[i].position, fragPosition) / lradius;
+            dist = 1.0/dist;
 
-            float NdotL = max(dot(normal, light), 0.0);
-            lightDot += projlights[i].color.rgb*NdotL;
+            float NdotL = max(dot(normal, lightdir), 0.0);
+            lightDot += (projlights[i].color.rgb * NdotL) * dist;
 
             float specCo = 0.0;
-            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // Shine: 16.0
-            specular += specCo;
+            if(NdotL > 0.0) {
+                specCo = pow(max(0.0, dot(viewD, reflect(-lightdir, normal))), 36.0);
+            }
+
+
+
+
+            specular += (specCo * specCo);
         }
     }
 
@@ -122,6 +134,7 @@ void main()
 
 
     finalColor = mix(fogColor, finalColor, fogFactor);
+
 }
 
 

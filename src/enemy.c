@@ -149,6 +149,11 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         !FloatEquals(enemy->knockback_velocity.x, 0.0) &&
         !FloatEquals(enemy->knockback_velocity.y, 0.0) &&
         !FloatEquals(enemy->knockback_velocity.z, 0.0)
+        /*
+        !FloatEquals(enemy->rotation_from_hit.x, 0.0) &&
+        !FloatEquals(enemy->rotation_from_hit.y, 0.0) &&
+        !FloatEquals(enemy->rotation_from_hit.z, 0.0)
+        */
         ;
 
 
@@ -159,13 +164,15 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         enemy->knockback_velocity.y *= hit_force_f;
         enemy->knockback_velocity.z *= hit_force_f;
 
-        enemy->rotation_from_hit.x *= 0.94;
-        enemy->rotation_from_hit.z *= 0.94;
+        float rf = 0.94;
+        enemy->rotation_from_hit.x *= rf;
+        enemy->rotation_from_hit.z *= rf;
+        enemy->rotation_from_hit.y *= rf;
 
         enemy->model.transform = MatrixRotateXYZ((Vector3){
-                enemy->rotation_from_hit.z, 
-                enemy->forward_angle,
-                enemy->rotation_from_hit.x 
+                enemy->rotation_from_hit.z,
+                enemy->rotation_from_hit.x + enemy->forward_angle, 
+                enemy->rotation_from_hit.y 
                 });
         
         enemy->dest_reached = 1;
@@ -185,8 +192,6 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         move_enemy(enemy, pos);
     }
     else if(enemy->state == ENEMY_SEARCH) {
-        
-
 
         if(enemy->dest_reached) {
             enemy->travelled = 0.0;

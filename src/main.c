@@ -20,12 +20,22 @@ void cleanup(struct state_t* gst);
 
 
 
+
+void testpsys_pupdate(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
+
+}
+
+void testpsys_pinit(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
+
+}
+
+
 void loop(struct state_t* gst) {
 
     
     Model testfloor = LoadModelFromMesh(GenMeshCube(40.0, 0.25, 40.0));
     testfloor.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID9x9_TEXID];
-    testfloor.materials[0].shader = gst->light_shader;
+    testfloor.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
 
     create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
@@ -55,13 +65,47 @@ void loop(struct state_t* gst) {
             );
 
 
+    // Setup shader for particle system. ---------
+    //
+  /*
+    Shader testshader = LoadShader(
+            "lighting_instancing.vs",
+            "res/shaders/particle.fs"
+            );
+   
+    testshader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(testshader, "mvp");
+    testshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(testshader, "viewPos");
+    testshader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(testshader, "instanceTransform");
+    
+    */
 
 
-    // TODO: light management?
-    for(int i = 0; i < gst->num_lights; i++) {
-        UpdateLightValues(gst->light_shader, gst->lights[i]);
-    }
+    // Setup material for particle system. -------
+    //
+    Material testmaterial = LoadMaterialDefault();
+    testmaterial.shader = gst->shaders[TEST_PSYS_SHADER];
 
+    // Setup mesh for particles. -----------------
+    //
+    Mesh testmesh = GenMeshCube(0.3, 0.3, 0.3);
+
+
+    // Create the particle system ----------------
+
+    struct psystem_t testpsys;
+    create_psystem(
+            gst,
+            &testpsys,
+            10000,
+            testpsys_pupdate,
+            testpsys_pinit
+            );
+
+    testpsys.particle_material = testmaterial;
+    testpsys.particle_mesh = testmesh;
+
+
+    printf("%i\n", testpsys.particle_material.shader.locs[SHADER_LOC_MATRIX_MODEL]);
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -75,14 +119,15 @@ void loop(struct state_t* gst) {
         update_player(gst, &gst->player);
        
 
-
-        // --- update lights. ---
         
         float camposf3[3] = { gst->player.cam.position.x, gst->player.cam.position.y, gst->player.cam.position.z };
-        SetShaderValue(gst->light_shader, 
-                gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
+        SetShaderValue(gst->shaders[DEFAULT_SHADER], 
+                gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
-
+        
+        SetShaderValue(gst->shaders[TEST_PSYS_SHADER], 
+                gst->shaders[TEST_PSYS_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
+        
 
 
         // --- render. ---
@@ -92,10 +137,15 @@ void loop(struct state_t* gst) {
             ClearBackground((Color){ 20, 20, 20, 255 });
 
 
+
             // Draw 3D stuff
             BeginMode3D(gst->player.cam);
             {
-                BeginShaderMode(gst->light_shader);
+                
+                update_psystem(gst, &testpsys);
+           
+
+                BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
                 // Draw objects
                 //
@@ -129,32 +179,16 @@ void loop(struct state_t* gst) {
 
                 DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
 
-
-                // Draw player holding a gun.
-
-
                 player_render(gst, &gst->player);
+
+
 
     
                 EndShaderMode();
+               
 
-                    //DrawSphere(gst->enemies[0].travel_dest, 0.4, RED);
 
 
-                /*
-                for(int i = 0; i < gst->num_lights; i++) {
-                    DrawSphere(gst->lights[i].position, 0.1, WHITE);
-                    
-                    float rad = 0.2;
-                    float remove = 100 / 3;
-                    float alpha = 100;
-                    for(int k = 0; k < 3; k++) {
-                        DrawSphere(gst->lights[i].position, rad, (Color){255, 180, 40, alpha });
-                        alpha -= remove;
-                        rad += 0.1;
-                    }
-                }
-                */
 
             }
             EndMode3D();
@@ -184,6 +218,9 @@ void loop(struct state_t* gst) {
         EndDrawing();
     }
 
+    UnloadMesh(testmesh);
+    delete_psystem(&testpsys);
+
     UnloadModel(testfloor);
 }
 
@@ -198,7 +235,8 @@ void cleanup(struct state_t* gst) {
     free_objarray(gst);
     free_enemyarray(gst);
     free_player(&gst->player);
-    UnloadShader(gst->light_shader);
+    UnloadShader(gst->shaders[DEFAULT_SHADER]);
+    UnloadShader(gst->shaders[TEST_PSYS_SHADER]);
     UnloadShader(gst->player.gun.projectile_shader);
     CloseWindow();
 }
@@ -238,37 +276,67 @@ void first_setup(struct state_t* gst) {
     gst->num_enemies = 0;
     gst->next_projlight_index = 0;
 
-    // --- setup shaders. ---
-    
-    gst->light_shader 
-        = LoadShader(
-            TextFormat("res/shaders/lighting.vs", GLSL_VERSION),
-            TextFormat("res/shaders/fog.fs", GLSL_VERSION)
-            );
+  
+
 
     gst->player.gun.projectile_shader
         = LoadShader(
-            TextFormat("res/shaders/projectile.vs", GLSL_VERSION),
-            TextFormat("res/shaders/projectile.fs", GLSL_VERSION)
+                "res/shaders/projectile.vs", 
+                "res/shaders/projectile.fs"
             );
 
-
-    gst->light_shader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(gst->light_shader, "matModel");
-    gst->light_shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(gst->light_shader, "viewPos");
-    int ambientloc = GetShaderLocation(gst->light_shader, "ambient");
-    int fogdensityloc = GetShaderLocation(gst->light_shader, "fogDensity");
+    
     float fog_density = 0.045;
-    SetShaderValue(gst->light_shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
-    SetShaderValue(gst->light_shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
+
+
+    // --- Setup Default Shader ---
+    {
+  
+        Shader* shader = &gst->shaders[DEFAULT_SHADER];
+
+        *shader = LoadShader(
+                "res/shaders/lighting.vs",
+                "res/shaders/fog.fs"
+            );
+
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
    
+        int ambientloc = GetShaderLocation(*shader, "ambient");
+        int fogdensityloc = GetShaderLocation(*shader, "fogDensity");
+        
+        SetShaderValue(*shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
+        SetShaderValue(*shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
+    }
+    // -----------------------
+
+
+
+    // --- Setup Test ParticleSystem Shader ---
+    {
+        Shader* shader = &gst->shaders[TEST_PSYS_SHADER];
+        *shader = LoadShader(
+                "res/shaders/particle_core.vs",
+                "res/shaders/test_psystem.fs"
+                );
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+       
+
+    }
+    // -----------------------
+
+
     // make all lights disabled
     for(int i = 0; i < (MAX_LIGHTS + MAX_PROJECTILE_LIGHTS); i++) {
         int enabled = 0;
-        int loc = GetShaderLocation(gst->light_shader, TextFormat("lights[%i].enabled", i));
-        SetShaderValue(gst->light_shader, loc, &enabled, SHADER_UNIFORM_INT);
+        int loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("lights[%i].enabled", i));
+        SetShaderValue(gst->shaders[DEFAULT_SHADER], loc, &enabled, SHADER_UNIFORM_INT);
         
-        loc = GetShaderLocation(gst->light_shader, TextFormat("projlights[%i].enabled", i));
-        SetShaderValue(gst->light_shader, loc, &enabled, SHADER_UNIFORM_INT);
+        loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("projlights[%i].enabled", i));
+        SetShaderValue(gst->shaders[DEFAULT_SHADER], loc, &enabled, SHADER_UNIFORM_INT);
     }
 
     // --- load textures. ---
@@ -287,7 +355,7 @@ void first_setup(struct state_t* gst) {
     gst->lights[gst->num_lights] 
         = CreateLight(gst, LIGHT_DIRECTIONAL, 
                 (Vector3){ -4.05, 2.01, -4.0 }, (Vector3){0,0,0},
-                (Color){ 200, 100, 30, 255 }, gst->light_shader);
+                (Color){ 200, 100, 30, 255 }, gst->shaders[DEFAULT_SHADER]);
 
 
     SetRandomSeed(time(0));

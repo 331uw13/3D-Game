@@ -41,7 +41,7 @@ int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath,
     }
 
     *model = LoadModel(model_filepath);
-    model->materials[0].shader = gst->light_shader;
+    model->materials[0].shader = gst->shaders[DEFAULT_SHADER];
     model->transform = MatrixTranslate(init_pos.x, init_pos.y, init_pos.z);
 
     if(texture_id >= 0) {

@@ -37,7 +37,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             40.0, /* projectile speed */
             10.0, /* projectile damage */
             0.2,  /* knockback */
-            6.0,  /* projectile max lifetime */
+            2.0,  /* projectile max lifetime */
             (Vector3){ 0.2, 0.2, 0.2 } /* hitbox size */
             );
 
@@ -103,7 +103,7 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
             proj->position.z
         };
     
-        SetShaderValue(gst->light_shader, light->positionLoc, lightpos, SHADER_UNIFORM_VEC3);
+        SetShaderValue(gst->shaders[DEFAULT_SHADER], light->positionLoc, lightpos, SHADER_UNIFORM_VEC3);
         
 
 
@@ -148,12 +148,15 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
                 enemy->knockback_velocity = Vector3Scale(proj->direction, p->gun.knockback);
                 enemy->hit_direction = proj->direction;
 
-                float random_r_x = (float)GetRandomValue(-5.0, 5.0) / 10.0;
-                float random_r_z = (float)GetRandomValue(-5.0, 5.0) / 10.0;
-                enemy->rotation_from_hit = (Vector3){ random_r_x, 0.0, random_r_z };
+                float random_r_x = (float)GetRandomValue(-5.0, 5.0) / 5.0;
+                float random_r_y = (float)GetRandomValue(-5.0, 5.0) / 20.0;
+                float random_r_z = (float)GetRandomValue(-5.0, 5.0) / 8.0;
+                
+                enemy->rotation_from_hit = (Vector3){ random_r_x, random_r_y, random_r_z };
+
 
                 kill_projectile(gst, proj);
-                printf("\033[31m>> ENEMY HIT (%li) |  Health: %i\033[0m\n", enemy->id, enemy->health);
+                printf("\033[31m >> ENEMY HIT (%li) |  Health: %i\033[0m\n", enemy->id, enemy->health);
             }
 
         }
