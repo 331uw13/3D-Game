@@ -19,11 +19,14 @@ struct particle_t {
     size_t  index;   
 
 
-    // "read only"  updated by 'update_psystem'
+    // "read only"
     // change the transformation matrix instead.
     // corresponding matrix is found at 'psystem->transforms[particle->index]'
-    Vector3 position; 
+    Vector3 position;
 
+    // pointing to corresponding location for this particle
+    // in psystem_t 'transforms'
+    Matrix* transform; 
 };
 
 
@@ -31,17 +34,26 @@ struct psystem_t {
 
     int enabled;
 
-    //int one_shot; // if set to 1 particle system will be disabled after all particles are dead.
+    // if "true": particle system will be disabled after all particles are dead.
+    //            and 'pinit_callback' is not called after particle dies.
+    int one_shot;
     
     struct particle_t* particles;
+    
+    // this array is sorted in a way that
+    // particles which are alive their matrix transformations are at the beginning.
+    // 'num_alive_parts' is the number where the remaining of this array are for "dead" particles.
     Matrix*     transforms;
+    
     Material    particle_material;
     Mesh        particle_mesh;
     Shader      particle_shader;
 
     size_t max_particles;
+    size_t num_alive_parts;
 
-    // TODO: pointer "mask" for alive particles.
+
+
 
     // called to update each particle.
     void(*update_callback)(struct state_t*, struct psystem_t*, struct particle_t*);

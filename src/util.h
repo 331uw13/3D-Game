@@ -6,6 +6,7 @@
 
 struct state_t;
 
+#define RANDOMGEN_MAX 0x7FFF
 
 void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned char* blu);
 
@@ -23,5 +24,11 @@ float angle_xz(Vector3 a, Vector3 b);
 float normalize (float t, float min, float max);
 float lerp      (float t, float min, float max);
 float map       (float t, float src_min, float src_max, float dst_min, float dst_max);
+
+int    randomgen (int* seed);
+int    randomi(int* seed, int min, int max);
+float  randomf(int* seed, float min, float max);
+
+#define RSEEDRANDOMF(min, max) randomf(&gst->rseed, min, max)
 
 #endif

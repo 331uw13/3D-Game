@@ -72,3 +72,17 @@ float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
     return (t - src_min) * (dst_max - dst_min) / (src_max - src_min) + dst_min;
 }
 
+int randomgen (int* seed) {
+    *seed = 0x343FD * *seed + 0x269EC3;
+    return (*seed >> 16) & RANDOMGEN_MAX;
+}
+
+int randomi(int* seed, int min, int max) {
+    return randomgen(seed) % (max - min) + min;
+}
+
+float randomf(int* seed, float min, float max) {
+    return ((float)randomgen(seed) / ((float)RANDOMGEN_MAX / (max - min))) + min;
+}
+
+

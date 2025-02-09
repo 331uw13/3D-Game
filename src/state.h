@@ -31,7 +31,6 @@
 struct state_t {
 
     float dt; // previous frame time.
-
     struct player_t player;
 
     Light   lights[MAX_LIGHTS];
@@ -65,6 +64,7 @@ struct state_t {
     size_t num_enemies;
 
 
+    int rseed; // seed for randomgen functions.
 };
 
 

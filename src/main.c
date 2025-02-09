@@ -20,13 +20,46 @@ void cleanup(struct state_t* gst);
 
 
 
-
 void testpsys_pupdate(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
+
+
+    p->position = Vector3Add(p->position, p->velocity);
+
+   
+ 
+    psys->transforms[p->index] 
+        = MatrixTranslate(
+                p->position.x,
+                p->position.y,
+                p->position.z
+            );   
 
 }
 
+
 void testpsys_pinit(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
 
+    p->position = (Vector3) { 2.0, 1.0, 2.0 };
+
+    float t = gst->dt;
+    p->velocity = (Vector3)
+    { 
+        RSEEDRANDOMF(-t, t),
+        RSEEDRANDOMF(0.5, 2.0) * gst->dt,
+        RSEEDRANDOMF(-t, t)
+    };
+    p->color = RED;
+
+    p->lifetime = 0.0;
+    p->max_lifetime = RSEEDRANDOMF(0.25, 3.25);
+    p->alive = 1;
+
+    psys->transforms[p->index] 
+        = MatrixTranslate(
+                p->position.x,
+                p->position.y,
+                p->position.z
+            );
 }
 
 
@@ -105,7 +138,6 @@ void loop(struct state_t* gst) {
     testpsys.particle_mesh = testmesh;
 
 
-    printf("%i\n", testpsys.particle_material.shader.locs[SHADER_LOC_MATRIX_MODEL]);
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -142,7 +174,6 @@ void loop(struct state_t* gst) {
             BeginMode3D(gst->player.cam);
             {
                 
-                update_psystem(gst, &testpsys);
            
 
                 BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
@@ -187,6 +218,7 @@ void loop(struct state_t* gst) {
                 EndShaderMode();
                
 
+                update_psystem(gst, &testpsys);
 
 
 
@@ -276,6 +308,7 @@ void first_setup(struct state_t* gst) {
     gst->num_enemies = 0;
     gst->next_projlight_index = 0;
 
+    gst->dt = 0.016;
   
 
 
@@ -358,7 +391,11 @@ void first_setup(struct state_t* gst) {
                 (Color){ 200, 100, 30, 255 }, gst->shaders[DEFAULT_SHADER]);
 
 
-    SetRandomSeed(time(0));
+
+    int seed = time(0);
+
+    gst->rseed = seed;
+    SetRandomSeed(seed);
 
 }
 

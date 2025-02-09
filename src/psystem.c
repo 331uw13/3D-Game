@@ -79,8 +79,16 @@ void create_psystem(
         float y = GetRandomValue(-n, n);
         float z = GetRandomValue(-n, n);
 
-        printf("%0.3f, %0.3f, %0.3f\n", x,y,z);
+        p->velocity = (Vector3){ 
+            GetRandomValue(-3.0, 3.0) / 3.0,
+            GetRandomValue(-3.0, 3.0) / 3.0,
+            GetRandomValue(-3.0, 3.0) / 3.0
+        };
+
+
         psys->transforms[i] = MatrixTranslate(x,y,z);
+    
+        psys->pinit_callback(gst, psys, p);
     }
 
 
@@ -89,6 +97,21 @@ void create_psystem(
 
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys) {
+
+    for(size_t i = 0; i < psys->max_particles; i++) {
+        struct particle_t* p = &psys->particle[i];
+
+        psys->update_callback(gst, psys, p);
+     
+
+        p->lifetime += gst->dt;
+        if(p->lifetime > p->max_lifetime) {
+            
+        }
+
+
+
+    }
 
 
     DrawMeshInstanced(
