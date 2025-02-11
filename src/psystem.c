@@ -48,6 +48,7 @@ void create_psystem(
 
     psys->enabled = 0;
     psys->max_particles = max_particles;
+    psys->num_alive_parts = 0;
     psys->particles = NULL;
     psys->transforms = NULL;
     psys->update_callback = update_callback_ptr;
@@ -73,22 +74,6 @@ void create_psystem(
     for(size_t i = 0; i < max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
         p->index = i;
-
-        int n = 100;
-        float x = GetRandomValue(-n, n);
-        float y = GetRandomValue(-n, n);
-        float z = GetRandomValue(-n, n);
-
-        p->velocity = (Vector3){ 
-            GetRandomValue(-3.0, 3.0) / 3.0,
-            GetRandomValue(-3.0, 3.0) / 3.0,
-            GetRandomValue(-3.0, 3.0) / 3.0
-        };
-
-
-        psys->transforms[i] = MatrixTranslate(x,y,z);
-    
-        psys->pinit_callback(gst, psys, p);
     }
 
 
@@ -96,32 +81,131 @@ void create_psystem(
 }
 
 
+static void _remove_pdata(struct psystem_t* psys, struct particle_t* p) {
+
+    if(psys->num_alive_parts == 0) {
+        return;
+    }
+
+    const size_t starti = p->transf_index;
+    for(size_t i = starti; i < psys->num_alive_parts; i++) {
+        
+        psys->transforms[i] = psys->transforms[i+1];//MatrixTranslate(0, 1, 3);
+
+    }
+
+
+    // correct the trasnform index for particles.
+   
+    for(size_t i = p->index; i < psys->max_particles; i++) {
+       
+        struct particle_t* ptr = &psys->particles[i];
+
+        if(!ptr->alive) {
+            continue;
+        }
+        if(ptr->transf_index > 0) {
+            ptr->transf_index--;
+        }
+
+        ptr->transform = &psys->transforms[ptr->transf_index];
+    }
+
+
+    psys->num_alive_parts--;
+
+}
+
+
+// push new data for matrix transforms array
+//
+static Matrix* _push_pdata(struct psystem_t* psys, struct particle_t* p) {
+    Matrix* ptr = NULL;
+
+    if(psys->num_alive_parts+1 >= psys->max_particles) {
+        printf(" --- MAX PARTICLES REACHED ---\n");
+        goto error;
+    }
+
+    const size_t index = psys->num_alive_parts;
+
+
+    p->transform = &psys->transforms[index];
+    p->transf_index = index;
+
+
+
+    psys->num_alive_parts++;
+    ptr = p->transform;
+
+error:
+    return ptr;
+}
+
+
 void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
+    
     for(size_t i = 0; i < psys->max_particles; i++) {
-        struct particle_t* p = &psys->particle[i];
+        struct particle_t* p = &psys->particles[i];
+        if(!p->alive) {
+            continue;
+        }
 
         psys->update_callback(gst, psys, p);
      
 
         p->lifetime += gst->dt;
         if(p->lifetime > p->max_lifetime) {
-            
+            p->alive = 0;
+
+            psys->pinit_callback(gst, psys, p);
+            //_remove_pdata(psys, p);
+
         }
-
-
-
     }
+    
 
 
+    
     DrawMeshInstanced(
             psys->particle_mesh,
             psys->particle_material,
             psys->transforms,
-            psys->max_particles
+            psys->num_alive_parts
             );
 
+
 }
+
+
+static struct particle_t* _get_dead_particle(struct psystem_t* psys) {
+    struct particle_t* deadp = NULL;
+
+    deadp = &psys->particles[psys->nextpart_index];
+    
+    if(deadp->alive) {
+
+        // TODO:
+        // first try to search any dead particle
+        // if not found select random alive one.
+
+        deadp = &psys->particles[0];
+
+    }
+
+    if(deadp) {
+        psys->nextpart_index++;
+        if(psys->nextpart_index >= psys->max_particles) {
+            psys->nextpart_index = 0;
+        }
+    }
+
+
+error:
+    return deadp;
+}
+
 
 
 void add_particles(
@@ -130,6 +214,23 @@ void add_particles(
         size_t n /* particles to be added */
         )
 {
+
+
+    for(size_t i = 0; i < n; i++) {
+        struct particle_t* p = _get_dead_particle(psys);
+        if(!p) {
+            break;
+        }
+
+        if(!(p->transform = _push_pdata(psys, p))) {
+            break;
+        }
+
+
+        // callback to initialize the particle.
+        psys->pinit_callback(gst, psys, p);
+
+    }
 
 
 }

@@ -22,18 +22,12 @@ void cleanup(struct state_t* gst);
 
 void testpsys_pupdate(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
 
-
     p->position = Vector3Add(p->position, p->velocity);
-
    
- 
-    psys->transforms[p->index] 
-        = MatrixTranslate(
-                p->position.x,
-                p->position.y,
-                p->position.z
-            );   
+    p->velocity.y -= gst->dt*0.01;
 
+
+    *p->transform = MatrixTranslate(p->position.x, p->position.y, p->position.z);
 }
 
 
@@ -44,9 +38,9 @@ void testpsys_pinit(struct state_t* gst, struct psystem_t* psys, struct particle
     float t = gst->dt;
     p->velocity = (Vector3)
     { 
-        RSEEDRANDOMF(-t, t),
-        RSEEDRANDOMF(0.5, 2.0) * gst->dt,
-        RSEEDRANDOMF(-t, t)
+        RSEEDRANDOMF(-t, t) * 2.0,
+        RSEEDRANDOMF(3.0, 5.0) * gst->dt,
+        RSEEDRANDOMF(-t, t) * 2.0
     };
     p->color = RED;
 
@@ -54,12 +48,9 @@ void testpsys_pinit(struct state_t* gst, struct psystem_t* psys, struct particle
     p->max_lifetime = RSEEDRANDOMF(0.25, 3.25);
     p->alive = 1;
 
-    psys->transforms[p->index] 
-        = MatrixTranslate(
-                p->position.x,
-                p->position.y,
-                p->position.z
-            );
+
+
+    *p->transform = MatrixTranslate(p->position.x, p->position.y, p->position.z);
 }
 
 
@@ -77,7 +68,7 @@ void loop(struct state_t* gst) {
             "res/models/enemy.glb", ENEMY_0_TEXID,
             ENEMY_0_MAX_HEALTH,
             (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
-            (Vector3) { -6.0, 2.0, 3.0 } /* position */
+            (Vector3) { -12.0, 2.0, 3.0 } /* position */
 
             );
 
@@ -85,7 +76,7 @@ void loop(struct state_t* gst) {
             "res/models/enemy.glb", ENEMY_0_TEXID,
             ENEMY_0_MAX_HEALTH,
             (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
-            (Vector3) { 6.0, 2.0, -3.0 } /* position */
+            (Vector3) { 12.0, 2.0, 8.0 } /* position */
 
             );
 
@@ -93,7 +84,7 @@ void loop(struct state_t* gst) {
             "res/models/enemy.glb", ENEMY_0_TEXID,
             ENEMY_0_MAX_HEALTH,
             (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
-            (Vector3) { 6.0, 0.0, -7.0 } /* position */
+            (Vector3) { 12.0, 0.0, -7.0 } /* position */
 
             );
 
@@ -120,7 +111,8 @@ void loop(struct state_t* gst) {
 
     // Setup mesh for particles. -----------------
     //
-    Mesh testmesh = GenMeshCube(0.3, 0.3, 0.3);
+    const float tmsize = 0.15;
+    Mesh testmesh = GenMeshCube(tmsize, tmsize, tmsize);
 
 
     // Create the particle system ----------------
@@ -129,7 +121,7 @@ void loop(struct state_t* gst) {
     create_psystem(
             gst,
             &testpsys,
-            10000,
+            3000,
             testpsys_pupdate,
             testpsys_pinit
             );
@@ -138,6 +130,16 @@ void loop(struct state_t* gst) {
     testpsys.particle_mesh = testmesh;
 
 
+
+    // TEST THE PARTICLE SYSTEM --------
+
+    add_particles(gst, &testpsys, 3000);
+
+
+
+    // ---------------------------------------------
+
+    
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -168,12 +170,14 @@ void loop(struct state_t* gst) {
         {
             ClearBackground((Color){ 20, 20, 20, 255 });
 
+    
 
 
             // Draw 3D stuff
             BeginMode3D(gst->player.cam);
             {
                 
+                update_psystem(gst, &testpsys);
            
 
                 BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
@@ -218,7 +222,7 @@ void loop(struct state_t* gst) {
                 EndShaderMode();
                
 
-                update_psystem(gst, &testpsys);
+                //update_psystem(gst, &testpsys);
 
 
 

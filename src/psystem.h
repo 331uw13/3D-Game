@@ -16,8 +16,10 @@ struct particle_t {
     float   max_lifetime;
     
     int     alive;
-    size_t  index;   
-
+    size_t  index; // index in psystem 'particles'
+    size_t  transf_index; // keep track where 
+                         // the matrix is in psystem 'transforms' array
+                         // for this particle
 
     // "read only"
     // change the transformation matrix instead.
@@ -26,7 +28,8 @@ struct particle_t {
 
     // pointing to corresponding location for this particle
     // in psystem_t 'transforms'
-    Matrix* transform; 
+    Matrix* transform;
+
 };
 
 
@@ -36,13 +39,10 @@ struct psystem_t {
 
     // if "true": particle system will be disabled after all particles are dead.
     //            and 'pinit_callback' is not called after particle dies.
-    int one_shot;
+    int one_shot; // <- TODO
     
     struct particle_t* particles;
     
-    // this array is sorted in a way that
-    // particles which are alive their matrix transformations are at the beginning.
-    // 'num_alive_parts' is the number where the remaining of this array are for "dead" particles.
     Matrix*     transforms;
     
     Material    particle_material;
@@ -52,8 +52,7 @@ struct psystem_t {
     size_t max_particles;
     size_t num_alive_parts;
 
-
-
+    size_t nextpart_index;
 
     // called to update each particle.
     void(*update_callback)(struct state_t*, struct psystem_t*, struct particle_t*);
