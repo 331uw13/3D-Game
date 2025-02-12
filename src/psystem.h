@@ -10,6 +10,7 @@ struct state_t;
 struct particle_t {
     
     Vector3 velocity;
+    Vector3 accel;
     Color   color;
     
     float   lifetime;
@@ -25,10 +26,12 @@ struct particle_t {
     // change the transformation matrix instead.
     // corresponding matrix is found at 'psystem->transforms[particle->index]'
     Vector3 position;
+    Vector3 prev_position; // previous position (updated by 'update_psystem').
 
     // pointing to corresponding location for this particle
     // in psystem_t 'transforms'
     Matrix* transform;
+
 
 };
 

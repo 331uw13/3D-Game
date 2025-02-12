@@ -46,36 +46,42 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    // handle jump.
-    if(IsKeyPressed(KEY_SPACE) && gst->player.onground) {
+    // ----- Handle player Y movement -------
+    if(!gst->player.noclip) {
+        if(IsKeyPressed(KEY_SPACE) && gst->player.onground) {
 
-        gst->player.velocity.y = 0;
-        gst->player.velocity.y += gst->player.jump_force;
-        
-        gst->player.num_jumps_inair++;
-        if(gst->player.num_jumps_inair >= gst->player.max_jumps) {
-            gst->player.onground = 0;
+            gst->player.velocity.y = 0;
+            gst->player.velocity.y += gst->player.jump_force;
+            
+            gst->player.num_jumps_inair++;
+            if(gst->player.num_jumps_inair >= gst->player.max_jumps) {
+                gst->player.onground = 0;
+            }
+        }
+
+        gst->player.velocity.y = CLAMP(gst->player.velocity.y,
+                -5.0, 5.0);
+
+        CameraMoveUp(&gst->player.cam, gst->player.velocity.y);
+
+        if(gst->player.cam.position.y > 2.1) {
+            gst->player.velocity.y -= gst->player.gravity * dt;
+        }
+        else {
+            // Player is on ground
+            gst->player.onground = 1;
+            gst->player.velocity.y = 0.0;
+            gst->player.num_jumps_inair = 0;
         }
     }
-
-    // Y  movement.
-
-    gst->player.velocity.y = CLAMP(gst->player.velocity.y,
-            -5.0, 5.0);
-
-    CameraMoveUp(&gst->player.cam, gst->player.velocity.y);
-
-
-    if(gst->player.cam.position.y > 2.1) {
-        gst->player.velocity.y -= gst->player.gravity * dt;
-    }
     else {
-        // Player is on ground
-        gst->player.onground = 1;
-        gst->player.velocity.y = 0.0;
-        gst->player.num_jumps_inair = 0;
+        if(IsKeyDown(KEY_SPACE)) {
+            CameraMoveUp(&gst->player.cam, dt * 15.0);
+        }
+        else if(IsKeyDown(KEY_LEFT_CONTROL)) {
+            CameraMoveUp(&gst->player.cam, -(dt * 18.0));
+        }
     }
-
 
 
 
@@ -107,6 +113,10 @@ void handle_userinput(struct state_t* gst) {
 
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         player_shoot(gst, &gst->player);
+    }
+
+    if(IsKeyPressed(KEY_G)) {
+        gst->player.noclip = !gst->player.noclip;
     }
 
     gst->player.is_aiming = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);

@@ -30,6 +30,7 @@ struct player_t {
     int      max_jumps;
     int      num_jumps_inair;
 
+    int      noclip;
 
     int is_aiming;
     struct weapon_t gun;

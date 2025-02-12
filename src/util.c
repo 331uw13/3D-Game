@@ -60,6 +60,15 @@ float angle_xz(Vector3 a, Vector3 b) {
     return -(atan2(diff.z, diff.x) + M_PI);
 }
 
+Vector3 vec3set_mag(Vector3 a, float nm) {
+    float l = Vector3Length(a);
+    return (Vector3) {
+        a.x * nm / l,
+        a.y * nm / l,
+        a.z * nm / l
+    };
+}
+
 float normalize(float t, float min, float max) {
     return (t - min) / (max - min);
 }

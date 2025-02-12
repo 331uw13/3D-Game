@@ -54,6 +54,7 @@ void create_psystem(
     psys->update_callback = update_callback_ptr;
     psys->pinit_callback = pinit_callback_ptr;
 
+
     psys->particles = calloc(max_particles, sizeof *psys->particles);
     if(!psys->particles) {
         fprintf(stderr, " >> (ERROR) '%s' Failed to allocate memory for particles\n",
@@ -153,8 +154,9 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         }
 
         psys->update_callback(gst, psys, p);
-     
+        p->prev_position = p->position;
 
+        /*
         p->lifetime += gst->dt;
         if(p->lifetime > p->max_lifetime) {
             p->alive = 0;
@@ -163,6 +165,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             //_remove_pdata(psys, p);
 
         }
+        */
     }
     
 
