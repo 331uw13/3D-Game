@@ -230,10 +230,7 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         }
         
 
-        // change the current angle to forward angle smoothly.
         
-
-
 
         // smooth the start and end.
         // -------- TODO: make this better:
@@ -263,19 +260,87 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         
         return;
     }
+}
 
+void enemy_hit(struct state_t* gst, struct enemy_t* enemy, struct projectile_t* proj) {
+    
+    enemy->health -= gst->player.gun.proj_damage;
+    enemy->knockback_velocity = Vector3Scale(proj->direction, gst->player.gun.knockback);
+    enemy->hit_direction = proj->direction;
 
+    float random_r_x = (float)GetRandomValue(-5.0, 5.0) / 5.0;
+    float random_r_y = (float)GetRandomValue(-5.0, 5.0) / 20.0;
+    float random_r_z = (float)GetRandomValue(-5.0, 5.0) / 8.0;
+    
+    enemy->rotation_from_hit = (Vector3){ random_r_x, random_r_y, random_r_z };
 
+    struct enemyhit_psys_extra_t extradata = (struct enemyhit_psys_extra_t) {
+        /* spawn position */       proj->position,
+        /* projectile direction */ proj->direction
+    };
 
-
+    add_particles(gst, &gst->psystems[PSYS_ENEMYHIT], 10, &extradata, HAS_EXTRADATA);
 }
 
 
+void enemy_hit_psys_pupdate(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
+
+    //p->velocity = Vector3Add(p->velocity, p->accel);
+    p->position = Vector3Add(p->position, p->velocity);
+
+    float n = normalize(p->lifetime, 0.0, p->max_lifetime);
+    n *= n;
+    float scale = lerp(n, p->initial_scale, 0.0);
+   
+
+    Matrix position_m = MatrixTranslate(p->position.x, p->position.y, p->position.z);
+    Matrix scale_m = MatrixScale(scale, scale, scale);
+
+    position_m = MatrixMultiply(scale_m, position_m);
+
+    *p->transform = position_m;//MatrixTranslate(p->position.x, p->position.y, p->position.z);
+}
 
 
+void enemy_hit_psys_pinit(struct state_t* gst, struct psystem_t* psys, struct particle_t* p, 
+        void* extradata_ptr, int has_extradata) {
+   
+    if(!has_extradata) {
+        return;
+    }
+
+    printf("%li\n", p->index);
+
+    p->alive = 1;
+    p->max_lifetime = 0.5;
+    p->lifetime = 0.0;
+    p->initial_scale = 1.0;
+    p->scale = p->initial_scale;
+
+    struct enemyhit_psys_extra_t* extradata = (struct enemyhit_psys_extra_t*)extradata_ptr; 
+    p->position = extradata->spawn_position;
+
+    const float rrad = 0.3;
+    p->position.x += RSEEDRANDOMF(-rrad, rrad);
+    p->position.y += RSEEDRANDOMF(-rrad, rrad);
+    p->position.z += RSEEDRANDOMF(-rrad, rrad);
 
 
+    p->velocity = Vector3Negate(extradata->proj_direction);
+    p->velocity = vec3mult_v(p->velocity, 2.0); 
+    p->velocity.x += RSEEDRANDOMF(-2.0, 2.0);
+    p->velocity.y += RSEEDRANDOMF(-2.0, 2.0);
+    p->velocity.z += RSEEDRANDOMF(-2.0, 2.0);
 
+
+    // TODO: fix bugs in particle system.
+    // particle gets updated 2 times.
+    // some kind of weird pause while updating when 'nextpart_index' is going back to 0
+
+    p->velocity = vec3mult_v(p->velocity, gst->dt*3.0);
+
+    *p->transform = MatrixTranslate(p->position.x, p->position.y, p->position.z);
+}
 
 
 

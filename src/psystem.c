@@ -20,6 +20,8 @@ void delete_psystem(struct psystem_t* psys) {
         psys->transforms = NULL;
     }
 
+    UnloadMesh(psys->particle_mesh);
+
     psys->enabled = 0;
     psys->update_callback = NULL;
     psys->pinit_callback = NULL;
@@ -30,7 +32,7 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*)
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, void*, int)
         )
 {
 
@@ -53,7 +55,7 @@ void create_psystem(
     psys->transforms = NULL;
     psys->update_callback = update_callback_ptr;
     psys->pinit_callback = pinit_callback_ptr;
-
+    psys->nextpart_index = 0;
 
     psys->particles = calloc(max_particles, sizeof *psys->particles);
     if(!psys->particles) {
@@ -156,16 +158,14 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         psys->update_callback(gst, psys, p);
         p->prev_position = p->position;
 
-        /*
         p->lifetime += gst->dt;
         if(p->lifetime > p->max_lifetime) {
             p->alive = 0;
 
-            psys->pinit_callback(gst, psys, p);
-            //_remove_pdata(psys, p);
+            //psys->pinit_callback(gst, psys, p);
+            _remove_pdata(psys, p);
 
         }
-        */
     }
     
 
@@ -185,6 +185,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 static struct particle_t* _get_dead_particle(struct psystem_t* psys) {
     struct particle_t* deadp = NULL;
 
+    printf("%li\n", psys->nextpart_index);
     deadp = &psys->particles[psys->nextpart_index];
     
     if(deadp->alive) {
@@ -214,7 +215,9 @@ error:
 void add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
-        size_t n /* particles to be added */
+        size_t n, /* particles to be added */
+        void* extradata_ptr,
+        int has_extradata
         )
 {
 
@@ -231,7 +234,9 @@ void add_particles(
 
 
         // callback to initialize the particle.
-        psys->pinit_callback(gst, psys, p);
+        
+
+        psys->pinit_callback(gst, psys, p, extradata_ptr, (has_extradata && extradata_ptr));
 
     }
 

@@ -5,7 +5,9 @@
 
 
 struct state_t;
-
+struct psystem_t;
+struct particle_t;
+struct projectile_t;
 
 #define ENEMY_RND_SEARCH_RADIUS 10.0
 #define ENEMY_RND_SEARCH_MIN_RADIUS 3.0
@@ -62,8 +64,19 @@ void draw_enemy_hitbox(struct enemy_t* enemy);
 void move_enemy(struct enemy_t* enemy, Vector3 position);
 
 void update_enemy(struct state_t* gst, struct enemy_t* enemy);
+void enemy_hit(struct state_t* gst, struct enemy_t* enemy, struct projectile_t* proj);
 
-
-
+void enemy_hit_psys_pupdate(
+        struct state_t* gst,
+        struct psystem_t* psys,
+        struct particle_t* p
+        );
+void enemy_hit_psys_pinit(
+        struct state_t* gst,
+        struct psystem_t* psys,
+        struct particle_t* p,
+        void* extradata_ptr,
+        int has_extradata
+        );
 
 #endif

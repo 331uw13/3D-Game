@@ -19,104 +19,6 @@
 void cleanup(struct state_t* gst);
 
 
-#define PFORCE 0.0
-#define PMASS  100.0
-#define GRAVITYPOINT_MASS  5.0
-#define GRAVITY 0.00001
-
-static Vector3 gravity_point = (Vector3) { 20.0, 20.0, 0.0 };
-
-Vector3 initvec3_v(float v) {
-    return (Vector3) { v, v, v };
-}
-
-Vector3 vec3div_v(Vector3 a, float v) {
-    return (Vector3) { a.x/v, a.y/v, a.z/v };
-}
-
-Vector3 vec3mult_v(Vector3 a, float v) {
-    return (Vector3) { a.x*v, a.y*v, a.z*v };
-}
-
-Vector3 vec3add_v(Vector3 a, float v) {
-    return (Vector3) { a.x+v, a.y+v, a.z+v };
-}
-
-
-static int g_testpsys_point_loc; 
-
-
-
-void testpsys_pupdate(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
-
-    const Vector3 pmass = initvec3_v(PMASS);
-    const Vector3 gp_mass = initvec3_v(GRAVITYPOINT_MASS);
-
-
-    // Direction to gravitation point.
-    Vector3 dir = Vector3Subtract(p->position, gravity_point);
-    float mag = Vector3LengthSqr(dir);
-
-
-    float strength = GRAVITY * ((PMASS * GRAVITYPOINT_MASS) / mag);
-    strength += 0.0132;
-
-    dir = vec3set_mag(dir, strength);
-
-    dir = vec3div_v(dir, 20.0);
-    dir = Vector3Negate(dir);
-    p->accel = Vector3Add(p->accel, dir);
-    
-    
-    //p->velocity = Vector3Add(p->velocity, p->accel);
-    p->position = Vector3Add(p->position, p->accel);
-
-    
-    *p->transform = MatrixTranslate(p->position.x, p->position.y, p->position.z);
-
-
-}
-
-static float newx = 0.0;
-static float newz = 0.0;
-static float newy = 0.0;
-static float incr = 0.0;
-
-void testpsys_pinit(struct state_t* gst, struct psystem_t* psys, struct particle_t* p) {
-
-    p->position = (Vector3)
-    { 
-        RSEEDRANDOMF(-2.0, 2.0) + newx * 10.0,
-        RSEEDRANDOMF(-2.0, 2.0) + newy * 10.0 + 30.0,
-        RSEEDRANDOMF(-2.0, 2.0) + newz * 10.0
-    };
-
-    float t = gst->dt;
-    p->velocity = (Vector3)
-    { 
-        RSEEDRANDOMF(-0.1, 0.1),
-        RSEEDRANDOMF(-0.1, 0.1),
-        RSEEDRANDOMF(-0.1, 0.1)
-    };
-    p->color = RED;
-
-    p->lifetime = 0.0;
-    p->max_lifetime = RSEEDRANDOMF(0.25, 3.25);
-    p->alive = 1;
-
-
-    incr += 0.3;
-    float pi2 = M_PI*1.23;
-
-    newx = cos(newx*pi2) * cos(incr*M_PI);
-    newy = cos(newz*pi2);
-    newz = sin(newx*pi2) * cos(incr*M_PI);
-
-
-    *p->transform = MatrixTranslate(p->position.x, p->position.y, p->position.z);
-}
-
-
 void loop(struct state_t* gst) {
 
     
@@ -166,6 +68,7 @@ void loop(struct state_t* gst) {
     
     */
 
+    /*
 
     // Setup material for particle system. -------
     //
@@ -186,7 +89,7 @@ void loop(struct state_t* gst) {
     create_psystem(
             gst,
             &testpsys,
-            150000,
+            15000,
             testpsys_pupdate,
             testpsys_pinit
             );
@@ -197,8 +100,9 @@ void loop(struct state_t* gst) {
 
 
 
-    add_particles(gst, &testpsys, 150000);
+    //add_particles(gst, &testpsys, 15000);
 
+    */
 
 
     // ---------------------------------------------
@@ -222,31 +126,14 @@ void loop(struct state_t* gst) {
         SetShaderValue(gst->shaders[DEFAULT_SHADER], 
                 gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
-        
+       
+        /*
         SetShaderValue(gst->shaders[TEST_PSYS_SHADER], 
                 gst->shaders[TEST_PSYS_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-       
+       */
 
     
-        if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-            const float dist = 3.0;
-            Vector3 point = gst->player.position;
 
-            add_movement_vec3(&point, gst->player.looking_at, 
-                    Vector3Distance(gravity_point, point)
-                    );
-
-            gravity_point = point;
-        }
-       
-        {
-            float point[3] = {
-                gravity_point.x, gravity_point.y, gravity_point.z
-            };
-            SetShaderValue(gst->shaders[TEST_PSYS_SHADER], g_testpsys_point_loc, 
-                point, SHADER_UNIFORM_VEC3);
-
-        }
         // --- render. ---
 
         BeginDrawing();
@@ -303,12 +190,13 @@ void loop(struct state_t* gst) {
 
     
                 EndShaderMode();
-                DrawSphere(gravity_point, 0.3, (Color){ 0.0, 200, 200, 150 });
-               
+              
+                update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
 
                 //update_psystem(gst, &testpsys);
-                update_psystem(gst, &testpsys);
+                //update_psystem(gst, &testpsys);
 
+                DrawCube((Vector3){0.0,1.0,3.0}, 1.0,1.0,1.0, RED);
 
 
             }
@@ -341,8 +229,6 @@ void loop(struct state_t* gst) {
         EndDrawing();
     }
 
-    UnloadMesh(testmesh);
-    delete_psystem(&testpsys);
 
     UnloadModel(testfloor);
 }
@@ -355,11 +241,13 @@ void cleanup(struct state_t* gst) {
         UnloadTexture(gst->tex[i]);
     }
 
+
+    delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
     free_objarray(gst);
     free_enemyarray(gst);
     free_player(&gst->player);
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
-    UnloadShader(gst->shaders[TEST_PSYS_SHADER]);
+    UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
     UnloadShader(gst->player.gun.projectile_shader);
     CloseWindow();
 }
@@ -436,24 +324,76 @@ void first_setup(struct state_t* gst) {
 
 
 
-    // --- Setup Test ParticleSystem Shader ---
+    // --- Setup (ENEMY_HIT) ParticleSystem Shader ---
     {
-        Shader* shader = &gst->shaders[TEST_PSYS_SHADER];
+        Shader* shader = &gst->shaders[ENEMY_HIT_PSYS_SHADER];
         *shader = LoadShader(
                 "res/shaders/particle_core.vs",
-                "res/shaders/test_psystem.fs"
+                "res/shaders/enemy_hit_psystem.fs"
                 );
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
        
-        g_testpsys_point_loc = GetShaderLocation(*shader, "gravity_point");
     }
     // -----------------------
 
 
-    // make all lights disabled
+    /*
+
+    // Setup material for particle system. -------
+    //
+    Material testmaterial = LoadMaterialDefault();
+    testmaterial.shader = gst->shaders[TEST_PSYS_SHADER];
+
+    // Setup mesh for particles. -----------------
+    //
+    const float tmsize = 0.1;
+    Mesh testmesh = GenMeshCube(tmsize, tmsize, tmsize);
+
+
+    // Create the particle system ----------------
+
+    Model particlemodel = LoadModel("res/models/particle.glb");
+
+    struct psystem_t testpsys;
+    create_psystem(
+            gst,
+            &testpsys,
+            15000,
+            testpsys_pupdate,
+            testpsys_pinit
+            );
+
+    testpsys.particle_material = testmaterial;
+    testpsys.particle_mesh = testmesh;
+
+
+
+
+    //add_particles(gst, &testpsys, 15000);
+
+    */
+
+
+    // --- Setup (ENEMY_HIT) Particle System. ---
+    {
+        create_psystem(
+                gst,
+                &gst->psystems[PSYS_ENEMYHIT],
+                512,
+                enemy_hit_psys_pupdate,
+                enemy_hit_psys_pinit
+                );
+        struct psystem_t* psys = &gst->psystems[PSYS_ENEMYHIT];
+
+        psys->particle_material = LoadMaterialDefault();
+        psys->particle_material.shader = gst->shaders[ENEMY_HIT_PSYS_SHADER];
+        psys->particle_mesh = GenMeshCube(0.2, 0.2, 0.2);
+    }
+
+    // make sure all lights are disabled
     for(int i = 0; i < (MAX_LIGHTS + MAX_PROJECTILE_LIGHTS); i++) {
         int enabled = 0;
         int loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("lights[%i].enabled", i));

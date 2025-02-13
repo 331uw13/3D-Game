@@ -34,7 +34,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     setup_weapon(
             &p->gun,
-            40.0, /* projectile speed */
+            60.0, /* projectile speed */
             10.0, /* projectile damage */
             0.2,  /* knockback */
             2.0,  /* projectile max lifetime */
@@ -142,30 +142,14 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
             };
 
             if(CheckCollisionBoxes(enemy_boundingbox, proj_boundingbox)) {
-                proj->alive = 0;
 
-                enemy->health -= p->gun.proj_damage;
-                enemy->knockback_velocity = Vector3Scale(proj->direction, p->gun.knockback);
-                enemy->hit_direction = proj->direction;
-
-                float random_r_x = (float)GetRandomValue(-5.0, 5.0) / 5.0;
-                float random_r_y = (float)GetRandomValue(-5.0, 5.0) / 20.0;
-                float random_r_z = (float)GetRandomValue(-5.0, 5.0) / 8.0;
-                
-                enemy->rotation_from_hit = (Vector3){ random_r_x, random_r_y, random_r_z };
-
-
+                enemy_hit(gst, enemy, proj);
                 kill_projectile(gst, proj);
+
                 printf("\033[31m >> ENEMY HIT (%li) |  Health: %i\033[0m\n", enemy->id, enemy->health);
             }
-
         }
-
-
     }
-
-
-
 }
 
 

@@ -15,7 +15,10 @@ struct particle_t {
     
     float   lifetime;
     float   max_lifetime;
-    
+
+    float   scale;
+    float   initial_scale;
+
     int     alive;
     size_t  index; // index in psystem 'particles'
     size_t  transf_index; // keep track where 
@@ -34,6 +37,9 @@ struct particle_t {
 
 
 };
+
+#define NO_EXTRADATA 0
+#define HAS_EXTRADATA 1
 
 
 struct psystem_t {
@@ -61,7 +67,7 @@ struct psystem_t {
     void(*update_callback)(struct state_t*, struct psystem_t*, struct particle_t*);
     
     // called by 'add_particles' for each particle after adding them to the array.
-    void(*pinit_callback)(struct state_t*, struct psystem_t*, struct particle_t*);
+    void(*pinit_callback)(struct state_t*, struct psystem_t*, struct particle_t*, void*, int);
 
     void* userptr;
 };
@@ -73,7 +79,7 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*)
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, void*, int)
         );
 
 
@@ -82,7 +88,9 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys);
 void add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
-        size_t n /* particles to be added */
+        size_t n, /* particles to be added */
+        void* extradata_ptr,
+        int has_extradata
         );
 
 

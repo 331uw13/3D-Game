@@ -60,6 +60,10 @@ float angle_xz(Vector3 a, Vector3 b) {
     return -(atan2(diff.z, diff.x) + M_PI);
 }
 
+Vector3 vec3mult_v(Vector3 a, float v) {
+    return (Vector3) { a.x*v, a.y*v, a.z*v };
+}
+
 Vector3 vec3set_mag(Vector3 a, float nm) {
     float l = Vector3Length(a);
     return (Vector3) {
