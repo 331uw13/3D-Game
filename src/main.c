@@ -193,25 +193,17 @@ void loop(struct state_t* gst) {
               
                 update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
 
-                //update_psystem(gst, &testpsys);
-                //update_psystem(gst, &testpsys);
-
-                DrawCube((Vector3){0.0,1.0,3.0}, 1.0,1.0,1.0, RED);
-
-
             }
             EndMode3D();
 
 
             // Draw 2D stuff
             {
-
                 // draw cursor.
                 int center_x = GetScreenWidth() / 2;
                 int center_y = GetScreenHeight() / 2;
 
                 DrawPixel(center_x, center_y, WHITE);
-
 
 
                 DrawText(TextFormat("FPS(%i)", GetFPS()),
@@ -223,12 +215,14 @@ void loop(struct state_t* gst) {
                 DrawText(TextFormat("DrawDebug (%s)", gst->draw_debug ? "ON" : "OFF"),
                         15.0, GetScreenHeight() - 30.0, 20.0, (Color){80,150,160,255});
 
+
+                DrawText(TextFormat("Particles: %i", gst->psystems[PSYS_ENEMYHIT].num_alive_parts),
+                        15.0, 30.0, 20.0, PURPLE);
             }
 
         }
         EndDrawing();
     }
-
 
     UnloadModel(testfloor);
 }
@@ -240,7 +234,6 @@ void cleanup(struct state_t* gst) {
     for(unsigned int i = 0; i < gst->num_textures; i++) {
         UnloadTexture(gst->tex[i]);
     }
-
 
     delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
     free_objarray(gst);
@@ -339,50 +332,12 @@ void first_setup(struct state_t* gst) {
     }
     // -----------------------
 
-
-    /*
-
-    // Setup material for particle system. -------
-    //
-    Material testmaterial = LoadMaterialDefault();
-    testmaterial.shader = gst->shaders[TEST_PSYS_SHADER];
-
-    // Setup mesh for particles. -----------------
-    //
-    const float tmsize = 0.1;
-    Mesh testmesh = GenMeshCube(tmsize, tmsize, tmsize);
-
-
-    // Create the particle system ----------------
-
-    Model particlemodel = LoadModel("res/models/particle.glb");
-
-    struct psystem_t testpsys;
-    create_psystem(
-            gst,
-            &testpsys,
-            15000,
-            testpsys_pupdate,
-            testpsys_pinit
-            );
-
-    testpsys.particle_material = testmaterial;
-    testpsys.particle_mesh = testmesh;
-
-
-
-
-    //add_particles(gst, &testpsys, 15000);
-
-    */
-
-
     // --- Setup (ENEMY_HIT) Particle System. ---
     {
         create_psystem(
                 gst,
                 &gst->psystems[PSYS_ENEMYHIT],
-                512,
+                1024,
                 enemy_hit_psys_pupdate,
                 enemy_hit_psys_pinit
                 );

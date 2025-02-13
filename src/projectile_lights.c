@@ -26,7 +26,7 @@ void enable_projectile_light(struct state_t* gst, unsigned int index, Vector3 in
     gst->projectile_lights[index] = light;
     UpdateLightValues(gst->shaders[DEFAULT_SHADER], light);
 
-    printf("  -> next_projlight_index: %i\n", i);
+    //printf("  -> next_projlight_index: %i\n", i);
 
     gst->next_projlight_index++;
     if(gst->next_projlight_index >= MAX_PROJECTILE_LIGHTS) {
@@ -41,7 +41,7 @@ void disable_projectile_light(struct state_t* gst, unsigned int index) {
 
     light->enabled = 0;
 
-    printf("DISABLE %i\n", index);
+    //printf(" '%s': DISABLE %i\n", __func__, index);
     SetShaderValue(gst->shaders[DEFAULT_SHADER], light->enabledLoc, &light->enabled, SHADER_UNIFORM_INT);
         
     gst->next_projlight_index = index;

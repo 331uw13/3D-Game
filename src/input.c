@@ -111,7 +111,7 @@ void handle_userinput(struct state_t* gst) {
         gst->draw_debug = !gst->draw_debug;
     }
 
-    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
         player_shoot(gst, &gst->player);
     }
 

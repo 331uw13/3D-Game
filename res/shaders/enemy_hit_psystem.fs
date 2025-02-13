@@ -21,7 +21,7 @@ void main()
 {
 
 
-    finalColor = vec4(vec3(0.01, 0.9, 0.9), 0.455);
+    finalColor = vec4(vec3(0.3, 0.9, 0.9), 0.455);
 
 }
 

@@ -21,9 +21,6 @@ struct particle_t {
 
     int     alive;
     size_t  index; // index in psystem 'particles'
-    size_t  transf_index; // keep track where 
-                         // the matrix is in psystem 'transforms' array
-                         // for this particle
 
     // "read only"
     // change the transformation matrix instead.
@@ -35,6 +32,7 @@ struct particle_t {
     // in psystem_t 'transforms'
     Matrix* transform;
 
+    void* extradata;
 
 };
 

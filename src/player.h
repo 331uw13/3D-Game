@@ -32,8 +32,8 @@ struct player_t {
 
     int      noclip;
 
-    int is_aiming;
     struct weapon_t gun;
+    int  is_aiming;
 
     Model gun_model;
     Vector3 gun_model_poffset;

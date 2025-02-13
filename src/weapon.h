@@ -38,6 +38,7 @@ struct weapon_t {
     float proj_max_lifetime;
 
     Shader  projectile_shader;
+
 };
 
 

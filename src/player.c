@@ -51,7 +51,6 @@ void free_player(struct player_t* p) {
 
 void player_shoot(struct state_t* gst, struct player_t* p) {
    
-
     size_t index = p->gun.proj_nextindex;
     struct projectile_t* proj = &p->gun.projectiles[index];
 
@@ -59,6 +58,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     proj->lifetime = 0.0;
     proj->direction = p->looking_at;
 
+    proj->position = (Vector3) { 0 };
     proj->position = Vector3Transform(proj->position, p->gun_model.transform);
 
 

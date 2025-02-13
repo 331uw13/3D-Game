@@ -279,7 +279,8 @@ void enemy_hit(struct state_t* gst, struct enemy_t* enemy, struct projectile_t* 
         /* projectile direction */ proj->direction
     };
 
-    add_particles(gst, &gst->psystems[PSYS_ENEMYHIT], 10, &extradata, HAS_EXTRADATA);
+    int num_particles = GetRandomValue(8, 20);
+    add_particles(gst, &gst->psystems[PSYS_ENEMYHIT], num_particles, &extradata, HAS_EXTRADATA);
 }
 
 
@@ -291,7 +292,8 @@ void enemy_hit_psys_pupdate(struct state_t* gst, struct psystem_t* psys, struct 
     float n = normalize(p->lifetime, 0.0, p->max_lifetime);
     n *= n;
     float scale = lerp(n, p->initial_scale, 0.0);
-   
+  
+    p->velocity.y += p->accel.y;
 
     Matrix position_m = MatrixTranslate(p->position.x, p->position.y, p->position.z);
     Matrix scale_m = MatrixScale(scale, scale, scale);
@@ -309,12 +311,11 @@ void enemy_hit_psys_pinit(struct state_t* gst, struct psystem_t* psys, struct pa
         return;
     }
 
-    printf("%li\n", p->index);
 
     p->alive = 1;
     p->max_lifetime = 0.5;
     p->lifetime = 0.0;
-    p->initial_scale = 1.0;
+    p->initial_scale = 1.3;
     p->scale = p->initial_scale;
 
     struct enemyhit_psys_extra_t* extradata = (struct enemyhit_psys_extra_t*)extradata_ptr; 
@@ -329,9 +330,10 @@ void enemy_hit_psys_pinit(struct state_t* gst, struct psystem_t* psys, struct pa
     p->velocity = Vector3Negate(extradata->proj_direction);
     p->velocity = vec3mult_v(p->velocity, 2.0); 
     p->velocity.x += RSEEDRANDOMF(-2.0, 2.0);
-    p->velocity.y += RSEEDRANDOMF(-2.0, 2.0);
+    p->velocity.y += RSEEDRANDOMF(-1.0, 2.8);
     p->velocity.z += RSEEDRANDOMF(-2.0, 2.0);
 
+    p->accel.y = -0.1 * gst->dt;
 
     // TODO: fix bugs in particle system.
     // particle gets updated 2 times.
