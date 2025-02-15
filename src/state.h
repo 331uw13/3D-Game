@@ -24,7 +24,8 @@
 // shaders.
 #define MAX_SHADERS 4
 #define DEFAULT_SHADER 0
-#define ENEMY_HIT_PSYS_SHADER 1
+#define PLAYER_PROJECTILE_SHADER 1
+#define ENEMY_HIT_PSYS_SHADER 2
 // ...
 
 // particle systems.
@@ -33,24 +34,31 @@
 // ...
 
 
+// uniform locations for fragment shaders
+#define MAX_FS_UNILOCS 4
+#define PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC 0
+
+
+
 struct state_t {
 
     float dt; // previous frame time.
     struct player_t player;
 
-    Light lights[MAX_LIGHTS];
-    unsigned int num_lights;
 
-    Light projectile_lights[MAX_PROJECTILE_LIGHTS];
+    Light         lights[MAX_LIGHTS];
+    unsigned int  num_lights;
+
+    Light         projectile_lights[MAX_PROJECTILE_LIGHTS];
     unsigned int  next_projlight_index;
     
+
     Shader shaders[MAX_SHADERS];
+    int    fs_unilocs[MAX_FS_UNILOCS];
 
-    // projectile lights.
 
-    Texture tex[MAX_TEXTURES];
-    unsigned int num_textures;
-
+    Texture       tex[MAX_TEXTURES];
+    unsigned int  num_textures;
 
     struct psystem_t psystems[MAX_PSYSTEMS];
     

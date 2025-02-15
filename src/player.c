@@ -34,10 +34,10 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     setup_weapon(
             &p->gun,
-            60.0, /* projectile speed */
+            45.0,  /* projectile speed */
             10.0, /* projectile damage */
             0.2,  /* knockback */
-            2.0,  /* projectile max lifetime */
+            5.0,  /* projectile max lifetime */
             (Vector3){ 0.2, 0.2, 0.2 } /* hitbox size */
             );
 
@@ -168,6 +168,13 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
 
     struct projectile_t* proj = NULL;
+    Shader* shader = &gst->shaders[PLAYER_PROJECTILE_SHADER];
+    int effectspeed_uniloc = gst->fs_unilocs[PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC];
+    float time = 2.0;
+
+    SetShaderValue(*shader, effectspeed_uniloc, &time, SHADER_UNIFORM_FLOAT);
+    
+
     for(size_t i = 0; i < WEAPON_MAX_PROJECTILES; i++) {
         proj = &p->gun.projectiles[i];
         if(!proj->alive) {
@@ -177,10 +184,16 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
         // TODO shader for projectiles.
                 
-        BeginShaderMode(p->gun.projectile_shader);
+        BeginShaderMode(*shader);
        
+
+        // inner sphere
         DrawSphere(proj->position, 0.2, (Color){ 255, 255, 255, 255 });
-        DrawSphere(proj->position, 0.3, (Color){ 10, 255, 255, 150 });
+    
+        
+        // outer sphere
+        DrawSphere(proj->position, 0.42, (Color){ 10, 255, 255, 50 });
+        
 
 
         EndShaderMode();

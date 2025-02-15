@@ -37,7 +37,7 @@ struct weapon_t {
     Vector3 proj_hitbox;
     float proj_max_lifetime;
 
-    Shader  projectile_shader;
+    //Shader  projectile_shader;
 
 };
 

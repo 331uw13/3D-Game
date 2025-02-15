@@ -11,10 +11,13 @@ void free_enemyarray(struct state_t* gst) {
     if(gst->enemies) {   
         for(size_t i = 0; i < gst->num_enemies; i++) {
             
+            delete_enemy(&gst->enemies[i]);
+            /*
             if(gst->enemies[i].model_loaded) {
                 UnloadModel(gst->enemies[i].model);
                 gst->enemies[i].model_loaded = 0;
             }
+            */
         }
 
         free(gst->enemies);
@@ -89,6 +92,14 @@ error:
     return ptr;
 }
 
+void delete_enemy(struct enemy_t* enemy) {
+    if(IsModelValid(enemy->model)) {
+        UnloadModel(enemy->model);
+        enemy->model_loaded = 0;
+    }
+}
+
+
 void move_enemy(struct enemy_t* enemy, Vector3 position) {
     if(enemy->model_loaded) { 
         enemy->position = position;
@@ -149,11 +160,6 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
         !FloatEquals(enemy->knockback_velocity.x, 0.0) &&
         !FloatEquals(enemy->knockback_velocity.y, 0.0) &&
         !FloatEquals(enemy->knockback_velocity.z, 0.0)
-        /*
-        !FloatEquals(enemy->rotation_from_hit.x, 0.0) &&
-        !FloatEquals(enemy->rotation_from_hit.y, 0.0) &&
-        !FloatEquals(enemy->rotation_from_hit.z, 0.0)
-        */
         ;
 
 
@@ -195,20 +201,6 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
 
         if(enemy->dest_reached) {
             enemy->travelled = 0.0;
-
-            /*
-            enemy->travel_dest.x 
-                = GetRandomValue(
-                        pos.x - ENEMY_RANDOM_SEARCH_RADIUS,
-                        pos.x + ENEMY_RANDOM_SEARCH_RADIUS
-                        );
-
-            enemy->travel_dest.z
-                = GetRandomValue(
-                        pos.z - ENEMY_RANDOM_SEARCH_RADIUS,
-                        pos.z + ENEMY_RANDOM_SEARCH_RADIUS
-                        );
-                        */
             enemy_pick_random_destination(enemy);
 
             enemy->travel_start = enemy->position;
@@ -219,18 +211,11 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
             enemy->angle_change = 0.0;
             enemy->previous_angle = enemy->forward_angle;
             enemy->forward_angle = angle_xz(pos, enemy->travel_dest);
-
-      
-            /*
-            float angle = enemy->forward_angle;
-            enemy->model.transform = MatrixRotateXYZ((Vector3){ 0.0, angle, 0.0 });
-            */
             
             return;
         }
         
 
-        
 
         // smooth the start and end.
         // -------- TODO: make this better:
@@ -255,9 +240,7 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
             enemy->dest_reached = 1;
         }
 
-
         move_enemy(enemy, pos);
-        
         return;
     }
 }

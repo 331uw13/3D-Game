@@ -8,7 +8,7 @@ in vec3 fragNormal;
 
 // Input uniform values
 uniform sampler2D texture0;
-uniform float projectile_alpha;
+uniform float effect_speed;
 
 // Output fragment color
 out vec4 finalColor;
@@ -72,9 +72,18 @@ void main()
 {
     vec4 col = fragColor;
 
-    vec3 v = voronoi3d(fragPosition * 4.0);
-    col.xyz = v;
+    vec3 v = voronoi3d((fragPosition) * effect_speed);
+    float gv = v.x;
+
+    col.xyz = fragColor.xyz;
+    col.w = gv;
+
+
 
     finalColor = col;
-
 }
+
+
+
+
+

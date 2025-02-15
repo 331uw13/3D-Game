@@ -60,6 +60,8 @@ struct enemy_t* create_enemy(
         Vector3 position
         );
 
+void delete_enemy(struct enemy_t* enemy);
+
 void draw_enemy_hitbox(struct enemy_t* enemy);
 void move_enemy(struct enemy_t* enemy, Vector3 position);
 

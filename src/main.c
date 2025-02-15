@@ -5,10 +5,13 @@
 #include <math.h>
 #include <raymath.h>
 #include <time.h>
+#include <string.h>
 
 #include "state.h"
 #include "input.h"
 #include "util.h"
+
+#include "terrain.h"
 
 #define SCRN_W 1200
 #define SCRN_H 700
@@ -21,93 +24,48 @@ void cleanup(struct state_t* gst);
 
 void loop(struct state_t* gst) {
 
-    
+   
+    /*
     Model testfloor = LoadModelFromMesh(GenMeshCube(40.0, 0.25, 40.0));
     testfloor.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID9x9_TEXID];
     testfloor.materials[0].shader = gst->shaders[DEFAULT_SHADER];
-
+    */
 
     create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
-    
-    create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
-            (Vector3) { -12.0, 2.0, 3.0 } /* position */
 
-            );
-
-    create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
-            (Vector3) { 12.0, 2.0, 8.0 } /* position */
-
-            );
-
-    create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, /* hitbox */
-            (Vector3) { 12.0, 0.0, -7.0 } /* position */
-
-            );
-
-
-    // Setup shader for particle system. ---------
-    //
-  /*
-    Shader testshader = LoadShader(
-            "lighting_instancing.vs",
-            "res/shaders/particle.fs"
-            );
    
-    testshader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(testshader, "mvp");
-    testshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(testshader, "viewPos");
-    testshader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(testshader, "instanceTransform");
-    
-    */
-
     /*
+    create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
+            (Vector3) { -12.0, 2.0, 3.0 } // position
 
-    // Setup material for particle system. -------
-    //
-    Material testmaterial = LoadMaterialDefault();
-    testmaterial.shader = gst->shaders[TEST_PSYS_SHADER];
-
-    // Setup mesh for particles. -----------------
-    //
-    const float tmsize = 0.1;
-    Mesh testmesh = GenMeshCube(tmsize, tmsize, tmsize);
-
-
-    // Create the particle system ----------------
-
-    Model particlemodel = LoadModel("res/models/particle.glb");
-
-    struct psystem_t testpsys;
-    create_psystem(
-            gst,
-            &testpsys,
-            15000,
-            testpsys_pupdate,
-            testpsys_pinit
             );
 
-    testpsys.particle_material = testmaterial;
-    testpsys.particle_mesh = testmesh;
+    create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
+            (Vector3) { 12.0, 2.0, 8.0 } // position 
 
+            );
 
+    create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
+            (Vector3) { 12.0, 0.0, -7.0 } // position
 
-
-    //add_particles(gst, &testpsys, 15000);
+            );
 
     */
 
+    init_perlin_noise();
 
-    // ---------------------------------------------
-
-    
+    struct terrain_t terrain = { 0 };
+    generate_heightmap(&terrain);
+    generate_terrain_mesh(gst, &terrain);
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -130,7 +88,7 @@ void loop(struct state_t* gst) {
         /*
         SetShaderValue(gst->shaders[TEST_PSYS_SHADER], 
                 gst->shaders[TEST_PSYS_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-       */
+        */
 
     
 
@@ -181,16 +139,15 @@ void loop(struct state_t* gst) {
                 }
 
 
+                render_terrain(gst, &terrain);
 
-                DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
-
+                //DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
                 player_render(gst, &gst->player);
 
 
+                EndShaderMode(); // -----------
 
-    
-                EndShaderMode();
-              
+
                 update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
 
             }
@@ -207,24 +164,26 @@ void loop(struct state_t* gst) {
 
 
                 DrawText(TextFormat("FPS(%i)", GetFPS()),
-                        15.0, 10.0, 20.0, WHITE);
+                        15.0, 10.0, 20.0, GREEN);
 
                 DrawText(TextFormat("NoClip(%s)", gst->player.noclip ? "ON" : "OFF"),
                         120.0, 10.0, 20.0, GREEN);
 
-                DrawText(TextFormat("DrawDebug (%s)", gst->draw_debug ? "ON" : "OFF"),
-                        15.0, GetScreenHeight() - 30.0, 20.0, (Color){80,150,160,255});
 
-
-                DrawText(TextFormat("Particles: %i", gst->psystems[PSYS_ENEMYHIT].num_alive_parts),
-                        15.0, 30.0, 20.0, PURPLE);
             }
 
         }
         EndDrawing();
+
+        if(IsKeyPressed(KEY_L)) {
+            delete_terrain(&terrain);
+        }
     }
 
-    UnloadModel(testfloor);
+
+    delete_terrain(&terrain);
+
+    //UnloadModel(testfloor);
 }
 
 
@@ -240,8 +199,8 @@ void cleanup(struct state_t* gst) {
     free_enemyarray(gst);
     free_player(&gst->player);
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
+    UnloadShader(gst->shaders[PLAYER_PROJECTILE_SHADER]);
     UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
-    UnloadShader(gst->player.gun.projectile_shader);
     CloseWindow();
 }
 
@@ -281,16 +240,11 @@ void first_setup(struct state_t* gst) {
     gst->next_projlight_index = 0;
 
     gst->dt = 0.016;
-  
+
+    memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
 
 
-    gst->player.gun.projectile_shader
-        = LoadShader(
-                "res/shaders/projectile.vs", 
-                "res/shaders/projectile.fs"
-            );
-
-    
+   
     float fog_density = 0.040;
 
 
@@ -300,9 +254,9 @@ void first_setup(struct state_t* gst) {
         Shader* shader = &gst->shaders[DEFAULT_SHADER];
 
         *shader = LoadShader(
-                "res/shaders/lighting.vs",
-                "res/shaders/fog.fs"
-            );
+            "res/shaders/lighting.vs",
+            "res/shaders/fog.fs"
+        );
 
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -316,14 +270,28 @@ void first_setup(struct state_t* gst) {
     // -----------------------
 
 
+    // --- Setup Projectile Shader ---
+    {
+        Shader* shader = &gst->shaders[PLAYER_PROJECTILE_SHADER];
+        *shader = LoadShader(
+            "res/shaders/projectile.vs", 
+            "res/shaders/projectile.fs"
+        );
+
+
+        gst->fs_unilocs[PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC] 
+            = GetShaderLocation(*shader, "effect_speed");
+
+    }
+ 
 
     // --- Setup (ENEMY_HIT) ParticleSystem Shader ---
     {
         Shader* shader = &gst->shaders[ENEMY_HIT_PSYS_SHADER];
         *shader = LoadShader(
-                "res/shaders/particle_core.vs",
-                "res/shaders/enemy_hit_psystem.fs"
-                );
+            "res/shaders/particle_core.vs",
+            "res/shaders/enemy_hit_psystem.fs"
+        );
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
