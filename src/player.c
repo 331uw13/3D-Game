@@ -34,7 +34,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     setup_weapon(
             &p->gun,
-            45.0,  /* projectile speed */
+            60.0,  /* projectile speed */
             10.0, /* projectile damage */
             0.2,  /* knockback */
             5.0,  /* projectile max lifetime */

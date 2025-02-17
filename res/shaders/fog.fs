@@ -102,9 +102,7 @@ void main()
             }
 
 
-
-
-            specular += (specCo * specCo);
+            specular += (dist * projlights[i].color.rgb) * (specCo * specCo);
         }
     }
 

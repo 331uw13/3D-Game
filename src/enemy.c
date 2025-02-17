@@ -153,7 +153,7 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
     Vector3 pos = enemy->position;
 
 
-    pos.y = sin(enemy->id*3 + GetTime()*3.0)*0.20 + 2.0;
+    pos.y = sin(enemy->id*3 + GetTime()*3.0)*0.20 + 10.0;
     move_enemy(enemy, pos);
     
     enemy->was_hit = 

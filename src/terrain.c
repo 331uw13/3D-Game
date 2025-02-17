@@ -12,20 +12,20 @@
 size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
     size_t index = 0;
 
-    int r_x = round(x);
-    int r_z = round(z);
+    int r_x = round(x / terrain->xz_scale);
+    int r_z = round(z / terrain->xz_scale);
 
-    long int i = (r_x * HEIGHTMAP_SIZE_X + r_z);
+    long int i = (r_z * terrain->heightmap.size_x + r_x);
 
     i = (i < 0) ? 0 : (i > HEIGHTMAP_SIZE_XZ) ? HEIGHTMAP_SIZE_XZ : i;
     index = (size_t)i;
+
 
     return index;
 }
 
 
 float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
-    float result = 0.0;
     size_t index = get_heightmap_index(terrain, x, z);
     return terrain->heightmap.data[index];
 }
@@ -40,13 +40,16 @@ void generate_heightmap(struct terrain_t* terrain) {
     terrain->heightmap.size_x = HEIGHTMAP_SIZE_X;
     terrain->heightmap.size_z = HEIGHTMAP_SIZE_Z;
 
+    terrain->xz_scale = 1.0;
 
     float max_x = (float)terrain->heightmap.size_x;
     float max_z = (float)terrain->heightmap.size_z;
 
 
     float freq = 8.0;
-    float amp = 3.0;
+    float amp = 8.0;
+
+    terrain->highest_point = 0.0;
 
     for(int z = 0; z < terrain->heightmap.size_z; z++) {
         for(int x = 0; x < terrain->heightmap.size_x; x++) {
@@ -55,11 +58,13 @@ void generate_heightmap(struct terrain_t* terrain) {
             float p_nx = ((float)x / max_x) * freq;
             float p_nz = ((float)z / max_z) * freq;
 
-            float value = fbm_2D(p_nx, p_nz, 2) * amp;
+            float value = fbm_2D(p_nx, p_nz, 3) * amp;
 
+            if(value > terrain->highest_point) {
+                terrain->highest_point = value;
+            }
 
             terrain->heightmap.data[index] = value;
-            
         }
     }
 
@@ -106,6 +111,7 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
 
     Mesh* mesh = &terrain->mesh;
 
+    const float sxz = 4.0;
 
     mesh->triangleCount = (terrain->heightmap.size_x-1) * (terrain->heightmap.size_z-1) * 2;
     mesh->vertexCount = mesh->triangleCount * 3;
@@ -118,8 +124,8 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
     int n_counter = 0;  // count mesh normals.
     int tc_counter = 0; // count mesh texture coordinates.
 
-
-    Vector3 scale = (Vector3) { 2.0, 1.0, 2.0 };
+    // TODO:
+    Vector3 scale = (Vector3) { sxz, 1.0, sxz };
 
     // used for calculating normals
     Vector3 vA = { 0 };
@@ -200,6 +206,7 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
         }
     }
 
+    terrain->xz_scale = sxz;
     UploadMesh(mesh, 0);
 
     terrain->transform = MatrixTranslate(0, 0, 0);
@@ -241,6 +248,5 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain) {
     }
 
 }
-
 
 

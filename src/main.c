@@ -33,8 +33,10 @@ void loop(struct state_t* gst) {
 
     create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
 
-   
+
+
     /*
+   
     create_enemy(gst,
             "res/models/enemy.glb", ENEMY_0_TEXID,
             ENEMY_0_MAX_HEALTH,
@@ -59,14 +61,29 @@ void loop(struct state_t* gst) {
 
             );
 
-    */
+            */
 
+    for(int i = 0; i < 10; i++) {
+    
+        create_enemy(gst,
+            "res/models/enemy.glb", ENEMY_0_TEXID,
+            ENEMY_0_MAX_HEALTH,
+            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
+            (Vector3) { GetRandomValue(80,20), 0.0, GetRandomValue(80,20) } // position
+
+            );
+
+
+    }
+
+    /*
     init_perlin_noise();
 
     struct terrain_t terrain = { 0 };
     generate_heightmap(&terrain);
     generate_terrain_mesh(gst, &terrain);
 
+    */
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
         double time = GetTime();
@@ -75,8 +92,6 @@ void loop(struct state_t* gst) {
 
         // --- update movement. ---
 
-        handle_userinput(gst);
-        update_player(gst, &gst->player);
        
 
         
@@ -105,6 +120,8 @@ void loop(struct state_t* gst) {
             BeginMode3D(gst->player.cam);
             {
                 
+        handle_userinput(gst);
+        update_player(gst, &gst->player);
            
 
                 BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
@@ -139,7 +156,7 @@ void loop(struct state_t* gst) {
                 }
 
 
-                render_terrain(gst, &terrain);
+                render_terrain(gst, &gst->terrain);
 
                 //DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
                 player_render(gst, &gst->player);
@@ -149,6 +166,9 @@ void loop(struct state_t* gst) {
 
 
                 update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
+
+
+
 
             }
             EndMode3D();
@@ -175,13 +195,9 @@ void loop(struct state_t* gst) {
         }
         EndDrawing();
 
-        if(IsKeyPressed(KEY_L)) {
-            delete_terrain(&terrain);
-        }
     }
 
 
-    delete_terrain(&terrain);
 
     //UnloadModel(testfloor);
 }
@@ -201,6 +217,7 @@ void cleanup(struct state_t* gst) {
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[PLAYER_PROJECTILE_SHADER]);
     UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
+    delete_terrain(&gst->terrain);
     CloseWindow();
 }
 
@@ -245,7 +262,7 @@ void first_setup(struct state_t* gst) {
 
 
    
-    float fog_density = 0.040;
+    float fog_density = 0.026;
 
 
     // --- Setup Default Shader ---
@@ -336,6 +353,19 @@ void first_setup(struct state_t* gst) {
 
 
     init_player_struct(gst, &gst->player);
+
+
+    // --- Setup Terrain ----
+    {
+        init_perlin_noise();
+        gst->terrain = (struct terrain_t) { 0 };
+
+        generate_heightmap(&gst->terrain);
+        generate_terrain_mesh(gst, &gst->terrain);
+
+
+    }
+
 
     // --- add lights. ---
     

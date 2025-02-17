@@ -18,6 +18,14 @@ struct player_t {
     Vector3  hitbox;
     Vector3  looking_at; // normalized vector where the player is looking towards
 
+    float    target_heightvalue;
+    float    heightvalue;
+
+    int prev_heightmap_ix;
+    int prev_heightmap_iz;
+
+    Vector3  start_pos;
+
     //BoundingBox boundingbox;
     Vector3  velocity;
     float    walkspeed;

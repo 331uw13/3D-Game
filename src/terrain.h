@@ -28,6 +28,9 @@ struct terrain_t {
     Matrix    transform;
     int  mesh_generated;
     struct heightmap_t heightmap;
+
+    float highest_point;
+    float xz_scale;
 };
 
 
@@ -40,10 +43,6 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain);
 void delete_terrain(struct terrain_t* terrain);
 
 void render_terrain(struct state_t* gst, struct terrain_t* terrain);
-
-
-
-
 
 
 

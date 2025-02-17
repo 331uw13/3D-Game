@@ -20,6 +20,7 @@
 #include "object.h"
 #include "enemy.h"
 #include "psystem.h"
+#include "terrain.h"
 
 // shaders.
 #define MAX_SHADERS 4
@@ -62,6 +63,7 @@ struct state_t {
 
     struct psystem_t psystems[MAX_PSYSTEMS];
     
+    struct terrain_t terrain;
 
 
     int draw_debug; // <- TODO.
