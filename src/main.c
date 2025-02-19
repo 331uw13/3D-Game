@@ -184,12 +184,20 @@ void loop(struct state_t* gst) {
 
 
                 DrawText(TextFormat("FPS(%i)", GetFPS()),
-                        15.0, 10.0, 20.0, GREEN);
+                        15.0, 40.0, 20.0, (Color){ 150, 150, 150, 255 });
 
                 DrawText(TextFormat("NoClip(%s)", gst->player.noclip ? "ON" : "OFF"),
-                        120.0, 10.0, 20.0, GREEN);
+                        120.0, 40.0, 20.0, (Color){ 150, 150, 150, 255 });
 
 
+                DrawText(TextFormat("x: %0.2f", gst->player.position.x),
+                        15.0, 10.0, 20.0, (Color){ 200, 100, 20, 255});
+                
+                DrawText(TextFormat("y: %0.2f", gst->player.position.x),
+                        15.0+100.0, 10.0, 20.0, (Color){ 100, 200, 20, 255});
+                
+                DrawText(TextFormat("z: %0.2f", gst->player.position.x),
+                        15.0+100.0*2, 10.0, 20.0, (Color){ 20, 100, 200, 255});
             }
 
         }
@@ -262,7 +270,7 @@ void first_setup(struct state_t* gst) {
 
 
    
-    float fog_density = 0.026;
+    float fog_density = 0.005;
 
 
     // --- Setup Default Shader ---

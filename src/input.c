@@ -58,6 +58,13 @@ void handle_userinput(struct state_t* gst) {
     // ----- Handle player Y movement -------
     //
 
+
+    // TODO: CLEAN THIS SHIT.
+    // - fix terrain max y thing. clips into mesh.
+    // - make this helper function for enemies to use too.
+    // - clean enemy stuff too :)
+
+    if(!gst->player.noclip)
     {
 
         if(IsKeyPressed(KEY_T)) {
@@ -67,15 +74,19 @@ void handle_userinput(struct state_t* gst) {
         Vector3 pos = gst->player.position;
 
 
+        // pretty expensive to compute for bigger terrain
+        // but will work around that someday.
 
-
-        Vector2 asd = GetMousePosition();
-        Camera tmpcam = gst->player.cam;
-
+        /*
+        printf("%f\n", gst->terrain.highest_point);
 
         ray = (Ray) {
-            (Vector3) { gst->player.position.x, 6.0, gst->player.position.z },
-            (Vector3) { 0.0, -1.0, 0.0 }
+            (Vector3) {
+                gst->player.position.x,
+                gst->terrain.highest_point,
+                gst->player.position.z
+            },
+            (Vector3) { 0.0, -0.99, 0.0 }
         };
         RayCollision mesh_info = { 0 };
 
@@ -83,8 +94,12 @@ void handle_userinput(struct state_t* gst) {
         mesh_info = GetRayCollisionMesh(ray, gst->terrain.mesh, gst->terrain.transform);
         
 
-        gst->player.position.y = ((gst->terrain.highest_point - mesh_info.distance) - 8);
+        gst->player.position.y = ((gst->terrain.highest_point+4)-mesh_info.distance);
 
+        */
+
+        gst->player.position.y 
+            = 3.5 + get_smooth_heightmap_value(&gst->terrain, gst->player.position.x, gst->player.position.z);
 
 
         float scale_up = ( gst->player.position.y - gst->player.cam.position.y);
@@ -95,6 +110,14 @@ void handle_userinput(struct state_t* gst) {
         gst->player.cam.position.y = gst->player.position.y;
 
 
+    }
+    else {
+        if(IsKeyDown(KEY_SPACE)) {
+            CameraMoveUp(&gst->player.cam, dt * 15.0);
+        }
+        else if(IsKeyDown(KEY_LEFT_CONTROL)) {
+            CameraMoveUp(&gst->player.cam, -(dt * 18.0));
+        } 
     }
 
 
@@ -136,12 +159,7 @@ void handle_userinput(struct state_t* gst) {
         
     }
     else {
-        if(IsKeyDown(KEY_SPACE)) {
-            CameraMoveUp(&gst->player.cam, dt * 15.0);
-        }
-        else if(IsKeyDown(KEY_LEFT_CONTROL)) {
-            CameraMoveUp(&gst->player.cam, -(dt * 18.0));
-        }
+       
     }
     */
 
