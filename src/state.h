@@ -1,7 +1,7 @@
 #ifndef GSTATE_H
 #define GSTATE_H
 
-
+#include <raylib.h>
 #include <rcamera.h> // raylib camera
 
 #include "lib/rlights.h" // raylib light implementation
@@ -18,16 +18,16 @@
 
 #include "player.h"
 #include "object.h"
-#include "enemy.h"
+//#include "enemy.h"
 #include "psystem.h"
 #include "terrain.h"
 
 // shaders.
 #define MAX_SHADERS 4
 #define DEFAULT_SHADER 0
-#define PLAYER_PROJECTILE_SHADER 1
-#define ENEMY_HIT_PSYS_SHADER 2
-#define ENEMY_HOVER_EFFECT_SHADER 3
+#define PLANET_SKYBOX_SHADER 1
+#define PLAYER_PROJECTILE_SHADER 2
+//#define ENEMY_HIT_PSYS_SHADER 2
 // ...
 
 // particle systems.
@@ -38,10 +38,15 @@
 
 // uniform locations for fragment shaders
 #define MAX_FS_UNILOCS 4
+#define PLANET_SUN_POSITION_FS_UNILOC 1
+#define PLANET_SKYBOX_VIEWPOS_FS_UNILOC 2
+#define PLANET_SKYBOX_GLOBALTIME_FS_UNILOC 3
+
+/* !!! NOT USED !!! */
 #define PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC 0
 
 
-
+// Game state.
 struct state_t {
 
     float dt; // previous frame time.
@@ -73,11 +78,16 @@ struct state_t {
     size_t objarray_size;
     size_t num_objects;
 
-
+    /*
     struct enemy_t* enemies;
     size_t enemyarray_size;
     size_t num_enemies;
 
+    */
+
+    Mesh     skybox_mesh;
+    Material skybox_material;
+    Matrix   skybox_transform;
 
     int rseed; // seed for randomgen functions.
 };

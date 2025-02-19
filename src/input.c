@@ -39,21 +39,7 @@ void handle_userinput(struct state_t* gst) {
     }
     
     camspeed *= dt;
-    
-    if(IsKeyDown(KEY_W)) {
-        gst->player.velocity.z += camspeed;
-    }
-    if(IsKeyDown(KEY_S)) {
-        gst->player.velocity.z -= camspeed;
-    }
-    if(IsKeyDown(KEY_A)) {
-        gst->player.velocity.x -= camspeed;
-    }
-    if(IsKeyDown(KEY_D)) {
-        gst->player.velocity.x += camspeed;
-    }
-
-
+   
         
     // ----- Handle player Y movement -------
     //
@@ -112,13 +98,29 @@ void handle_userinput(struct state_t* gst) {
 
     }
     else {
+        const float noclip_speed_mult = 3;
         if(IsKeyDown(KEY_SPACE)) {
-            CameraMoveUp(&gst->player.cam, dt * 15.0);
+            CameraMoveUp(&gst->player.cam, (dt * 15.0) * noclip_speed_mult);
         }
         else if(IsKeyDown(KEY_LEFT_CONTROL)) {
-            CameraMoveUp(&gst->player.cam, -(dt * 18.0));
-        } 
+            CameraMoveUp(&gst->player.cam, -(dt * 18.0) * noclip_speed_mult);
+        }
+        camspeed *= noclip_speed_mult;
     }
+ 
+    if(IsKeyDown(KEY_W)) {
+        gst->player.velocity.z += camspeed;
+    }
+    if(IsKeyDown(KEY_S)) {
+        gst->player.velocity.z -= camspeed;
+    }
+    if(IsKeyDown(KEY_A)) {
+        gst->player.velocity.x -= camspeed;
+    }
+    if(IsKeyDown(KEY_D)) {
+        gst->player.velocity.x += camspeed;
+    }
+
 
 
     /*

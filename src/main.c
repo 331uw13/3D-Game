@@ -6,6 +6,7 @@
 #include <raymath.h>
 #include <time.h>
 #include <string.h>
+#include <rlgl.h>
 
 #include "state.h"
 #include "input.h"
@@ -63,6 +64,7 @@ void loop(struct state_t* gst) {
 
             */
 
+    /*
     for(int i = 0; i < 10; i++) {
     
         create_enemy(gst,
@@ -79,6 +81,7 @@ void loop(struct state_t* gst) {
 
 
     }
+    */
 
     /*
     init_perlin_noise();
@@ -90,7 +93,7 @@ void loop(struct state_t* gst) {
     */
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
-        double time = GetTime();
+        float time = GetTime();
 
         gst->dt = dt;
 
@@ -98,20 +101,43 @@ void loop(struct state_t* gst) {
 
        
 
-        
+        // update view position for shaders.
+
         float camposf3[3] = { gst->player.cam.position.x, gst->player.cam.position.y, gst->player.cam.position.z };
+        
         SetShaderValue(gst->shaders[DEFAULT_SHADER], 
                 gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
+                
+        SetShaderValue(gst->shaders[PLANET_SKYBOX_SHADER],
+                gst->fs_unilocs[PLANET_SKYBOX_VIEWPOS_FS_UNILOC], camposf3, SHADER_UNIFORM_VEC3);
+       
+        SetShaderValue(gst->shaders[PLANET_SKYBOX_SHADER],
+                gst->fs_unilocs[PLANET_SKYBOX_GLOBALTIME_FS_UNILOC], &time, SHADER_UNIFORM_FLOAT);
        
         /*
         SetShaderValue(gst->shaders[TEST_PSYS_SHADER], 
                 gst->shaders[TEST_PSYS_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
         */
 
-    
-        handle_userinput(gst);
-        update_player(gst, &gst->player);
+
+
+        float sunpos[4] = { 
+            0.0,
+            sin(0.5),
+            cos(0.5)
+        };
+
+
+        SetShaderValue(
+                gst->shaders[PLANET_SKYBOX_SHADER]
+                , gst->fs_unilocs[PLANET_SUN_POSITION_FS_UNILOC], sunpos, SHADER_UNIFORM_VEC3);
+       
+        gst->lights[0].position = Vector3Scale((Vector3){sunpos[0], sunpos[1], sunpos[2]},
+                gst->terrain.heightmap.size);
+
+        UpdateLightValues(gst->shaders[DEFAULT_SHADER], gst->lights[0]);
+
 
         // --- render. ---
 
@@ -125,8 +151,22 @@ void loop(struct state_t* gst) {
             // Draw 3D stuff
             BeginMode3D(gst->player.cam);
             {
-                
+               
+                rlDisableBackfaceCulling();
+                rlDisableDepthMask();
+
+
+
+                gst->skybox_transform = MatrixTranslate(
+                        gst->player.cam.position.x,
+                        gst->player.cam.position.y,
+                        gst->player.cam.position.z);
+                DrawMesh(gst->skybox_mesh, gst->skybox_material, gst->skybox_transform);
+
+                rlEnableBackfaceCulling();
+                rlEnableDepthMask();
            
+
 
                 BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
@@ -142,6 +182,7 @@ void loop(struct state_t* gst) {
                 
                 }
 
+                /*
 
                 // Draw enemies.
                 //
@@ -150,6 +191,7 @@ void loop(struct state_t* gst) {
                     update_enemy(gst, enemy);
                     render_enemy(gst, enemy);
                 }
+                */
 
 
                 render_terrain(gst, &gst->terrain);
@@ -161,7 +203,7 @@ void loop(struct state_t* gst) {
                 EndShaderMode(); // -----------
 
 
-                update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
+                //update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
 
 
 
@@ -199,6 +241,8 @@ void loop(struct state_t* gst) {
         }
         EndDrawing();
 
+        handle_userinput(gst);
+        update_player(gst, &gst->player);
     }
 
 
@@ -214,15 +258,18 @@ void cleanup(struct state_t* gst) {
         UnloadTexture(gst->tex[i]);
     }
 
-    delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
     free_objarray(gst);
-    free_enemyarray(gst);
+    //delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
+    //free_enemyarray(gst);
     free_player(&gst->player);
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[PLAYER_PROJECTILE_SHADER]);
-    UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
-    UnloadShader(gst->shaders[ENEMY_HOVER_EFFECT_SHADER]);
+    UnloadShader(gst->shaders[PLANET_SKYBOX_SHADER]);
+    //UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
+    
     delete_terrain(&gst->terrain);
+    UnloadMesh(gst->skybox_mesh);
+
     CloseWindow();
 }
 
@@ -255,19 +302,24 @@ void first_setup(struct state_t* gst) {
     gst->objects = NULL;
     gst->objarray_size = 0;
     gst->num_objects = 0;
-    
+  
+    gst->next_projlight_index = 0;
+    /*
     gst->enemies = NULL;
     gst->enemyarray_size = 0;
     gst->num_enemies = 0;
     gst->next_projlight_index = 0;
+    */
 
     gst->dt = 0.016;
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
 
-
+    const float fog_density = 0.005;
+    const float terrain_scale = 3.0;
+    const u32   planet_size = 500;
+    const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
    
-    float fog_density = 0.005;
 
 
     // --- Setup Default Shader ---
@@ -306,6 +358,32 @@ void first_setup(struct state_t* gst) {
 
     }
  
+    // --- Setup Skybox Shader ---
+    {
+        Shader* shader = &gst->shaders[PLANET_SKYBOX_SHADER];
+        *shader = LoadShader(
+            "res/shaders/sky.vs", 
+            "res/shaders/sky.fs"
+        );
+
+        gst->fs_unilocs[PLANET_SUN_POSITION_FS_UNILOC]
+            = GetShaderLocation(*shader, "sun_position");
+        
+        gst->fs_unilocs[PLANET_SKYBOX_VIEWPOS_FS_UNILOC]
+            = GetShaderLocation(*shader, "view_position");
+        
+        gst->fs_unilocs[PLANET_SKYBOX_GLOBALTIME_FS_UNILOC]
+            = GetShaderLocation(*shader, "time");
+
+        float sunpos[4] = { 
+            sun_position.x,
+            sun_position.y,
+            sun_position.z
+        };
+        SetShaderValue(*shader, gst->fs_unilocs[PLANET_SUN_POSITION_FS_UNILOC], sunpos, SHADER_UNIFORM_VEC3);
+    
+    }
+    /*
 
     // --- Setup (ENEMY_HIT) ParticleSystem Shader ---
     {
@@ -323,16 +401,6 @@ void first_setup(struct state_t* gst) {
     // -----------------------
 
 
-    // --- Setup Enemy hover Effect shader ---
-    {
-        Shader* shader = &gst->shaders[ENEMY_HOVER_EFFECT_SHADER];
-        *shader = LoadShader(
-            "res/shaders/enemy_hover_effect.vs", 
-            "res/shaders/enemy_hover_effect.fs"
-        );
-
-
-    }
     // --- Setup (ENEMY_HIT) Particle System. ---
     {
         create_psystem(
@@ -348,6 +416,7 @@ void first_setup(struct state_t* gst) {
         psys->particle_material.shader = gst->shaders[ENEMY_HIT_PSYS_SHADER];
         psys->particle_mesh = GenMeshCube(0.2, 0.2, 0.2);
     }
+    */
 
     // make sure all lights are disabled
     for(int i = 0; i < (MAX_LIGHTS + MAX_PROJECTILE_LIGHTS); i++) {
@@ -367,8 +436,8 @@ void first_setup(struct state_t* gst) {
     load_tex(gst, "res/textures/enemy.png", ENEMY_0_TEXID);
     load_tex(gst, "res/textures/gun_0.png", GUN_0_TEXID);
 
-
     init_player_struct(gst, &gst->player);
+
 
 
     // --- Setup Terrain ----
@@ -376,12 +445,10 @@ void first_setup(struct state_t* gst) {
         init_perlin_noise();
         gst->terrain = (struct terrain_t) { 0 };
 
-        const int   terrain_size = 300;
-        const float terrain_scale = 3.0;
 
         generate_terrain(
                 gst, &gst->terrain,
-                terrain_size,
+                planet_size,
                 terrain_scale
                 );
 
@@ -393,12 +460,22 @@ void first_setup(struct state_t* gst) {
 
     }
 
+    // --- Setup skybox cube ---
+    // Create big cube around the whole planet.
+    {
+        gst->skybox_mesh = GenMeshSphere(1, 8, 8);
+        gst->skybox_material = LoadMaterialDefault();
+        gst->skybox_material.shader = gst->shaders[PLANET_SKYBOX_SHADER];
+
+        gst->skybox_transform = MatrixTranslate(0, 0, 0);
+    }
+
 
     // --- add lights. ---
     
     gst->lights[gst->num_lights] 
-        = CreateLight(gst, LIGHT_DIRECTIONAL, 
-                (Vector3){ -4.05, 2.01, -4.0 }, (Vector3){0,0,0},
+        = CreateLight(gst, LIGHT_POINT, 
+                sun_position, (Vector3){0,0,0},
                 (Color){ 200, 100, 30, 255 }, gst->shaders[DEFAULT_SHADER]);
 
 

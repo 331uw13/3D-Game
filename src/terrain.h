@@ -5,6 +5,7 @@
 
 #include "perlin_noise.h"
 #include "typedefs.h"
+#include <stddef.h>
 
 struct state_t;
 

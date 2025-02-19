@@ -117,7 +117,7 @@ void main()
     float dist = length(viewPos - fragPosition);
 
     // these could be parameters...
-    const vec4 fogColor = vec4(0.0392, 0.0392, 0.0392, 1.0);
+    const vec4 fogColor = vec4(0.0, 0.1, 0.1, 1.0);
     //const float fogDensity = 0.16;
 
     // Exponential fog

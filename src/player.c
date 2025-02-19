@@ -61,6 +61,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     proj->position = (Vector3) { 0 };
     proj->position = Vector3Transform(proj->position, p->gun_model.transform);
 
+    proj->light_index = gst->next_projlight_index;
 
     p->gun.proj_nextindex++;
     if(p->gun.proj_nextindex >= WEAPON_MAX_PROJECTILES) {
@@ -106,6 +107,7 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
         SetShaderValue(gst->shaders[DEFAULT_SHADER], light->positionLoc, lightpos, SHADER_UNIFORM_VEC3);
         
 
+        /*
 
         BoundingBox proj_boundingbox
             = (BoundingBox)
@@ -149,6 +151,7 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
                 printf("\033[31m >> ENEMY HIT (%li) |  Health: %i\033[0m\n", enemy->id, enemy->health);
             }
         }
+        */
     }
 }
 
@@ -173,7 +176,7 @@ void player_render(struct state_t* gst, struct player_t* p) {
     float time = 2.0;
 
     SetShaderValue(*shader, effectspeed_uniloc, &time, SHADER_UNIFORM_FLOAT);
-    
+   
 
     for(size_t i = 0; i < WEAPON_MAX_PROJECTILES; i++) {
         proj = &p->gun.projectiles[i];
@@ -194,7 +197,6 @@ void player_render(struct state_t* gst, struct player_t* p) {
         // outer sphere
         DrawSphere(proj->position, 0.42, (Color){ 10, 255, 255, 50 });
         
-
 
         EndShaderMode();
     }

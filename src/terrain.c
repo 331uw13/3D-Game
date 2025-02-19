@@ -120,7 +120,7 @@ void generate_terrain(
     //terrain->xz_scale = 1.0;
 
     float freq = 8.0;
-    float amp = 8.0;
+    float amp = 15.0;
 
     terrain->highest_point = 0.0;
 
