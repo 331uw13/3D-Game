@@ -26,6 +26,9 @@ struct enemy_t {
     Model model;
     int model_loaded;
 
+    Mesh torus;
+    Material torus_material;
+
     float angle_change;
     float forward_angle;
     float previous_angle;
@@ -42,6 +45,7 @@ struct enemy_t {
     Vector3 travel_dest;
     Vector3 travel_start; 
     float travelled;
+
 
     int state;
 };
@@ -64,7 +68,7 @@ void delete_enemy(struct enemy_t* enemy);
 
 void draw_enemy_hitbox(struct enemy_t* enemy);
 void move_enemy(struct enemy_t* enemy, Vector3 position);
-
+void render_enemy(struct state_t* gst, struct enemy_t* enemy);
 void update_enemy(struct state_t* gst, struct enemy_t* enemy);
 void enemy_hit(struct state_t* gst, struct enemy_t* enemy, struct projectile_t* proj);
 

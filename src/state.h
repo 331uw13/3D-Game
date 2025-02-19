@@ -27,6 +27,7 @@
 #define DEFAULT_SHADER 0
 #define PLAYER_PROJECTILE_SHADER 1
 #define ENEMY_HIT_PSYS_SHADER 2
+#define ENEMY_HOVER_EFFECT_SHADER 3
 // ...
 
 // particle systems.

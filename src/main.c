@@ -68,8 +68,12 @@ void loop(struct state_t* gst) {
         create_enemy(gst,
             "res/models/enemy.glb", ENEMY_0_TEXID,
             ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
-            (Vector3) { GetRandomValue(80,20), 0.0, GetRandomValue(80,20) } // position
+            
+            // hitbox
+            (Vector3) { 2.0, 2.0, 2.0 }, 
+            
+            // position
+            (Vector3) { GetRandomValue(-80,80), 0.0, GetRandomValue(-80,80) }
 
             );
 
@@ -106,6 +110,8 @@ void loop(struct state_t* gst) {
         */
 
     
+        handle_userinput(gst);
+        update_player(gst, &gst->player);
 
         // --- render. ---
 
@@ -120,8 +126,6 @@ void loop(struct state_t* gst) {
             BeginMode3D(gst->player.cam);
             {
                 
-        handle_userinput(gst);
-        update_player(gst, &gst->player);
            
 
                 BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
@@ -144,15 +148,7 @@ void loop(struct state_t* gst) {
                 for(size_t i = 0; i < gst->num_enemies; i++) {
                     struct enemy_t* enemy = &gst->enemies[i];
                     update_enemy(gst, enemy);
-
-                    DrawMesh(
-                            enemy->model.meshes[0],
-                            enemy->model.materials[0],
-                            enemy->model.transform
-                            );
-
-
-                    
+                    render_enemy(gst, enemy);
                 }
 
 
@@ -225,6 +221,7 @@ void cleanup(struct state_t* gst) {
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[PLAYER_PROJECTILE_SHADER]);
     UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
+    UnloadShader(gst->shaders[ENEMY_HOVER_EFFECT_SHADER]);
     delete_terrain(&gst->terrain);
     CloseWindow();
 }
@@ -279,8 +276,8 @@ void first_setup(struct state_t* gst) {
         Shader* shader = &gst->shaders[DEFAULT_SHADER];
 
         *shader = LoadShader(
-            "res/shaders/lighting.vs",
-            "res/shaders/fog.fs"
+            "res/shaders/default.vs",
+            "res/shaders/default.fs"
         );
 
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
@@ -325,6 +322,17 @@ void first_setup(struct state_t* gst) {
     }
     // -----------------------
 
+
+    // --- Setup Enemy hover Effect shader ---
+    {
+        Shader* shader = &gst->shaders[ENEMY_HOVER_EFFECT_SHADER];
+        *shader = LoadShader(
+            "res/shaders/enemy_hover_effect.vs", 
+            "res/shaders/enemy_hover_effect.fs"
+        );
+
+
+    }
     // --- Setup (ENEMY_HIT) Particle System. ---
     {
         create_psystem(
@@ -368,9 +376,20 @@ void first_setup(struct state_t* gst) {
         init_perlin_noise();
         gst->terrain = (struct terrain_t) { 0 };
 
+        const int   terrain_size = 300;
+        const float terrain_scale = 3.0;
+
+        generate_terrain(
+                gst, &gst->terrain,
+                terrain_size,
+                terrain_scale
+                );
+
+        /*
         generate_heightmap(&gst->terrain);
         generate_terrain_mesh(gst, &gst->terrain);
 
+        */
 
     }
 

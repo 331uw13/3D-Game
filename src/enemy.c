@@ -75,11 +75,13 @@ struct enemy_t* create_enemy(
     ptr->angle_change = 0.0;
     ptr->previous_angle = 0.0;
 
+
     ptr->model_loaded = setup_3Dmodel(gst, &ptr->model, model_filepath, texture_id, position);
     if(!ptr->model_loaded) {
         goto error;
     }
-   
+
+
 
     gst->enemyarray_size = new_num_elem;
 
@@ -88,6 +90,10 @@ struct enemy_t* create_enemy(
             id, max_health, model_filepath, gst->enemyarray_size);
 
 
+    ptr->torus = GenMeshTorus(0.2, 3.0, 8, 8);
+    ptr->torus_material = LoadMaterialDefault();
+    ptr->torus_material.shader = gst->shaders[ENEMY_HOVER_EFFECT_SHADER];
+    
 error:
     return ptr;
 }
@@ -97,6 +103,9 @@ void delete_enemy(struct enemy_t* enemy) {
         UnloadModel(enemy->model);
         enemy->model_loaded = 0;
     }
+
+    UnloadMesh(enemy->torus);
+
 }
 
 
@@ -132,8 +141,6 @@ void enemy_pick_random_destination(struct enemy_t* enemy) {
         if(Vector3Distance(p, enemy->position) >= ENEMY_RND_SEARCH_MIN_RADIUS) {
             valid_pos = 1;
         }
-
-
     }
     
     enemy->travel_dest = p;
@@ -141,7 +148,51 @@ void enemy_pick_random_destination(struct enemy_t* enemy) {
 
 }
 
+void render_enemy(struct state_t* gst, struct enemy_t* enemy) {
+    if(enemy->health > 0) {
+        
+        DrawMesh(
+                enemy->model.meshes[0],
+                enemy->model.materials[0],
+                enemy->model.transform
+                );
 
+
+
+        // draw hovering effect circles
+        
+        //BeginShaderMode(gst->shaders[ENEMY_HOVER_EFFECT_SHADER]);
+        
+        const float time = GetTime()*8 + enemy->id;
+        
+        Vector3 center = enemy->position;
+        center.y -= 1.2;
+
+
+        Color color = (Color) { 25, 255, 10, 150 };
+
+        //DrawCircle3D(center, sin(time)*0.2+0.8, (Vector3){1, 0, 0}, 90, color);
+
+
+        Matrix transform = MatrixTranslate(center.x, center.y, center.z);
+        Matrix rotation = MatrixRotateXYZ((Vector3){ 90*DEG2RAD, 0.0, 0.0 });
+
+        float sc = sin(time)*0.2+0.8;
+        Matrix scale = MatrixScale(sc, sc, sc);
+
+        transform = MatrixMultiply(rotation, transform);
+        transform = MatrixMultiply(scale, transform);
+
+
+        DrawMesh(enemy->torus, enemy->torus_material, transform);
+
+
+        //BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
+
+    }
+
+    
+}
 
 void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
 
@@ -152,9 +203,13 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
     
     Vector3 pos = enemy->position;
 
+    float heightvalue = get_smooth_heightmap_value(&gst->terrain, pos.x, pos.z);
 
-    //float heightvalue = get_smooth_heightmap_value(&gst->terrain, pos.x, pos.z);
-    pos.y = sin(enemy->id*3 + GetTime()*3.0)*0.20 + (10.0);
+    pos.y = 
+        sin(enemy->id*3 + GetTime()*3.0) * 0.3 
+        + heightvalue + 3;
+
+    enemy->travel_dest.y = pos.y;
 
     move_enemy(enemy, pos);
     
@@ -166,11 +221,11 @@ void update_enemy(struct state_t* gst, struct enemy_t* enemy) {
 
 
     if(enemy->was_hit) {
-        const float hit_force_f = 0.9;
+        const float hit_friction = 0.9;
         pos = Vector3Add(pos, enemy->knockback_velocity);
-        enemy->knockback_velocity.x *= hit_force_f;
-        enemy->knockback_velocity.y *= hit_force_f;
-        enemy->knockback_velocity.z *= hit_force_f;
+        enemy->knockback_velocity.x *= hit_friction;
+        enemy->knockback_velocity.y *= hit_friction;
+        enemy->knockback_velocity.z *= hit_friction;
 
         float rf = 0.94;
         enemy->rotation_from_hit.x *= rf;

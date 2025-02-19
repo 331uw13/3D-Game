@@ -15,7 +15,7 @@
 
 // ########  "Private" functions  ##############
 // -----------------------------------------------------------
-// NOTE: X and Z must be set accordingly with terrain X,Z positions!
+// NOTE: X and Z must be set accordingly with terrain X,Z positions and scaling.
 // -----------------------------------------------------------
 static size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
     size_t index = 0;
@@ -23,9 +23,10 @@ static size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
     int r_x = round(x); 
     int r_z = round(z);
 
-    long int i = (r_z * terrain->heightmap.size_x + r_x);
+    long int i = (r_z * terrain->heightmap.size + r_x);
 
-    i = (i < 0) ? 0 : (i > HEIGHTMAP_SIZE_XZ) ? HEIGHTMAP_SIZE_XZ : i;
+    i = (i < 0) ? 0 : (i > terrain->heightmap.total_size) 
+        ? terrain->heightmap.total_size : i;
     index = (size_t)i;
 
     return index;
@@ -43,18 +44,27 @@ static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
 
 
 float get_smooth_heightmap_value(struct terrain_t* terrain, float x, float z) {
-    
+
+
     x += -terrain->transform.m12;
     z += -terrain->transform.m14;
 
+
     Ray ray = (Ray) {
-        (Vector3) { x, terrain->highest_point, z }, // ray position 
-        (Vector3) { 0.0, -1.0, 0.0 } // set ray direction pointing straight down
+        // ray position 
+        (Vector3) { x, terrain->highest_point, z }, 
+        
+        // set ray direction pointing straight down
+        (Vector3) { 0.0, -1.0, 0.0 } 
     };
 
  
     // get 4 closest triangles.
     struct triangle2x_t tr[4];
+
+    // scale x and z back to sensible coordinates for 'get_heightmap_index'.
+    x /= terrain->scaling;
+    z /= terrain->scaling;
 
     // left top
     tr[0] = terrain->triangle_lookup[get_heightmap_index(terrain, x, z)];
@@ -89,37 +99,37 @@ float get_smooth_heightmap_value(struct terrain_t* terrain, float x, float z) {
 
 
     float dist = (mesh_hit_info.hit) ? mesh_hit_info.distance : 0;
-
     return (terrain->highest_point - dist);
 }
 
 
-void generate_heightmap(struct terrain_t* terrain) {
 
-    memset(terrain->heightmap.data, 0, sizeof(float) * HEIGHTMAP_SIZE_XZ);
-    terrain->heightmap.ready = 0;
+void generate_terrain(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        u32    terrain_size,
+        float  terrain_scaling
+) {
 
-    terrain->heightmap.size_x = HEIGHTMAP_SIZE_X;
-    terrain->heightmap.size_z = HEIGHTMAP_SIZE_Z;
+    // start by generating a height map for the terrain.
+    
+    terrain->heightmap.total_size = terrain_size * terrain_size;
+    terrain->heightmap.data = malloc(terrain->heightmap.total_size * sizeof *terrain->heightmap.data);
+    terrain->heightmap.size = terrain_size;
 
-    terrain->xz_scale = 1.0;
-
-    float max_x = (float)terrain->heightmap.size_x;
-    float max_z = (float)terrain->heightmap.size_z;
-
+    //terrain->xz_scale = 1.0;
 
     float freq = 8.0;
     float amp = 8.0;
 
     terrain->highest_point = 0.0;
 
-    for(int z = 0; z < terrain->heightmap.size_z; z++) {
-        for(int x = 0; x < terrain->heightmap.size_x; x++) {
-            size_t index = round(z) * terrain->heightmap.size_x + round(x);
-                //get_heightmap_index(terrain, (float)x, (float)z);
+    for(u32 z = 0; z < terrain->heightmap.size; z++) {
+        for(u32 x = 0; x < terrain->heightmap.size; x++) {
+            size_t index = round(z) * terrain->heightmap.size + round(x);
 
-            float p_nx = ((float)x / max_x) * freq;
-            float p_nz = ((float)z / max_z) * freq;
+            float p_nx = ((float)x / (float)terrain->heightmap.size) * freq;
+            float p_nz = ((float)z / (float)terrain->heightmap.size) * freq;
 
             float value = fbm_2D(p_nx, p_nz, 3) * amp;
 
@@ -131,23 +141,13 @@ void generate_heightmap(struct terrain_t* terrain) {
         }
     }
 
-    terrain->heightmap.ready = 1;
-}
 
-
-void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
-
-    if(!terrain->heightmap.ready) {
-        fprintf(stderr, " >> (ERROR) '%s': heightmap for terrain is not generated?\n",
-                __func__);
-        return;
-    }
+    // then generate triangles for the mesh.
 
     Mesh* mesh = &terrain->mesh;
 
-    const float sxz = 1.0;
 
-    mesh->triangleCount = (terrain->heightmap.size_x-1) * (terrain->heightmap.size_z-1) * 2;
+    mesh->triangleCount = (terrain->heightmap.size-1) * (terrain->heightmap.size-1) * 2;
     mesh->vertexCount = mesh->triangleCount * 3;
 
     mesh->vertices = malloc(mesh->vertexCount * 3 * sizeof(float));
@@ -162,7 +162,7 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
     int tc_counter = 0; // count mesh texture coordinates.
 
     // TODO:
-    Vector3 scale = (Vector3) { sxz, 1.0, sxz };
+    Vector3 scale = (Vector3) { terrain_scaling, 1.0, terrain_scaling };
 
     // used for calculating normals
     Vector3 vA = { 0 };
@@ -170,8 +170,8 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
     Vector3 vB = { 0 };
     Vector3 vN = { 0 };
 
-    for(int z = 0; z < terrain->heightmap.size_z-1; z++) {
-        for(int x = 0; x < terrain->heightmap.size_x-1; x++) {
+    for(u32 z = 0; z < terrain->heightmap.size-1; z++) {
+        for(u32 x = 0; x < terrain->heightmap.size-1; x++) {
 
 
             // one triangle
@@ -204,7 +204,7 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
 
             // save the triangle into triangle_lookup array.
             //
-            size_t tr_index = (z * terrain->heightmap.size_x) + x;
+            size_t tr_index = (z * terrain->heightmap.size) + x;
 
             terrain->triangle_lookup[tr_index] = (struct triangle2x_t) {
             
@@ -240,10 +240,6 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
                     mesh->vertices[v_counter+16],
                     mesh->vertices[v_counter+17]
                 }
-
-
-
-
             };
 
 
@@ -289,11 +285,11 @@ void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain) {
         }
     }
 
-    terrain->xz_scale = sxz;
+    terrain->scaling = terrain_scaling;
     UploadMesh(mesh, 0);
 
-    terrain->transform = MatrixTranslate(TERRAIN_TRANSF_X, 0, TERRAIN_TRANSF_Z);
-    //terrain->transform = MatrixTranslate(-terrain->heightmap.size_x/2, 0, -terrain->heightmap.size_z/2);
+    float terrain_pos = -(terrain_size * terrain_scaling) / 2;
+    terrain->transform = MatrixTranslate(terrain_pos, 0, terrain_pos);
     terrain->material = LoadMaterialDefault();
 
     terrain->material.shader = gst->shaders[DEFAULT_SHADER];
@@ -317,14 +313,19 @@ void delete_terrain(struct terrain_t* terrain) {
         free(terrain->mesh.texcoords);
         terrain->mesh.texcoords = NULL;
     }
-
     if(terrain->triangle_lookup) {
         free(terrain->triangle_lookup);
         terrain->triangle_lookup = NULL;
     }
-    terrain->mesh_generated = 0;
+    if(terrain->heightmap.data) {
+        free(terrain->heightmap.data);
+        terrain->heightmap.data = NULL;
+    }
+
    
     UnloadMesh(terrain->mesh);
+    
+    terrain->mesh_generated = 0;
     printf("\033[32m >> Deleted terrain.\033[0m\n");
 }
 
