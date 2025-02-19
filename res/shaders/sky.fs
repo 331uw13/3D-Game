@@ -69,6 +69,29 @@ vec3 voronoi3d(const in vec3 x) {
 
 // ###########################################################
 
+#define Pi 3.14159
+#define Pi2 (Pi*2)
+
+vec3 colorpalette(float t, float a, float b, float c) {
+    return vec3(
+            0.5+0.5 * cos(Pi2 * (t+a)),
+            0.5+0.5 * cos(Pi2 * (t+b)),
+            0.5+0.5 * cos(Pi2 * (t+c))
+            );
+}
+
+float lerp(float t, float min, float max) {
+    return min + t * (max - min);
+}
+
+vec3 color_lerp(float t, vec3 a, vec3 b) {
+    return vec3(
+            lerp(t, a.x, b.x),
+            lerp(t, a.y, b.y),
+            lerp(t, a.z, b.z)
+            );
+}
+
 
 void main()
 {
@@ -78,13 +101,10 @@ void main()
     vec3 sun_color = vec3(1.0, 0.3, 0.1);
     vec3 horizon_color = vec3(0.0, 0.1, 0.1);
 
-
     vec3 vpos = sun_position - point;
-
     vec3 voronoi = voronoi3d(vpos*5 - sun_position*time);
     voronoi.x = voronoi.x+0.5;
    
-
     float sundst_plu =     length(point - sun_position);
     float sundst_inv = 1.0/sundst_plu;
     sundst_inv *= sundst_inv;
@@ -93,14 +113,20 @@ void main()
     sundst_plu = 1.0-sundst_plu;
     sundst_plu = pow(sundst_plu, 5);
     sundst_plu *= sundst_plu;
-
-
-    //sun_color.x += sin(time)*0.5+0.5;
-
     sun_color += (voronoi.x * sundst_plu);
-
     col = sun_color * sundst_inv;
 
+
+    float yl = lerp(point.y-0.2, 1.0, 0.0);
+    yl = pow(yl, 3.0);
+    yl = max(yl, 0.1);
+    col += yl * vec3(0.0, 0.1, 0.1);
+
+    //vec3 yl = color_lerp(point.y, vec3(0.0, 0.1, 0.1), vec3(0.0, 0.0, 0.0));
+    //col += yl;
+
+
+    
     finalColor = vec4(col, 1.0);
 }
 

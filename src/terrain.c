@@ -108,7 +108,10 @@ void generate_terrain(
         struct state_t* gst,
         struct terrain_t* terrain,
         u32    terrain_size,
-        float  terrain_scaling
+        float  terrain_scaling,
+        float  amplitude,
+        float  frequency,
+        int    octaves
 ) {
 
     // start by generating a height map for the terrain.
@@ -119,8 +122,6 @@ void generate_terrain(
 
     //terrain->xz_scale = 1.0;
 
-    float freq = 8.0;
-    float amp = 15.0;
 
     terrain->highest_point = 0.0;
 
@@ -128,10 +129,10 @@ void generate_terrain(
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = round(z) * terrain->heightmap.size + round(x);
 
-            float p_nx = ((float)x / (float)terrain->heightmap.size) * freq;
-            float p_nz = ((float)z / (float)terrain->heightmap.size) * freq;
+            float p_nx = ((float)x / (float)terrain->heightmap.size) * frequency;
+            float p_nz = ((float)z / (float)terrain->heightmap.size) * frequency;
 
-            float value = fbm_2D(p_nx, p_nz, 3) * amp;
+            float value = fbm_2D(p_nx, p_nz, octaves) * amplitude;
 
             if(value > terrain->highest_point) {
                 terrain->highest_point = value;

@@ -6,7 +6,7 @@
 
 #include "lib/rlights.h" // raylib light implementation
 
-#define CAMERA_SENSETIVITY 0.125
+#define CAMERA_SENSETIVITY 0.00125
 
 #define MAX_TEXTURES 16
 #define NONE_TEXID -1
@@ -23,10 +23,11 @@
 #include "terrain.h"
 
 // shaders.
-#define MAX_SHADERS 4
+#define MAX_SHADERS 6
 #define DEFAULT_SHADER 0
 #define PLANET_SKYBOX_SHADER 1
 #define PLAYER_PROJECTILE_SHADER 2
+
 //#define ENEMY_HIT_PSYS_SHADER 2
 // ...
 
@@ -88,6 +89,7 @@ struct state_t {
     Mesh     skybox_mesh;
     Material skybox_material;
     Matrix   skybox_transform;
+
 
     int rseed; // seed for randomgen functions.
 };

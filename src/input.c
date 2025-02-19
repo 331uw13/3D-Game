@@ -25,8 +25,8 @@ void handle_userinput(struct state_t* gst) {
     Vector2 md = GetMouseDelta();
     float dt = GetFrameTime();
 
-    CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY) * dt, 0);
-    CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY) * dt, 1, 0, 0);
+    CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY), 0);
+    CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY), 1, 0, 0);
 
     gst->player.cam_yaw = (-md.x * CAMERA_SENSETIVITY) * dt;
     gst->player.looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));

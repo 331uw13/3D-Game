@@ -56,7 +56,10 @@ void generate_terrain(
         struct state_t* gst,
         struct terrain_t* terrain,
         u32    terrain_size,
-        float  terrain_scaling
+        float  terrain_scaling,
+        float  amplitude,
+        float  frequency,
+        int    octaves
         );
 
 void delete_terrain    (struct terrain_t* terrain);

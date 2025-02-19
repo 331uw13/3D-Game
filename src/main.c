@@ -147,14 +147,12 @@ void loop(struct state_t* gst) {
 
     
 
-
             // Draw 3D stuff
             BeginMode3D(gst->player.cam);
             {
                
                 rlDisableBackfaceCulling();
                 rlDisableDepthMask();
-
 
 
                 gst->skybox_transform = MatrixTranslate(
@@ -183,7 +181,6 @@ void loop(struct state_t* gst) {
                 }
 
                 /*
-
                 // Draw enemies.
                 //
                 for(size_t i = 0; i < gst->num_enemies; i++) {
@@ -194,17 +191,12 @@ void loop(struct state_t* gst) {
                 */
 
 
-                render_terrain(gst, &gst->terrain);
 
-                //DrawModel(testfloor, (Vector3){ 0.0, 0.0, 0.0 }, 1.0, WHITE);
+                render_terrain(gst, &gst->terrain);
                 player_render(gst, &gst->player);
 
 
                 EndShaderMode(); // -----------
-
-
-                //update_psystem(gst, &gst->psystems[PSYS_ENEMYHIT]);
-
 
 
 
@@ -294,7 +286,7 @@ void first_setup(struct state_t* gst) {
 
     // --- misc. ---
     DisableCursor();
-    SetTargetFPS(120);
+    SetTargetFPS(500);
     gst->num_textures = 0;
     gst->num_lights = 0;
     gst->draw_debug = 0;
@@ -315,11 +307,13 @@ void first_setup(struct state_t* gst) {
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
 
-    const float fog_density = 0.005;
-    const float terrain_scale = 3.0;
+    const float fog_density = 0.003;
+    const float terrain_scale = 8.0;
     const u32   planet_size = 500;
+    const float terrain_amplitude = 30.0;
+    const float terrain_pnfrequency = 10.0;
+    const int   terrain_octaves = 3;
     const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
-   
 
 
     // --- Setup Default Shader ---
@@ -383,6 +377,8 @@ void first_setup(struct state_t* gst) {
         SetShaderValue(*shader, gst->fs_unilocs[PLANET_SUN_POSITION_FS_UNILOC], sunpos, SHADER_UNIFORM_VEC3);
     
     }
+ 
+    
     /*
 
     // --- Setup (ENEMY_HIT) ParticleSystem Shader ---
@@ -449,7 +445,10 @@ void first_setup(struct state_t* gst) {
         generate_terrain(
                 gst, &gst->terrain,
                 planet_size,
-                terrain_scale
+                terrain_scale,
+                terrain_amplitude,
+                terrain_pnfrequency,
+                terrain_octaves
                 );
 
         /*

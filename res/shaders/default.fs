@@ -43,6 +43,10 @@ uniform vec4 ambient;
 uniform vec3 viewPos;
 uniform float fogDensity;
 
+float lerp(float t, float min, float max) {
+    return min + t * (max - min);
+}
+
 void main()
 {
     // Texel color fetching from texture sampler
@@ -111,28 +115,29 @@ void main()
     finalColor += texelColor*(ambient/10.0);
 
     // Gamma correction
-    finalColor = pow(finalColor, vec4(1.0/2.2));
-
-    // Fog calculation
+    
     float dist = length(viewPos - fragPosition);
 
-    // these could be parameters...
-    const vec4 fogColor = vec4(0.0, 0.1, 0.1, 1.0);
-    //const float fogDensity = 0.16;
+    //const vec4 fogColor = vec4(0.0, 0.5, 0.5, 1.0);
 
-    // Exponential fog
+    /*
+    // interesting effect..
+    float lr = lerp((fragPosition.y*0.002)-0.3, 1.0, 0.0);
+    lr = pow(lr, 6.0);
+    lr = max(lr, 0.1);
+    */
+    vec4 fogColor = vec4(0.05, 0.1, 0.1, 1.0); //* lr;
+
+    fogColor.w = 1.0;
+
     float fogFactor = 1.0/exp((dist*fogDensity)*(dist*fogDensity));
-
-    // Linear fog (less nice)
-    //const float fogStart = 2.0;
-    //const float fogEnd = 10.0;
-    //float fogFactor = (fogEnd - dist)/(fogEnd - fogStart);
-
     fogFactor = clamp(fogFactor, 0.0, 1.0);
 
-
     finalColor = mix(fogColor, finalColor, fogFactor);
-
+    
+    // very steep exponental for the alpha layer.
+    finalColor.w = pow(fogFactor * fogFactor * fogFactor, 5.0);
+    finalColor = pow(finalColor, vec4(1.0/2.2));
 }
 
 
