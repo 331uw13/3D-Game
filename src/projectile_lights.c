@@ -1,4 +1,4 @@
-#include "lib/rlights.h"
+//#include "lib/rlights.h"
 
 
 #include "projectile_lights.h"
@@ -6,7 +6,8 @@
 
 #include <stdio.h>
 void enable_projectile_light(struct state_t* gst, unsigned int index, Vector3 initpos) {
-    
+
+    /*
     Light light = { 0 };
 
     light.enabled = true;
@@ -23,28 +24,35 @@ void enable_projectile_light(struct state_t* gst, unsigned int index, Vector3 in
     light.targetLoc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("projlights[%i].target", i));
     light.colorLoc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("projlights[%i].color", i));
 
+
+    if(gst->projectile_lights[index].enabled) {
+        printf("WAS ENABLED!\n");
+    }
+    
     gst->projectile_lights[index] = light;
     UpdateLightValues(gst->shaders[DEFAULT_SHADER], light);
 
-    //printf("  -> next_projlight_index: %i\n", i);
+    printf("  -> next_projlight_index: %i\n", i);
 
     gst->next_projlight_index++;
+    
     if(gst->next_projlight_index >= MAX_PROJECTILE_LIGHTS) {
         gst->next_projlight_index = 0;
     }
 
+    */
 }
 
 void disable_projectile_light(struct state_t* gst, unsigned int index) {
     
+    /*
     Light* light = &gst->projectile_lights[index];
-
     light->enabled = 0;
 
     //printf(" '%s': DISABLE %i\n", __func__, index);
     SetShaderValue(gst->shaders[DEFAULT_SHADER], light->enabledLoc, &light->enabled, SHADER_UNIFORM_INT);
-        
-    gst->next_projlight_index = index;
+
+    */
 }
 
 

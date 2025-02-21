@@ -17,17 +17,14 @@ void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned c
 }
 
 
-void matrix_addtransl(Matrix* m, float x, float y, float z) {
-    m->m12 = x;
-    m->m13 = y;
-    m->m14 = z;
-}
 
 void add_movement_vec3(Vector3* v1, Vector3 dir, float f) {
     dir.x *= f;
     dir.y *= f;
     dir.z *= f;
-    *v1 = Vector3Add(*v1, dir);
+    v1->x += dir.x * f;
+    v1->y += dir.y * f;
+    v1->z += dir.z * f;
 }
 
 

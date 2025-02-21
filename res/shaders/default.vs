@@ -10,24 +10,41 @@ in vec4 vertexColor;
 uniform mat4 mvp;
 uniform mat4 matModel;
 uniform mat4 matNormal;
+uniform vec3 viewPos;
 
 // Output vertex attributes (to fragment shader)
 out vec3 fragPosition;
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
+out vec3 fragViewPos;
 
 
 // NOTE: Add here your custom variables
 
 void main()
 {
+    vec3 vertpos = vertexPosition;
+
+  
+
     // Send vertex attributes to fragment shader
-    fragPosition = vec3(matModel*vec4(vertexPosition, 1.0));
+    fragPosition = vec3(matModel*vec4(vertpos, 1.0));
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
     fragNormal = normalize(vec3(matNormal*vec4(vertexNormal, 1.0)));
 
+    fragViewPos = viewPos;
+
+  
+
+    float y = length(viewPos.xz - fragPosition.xz - vec2(0.5, 0.0));
+    y *= 0.003;
+    y = pow(y, 7.0);
+
+    vertpos.y -= y;
+
+  
     // Calculate final vertex position
-    gl_Position = mvp*vec4(vertexPosition, 1.0);
+    gl_Position = mvp*vec4(vertpos, 1.0);
 }

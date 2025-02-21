@@ -4,7 +4,6 @@
 #include <raylib.h>
 #include <rcamera.h> // raylib camera
 
-#include "lib/rlights.h" // raylib light implementation
 
 #define CAMERA_SENSETIVITY 0.00125
 
@@ -16,6 +15,7 @@
 #define ENEMY_0_TEXID 3
 #define GUN_0_TEXID 4
 
+#include "light.h"
 #include "player.h"
 #include "object.h"
 //#include "enemy.h"
@@ -25,9 +25,8 @@
 // shaders.
 #define MAX_SHADERS 6
 #define DEFAULT_SHADER 0
-#define PLANET_SKYBOX_SHADER 1
+#define POSTPROCESS_SHADER 1
 #define PLAYER_PROJECTILE_SHADER 2
-
 //#define ENEMY_HIT_PSYS_SHADER 2
 // ...
 
@@ -39,9 +38,6 @@
 
 // uniform locations for fragment shaders
 #define MAX_FS_UNILOCS 4
-#define PLANET_SUN_POSITION_FS_UNILOC 1
-#define PLANET_SKYBOX_VIEWPOS_FS_UNILOC 2
-#define PLANET_SKYBOX_GLOBALTIME_FS_UNILOC 3
 
 /* !!! NOT USED !!! */
 #define PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC 0
@@ -54,12 +50,13 @@ struct state_t {
     struct player_t player;
 
 
-    Light         lights[MAX_LIGHTS];
-    unsigned int  num_lights;
+    struct light_t lights[MAX_LIGHTS];
+    size_t num_lights;
 
+    /*
     Light         projectile_lights[MAX_PROJECTILE_LIGHTS];
     unsigned int  next_projlight_index;
-    
+    */
 
     Shader shaders[MAX_SHADERS];
     int    fs_unilocs[MAX_FS_UNILOCS];
@@ -85,11 +82,6 @@ struct state_t {
     size_t num_enemies;
 
     */
-
-    Mesh     skybox_mesh;
-    Material skybox_material;
-    Matrix   skybox_transform;
-
 
     int rseed; // seed for randomgen functions.
 };

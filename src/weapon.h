@@ -4,53 +4,56 @@
 #include <stddef.h>
 #include <raylib.h>
 
+#include "light.h"
 
-
-#define WEAPON_MAX_PROJECTILES 256
+#define MAX_WEAPON_PROJECTILES 64
 
 
 struct projectile_t {
-    
     Vector3 position;
     Vector3 direction;
-    Vector3 hitbox;
 
     float lifetime;
     int alive;
 
-    unsigned int light_index;
+    struct light_t light;
 };
+
 
 struct weapon_t {
     
-    //Model model;
-    //Vector3 model_poffset; // model position offset
+    struct projectile_t projectiles[MAX_WEAPON_PROJECTILES];
 
-    struct projectile_t projectiles[WEAPON_MAX_PROJECTILES];
-    size_t num_alive_projectiles;
-    size_t proj_nextindex;
+    long int  num_alive_projectiles;
+    size_t    prj_nextindex;
 
+    // Weapon settings.
 
-    float knockback;
-    float proj_speed;
-    float proj_damage;
-    Vector3 proj_hitbox;
-    float proj_max_lifetime;
+    float    knockback;
+    float    accuracy;  // 0.0 (low accuracy) - 10.0 (high accuracy)
 
-    //Shader  projectile_shader;
+    // Projectile settings.
+    
+    float    prj_speed;
+    float    prj_damage;
+    float    prj_max_lifetime;
+    Vector3  prj_size;
 
 };
 
+float compute_weapon_accuracy(struct state_t* gst, struct weapon_t* weapon);
 
-void setup_weapon(
-        struct weapon_t* w, 
-        float proj_speed,
-        float proj_damage,
-        float proj_knockback,
-        float proj_max_lifetime,
-        Vector3 proj_hitbox
+void weapon_add_projectile(
+        struct state_t* gst,
+        struct weapon_t* w,
+        Vector3 position,
+        Vector3 direction
         );
 
-
+// Update and render projectiles.
+void weapon_update_projectiles(
+        struct state_t* gst,
+        struct weapon_t* w
+        );
 
 #endif

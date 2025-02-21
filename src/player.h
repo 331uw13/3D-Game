@@ -32,11 +32,18 @@ struct player_t {
 
     int      noclip;
 
-    struct weapon_t gun;
+    struct weapon_t weapon;
     int  is_aiming;
 
-    Model gun_model;
-    Vector3 gun_model_poffset;
+    Model gunmodel;
+   
+    //Vector3 gunmodel_offset;
+    Matrix gunmodel_aim_offset_m;
+    Matrix gunmodel_rest_offset_m;
+
+    float gun_draw_timer; // 0.0 to 1.0 
+    float gun_draw_speed; // how fast 'gun_draw_timer' reaches 1.0
+    int   ready_to_shoot; // set to 1 when 'gun_draw_timer' finished.
 
 };
 

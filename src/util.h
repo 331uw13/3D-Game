@@ -10,11 +10,6 @@ struct state_t;
 
 void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned char* blu);
 
-// Raylib does have MatrixTranslate function
-// but it clears rotation and scale.
-// this only changes the poisition
-void matrix_addtransl(Matrix* m, float x, float y, float z);
-
 // multiply direction by factor(f) and add it to v1
 void add_movement_vec3(Vector3* v1, Vector3 dir, float f);
 

@@ -189,11 +189,8 @@ void handle_userinput(struct state_t* gst) {
 
     // ----- User interaction ---------
 
-    if(IsKeyPressed(KEY_Y)) {
-        gst->draw_debug = !gst->draw_debug;
-    }
 
-    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         player_shoot(gst, &gst->player);
     }
 
@@ -201,8 +198,14 @@ void handle_userinput(struct state_t* gst) {
         gst->player.noclip = !gst->player.noclip;
     }
 
-    gst->player.is_aiming = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
+    int aimkeydown = IsKeyDown(KEY_LEFT_CONTROL);
+    gst->player.is_aiming = aimkeydown;
+
+    if(!aimkeydown) {
+        gst->player.ready_to_shoot = 0;
+        gst->player.gun_draw_timer = 0.0;
+    }
 }
 
 
