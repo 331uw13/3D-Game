@@ -17,10 +17,11 @@ struct player_t {
     Vector3  position;
     Vector3  hitbox;
     Vector3  looking_at; // normalized vector where the player is looking towards
-
+    int      is_moving;
     //BoundingBox boundingbox;
     Vector3  velocity;
     float    walkspeed;
+    float    walkspeed_aim_mult; // multiply walk speed while aiming
     float    run_mult;
     float    friction;
     float    jump_force;
@@ -45,6 +46,8 @@ struct player_t {
     float gun_draw_speed; // how fast 'gun_draw_timer' reaches 1.0
     int   ready_to_shoot; // set to 1 when 'gun_draw_timer' finished.
 
+    // moves camera around to create dizziness effect.
+    float dizziness; 
 };
 
 

@@ -4,8 +4,9 @@
 #include "light.h"
 
 
-struct light_t* add_light(
+void add_light(
         struct state_t* gst,
+        struct light_t* light,
         int light_type,
         Vector3 position,
         Color color,
@@ -15,27 +16,24 @@ struct light_t* add_light(
     if((gst->num_lights+1) >= MAX_LIGHTS) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Max lights reached.\033[0m\n",
                 __func__);
-        goto error;
+        return;
     }
 
     const size_t index = gst->num_lights;
 
-    ptr = &gst->lights[index];
-    ptr->enabled = 1;
-    ptr->type = light_type;
-    ptr->position = position;
-    ptr->color = color;
+    light->enabled = 1;
+    light->type = light_type;
+    light->position = position;
+    light->color = color;
 
-    ptr->locs[LIGHT_ENABLED_LOC]  = GetShaderLocation(shader, TextFormat("lights[%i].enabled", index));
-    ptr->locs[LIGHT_TYPE_LOC]     = GetShaderLocation(shader, TextFormat("lights[%i].type", index));
-    ptr->locs[LIGHT_POSITION_LOC] = GetShaderLocation(shader, TextFormat("lights[%i].position", index));
-    ptr->locs[LIGHT_COLOR_LOC]    = GetShaderLocation(shader, TextFormat("lights[%i].color", index));
+    light->locs[LIGHT_ENABLED_LOC]  = GetShaderLocation(shader, TextFormat("lights[%i].enabled", index));
+    light->locs[LIGHT_TYPE_LOC]     = GetShaderLocation(shader, TextFormat("lights[%i].type", index));
+    light->locs[LIGHT_POSITION_LOC] = GetShaderLocation(shader, TextFormat("lights[%i].position", index));
+    light->locs[LIGHT_COLOR_LOC]    = GetShaderLocation(shader, TextFormat("lights[%i].color", index));
 
-    update_light_values(ptr, shader);
+    
+    update_light_values(light, shader);
     gst->num_lights++;
-
-error:
-    return ptr;
 }
 
 
@@ -59,3 +57,7 @@ void update_light_values(struct light_t* light, Shader shader) {
     SetShaderValue(shader, light->locs[LIGHT_COLOR_LOC], color, SHADER_UNIFORM_VEC4);
 }
 
+void disable_light(struct light_t* light, Shader shader) {
+    light->enabled = 0;
+    SetShaderValue(shader, light->locs[LIGHT_ENABLED_LOC], &light->enabled, SHADER_UNIFORM_INT);
+}

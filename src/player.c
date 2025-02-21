@@ -19,17 +19,18 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
     //p->hitbox = (Vector3){ 1.0, 2.0, 1.0 };
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
-    p->walkspeed = 0.8;
+    p->walkspeed = 0.45;
+    p->run_mult = 1.5;
+    p->walkspeed_aim_mult = 0.5;
     p->jump_force = 0.128;
     p->gravity = 0.6;
-    p->run_mult = 2.3;
     p->onground = 1;
-    p->friction = 0.075;
+    p->friction = 0.025;
     p->num_jumps_inair = 0;
     p->max_jumps = 2;
 
     p->gun_draw_timer = 0.0;
-    p->gun_draw_speed = 4.3;
+    p->gun_draw_speed = 6.3;
 
 
     // --- Setup Weapon ---
@@ -55,16 +56,16 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     // (Not aiming)
     {
         p->gunmodel_rest_offset_m
-            = MatrixTranslate(0.0, -0.8, -0.5);
+            = MatrixTranslate(0.3, -0.25, -0.9);
 
-        Matrix rotate = MatrixRotateXYZ((Vector3){ 0.0, 0.0, 0.0 });
+        Matrix rotate = MatrixRotateZYX((Vector3){ -0.1, 0.3, 0.05 });
         p->gunmodel_rest_offset_m = MatrixMultiply(p->gunmodel_rest_offset_m, rotate);
     }
 
     // (Aiming)
     {
         p->gunmodel_aim_offset_m 
-            = MatrixTranslate(0.0, 0.0, 0.0);
+            = MatrixTranslate(0.1, -0.1, -0.4);
     }
 
 }
@@ -76,6 +77,9 @@ void free_player(struct player_t* p) {
 void player_shoot(struct state_t* gst, struct player_t* p) {
 
     if(!p->is_aiming) {
+        return;
+    }
+    if(!p->ready_to_shoot) {
         return;
     }
 
@@ -208,7 +212,11 @@ void update_projectiles(struct state_t* gst, struct player_t* p) {
 
 
 void player_render(struct state_t* gst, struct player_t* p) {
-        
+
+    if(p->noclip) {
+        return;
+    }
+
     // Draw player holding a gun.
 
 
@@ -218,17 +226,30 @@ void player_render(struct state_t* gst, struct player_t* p) {
     Matrix offset = (p->is_aiming) ? p->gunmodel_aim_offset_m : p->gunmodel_rest_offset_m;
 
 
+    if(!p->is_aiming) {
+        // some movement to look more natural.
+
+        const float time = GetTime() * 3.0;
+        Matrix move_anim = MatrixTranslate(
+                0.0,
+                sin(time)*0.015,
+                sin(time)*0.018
+                );
+        
+    
+        offset = MatrixMultiply(move_anim, offset);
+    }
+
+
     Quaternion no_aim_q = QuaternionFromMatrix(p->gunmodel_rest_offset_m);
     Quaternion aim_q    = QuaternionFromMatrix(p->gunmodel_aim_offset_m);
 
-    Quaternion Q = QuaternionLerp(no_aim_q, aim_q, p->gun_draw_timer);
+    Quaternion Q = QuaternionLerp(no_aim_q, aim_q, (p->gun_draw_timer * p->gun_draw_timer));
 
     transform = QuaternionToMatrix(Q);
     transform = MatrixMultiply(transform, offset);
     transform = MatrixMultiply(transform, rotate_m);
 
-    
-       
 
     p->gunmodel.transform = transform;
 
@@ -238,13 +259,6 @@ void player_render(struct state_t* gst, struct player_t* p) {
             p->gunmodel.transform
             );
 
-
-    struct projectile_t* proj = NULL;
-    Shader* shader = &gst->shaders[PLAYER_PROJECTILE_SHADER];
-    int effectspeed_uniloc = gst->fs_unilocs[PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC];
-    float time = 2.0;
-
-    SetShaderValue(*shader, effectspeed_uniloc, &time, SHADER_UNIFORM_FLOAT);
 }
 
 
@@ -254,16 +268,30 @@ void update_player(struct state_t* gst, struct player_t* p) {
     weapon_update_projectiles(gst, &p->weapon);
 
 
+
     if(p->is_aiming) {
         p->gun_draw_timer += p->gun_draw_speed * gst->dt;
         if(p->gun_draw_timer > 1.0) {
             p->gun_draw_timer = 1.0;
             p->ready_to_shoot = 1;
         }
-    
-        printf("%f\n", p->gun_draw_timer);
+    }
+    else if(p->gun_draw_timer > 0) {
+        p->gun_draw_timer -= p->gun_draw_speed * gst->dt;
     }
 
+    p->is_moving 
+         = !(FloatEquals(p->velocity.x, 0.0)
+        && FloatEquals(p->velocity.y, 0.0)
+        && FloatEquals(p->velocity.z, 0.0));
+
+
+
+    float vm = Vector3Length(p->velocity) * 0.01;
+
+    p->cam.position.y += sin(gst->time*20.0)*vm;
+    p->cam.position.x += cos(gst->time*10.0)*vm;
+    p->cam.position.z += cos(gst->time*10.0)*vm;
 }
 
 

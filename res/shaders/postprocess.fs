@@ -7,11 +7,14 @@ in vec4 fragColor;
 // Input uniform values
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
+uniform float time;
+uniform vec2 screen_size;
 
 // Output fragment color
 out vec4 finalColor;
 
-// NOTE: Add here your custom variables
+#define Pi 3.14159
+#define Pi2 (Pi*2)
 
 
 
@@ -19,7 +22,7 @@ void main()
 {
 
     float gamma = 0.8;
-    vec2 size = vec2(1200, 800) * 0.5;
+    vec2 size = screen_size * 0.3;
     vec2 sf = 1.0/(size * 2.0);
 
 
@@ -27,6 +30,7 @@ void main()
     finalColor = vec4(texcolor.rgb, 1.0);
 
 
+    // Blur effect.
     const int r = 3;
     for(int y = -r; y <= r; y++) {
         for(int x = -r; x <= r; x++) {
@@ -40,8 +44,6 @@ void main()
         }
     }
 
-
     finalColor = vec4(texcolor, 1.0);
-
     finalColor = pow(finalColor, vec4(1.0/gamma));
 }

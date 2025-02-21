@@ -71,13 +71,21 @@ void weapon_add_projectile(
     proj->alive = 1;
     proj->lifetime = 0.0;
 
-
     float ac = compute_weapon_accuracy(gst, w);
 
     proj->direction.y += RSEEDRANDOMF(-ac, ac);
     proj->direction.x += RSEEDRANDOMF(-ac, ac);
     proj->direction.z += RSEEDRANDOMF(-ac, ac);
 
+
+    add_light(gst,
+            &proj->light,
+            LIGHT_POINT,
+            (Vector3){ 0 }, // position is updated later.
+            (Color){ 10, 255, 255, 255 },
+            gst->shaders[DEFAULT_SHADER]
+            );
+    
 
     w->num_alive_projectiles++;
     
@@ -110,6 +118,7 @@ void weapon_update_projectiles(
         proj->lifetime += gst->dt;
         if(proj->lifetime >= w->prj_max_lifetime) {
             proj->alive = 0;
+            disable_light(&proj->light, gst->shaders[DEFAULT_SHADER]);
             continue;
         }
 
@@ -123,11 +132,15 @@ void weapon_update_projectiles(
         // Render the projectile.
         
         // inner sphere
-        DrawSphere(proj->position, 0.1, (Color){ 180, 255, 255, 255 });
+        DrawSphere(proj->position, 0.1, (Color){ 200, 255, 255, 255 });
         
         // outer sphere
         DrawSphere(proj->position, 0.2, (Color){ 10, 255, 255, 200 });
 
+
+        // Update light position.
+        proj->light.position = proj->position;
+        update_light_values(&proj->light, gst->shaders[DEFAULT_SHADER]);
 
         num_updated++;
         if(num_updated >= w->num_alive_projectiles) {

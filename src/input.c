@@ -204,7 +204,6 @@ void handle_userinput(struct state_t* gst) {
 
     if(!aimkeydown) {
         gst->player.ready_to_shoot = 0;
-        gst->player.gun_draw_timer = 0.0;
     }
 }
 

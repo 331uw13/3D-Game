@@ -38,14 +38,13 @@
 
 // uniform locations for fragment shaders
 #define MAX_FS_UNILOCS 4
-
-/* !!! NOT USED !!! */
-#define PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC 0
+#define POSTPROCESS_TIME_FS_UNILOC 0
+#define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
 
 
 // Game state.
 struct state_t {
-
+    float time;
     float dt; // previous frame time.
     struct player_t player;
 

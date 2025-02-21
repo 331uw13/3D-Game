@@ -39,8 +39,9 @@ struct light_t {
 
 // Returns pointer to just added light in 'gst->lights' array.
 // may return NULL if max lights was reached.
-struct light_t* add_light(
+void add_light(
         struct state_t* gst,
+        struct light_t* light,
         int light_type,
         Vector3 position,
         Color color,
@@ -48,6 +49,6 @@ struct light_t* add_light(
         );
 
 void update_light_values(struct light_t* light, Shader shader);
-
+void disable_light(struct light_t* light, Shader shader);
 
 #endif

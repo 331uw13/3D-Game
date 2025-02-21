@@ -34,7 +34,9 @@ void loop(struct state_t* gst) {
 
     create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
 
-
+    Model testcube = LoadModelFromMesh(GenMeshKnot(1.0, 2.0, 32, 32));
+    testcube.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID4x4_TEXID];
+    testcube.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
     /*
    
@@ -102,9 +104,9 @@ void loop(struct state_t* gst) {
 
     while(!WindowShouldClose()) {
         float dt = GetFrameTime();
-        float time = GetTime();
 
         gst->dt = dt;
+        gst->time = GetTime();
 
 
 
@@ -125,7 +127,7 @@ void loop(struct state_t* gst) {
 
        
 
-        // update view position for shaders.
+        // Update view position for shaders.
 
         float camposf3[3] = { gst->player.cam.position.x, gst->player.cam.position.y, gst->player.cam.position.z };
         
@@ -139,8 +141,32 @@ void loop(struct state_t* gst) {
         */
 
 
-        //UpdateLightValues(gst->shaders[DEFAULT_SHADER], gst->lights[0]);
 
+        // Update time for shaders.
+
+        SetShaderValue(
+                gst->shaders[POSTPROCESS_SHADER],
+                gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC],
+                &gst->time,
+                SHADER_UNIFORM_FLOAT
+                );
+
+
+        // Update frame buffer size for post process shader
+
+        {
+
+            const float screen_size[2] = {
+                GetScreenWidth(), GetScreenHeight()
+            };
+            SetShaderValue(
+                    gst->shaders[POSTPROCESS_SHADER],
+                    gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC],
+                    screen_size,
+                    SHADER_UNIFORM_VEC2
+                    );
+
+        }
 
 
         // --- render. ---
@@ -158,8 +184,6 @@ void loop(struct state_t* gst) {
         {
             BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
-
-
             // Draw objects
             // -----> TODO do this better.
             for(size_t i = 0; i < gst->num_objects; i++) {
@@ -171,6 +195,9 @@ void loop(struct state_t* gst) {
                         ); 
             }
 
+
+            testcube.transform = MatrixRotateXYZ((Vector3){ gst->time, 0.0, gst->time });
+            DrawModel(testcube, (Vector3){ 5.0, 5.0, -5.0 }, 1.0, (Color){255,255,255,255});
 
             render_terrain(gst, &gst->terrain);
             player_render(gst, &gst->player);
@@ -262,6 +289,8 @@ void loop(struct state_t* gst) {
         update_player(gst, &gst->player);
     }
 
+
+    UnloadModel(testcube);
 
     UnloadRenderTexture(render_target);
 }
@@ -370,6 +399,8 @@ void first_setup(struct state_t* gst) {
             "res/shaders/postprocess.fs"
         );
 
+        gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
+        gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC] = GetShaderLocation(*shader, "screen_size");
     }
 
 
@@ -380,10 +411,6 @@ void first_setup(struct state_t* gst) {
             "res/shaders/projectile.vs", 
             "res/shaders/projectile.fs"
         );
-
-
-        gst->fs_unilocs[PLAYER_PROJECTILE_EFFECTSPEED_FS_UNILOC] 
-            = GetShaderLocation(*shader, "effect_speed");
 
     }
 
@@ -478,6 +505,7 @@ void first_setup(struct state_t* gst) {
     // --- Add sun ---
    
     add_light(gst,
+            &gst->lights[0],
             LIGHT_DIRECTIONAL,
             sun_position,
             (Color) { 200, 100, 30, 255 },
@@ -486,6 +514,7 @@ void first_setup(struct state_t* gst) {
    
 
     add_light(gst,
+            &gst->lights[1],
             LIGHT_POINT,
             (Vector3) { 10.0, 5.0, 10.0 },
             (Color) { 30, 255, 25, 255 },
