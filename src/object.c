@@ -6,6 +6,7 @@
 
 #include "state.h"
 
+/*
 void free_objarray(struct state_t* gst) {
     if(gst->objects) {   
         for(size_t i = 0; i < gst->num_objects; i++) {
@@ -65,6 +66,7 @@ struct obj_t* create_object(
 error:
     return newobjptr;
 }
+*/
 
 
 

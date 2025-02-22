@@ -6,9 +6,9 @@
 // Modified from raylibs 'rlights'
 
 
-// NOTE: these 2 values must be the same as in shader code.
-#define MAX_LIGHTS ( 64/* projectiles */ +  4/* normal lights */)
-//#define MAX_PROJECTILE_LIGHTS 64
+// NOTE: these 2 values must be the same as in 'default' fragment shader code.
+#define MAX_PROJECTILE_LIGHTS 16
+#define MAX_NORMAL_LIGHTS 4
 
 
 // Shader uniform locations index.
@@ -37,16 +37,26 @@ struct light_t {
     int locs[MAX_LIGHT_LOCS];
 };
 
-// Returns pointer to just added light in 'gst->lights' array.
-// may return NULL if max lights was reached.
+
+// This one creates the light into 'state normal_lights' array.
 void add_light(
         struct state_t* gst,
-        struct light_t* light,
         int light_type,
         Vector3 position,
         Color color,
         Shader shader
         );
+
+
+// This one create the light into where ever the 'lightptr' points to
+void add_projectile_light(
+        struct state_t* gst,
+        struct light_t* lightptr,
+        Vector3 position,
+        Color color,
+        Shader shader
+        );
+
 
 void update_light_values(struct light_t* light, Shader shader);
 void disable_light(struct light_t* light, Shader shader);

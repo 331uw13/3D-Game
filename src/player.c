@@ -49,7 +49,11 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
 
 
-    setup_3Dmodel(gst, &p->gunmodel, "res/models/gun_v1.glb", GUN_0_TEXID, (Vector3){0});
+    p->gunmodel = LoadModel("res/models/gun_v1.glb");
+    p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
+    p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUN_0_TEXID];
+
+    //setup_3Dmodel(gst, &p->gunmodel, "res/models/gun_v1.glb", GUN_0_TEXID, (Vector3){0});
 
     // calculate matrices for when player is aiming and not aiming.
     

@@ -32,10 +32,10 @@ void loop(struct state_t* gst) {
     testfloor.materials[0].shader = gst->shaders[DEFAULT_SHADER];
     */
 
-    create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
+    //create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
 
     Model testcube = LoadModelFromMesh(GenMeshKnot(1.0, 2.0, 32, 32));
-    testcube.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID4x4_TEXID];
+    testcube.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GRID4x4_TEXID];
     testcube.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
     /*
@@ -175,8 +175,8 @@ void loop(struct state_t* gst) {
         BeginTextureMode(render_target);
         ClearBackground((Color){ 
                 (0.0) * 255,
-                (0.1) * 255,
-                (0.1) * 255,
+                (0.15) * 255,
+                (0.15) * 255,
                 255 });
 
 
@@ -184,27 +184,18 @@ void loop(struct state_t* gst) {
         {
             BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
-            // Draw objects
-            // -----> TODO do this better.
-            for(size_t i = 0; i < gst->num_objects; i++) {
-                struct obj_t* obj = &gst->objects[i];
-                DrawMesh(
-                        obj->model.meshes[0],
-                        obj->model.materials[0],
-                        obj->model.transform
-                        ); 
-            }
-
-
+     
             testcube.transform = MatrixRotateXYZ((Vector3){ gst->time, 0.0, gst->time });
             DrawModel(testcube, (Vector3){ 5.0, 5.0, -5.0 }, 1.0, (Color){255,255,255,255});
 
             render_terrain(gst, &gst->terrain);
+
+
+            
             player_render(gst, &gst->player);
             weapon_update_projectiles(gst, &gst->player.weapon);
 
             DrawSphere((Vector3){ 0.0, 4.0, 3.0}, 1.0, RED);
-
 
 
             EndShaderMode(); // -----------
@@ -300,10 +291,10 @@ void loop(struct state_t* gst) {
 void cleanup(struct state_t* gst) {
     
     for(unsigned int i = 0; i < gst->num_textures; i++) {
-        UnloadTexture(gst->tex[i]);
+        UnloadTexture(gst->textures[i]);
     }
 
-    free_objarray(gst);
+    //free_objarray(gst);
     //delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
     //free_enemyarray(gst);
     free_player(&gst->player);
@@ -318,13 +309,13 @@ void cleanup(struct state_t* gst) {
 }
 
 
-void load_tex(struct state_t* gst, const char* filepath, int texid) {
+void load_texture(struct state_t* gst, const char* filepath, int texid) {
     
     if(texid >= MAX_TEXTURES) {
         fprintf(stderr, "ERROR: Texture id is invalid. (%i) for '%s'\n", texid, filepath);
         return;
     }
-    gst->tex[texid] = LoadTexture(filepath);
+    gst->textures[texid] = LoadTexture(filepath);
     gst->num_textures++;
 
     printf("\033[32m + Loaded (texid:%i) '%s'\033[0m \n", texid, filepath);
@@ -332,41 +323,40 @@ void load_tex(struct state_t* gst, const char* filepath, int texid) {
 
 void first_setup(struct state_t* gst) {
 
-
     InitWindow(SCRN_W, SCRN_H, "Game");
 
-
-    // --- misc. ---
     DisableCursor();
     SetTargetFPS(500);
     gst->num_textures = 0;
-    gst->num_lights = 0;
     gst->draw_debug = 0;
-    
     gst->objects = NULL;
     gst->objarray_size = 0;
     gst->num_objects = 0;
-  
-    //gst->next_projlight_index = 0;
-    /*
-    gst->enemies = NULL;
-    gst->enemyarray_size = 0;
-    gst->num_enemies = 0;
-    gst->next_projlight_index = 0;
-    */
-    // calculate projectile lights
-
+    gst->num_entities = 0;
+    gst->num_normal_lights = 0;
+    gst->num_projectile_lights = 0;
     gst->dt = 0.016;
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
+    memset(gst->entities, 0, MAX_ENTITIES * sizeof *gst->entities);
 
     const float fog_density = 0.006;
     const float terrain_scale = 8.0;
-    const u32   planet_size = 500;
+    const u32   terrain_size = 500;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 10.0;
     const int   terrain_octaves = 3;
     const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
+
+
+    // --- Load textures ---
+    
+    load_texture(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);
+    load_texture(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
+    load_texture(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
+    load_texture(gst, "res/textures/enemy.png", ENEMY_0_TEXID);
+    load_texture(gst, "res/textures/gun_0.png", GUN_0_TEXID);
+
 
 
     // --- Setup Default Shader ---
@@ -388,7 +378,6 @@ void first_setup(struct state_t* gst) {
         SetShaderValue(*shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
         SetShaderValue(*shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
     }
-    // -----------------------
 
 
     // --- Setup Post Processing Shader ---
@@ -443,37 +432,31 @@ void first_setup(struct state_t* gst) {
                 );
         struct psystem_t* psys = &gst->psystems[PSYS_ENEMYHIT];
 
-        psys->particle_material = LoadMaterialDefault();
+        /psys->particle_material = LoadMaterialDefault();
         psys->particle_material.shader = gst->shaders[ENEMY_HIT_PSYS_SHADER];
         psys->particle_mesh = GenMeshCube(0.2, 0.2, 0.2);
     }
     */
 
-    // make sure all lights are disabled
+    /* TODO!!!!!!
+    // Make sure all lights are disabled.
     for(int i = 0; i < MAX_LIGHTS; i++) {
         int enabled = 0;
         int loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("lights[%i].enabled", i));
         SetShaderValue(gst->shaders[DEFAULT_SHADER], loc, &enabled, SHADER_UNIFORM_INT);
     }
+    */
 
+    // -------------- TODO: move this into player.c -------------
     // Make sure all projectiles are intialized correctly.
-    {
-        struct weapon_t* w = &gst->player.weapon;
-        for(int i = 0; i < MAX_WEAPON_PROJECTILES; i++) {
-            w->projectiles[i].position = (Vector3){ 0 };
-            w->projectiles[i].direction = (Vector3){ 0 };
-            w->projectiles[i].lifetime = 0.0;
-            w->projectiles[i].alive = 0;
-        }
+    struct weapon_t* player_weapon = &gst->player.weapon;
+    for(int i = 0; i < MAX_WEAPON_PROJECTILES; i++) {
+        player_weapon->projectiles[i].position = (Vector3){ 0 };
+        player_weapon->projectiles[i].direction = (Vector3){ 0 };
+        player_weapon->projectiles[i].lifetime = 0.0;
+        player_weapon->projectiles[i].alive = 0;
     }
 
-    // --- load textures. ---
-    
-    load_tex(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);
-    load_tex(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
-    load_tex(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
-    load_tex(gst, "res/textures/enemy.png", ENEMY_0_TEXID);
-    load_tex(gst, "res/textures/gun_0.png", GUN_0_TEXID);
 
     init_player_struct(gst, &gst->player);
 
@@ -484,56 +467,37 @@ void first_setup(struct state_t* gst) {
         init_perlin_noise();
         gst->terrain = (struct terrain_t) { 0 };
 
-
         generate_terrain(
                 gst, &gst->terrain,
-                planet_size,
+                terrain_size,
                 terrain_scale,
                 terrain_amplitude,
                 terrain_pnfrequency,
                 terrain_octaves
                 );
-
-        /*
-        generate_heightmap(&gst->terrain);
-        generate_terrain_mesh(gst, &gst->terrain);
-
-        */
-
     }
 
     // --- Add sun ---
    
     add_light(gst,
-            &gst->lights[0],
             LIGHT_DIRECTIONAL,
             sun_position,
             (Color) { 200, 100, 30, 255 },
             gst->shaders[DEFAULT_SHADER]
             );
    
-
     add_light(gst,
-            &gst->lights[1],
             LIGHT_POINT,
-            (Vector3) { 10.0, 5.0, 10.0 },
-            (Color) { 30, 255, 25, 255 },
+            (Vector3){-5, 3, 0 },
+            (Color) { 2, 200, 30, 255 },
             gst->shaders[DEFAULT_SHADER]
             );
-    /*
-    gst->lights[gst->num_lights] 
-        = CreateLight(gst, LIGHT_DIRECTIONAL, 
-                sun_position, (Vector3){0,0,0},
-                (Color){ 200, 100, 30, 255 }, gst->shaders[DEFAULT_SHADER]);
-
-                */
+   
 
 
     int seed = time(0);
-
     gst->rseed = seed;
     SetRandomSeed(seed);
-
 }
 
 

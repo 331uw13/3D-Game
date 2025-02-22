@@ -10,6 +10,7 @@
 // TODO: user can interact with objects?
 
 
+/*
 struct state_t;
 
 
@@ -33,6 +34,7 @@ struct obj_t* create_object(
         Vector3 init_pos
         );
 
+        */
 /*  TODO
 // NOTE: this function does not unload the object's model!
 int remove_obj(struct state_t* gst, long int id);

@@ -13,7 +13,7 @@ void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned c
 // multiply direction by factor(f) and add it to v1
 void add_movement_vec3(Vector3* v1, Vector3 dir, float f);
 
-int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath, int texture_id, Vector3 init_pos);
+//int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath, int texture_id, Vector3 init_pos);
 
 float angle_xz(Vector3 a, Vector3 b);
 Vector3 vec3mult_v(Vector3 a, float v);

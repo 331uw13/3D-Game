@@ -27,12 +27,12 @@ void add_movement_vec3(Vector3* v1, Vector3 dir, float f) {
     v1->z += dir.z * f;
 }
 
-
+/*
 int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath, int texture_id, Vector3 init_pos) {
     int ok = 0;
 
     if(!FileExists(model_filepath)) {
-        fprintf(stderr, "\033[31m%s: '%s' doesnt exist.\033[0m\n",
+        fprintf(stderr, "\033[31m(ERROR) %s: '%s' doesnt exist.\033[0m\n",
                 __func__, model_filepath);
         goto error;
     }
@@ -51,6 +51,7 @@ error:
 
     return ok;
 }
+*/
 
 float angle_xz(Vector3 a, Vector3 b) {
     Vector3 diff = Vector3Subtract(a, b);

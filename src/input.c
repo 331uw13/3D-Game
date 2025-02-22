@@ -12,14 +12,6 @@
 #define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)
 
 
-
-static float test0 = 0.0;
-static float test1 = 0.0;
-
-
-static Ray ray = { 0 };
-
-
 void handle_userinput(struct state_t* gst) {
 
     Vector2 md = GetMouseDelta();

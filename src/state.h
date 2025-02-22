@@ -18,9 +18,9 @@
 #include "light.h"
 #include "player.h"
 #include "object.h"
-//#include "enemy.h"
 #include "psystem.h"
 #include "terrain.h"
+#include "entity.h"
 
 // shaders.
 #define MAX_SHADERS 6
@@ -42,6 +42,9 @@
 #define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
 
 
+#define MAX_ENTITIES 32
+
+
 // Game state.
 struct state_t {
     float time;
@@ -49,25 +52,22 @@ struct state_t {
     struct player_t player;
 
 
-    struct light_t lights[MAX_LIGHTS];
-    size_t num_lights;
+    struct light_t normal_lights[MAX_NORMAL_LIGHTS];
+    size_t num_normal_lights;
 
-    /*
-    Light         projectile_lights[MAX_PROJECTILE_LIGHTS];
-    unsigned int  next_projlight_index;
-    */
+    // Projectile lights are created into 'weapon projectile structure'
+    // NOT into 'state lights'
+    size_t num_projectile_lights;
+
 
     Shader shaders[MAX_SHADERS];
     int    fs_unilocs[MAX_FS_UNILOCS];
 
-
-    Texture       tex[MAX_TEXTURES];
+    Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
 
     struct psystem_t psystems[MAX_PSYSTEMS];
-    
     struct terrain_t terrain;
-
 
     int draw_debug; // <- TODO.
 
@@ -75,12 +75,9 @@ struct state_t {
     size_t objarray_size;
     size_t num_objects;
 
-    /*
-    struct enemy_t* enemies;
-    size_t enemyarray_size;
-    size_t num_enemies;
+    struct entity_t entities[MAX_ENTITIES];
+    size_t num_entities;
 
-    */
 
     int rseed; // seed for randomgen functions.
 };

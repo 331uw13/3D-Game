@@ -78,9 +78,8 @@ void weapon_add_projectile(
     proj->direction.z += RSEEDRANDOMF(-ac, ac);
 
 
-    add_light(gst,
+    add_projectile_light(gst,
             &proj->light,
-            LIGHT_POINT,
             (Vector3){ 0 }, // position is updated later.
             (Color){ 10, 255, 255, 255 },
             gst->shaders[DEFAULT_SHADER]
