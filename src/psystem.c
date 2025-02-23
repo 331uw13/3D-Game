@@ -33,7 +33,7 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, void*, int)
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int)
         )
 {
 
@@ -57,6 +57,7 @@ void create_psystem(
     psys->transforms = NULL;
     psys->update_callback = update_callback_ptr;
     psys->pinit_callback = pinit_callback_ptr;
+    psys->userptr = NULL;
 
     psys->particles = calloc(max_particles, sizeof *psys->particles);
     if(!psys->particles) {
@@ -102,16 +103,26 @@ static struct particle_t* _add_particle(struct psystem_t* psys) {
 void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
     psys->num_alive_parts = 0;
-    
+   
+    if(!psys->update_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': No update callback.\033[0m\n",
+                __func__);
+        return;
+    }
+
+
     for(size_t i = 0; i < psys->max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
+        if(!p) {
+            continue;
+        }
         if(!p->alive) {
             continue;
         }
 
         psys->num_alive_parts++;
-
         psys->update_callback(gst, psys, p);
+
         p->prev_position = p->position;
 
         p->lifetime += gst->dt;
@@ -122,7 +133,6 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
         }
     }
-
 
     DrawMeshInstanced(
             psys->particle_mesh,
@@ -142,6 +152,8 @@ void add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
         size_t n, /* particles to be added */
+        Vector3 origin,
+        Vector3 velocity,
         void* extradata_ptr,
         int has_extradata
         )
@@ -153,11 +165,8 @@ void add_particles(
         struct particle_t* p = _add_particle(psys);
 
         // callback to initialize the particle.
-        psys->pinit_callback(gst, psys, p, extradata_ptr, (has_extradata && extradata_ptr));
-
+        psys->pinit_callback(gst, psys, p, origin, velocity, extradata_ptr, (has_extradata && extradata_ptr));
     }
-
-
 }
 
 

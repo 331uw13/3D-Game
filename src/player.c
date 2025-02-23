@@ -7,6 +7,64 @@
 #include "util.h"
 
 
+// PROJECTILE PARTICLE UPDATE ---
+static void _player_weapon_psystem_projectile_pupdate(
+        struct state_t* gst,
+        struct psystem_t* psys,
+        struct particle_t* part
+){
+    struct weapon_t* weapon = (struct weapon_t*)psys->userptr;
+    if(!weapon) {
+        MISSING_PSYSUSERPTR;
+        return;
+    }
+
+
+    Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
+    part->position = Vector3Add(part->position, vel);
+
+    Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
+    *part->transform = position_m;
+
+    part->light.position = part->position;
+    update_light_values(&part->light, gst->shaders[DEFAULT_SHADER]);
+}
+
+// PROJECTILE PARTICLE INITIALIZATION ---
+static void _player_weapon_psystem_projectile_pinit(
+        struct state_t* gst,
+        struct psystem_t* psys, 
+        struct particle_t* part,
+        Vector3 origin,
+        Vector3 velocity,
+        void* extradata, int has_extradata
+){
+
+    struct weapon_t* weapon = (struct weapon_t*)psys->userptr;
+    if(!weapon) {
+        MISSING_PSYSUSERPTR;
+        return;
+    }
+
+
+
+    part->velocity = velocity;
+    part->position = origin;
+    Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
+
+
+    add_projectile_light(gst, &part->light, part->position, weapon->prj_color, gst->shaders[DEFAULT_SHADER]);
+
+    *part->transform = position_m;
+    part->alive = 1;
+    part->lifetime = 0.0;
+    part->max_lifetime = weapon->prj_max_lifetime;
+}
+
+
+
+
+
 void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     p->cam = (Camera){ 0 };
@@ -17,7 +75,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.projection = CAMERA_PERSPECTIVE;
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    //p->hitbox = (Vector3){ 1.0, 2.0, 1.0 };
+    p->hitbox_size = (Vector3){ 1.0, 3.5, 1.0 };
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     p->walkspeed = 0.45;
     p->run_mult = 1.5;
@@ -32,28 +90,38 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->gun_draw_timer = 0.0;
     p->gun_draw_speed = 6.3;
 
-
-    // --- Setup Weapon ---
-    {
-        gst->player.weapon = (struct weapon_t) {
-            .projectiles = (struct projectile_t) { 0 },
-            .num_alive_projectiles = 0,
-            .knockback = 2.0,
-            .accuracy = 7.5,
-            .prj_speed = 50,
-            .prj_damage = 10,
-            .prj_max_lifetime = 3.0,
-            .prj_size = (Vector3) { 1.0, 1.0, 1.0 }
-        };
-    }
+    p->recoil_timer = 0.0;
+    p->recoil = 0.0;
+    p->recoil_strength = 0.0;
+    p->recoil_in_progress = 0;
 
 
+    p->max_health = 500.0;
+    p->health = p->max_health;
+
+
+    setup_weapon(gst,
+            &p->weapon,
+            _player_weapon_psystem_projectile_pupdate,
+            _player_weapon_psystem_projectile_pinit,
+            (struct weapon_t)
+            {
+                .accuracy = 7.5,
+                .prj_speed = 90,
+                .prj_damage = 10,
+                .prj_max_lifetime = 3.0,
+                .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
+                .prj_color = (Color) { 20, 255, 255,  255 }
+            }
+            );
+
+    p->firerate_timer = 0.0;
+    p->firerate = 0.1;
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
     p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUN_0_TEXID];
 
-    //setup_3Dmodel(gst, &p->gunmodel, "res/models/gun_v1.glb", GUN_0_TEXID, (Vector3){0});
 
     // calculate matrices for when player is aiming and not aiming.
     
@@ -76,6 +144,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
 void free_player(struct player_t* p) {
     UnloadModel(p->gunmodel);
+    delete_weapon(&p->weapon);
 }
 
 void player_shoot(struct state_t* gst, struct player_t* p) {
@@ -87,132 +156,30 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         return;
     }
 
-    Vector3 prj_position = (Vector3){0};
-    prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
+    if(p->firerate_timer >= p->firerate) {
+        Vector3 prj_position = (Vector3){0};
+        prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
-    // move the projectile little bit forward so its not inside of the model.
-    prj_position.x += p->looking_at.x*2;
-    prj_position.y += p->looking_at.y*2 - 0.01;
-    prj_position.z += p->looking_at.z*2;
-
-    weapon_add_projectile(
-            gst,
-            &p->weapon,
-            prj_position,
-            p->looking_at // projectile direction
-            );
-
-}
+        // move the projectile little bit forward so its not inside of the model.
+        prj_position.x += p->looking_at.x*2;
+        prj_position.y += p->looking_at.y*2 - 0.01;
+        prj_position.z += p->looking_at.z*2;
 
 
-/*
-void player_shoot(struct state_t* gst, struct player_t* p) {
-   
-    size_t index = p->gun.proj_nextindex;
-    struct projectile_t* proj = &p->gun.projectiles[index];
+        weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at);
 
-    proj->alive = 1;
-    proj->lifetime = 0.0;
-    proj->direction = p->looking_at;
 
-    proj->position = (Vector3) { 0 };
-    proj->position = Vector3Transform(proj->position, p->gunmodel.transform);
+        p->recoil = 0.2;
+        p->recoil_done = 0;
+        p->recoil_timer = 0.0;
+        p->recoil_strength = 0.6;
+        p->recoil_in_progress = 1;
 
-    //proj->light_index = gst->next_projlight_index;
-
-    p->gun.proj_nextindex++;
-    if(p->gun.proj_nextindex >= WEAPON_MAX_PROJECTILES) {
-        p->gun.proj_nextindex = 0;
+        p->firerate_timer = 0.0;
     }
-
-    proj->light_index = gst->next_projlight_index;
-    enable_projectile_light(gst, proj->light_index, proj->position);
 }
 
-void kill_projectile(struct state_t* gst, struct projectile_t* proj) {
-    proj->lifetime = 0.0;
-    proj->alive = 0;
-    disable_projectile_light(gst, proj->light_index);
-}
-*/
 
-void update_projectiles(struct state_t* gst, struct player_t* p) {
- 
-    /*
-    struct projectile_t* proj = NULL;
-    for(size_t i = 0; i < WEAPON_MAX_PROJECTILES; i++) {
-        proj = &p->gun.projectiles[i];
-        if(!proj->alive) {
-            continue;
-        }
-
-        proj->lifetime += gst->dt;
-        if(proj->lifetime >= p->gun.proj_max_lifetime) {
-            kill_projectile(gst, proj);
-            continue;
-        }
-
-        add_movement_vec3(&proj->position, proj->direction, gst->dt * p->gun.proj_speed);
-   
-
-        Light* light = &gst->projectile_lights[proj->light_index];
-        float lightpos[3] = { 
-            proj->position.x,
-            proj->position.y,
-            proj->position.z
-        };
-    
-        SetShaderValue(gst->shaders[DEFAULT_SHADER], light->positionLoc, lightpos, SHADER_UNIFORM_VEC3);
-      
-        */
-
-        /*
-
-        BoundingBox proj_boundingbox
-            = (BoundingBox)
-        {
-            (Vector3) { 
-                proj->position.x - proj->hitbox.x/2,
-                proj->position.y - proj->hitbox.y/2,
-                proj->position.z - proj->hitbox.z/2
-            },
-            (Vector3) { 
-                proj->position.x + proj->hitbox.x/2,
-                proj->position.y + proj->hitbox.y/2,
-                proj->position.z + proj->hitbox.z/2
-            }
-        };
-
-
-        for(size_t i = 0; i < gst->num_enemies; i++) {
-            struct enemy_t* enemy = &gst->enemies[i];
-            
-            BoundingBox enemy_boundingbox 
-                = (BoundingBox)
-            {
-                (Vector3) {
-                    enemy->position.x - enemy->hitbox.x/2,
-                    enemy->position.y - enemy->hitbox.y/2,
-                    enemy->position.z - enemy->hitbox.z/2
-                },
-                (Vector3) {
-                    enemy->position.x + enemy->hitbox.x/2,
-                    enemy->position.y + enemy->hitbox.y/2,
-                    enemy->position.z + enemy->hitbox.z/2
-                }
-            };
-
-            if(CheckCollisionBoxes(enemy_boundingbox, proj_boundingbox)) {
-
-                enemy_hit(gst, enemy, proj);
-                kill_projectile(gst, proj);
-
-                printf("\033[31m >> ENEMY HIT (%li) |  Health: %i\033[0m\n", enemy->id, enemy->health);
-            }
-        }
-        */
-    //}
-}
 
 
 void player_render(struct state_t* gst, struct player_t* p) {
@@ -220,9 +187,7 @@ void player_render(struct state_t* gst, struct player_t* p) {
     if(p->noclip) {
         return;
     }
-
-    // Draw player holding a gun.
-
+    
 
     Matrix rotate_m = MatrixInvert(GetCameraViewMatrix(&p->cam));
     Matrix transform = MatrixTranslate(0.0, 0.0, 0.0);
@@ -262,16 +227,11 @@ void player_render(struct state_t* gst, struct player_t* p) {
             p->gunmodel.materials[0],
             p->gunmodel.transform
             );
-
 }
 
 
 
-void update_player(struct state_t* gst, struct player_t* p) {
-
-    weapon_update_projectiles(gst, &p->weapon);
-
-
+void player_update(struct state_t* gst, struct player_t* p) {
 
     if(p->is_aiming) {
         p->gun_draw_timer += p->gun_draw_speed * gst->dt;
@@ -284,18 +244,50 @@ void update_player(struct state_t* gst, struct player_t* p) {
         p->gun_draw_timer -= p->gun_draw_speed * gst->dt;
     }
 
+    if(p->firerate_timer < p->firerate) {
+        p->firerate_timer += gst->dt;
+    }
+        
+    p->gunmodel_aim_offset_m 
+            = MatrixTranslate((0.1 + p->recoil*0.07), -0.1, (-0.4 + p->recoil));
+   
+    if(p->recoil_in_progress) {
+        const float tf = 15.0;
+        if(!p->recoil_done) {
+            p->recoil_timer += gst->dt*tf;
+
+            float i = (p->recoil_timer);
+            i *= i;
+            p->recoil = lerp(i, 0.0, p->recoil_strength);
+            if(p->recoil_timer >= 1.0) {
+                p->recoil_done = 1;
+            }
+        }
+
+        if(p->recoil_done) {
+            p->recoil_timer -= gst->dt*tf;
+            p->recoil = lerp(p->recoil_timer, 0.0, p->recoil_strength);
+            if(p->recoil_timer <= 0.0) {
+                p->recoil_in_progress = 0;
+            }
+        }
+
+    }
+
     p->is_moving 
          = !(FloatEquals(p->velocity.x, 0.0)
         && FloatEquals(p->velocity.y, 0.0)
         && FloatEquals(p->velocity.z, 0.0));
 
 
+    if(!p->noclip) {
+        // Add movement to camera scaled with velocity.
+        float vm = Vector3Length(p->velocity) * 0.01;
+        p->cam.position.y += sin(gst->time*20.0)*vm;
+        p->cam.position.x += cos(gst->time*10.0)*vm;
+        p->cam.position.z += cos(gst->time*10.0)*vm;
 
-    float vm = Vector3Length(p->velocity) * 0.01;
-
-    p->cam.position.y += sin(gst->time*20.0)*vm;
-    p->cam.position.x += cos(gst->time*10.0)*vm;
-    p->cam.position.z += cos(gst->time*10.0)*vm;
+    }
 }
 
 

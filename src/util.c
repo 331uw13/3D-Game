@@ -96,4 +96,11 @@ float randomf(int* seed, float min, float max) {
     return ((float)randomgen(seed) / ((float)RANDOMGEN_MAX / (max - min))) + min;
 }
 
-
+Color color_lerp(float t, Color a, Color b) {
+    return (Color) {
+        lerp(t, (float)a.r/255.0, (float)b.r/255.0) * 255,
+        lerp(t, (float)a.g/255.0, (float)b.g/255.0) * 255,
+        lerp(t, (float)a.b/255.0, (float)b.b/255.0) * 255,
+        255
+    };
+}

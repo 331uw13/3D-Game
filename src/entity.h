@@ -6,8 +6,8 @@
 
 #define ENT_STATE_IDLE 0
 #define ENT_STATE_SEARCHING_TARGET 1
-#define ENT_HAS_TARGET 2
-#define ENT_CHANGING_ANGLE 3
+#define ENT_STATE_HAS_TARGET 2
+#define ENT_STATE_CHANGING_ANGLE 3
 
 #define ENT_TRAVELING_DISABLED 0
 #define ENT_TRAVELING_ENABLED 1
@@ -20,6 +20,7 @@
 // Then calls 'enemies/enemy_lvl*.c'(depending on "entity type") 
 // to handle the rest if needed
 
+#include "weapon.h"
 
 struct state_t;
 
@@ -36,12 +37,15 @@ struct entity_travel_t {
 struct entity_t {
 
     Model model;
+    
     int type;
 
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
     Vector3 hitbox_size; // TODO: multiple hitboxes.
+    Matrix body_matrix; // Some entities have rotating body and 'model.transform' is used for legs etc.
 
-    float target_fov; // area where entity can detect player.
+    float target_range; // how far can the entity "see" the player
+    int   has_target;
 
     float health;
     float max_health;
@@ -55,13 +59,15 @@ struct entity_t {
 
     int was_hit;
     
+    // Used for rotating angles.
+    Quaternion Q0;
+    Quaternion Q1;
+    float      angle_change; // how much angle is changed to another. 0.0 to 1.0
+
     float forward_angle;
-    float previous_angle;
-    float angle_change;
 
     // For any kind of movement entity has.
     struct entity_travel_t travel;
-
 
     // Used for selecting new point where to travel
     // when state is 'SEARCHING_TARGET'
@@ -70,6 +76,11 @@ struct entity_t {
 
     int state;
     size_t index; // index in gst->entities array.
+
+    struct weapon_t* weapon;
+    float firerate;
+    float firerate_timer;
+    int gun_index; // switch between model's guns.
 };
 
 // Probably not going to have ALOT of enemies at once.
@@ -77,6 +88,8 @@ struct entity_t {
 // And when updating all entities, looping through the whole array
 // And updating only alive ones will be faster than constanty shifting the array back and forth.
 
+
+// TODO: do this same way than in weapon.c
 // Returns pointer into gst->entities array where new entity was created if successful.
 struct entity_t* create_entity(
         struct state_t* gst,
@@ -86,7 +99,9 @@ struct entity_t* create_entity(
         int texture_id,
         int max_health,
         Vector3 initial_position,
-        Vector3 hitbox_size
+        Vector3 hitbox_size,
+        float target_range,
+        float firerate
         );
 
 // just unloads the model and sets health to 0
@@ -95,8 +110,9 @@ void delete_entity(struct entity_t* ent);
 // "Render settings"
 #define ENT_UPDATE_ONLY 0
 #define ENT_RENDER_ON_UPDATE 1
-void update_entity(struct state_t* gst, struct entity_t* ent, int render_setting);
 
+// These functions "redirects" the call based on entity type
+void update_entity(struct state_t* gst, struct entity_t* ent, int render_setting);
 void entity_hit(struct state_t* gst, struct entity_t* ent);
 void entity_death(struct state_t* gst, struct entity_t* ent);
 

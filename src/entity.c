@@ -4,19 +4,22 @@
 #include "entity.h"
 #include "util.h"
 
+#include "enemies/enemy_lvl0.h"
 
 
 
 // Returns pointer into gst->entities array where new entity was created if successful.
-struct entity_t* setup_entity(
+struct entity_t* create_entity(
         struct state_t* gst,
         int entity_type,
         int entity_travel_enabled,
         const char* model_filepath,
-        size_t texture_id,
+        int texture_id,
         int max_health,
         Vector3 initial_position,
-        Vector3 hitbox_size
+        Vector3 hitbox_size,
+        float target_range,
+        float firerate
 ){
     struct entity_t* entptr = NULL;
 
@@ -33,7 +36,7 @@ struct entity_t* setup_entity(
     }
 
     if(texture_id >= MAX_TEXTURES) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid texture id: %li for (%s)\033[0m\n",
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid texture id: %i for (%s)\033[0m\n",
                 __func__, texture_id, model_filepath);
         goto error;
     }
@@ -52,10 +55,16 @@ struct entity_t* setup_entity(
     entptr->rotation_from_hit = (Vector3){0};
     entptr->was_hit = 0;
 
-    entptr->forward_angle = 0.0;
-    entptr->previous_angle = 0.0;
+    entptr->Q0 = QuaternionIdentity();
+    entptr->Q1 = QuaternionIdentity();
     entptr->angle_change = 0.0;
-
+    entptr->forward_angle = 0.0;
+    
+    entptr->target_range = target_range;
+    entptr->has_target = 0;
+    entptr->body_matrix = MatrixIdentity();
+    entptr->gun_index = 0;
+        
     entptr->travel = (struct entity_travel_t) {
         .start = (Vector3){0},
         .dest  = (Vector3){0},
@@ -72,8 +81,33 @@ struct entity_t* setup_entity(
     entptr->model.transform 
         = MatrixTranslate(initial_position.x, initial_position.y, initial_position.z);
 
+    entptr->model.materials[0] = LoadMaterialDefault();
     entptr->model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
     entptr->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
+
+    /*
+    entptr->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
+    entptr->model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
+
+    */
+
+    gst->num_entities++;
+
+    printf("\033[32m >> Entity created model filepath: '%s'\033[0m\n",
+            model_filepath);
+
+    entptr->firerate_timer = 0.0;
+    entptr->firerate = firerate;
+
+    switch(entptr->type)
+    {
+        case ENT_TYPE_LVL0:
+            entptr->weapon = &gst->entity_weapons[ENTWEAPON_LVL0];
+            enemy_lvl0_created(gst, entptr);
+            break;
+
+        // ...
+    }
 
 error:
     return entptr;
@@ -83,6 +117,7 @@ error:
 void delete_entity(struct entity_t* ent) {
     UnloadModel(ent->model);
     ent->health = 0;
+    ent->weapon = NULL;
 }
 
 // "Render settings"
@@ -90,7 +125,15 @@ void delete_entity(struct entity_t* ent) {
 #define ENT_RENDER_ON_UPDATE 1
 void update_entity(struct state_t* gst, struct entity_t* ent, int render_setting) {
 
+    switch(ent->type)
+    {
+        case ENT_TYPE_LVL0:
+            enemy_lvl0_update(gst, ent, render_setting);
+            break;
 
+
+        // ...
+    }
 
 
 }

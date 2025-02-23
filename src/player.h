@@ -7,7 +7,8 @@
 struct state_t;
 
 
-
+#define PLAYER_HEALTH_COLOR_LOW (Color){ 255, 50, 20, 255 }
+#define PLAYER_HEALTH_COLOR_HIGH (Color){ 50, 255, 20, 255 }
 
 struct player_t {
 
@@ -15,10 +16,9 @@ struct player_t {
     float cam_yaw;
     float cam_pitch;
     Vector3  position;
-    Vector3  hitbox;
+    Vector3  hitbox_size;
     Vector3  looking_at; // normalized vector where the player is looking towards
     int      is_moving;
-    //BoundingBox boundingbox;
     Vector3  velocity;
     float    walkspeed;
     float    walkspeed_aim_mult; // multiply walk speed while aiming
@@ -42,12 +42,23 @@ struct player_t {
     Matrix gunmodel_aim_offset_m;
     Matrix gunmodel_rest_offset_m;
 
+    // TODO: re write this recoil mess.
+    float  recoil_timer;
+    float  recoil_strength;
+    float  recoil;
+    int    recoil_done;
+    int    recoil_in_progress;
+
     float gun_draw_timer; // 0.0 to 1.0 
     float gun_draw_speed; // how fast 'gun_draw_timer' reaches 1.0
     int   ready_to_shoot; // set to 1 when 'gun_draw_timer' finished.
 
-    // moves camera around to create dizziness effect.
-    float dizziness; 
+    float health;
+    float max_health;
+    float health_normalized;
+
+    float firerate;
+    float firerate_timer;
 };
 
 
@@ -57,12 +68,10 @@ void free_player(struct player_t* p);
 
 void player_shoot(struct state_t* gst, struct player_t* p);
 void player_render(struct state_t* gst, struct player_t* p);
-void kill_projectile(struct state_t* gst, struct projectile_t* proj);
-void update_projectiles(struct state_t* gst, struct player_t* p);
 
 // updates player's variables. not movement
 // for movement see (input.c)
-void update_player(struct state_t* gst, struct player_t* p);
+void player_update(struct state_t* gst, struct player_t* p);
 
 
 

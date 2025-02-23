@@ -26,6 +26,10 @@ int    randomgen (int* seed);
 int    randomi(int* seed, int min, int max);
 float  randomf(int* seed, float min, float max);
 
+Color color_lerp(float t, Color a, Color b);
+
 #define RSEEDRANDOMF(min, max) randomf(&gst->rseed, min, max)
+#define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)
+#define MISSING_PSYSUSERPTR fprintf(stderr, "\033[31m(ERROR) '%s': Missing psystem 'userptr'\033[0m\n", __func__)
 
 #endif

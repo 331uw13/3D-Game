@@ -4,6 +4,9 @@
 #include <raylib.h>
 #include <stddef.h>
 
+#include "light.h"
+
+
 struct state_t;
 
 
@@ -34,6 +37,7 @@ struct particle_t {
 
     void* extradata;
 
+    struct light_t light;
 };
 
 #define NO_EXTRADATA 0
@@ -62,22 +66,36 @@ struct psystem_t {
     size_t nextpart_index;
 
     // called to update each particle.
-    void(*update_callback)(struct state_t*, struct psystem_t*, struct particle_t*);
+    void(*update_callback)(
+            struct state_t*,
+            struct psystem_t*,
+            struct particle_t* // current particle
+            );
     
     // called by 'add_particles' for each particle after adding them to the array.
-    void(*pinit_callback)(struct state_t*, struct psystem_t*, struct particle_t*, void*, int);
+    void(*pinit_callback)(
+         struct state_t*,
+         struct psystem_t*,
+         struct particle_t*, // current particle
+         Vector3,  // particle initial position
+         Vector3, // velocity to new particle
+         void*,   // extra data pointer
+         int      // has extra data?
+         );
 
     void* userptr;
 };
 
 
 void delete_psystem(struct psystem_t* psys);
+
+// IMPORTANT NOTE: do NOT set psystem.userptr before calling 'create_psystem'. set it AFTER.
 void create_psystem(
         struct state_t* gst,
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, void*, int)
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3, Vector3, void*, int)
         );
 
 
@@ -87,6 +105,8 @@ void add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
         size_t n, /* particles to be added */
+        Vector3 origin,
+        Vector3 velocity,
         void* extradata_ptr,
         int has_extradata
         );

@@ -43,8 +43,7 @@ static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
 
 
 
-float get_smooth_heightmap_value(struct terrain_t* terrain, float x, float z) {
-
+RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z) {
 
     x += -terrain->transform.m12;
     z += -terrain->transform.m14;
@@ -98,8 +97,21 @@ float get_smooth_heightmap_value(struct terrain_t* terrain, float x, float z) {
     }
 
 
-    float dist = (mesh_hit_info.hit) ? mesh_hit_info.distance : 0;
-    return (terrain->highest_point - dist);
+    return mesh_hit_info;
+}
+
+Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, float* hit_y) {
+    
+    RayCollision t_hit = raycast_terrain(terrain, x, z);
+
+    Vector3 up = (Vector3){ 0.0, 1.0, 0.0};
+    Vector3 axis = Vector3CrossProduct(up, t_hit.normal);
+
+    if(hit_y) {
+        *hit_y = t_hit.point.y;
+    }
+
+    return MatrixRotateXYZ((Vector3){ axis.x, 0.0, axis.z });
 }
 
 

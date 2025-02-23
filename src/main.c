@@ -11,7 +11,6 @@
 #include "state.h"
 #include "input.h"
 #include "util.h"
-
 #include "terrain.h"
 
 #define SCRN_W 1200
@@ -34,65 +33,10 @@ void loop(struct state_t* gst) {
 
     //create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
 
-    Model testcube = LoadModelFromMesh(GenMeshKnot(1.0, 2.0, 32, 32));
-    testcube.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GRID4x4_TEXID];
-    testcube.materials[0].shader = gst->shaders[DEFAULT_SHADER];
+    Model testmodel = LoadModelFromMesh(GenMeshKnot(1.0, 3.0, 32, 32));
+    testmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GRID4x4_TEXID];
+    testmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
-    /*
-   
-    create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
-            (Vector3) { -12.0, 2.0, 3.0 } // position
-
-            );
-
-    create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
-            (Vector3) { 12.0, 2.0, 8.0 } // position 
-
-            );
-
-    create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            (Vector3) { 2.0, 2.0, 2.0 }, // hitbox
-            (Vector3) { 12.0, 0.0, -7.0 } // position
-
-            );
-
-            */
-
-    /*
-    for(int i = 0; i < 10; i++) {
-    
-        create_enemy(gst,
-            "res/models/enemy.glb", ENEMY_0_TEXID,
-            ENEMY_0_MAX_HEALTH,
-            
-            // hitbox
-            (Vector3) { 2.0, 2.0, 2.0 }, 
-            
-            // position
-            (Vector3) { GetRandomValue(-80,80), 0.0, GetRandomValue(-80,80) }
-
-            );
-
-
-    }
-    */
-
-    /*
-    init_perlin_noise();
-
-    struct terrain_t terrain = { 0 };
-    generate_heightmap(&terrain);
-    generate_terrain_mesh(gst, &terrain);
-
-    */
 
 
     int scrn_w = GetScreenWidth();
@@ -135,10 +79,8 @@ void loop(struct state_t* gst) {
                 gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
                 
-        /*
-        SetShaderValue(gst->shaders[TEST_PSYS_SHADER], 
-                gst->shaders[TEST_PSYS_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-        */
+        SetShaderValue(gst->shaders[PROJECTILES_PSYSTEM_SHADER], 
+                gst->shaders[PROJECTILES_PSYSTEM_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
 
 
@@ -151,6 +93,12 @@ void loop(struct state_t* gst) {
                 SHADER_UNIFORM_FLOAT
                 );
 
+        SetShaderValue(
+                gst->shaders[POSTPROCESS_SHADER],
+                gst->fs_unilocs[POSTPROCESS_PLAYER_HEALTH_FS_UNILOC],
+                &gst->player.health_normalized,
+                SHADER_UNIFORM_FLOAT
+                );
 
         // Update frame buffer size for post process shader
 
@@ -169,37 +117,50 @@ void loop(struct state_t* gst) {
         }
 
 
-        // --- render. ---
+        // --- Rendering ---
 
-        // Draw 3D stuff into texture and post process it later.
+        // Render 3D stuff into texture and post process it later.
         BeginTextureMode(render_target);
         ClearBackground((Color){ 
-                (0.0) * 255,
+                (0.3) * 255,
                 (0.15) * 255,
                 (0.15) * 255,
                 255 });
-
 
         BeginMode3D(gst->player.cam);
         {
             BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
-     
-            testcube.transform = MatrixRotateXYZ((Vector3){ gst->time, 0.0, gst->time });
-            DrawModel(testcube, (Vector3){ 5.0, 5.0, -5.0 }, 1.0, (Color){255,255,255,255});
 
+            // Test thing.
+            {
+                testmodel.transform = MatrixRotateXYZ((Vector3){ gst->time, 0.0, gst->time });
+                DrawModel(testmodel, (Vector3){ 5.0, 5.0, -5.0 }, 1.0, (Color){ 255, 255, 255, 255});
+
+            }
+
+            // Terrain.
             render_terrain(gst, &gst->terrain);
 
+            // Entities.
+            for(size_t i = 0; i < gst->num_entities; i++) {
+                update_entity(gst, &gst->entities[i], ENT_RENDER_ON_UPDATE);
+            }
 
-            
+            // Player.
             player_render(gst, &gst->player);
-            weapon_update_projectiles(gst, &gst->player.weapon);
 
-            DrawSphere((Vector3){ 0.0, 4.0, 3.0}, 1.0, RED);
+            // Weapons.
+            weapon_update(gst, &gst->player.weapon);
+
+            for(size_t i = 0; i < gst->num_entity_weapons; i++) {
+                weapon_update(gst, &gst->entity_weapons[i]);
+            }
 
 
-            EndShaderMode(); // -----------
+            EndShaderMode();
         }
+
         EndMode3D();
         EndTextureMode();
 
@@ -209,7 +170,7 @@ void loop(struct state_t* gst) {
         {
             ClearBackground(BLACK);
 
-           
+
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
                 DrawTextureRec(
@@ -222,18 +183,86 @@ void loop(struct state_t* gst) {
                         (Vector2){ 0.0, 0.0 },
                         WHITE
                         );
+
+
+
             }
             EndShaderMode();
 
+            if(IsKeyPressed(KEY_F)) {
+                gst->player.health -= GetRandomValue(1, 50);
+            }
 
+            // Draw player stats.
+            {
+                const int bar_width = 150;
+                const int bar_height = 10;
+
+                int bar_inc = 20;
+                int bar_next_y = 10;
+
+                // Health
+                {
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            bar_width,
+                            bar_height + 5,
+                            (Color){ 20, 20, 20, 255 }
+                            );
+
+
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            map(gst->player.health, 0.0, gst->player.max_health, 0, bar_width),
+                            bar_height + 5,
+                            color_lerp(
+                                normalize(gst->player.health, 0.0, gst->player.max_health),
+                                PLAYER_HEALTH_COLOR_LOW,
+                                PLAYER_HEALTH_COLOR_HIGH
+                                )
+                            );
+
+
+                }
+                bar_next_y += bar_inc;
+
+                // Fire rate timer.
+                {
+                    const float timervalue = gst->player.firerate_timer;
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            bar_width,
+                            bar_height,
+                            (Color){ 20, 20, 20, 255 }
+                            );
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            map(timervalue, 0.0, gst->player.firerate, 0, bar_width),
+                            bar_height,
+                            (Color){ 10, 180, 255, 255 }
+                            );
+                }
+            }
+
+
+            int center_x = GetScreenWidth() / 2;
+            int center_y = GetScreenHeight() / 2;
+            DrawPixel(center_x, center_y, WHITE);
+            
 
             // text and info.
+                /*
             {
                 // draw cursor.
-                int center_x = GetScreenWidth() / 2;
-                int center_y = GetScreenHeight() / 2;
 
-                DrawPixel(center_x, center_y, WHITE);
 
 
                 DrawText(TextFormat("FPS(%i)", GetFPS()),
@@ -272,17 +301,17 @@ void loop(struct state_t* gst) {
                     }
                 }
             }
+            */
 
         }
         EndDrawing();
 
         handle_userinput(gst);
-        update_player(gst, &gst->player);
+        player_update(gst, &gst->player);
     }
 
 
-    UnloadModel(testcube);
-
+    UnloadModel(testmodel);
     UnloadRenderTexture(render_target);
 }
 
@@ -290,20 +319,31 @@ void loop(struct state_t* gst) {
 
 void cleanup(struct state_t* gst) {
     
+    // Unload all textures
     for(unsigned int i = 0; i < gst->num_textures; i++) {
         UnloadTexture(gst->textures[i]);
     }
 
+    // Unload all entity models
+    for(size_t i = 0; i < gst->num_entities; i++) {
+        delete_entity(&gst->entities[i]);
+    }
+
+    for(size_t i = 0; i < gst->num_entity_weapons; i++) {
+        delete_weapon(&gst->entity_weapons[i]);
+    }
+
+    
     //free_objarray(gst);
     //delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
     //free_enemyarray(gst);
     free_player(&gst->player);
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
-    UnloadShader(gst->shaders[PLAYER_PROJECTILE_SHADER]);
-    //UnloadShader(gst->shaders[ENEMY_HIT_PSYS_SHADER]);
-    
+    UnloadShader(gst->shaders[PROJECTILES_PSYSTEM_SHADER]); 
     delete_terrain(&gst->terrain);
+
+
 
     CloseWindow();
 }
@@ -336,6 +376,7 @@ void first_setup(struct state_t* gst) {
     gst->num_normal_lights = 0;
     gst->num_projectile_lights = 0;
     gst->dt = 0.016;
+    gst->num_entity_weapons = 0;
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
     memset(gst->entities, 0, MAX_ENTITIES * sizeof *gst->entities);
@@ -354,9 +395,8 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);
     load_texture(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
     load_texture(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
-    load_texture(gst, "res/textures/enemy.png", ENEMY_0_TEXID);
     load_texture(gst, "res/textures/gun_0.png", GUN_0_TEXID);
-
+    load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
 
 
     // --- Setup Default Shader ---
@@ -390,37 +430,29 @@ void first_setup(struct state_t* gst) {
 
         gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
         gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC] = GetShaderLocation(*shader, "screen_size");
-    }
-
-
-    // --- Setup Projectile Shader ---
-    {
-        Shader* shader = &gst->shaders[PLAYER_PROJECTILE_SHADER];
-        *shader = LoadShader(
-            "res/shaders/projectile.vs", 
-            "res/shaders/projectile.fs"
-        );
-
+        gst->fs_unilocs[POSTPROCESS_PLAYER_HEALTH_FS_UNILOC] = GetShaderLocation(*shader, "health");
     }
 
  
-    /*
-    // --- Setup (ENEMY_HIT) ParticleSystem Shader ---
+    // --- Setup Projectiles (Particle System) shader ---
     {
-        Shader* shader = &gst->shaders[ENEMY_HIT_PSYS_SHADER];
+        Shader* shader = &gst->shaders[PROJECTILES_PSYSTEM_SHADER];
         *shader = LoadShader(
             "res/shaders/particle_core.vs",
-            "res/shaders/enemy_hit_psystem.fs"
+            "res/shaders/projectiles_psystem.fs"
         );
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+        
+        gst->fs_unilocs[PROJECTILES_PSYSTEM_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "psystem_color");
        
     }
     // -----------------------
 
 
+    /*
     // --- Setup (ENEMY_HIT) Particle System. ---
     {
         create_psystem(
@@ -447,6 +479,7 @@ void first_setup(struct state_t* gst) {
     }
     */
 
+    /*
     // -------------- TODO: move this into player.c -------------
     // Make sure all projectiles are intialized correctly.
     struct weapon_t* player_weapon = &gst->player.weapon;
@@ -456,6 +489,7 @@ void first_setup(struct state_t* gst) {
         player_weapon->projectiles[i].lifetime = 0.0;
         player_weapon->projectiles[i].alive = 0;
     }
+    */
 
 
     init_player_struct(gst, &gst->player);
@@ -477,6 +511,61 @@ void first_setup(struct state_t* gst) {
                 );
     }
 
+    int seed = time(0);
+    gst->rseed = seed;
+    SetRandomSeed(seed);
+
+
+    // --- Create Weapons for entities ---
+    {
+
+        // Weapon for ENEMY_LVL0
+        //
+        setup_weapon(gst,
+                &gst->entity_weapons[ENTWEAPON_LVL0],
+                enemy_lvl0_weapon_psystem_projectile_pupdate,
+                enemy_lvl0_weapon_psystem_projectile_pinit,
+                (struct weapon_t)
+                {
+                    .accuracy = 8.75,
+                    .prj_speed = 90,
+                    .prj_damage = 10,
+                    .prj_max_lifetime = 3.0,
+                    .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
+                    .prj_color = (Color) { 255, 50, 20,  255 }
+                }
+        );
+        gst->num_entity_weapons++; // <- NOTE: keep track of this!
+
+
+    }
+
+
+    // --- Create entities (FOR TESTING) ---
+
+    for(int i = 0; i < 20; i++) {
+
+        Vector3 pos = (Vector3){ 0 };
+
+        while(Vector3Distance(pos, gst->player.position) < 100) {
+            pos = (Vector3){ RSEEDRANDOMF(-400, 400), 0.0, RSEEDRANDOMF(-400, 400) };
+        }
+
+        create_entity(gst,
+                ENT_TYPE_LVL0,
+                ENT_TRAVELING_DISABLED,
+                "res/models/lvl0_enemy.glb",
+                ENEMY_LVL0_TEXID,
+                100,
+                pos, // initial position
+                (Vector3){ 1.0, 1.0, 1.0 },    // hitbox size
+                100.0,  // target range
+                0.3     // firerate
+                );
+
+    }
+
+
     // --- Add sun ---
    
     add_light(gst,
@@ -495,9 +584,6 @@ void first_setup(struct state_t* gst) {
    
 
 
-    int seed = time(0);
-    gst->rseed = seed;
-    SetRandomSeed(seed);
 }
 
 

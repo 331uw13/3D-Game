@@ -27,6 +27,7 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
     Vector3 a0;
     Vector3 a1;
     Vector3 a2;    
+
     Vector3 b0;
     Vector3 b1;
     Vector3 b2;
@@ -47,10 +48,16 @@ struct terrain_t {
 };
 
 
+// More optimized way to raycast the terrain instead of raycasting on the whole terrain mesh.
+// it uses triangle lookup table.
+RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z);
 
-//size_t get_heightmap_index(struct terrain_t* terrain, float x, float z);
-//float  get_heightmap_value(struct terrain_t* terrain, float x, float z);
-float get_smooth_heightmap_value(struct terrain_t* terrain, float x, float z);
+Matrix get_rotation_to_surface(
+        struct terrain_t* terrain,
+        float x, float z,
+        float* hit_y // report back the surface y position ray hit?
+        );
+
 
 void generate_terrain(
         struct state_t* gst,

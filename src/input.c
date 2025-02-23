@@ -9,7 +9,6 @@
 #include "util.h"
 
 
-#define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)
 
 
 void handle_userinput(struct state_t* gst) {
@@ -76,8 +75,8 @@ void handle_userinput(struct state_t* gst) {
 
         */
 
-        gst->player.position.y 
-            = 3.5 + get_smooth_heightmap_value(&gst->terrain, gst->player.position.x, gst->player.position.z);
+        RayCollision t_hit = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
+        gst->player.position.y = t_hit.point.y + gst->player.hitbox_size.y;
 
 
         float scale_up = ( gst->player.position.y - gst->player.cam.position.y);
@@ -181,8 +180,7 @@ void handle_userinput(struct state_t* gst) {
 
     // ----- User interaction ---------
 
-
-    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         player_shoot(gst, &gst->player);
     }
 
