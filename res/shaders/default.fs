@@ -14,6 +14,7 @@ uniform vec4 colDiffuse;
 out vec4 finalColor;
 
 
+
 // NOTE: these 2 values must same as in 'light.h'
 #define MAX_PROJECTILE_LIGHTS 16
 #define MAX_NORMAL_LIGHTS 4

@@ -30,4 +30,5 @@ void main()
 
     // Calculate final vertex position
     gl_Position = mvp * instanceTransform * vec4(vertexPosition, 1.0);
+
 }

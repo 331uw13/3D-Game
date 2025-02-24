@@ -128,6 +128,9 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         p->lifetime += gst->dt;
         if(p->lifetime > p->max_lifetime) {
             p->alive = 0;
+            if(p->has_light) {
+                disable_light(&p->light, gst->shaders[DEFAULT_SHADER]);
+            }
 
             //psys->pinit_callback(gst, psys, p);
 
@@ -169,4 +172,12 @@ void add_particles(
     }
 }
 
+void disable_particle(struct state_t* gst, struct particle_t* p) {
+    p->alive = 0;
+    p->lifetime = p->max_lifetime;
+    if(p->has_light) {
+        disable_light(&p->light, gst->shaders[DEFAULT_SHADER]);
+        p->has_light = 0;
+    }
+}
 

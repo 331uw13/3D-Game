@@ -38,6 +38,7 @@ struct particle_t {
     void* extradata;
 
     struct light_t light;
+    int has_light;
 };
 
 #define NO_EXTRADATA 0
@@ -110,7 +111,7 @@ void add_particles(
         void* extradata_ptr,
         int has_extradata
         );
-
+void disable_particle(struct state_t* gst, struct particle_t* p);
 
 
 

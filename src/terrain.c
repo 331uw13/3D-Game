@@ -92,6 +92,8 @@ RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z) {
         }
 
         if(mesh_hit_info.hit) {
+            mesh_hit_info.point.x = x;
+            mesh_hit_info.point.z = z;
             break;
         }
     }

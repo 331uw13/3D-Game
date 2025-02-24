@@ -44,6 +44,8 @@ void loop(struct state_t* gst) {
 
     RenderTexture2D render_target = LoadRenderTexture(scrn_w, scrn_h);
 
+    // for projectiles.
+    RenderTexture2D prj_render_target = LoadRenderTexture(scrn_w, scrn_h);
 
 
     while(!WindowShouldClose()) {
@@ -63,7 +65,9 @@ void loop(struct state_t* gst) {
                 scrn_h = sh;
                 UnloadRenderTexture(render_target);
                 render_target = LoadRenderTexture(scrn_w, scrn_h);
-               
+              
+                UnloadRenderTexture(prj_render_target);
+                prj_render_target = LoadRenderTexture(scrn_w, scrn_h);
                 printf(" Resized to %ix%i\n", sw, sh);
             }
 
@@ -84,7 +88,7 @@ void loop(struct state_t* gst) {
 
 
 
-        // Update time for shaders.
+        // Update values for shaders.
 
         SetShaderValue(
                 gst->shaders[POSTPROCESS_SHADER],
@@ -100,7 +104,8 @@ void loop(struct state_t* gst) {
                 SHADER_UNIFORM_FLOAT
                 );
 
-        // Update frame buffer size for post process shader
+
+        // Update screen size for post process shaders
 
         {
 
@@ -110,6 +115,13 @@ void loop(struct state_t* gst) {
             SetShaderValue(
                     gst->shaders[POSTPROCESS_SHADER],
                     gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC],
+                    screen_size,
+                    SHADER_UNIFORM_VEC2
+                    );
+
+            SetShaderValue(
+                    gst->shaders[PROJECTILE_POSTPROCESS_SHADER],
+                    gst->fs_unilocs[PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC],
                     screen_size,
                     SHADER_UNIFORM_VEC2
                     );
@@ -127,8 +139,10 @@ void loop(struct state_t* gst) {
                 (0.15) * 255,
                 255 });
 
+        rlEnableDepthTest();
         BeginMode3D(gst->player.cam);
         {
+
             BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
 
@@ -150,25 +164,41 @@ void loop(struct state_t* gst) {
             // Player.
             player_render(gst, &gst->player);
 
+            EndShaderMode();
+        }
+        EndMode3D();
+        EndTextureMode();
+
+
+        // Render projectiles to different target.
+        BeginTextureMode(prj_render_target);
+        ClearBackground((Color){ 
+                0,
+                0,
+                0,
+                255 });
+
+
+        BeginMode3D(gst->player.cam);
+        {
+            BeginShaderMode(gst->shaders[PROJECTILES_PSYSTEM_SHADER]);
             // Weapons.
             weapon_update(gst, &gst->player.weapon);
-
             for(size_t i = 0; i < gst->num_entity_weapons; i++) {
                 weapon_update(gst, &gst->entity_weapons[i]);
             }
-
-
             EndShaderMode();
         }
-
         EndMode3D();
         EndTextureMode();
+
 
 
 
         BeginDrawing();
         {
             ClearBackground(BLACK);
+
 
 
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
@@ -183,11 +213,26 @@ void loop(struct state_t* gst) {
                         (Vector2){ 0.0, 0.0 },
                         WHITE
                         );
-
-
-
             }
             EndShaderMode();
+
+
+            BeginShaderMode(gst->shaders[PROJECTILE_POSTPROCESS_SHADER]);
+            {
+                DrawTextureRec(
+                        prj_render_target.texture,
+                        (Rectangle) { 
+                            0.0, 0.0, 
+                            (float)prj_render_target.texture.width,
+                            -(float)prj_render_target.texture.height
+                        },
+                        (Vector2){ 0.0, 0.0 },
+                        WHITE
+                        );
+            }
+            EndShaderMode();
+
+
 
             if(IsKeyPressed(KEY_F)) {
                 gst->player.health -= GetRandomValue(1, 50);
@@ -258,6 +303,17 @@ void loop(struct state_t* gst) {
             DrawPixel(center_x, center_y, WHITE);
             
 
+
+
+            DrawText(TextFormat("x: %0.2f", gst->player.position.x),
+                        15.0, scrn_h-30, 20.0, BLACK);
+                
+            DrawText(TextFormat("y: %0.2f", gst->player.position.x),
+                        15.0+100.0, scrn_h-30, 20.0, BLACK);
+                
+            DrawText(TextFormat("z: %0.2f", gst->player.position.x),
+                        15.0+100.0*2, scrn_h-30.0, 20.0, BLACK);
+  
             // text and info.
                 /*
             {
@@ -272,15 +328,7 @@ void loop(struct state_t* gst) {
                         120.0, 40.0, 20.0, (Color){ 150, 150, 150, 255 });
 
 
-                DrawText(TextFormat("x: %0.2f", gst->player.position.x),
-                        15.0, 10.0, 20.0, (Color){ 200, 100, 20, 255});
-                
-                DrawText(TextFormat("y: %0.2f", gst->player.position.x),
-                        15.0+100.0, 10.0, 20.0, (Color){ 100, 200, 20, 255});
-                
-                DrawText(TextFormat("z: %0.2f", gst->player.position.x),
-                        15.0+100.0*2, 10.0, 20.0, (Color){ 20, 100, 200, 255});
-            
+           
 
                 DrawText(TextFormat("Accuracy:            %0.3f", gst->player.weapon.accuracy),
                         15.0, 100.0, 20.0, RED);
@@ -313,6 +361,7 @@ void loop(struct state_t* gst) {
 
     UnloadModel(testmodel);
     UnloadRenderTexture(render_target);
+    UnloadRenderTexture(prj_render_target);
 }
 
 
@@ -341,6 +390,7 @@ void cleanup(struct state_t* gst) {
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
     UnloadShader(gst->shaders[PROJECTILES_PSYSTEM_SHADER]); 
+    UnloadShader(gst->shaders[PROJECTILE_POSTPROCESS_SHADER]); 
     delete_terrain(&gst->terrain);
 
 
@@ -450,6 +500,19 @@ void first_setup(struct state_t* gst) {
        
     }
     // -----------------------
+
+    // --- Setup Projectiles Post Processing Shader ---
+    {
+        Shader* shader = &gst->shaders[PROJECTILE_POSTPROCESS_SHADER];
+        *shader = LoadShader(
+            0 /* use raylibs default vertex shader */, 
+            "res/shaders/projectile_postprocess.fs"
+        );
+
+        gst->fs_unilocs[PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC]
+            = GetShaderLocation(*shader, "screen_size");
+    }
+
 
 
     /*

@@ -19,7 +19,6 @@ static void _player_weapon_psystem_projectile_pupdate(
         return;
     }
 
-
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
 
@@ -28,6 +27,16 @@ static void _player_weapon_psystem_projectile_pupdate(
 
     part->light.position = part->position;
     update_light_values(&part->light, gst->shaders[DEFAULT_SHADER]);
+
+
+    // Check collision with terrain
+
+    RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
+
+    if(t_hit.point.y >= part->position.y) {
+        disable_particle(gst, part);
+    }
+
 }
 
 // PROJECTILE PARTICLE INITIALIZATION ---
@@ -54,6 +63,7 @@ static void _player_weapon_psystem_projectile_pinit(
 
 
     add_projectile_light(gst, &part->light, part->position, weapon->prj_color, gst->shaders[DEFAULT_SHADER]);
+    part->has_light = 1;
 
     *part->transform = position_m;
     part->alive = 1;
@@ -95,7 +105,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->recoil_strength = 0.0;
     p->recoil_in_progress = 0;
 
-
     p->max_health = 500.0;
     p->health = p->max_health;
 
@@ -115,8 +124,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             }
             );
 
-    p->firerate_timer = 0.0;
     p->firerate = 0.1;
+    p->firerate_timer = p->firerate;
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
@@ -161,9 +170,9 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
         // move the projectile little bit forward so its not inside of the model.
-        prj_position.x += p->looking_at.x*2;
-        prj_position.y += p->looking_at.y*2 - 0.01;
-        prj_position.z += p->looking_at.z*2;
+        prj_position.x += p->looking_at.x*2.5;
+        prj_position.y += p->looking_at.y*2.5;
+        prj_position.z += p->looking_at.z*2.5;
 
 
         weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at);

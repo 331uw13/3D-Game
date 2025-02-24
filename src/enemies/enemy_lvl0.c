@@ -53,6 +53,7 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
     Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     
     add_projectile_light(gst, &part->light, part->position, weapon->prj_color, gst->shaders[DEFAULT_SHADER]);
+    part->has_light = 1;
 
     *part->transform = position_m;
     part->alive = 1;
@@ -155,38 +156,38 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent, int render_set
                 rm = MatrixMultiply(rm, ent->body_matrix);
                 ent->body_matrix = rm;
     
-
-
                 Vector3 prj_position = ent->position;
 
 
                 float angle = ent->forward_angle;
                 const float ang_rad = 1.5;
 
-                // offset model.
-                prj_position.x += 0.2;
-                prj_position.z -= 0.4;
 
-                if(ent->gun_index) {
-                    prj_position.x += ang_rad*sin(angle);
-                    prj_position.z += ang_rad*cos(angle);
-                }
-                else {
-                    prj_position.x -= ang_rad*sin(angle);
-                    prj_position.z -= ang_rad*cos(angle);
-                }
-               
-                prj_position.y += 1.0;
+                if(!gst->player.noclip) {
+                    prj_position.x += 0.2;
+                    prj_position.z -= 0.4;
+
+                    if(ent->gun_index) {
+                        prj_position.x += ang_rad*sin(angle);
+                        prj_position.z += ang_rad*cos(angle);
+                    }
+                    else {
+                        prj_position.x -= ang_rad*sin(angle);
+                        prj_position.z -= ang_rad*cos(angle);
+                    }
+                   
+                    prj_position.y += 1.0;
 
 
 
-                Vector3 prj_direction = Vector3Normalize(Vector3Subtract(gst->player.position, prj_position));
-                
-                if(ent->firerate_timer >= ent->firerate) {
-                    weapon_add_projectile(gst, ent->weapon, prj_position, prj_direction);
-                    ent->firerate_timer = 0.0;
-                
-                    ent->gun_index = !ent->gun_index;
+                    Vector3 prj_direction = Vector3Normalize(Vector3Subtract(gst->player.position, prj_position));
+                    
+                    if(ent->firerate_timer >= ent->firerate) {
+                        weapon_add_projectile(gst, ent->weapon, prj_position, prj_direction);
+                        ent->firerate_timer = 0.0;
+                    
+                        ent->gun_index = !ent->gun_index;
+                    }
                 }
 
             }
