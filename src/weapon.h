@@ -55,8 +55,12 @@ void weapon_add_projectile(
         Vector3 direction
         );
 
-// Update and render projectiles.
 void weapon_update(
+        struct state_t* gst,
+        struct weapon_t* w
+        );
+
+void weapon_render_projectiles(
         struct state_t* gst,
         struct weapon_t* w
         );

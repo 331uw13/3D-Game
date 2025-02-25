@@ -59,6 +59,7 @@ void create_psystem(
     psys->pinit_callback = pinit_callback_ptr;
     psys->userptr = NULL;
 
+
     psys->particles = calloc(max_particles, sizeof *psys->particles);
     if(!psys->particles) {
         fprintf(stderr, " >> (ERROR) '%s' Failed to allocate memory for particles\n",
@@ -137,6 +138,9 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         }
     }
 
+}
+
+void render_psystem(struct state_t* gst, struct psystem_t* psys) {
     DrawMeshInstanced(
             psys->particle_mesh,
             psys->particle_material,
@@ -144,11 +148,9 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             psys->max_particles
             );
 
-
     // clear the transform matrix array for next frame.
-    memset(psys->transforms, 0, psys->max_particles * sizeof *psys->transforms);
+    //memset(psys->transforms, 0, psys->max_particles * sizeof *psys->transforms);
 }
-
 
 
 void add_particles(

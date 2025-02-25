@@ -59,12 +59,12 @@ void weapon_add_projectile(
 
 
 
-void weapon_update(
-        struct state_t* gst,
-        struct weapon_t* w
-){
+void weapon_update(struct state_t* gst, struct weapon_t* w) {
+    update_psystem(gst, &w->psystem);
+    // ...
+}
 
-
+void weapon_render_projectiles(struct state_t* gst, struct weapon_t* w) {
     float psystem_color[3] = {
         (float)w->prj_color.r / 255.0,
         (float)w->prj_color.g / 255.0,
@@ -79,8 +79,6 @@ void weapon_update(
             );
 
 
-    update_psystem(gst, &w->psystem);
-
+    render_psystem(gst, &w->psystem);
 }
-
 

@@ -9,6 +9,9 @@ in vec4 fragColor;
 
 // Input uniform values
 uniform sampler2D texture0;
+uniform sampler2D env_depth_tex;
+uniform sampler2D prj_depth_tex;
+
 uniform vec4 colDiffuse;
 uniform float time;
 uniform float health; // normalized
@@ -26,6 +29,16 @@ float lerp(float t, float min, float max) {
 
 void main()
 {
+
+    float env_d = texture(env_depth_tex, fragTexCoord).r;
+    float prj_d = texture(prj_depth_tex, fragTexCoord).r;
+
+
+    if(env_d < prj_d) {
+        discard;
+    }
+
+
 
     float gamma = 0.8;
 
@@ -63,4 +76,7 @@ void main()
 
     float b = dot(finalColor.xyz, vec3(0.2126, 0.7152, 0.0722));
     finalColor.w = b * 0.3;
+
+
+    //finalColor.xyz = texture(env_depth_tex, fragTexCoord).rgb;
 }

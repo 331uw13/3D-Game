@@ -101,6 +101,7 @@ void create_psystem(
 
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys);
+void render_psystem(struct state_t* gst, struct psystem_t* psys);
 
 void add_particles(
         struct state_t* gst,

@@ -20,7 +20,8 @@
 
 
 void cleanup(struct state_t* gst);
-
+RenderTexture2D LoadRenderTextureDepthTex(int width, int height);
+void UnloadRenderTextureDepthTex(RenderTexture2D target);
 
 void loop(struct state_t* gst) {
 
@@ -41,11 +42,14 @@ void loop(struct state_t* gst) {
 
     int scrn_w = GetScreenWidth();
     int scrn_h = GetScreenHeight();
+    
 
     RenderTexture2D render_target = LoadRenderTexture(scrn_w, scrn_h);
-
-    // for projectiles.
     RenderTexture2D prj_render_target = LoadRenderTexture(scrn_w, scrn_h);
+
+    RenderTexture2D env_depth_tex = LoadRenderTexture(scrn_w, scrn_h);
+    RenderTexture2D prj_depth_tex = LoadRenderTexture(scrn_w, scrn_h);
+
 
 
     while(!WindowShouldClose()) {
@@ -73,6 +77,15 @@ void loop(struct state_t* gst) {
 
         }
 
+        // Update Weapons.
+
+        weapon_update(gst, &gst->player.weapon);
+       
+        for(size_t i = 0; i < gst->num_entity_weapons; i++) {
+            weapon_update(gst, &gst->entity_weapons[i]);
+        }
+
+
        
 
         // Update view position for shaders.
@@ -86,7 +99,7 @@ void loop(struct state_t* gst) {
         SetShaderValue(gst->shaders[PROJECTILES_PSYSTEM_SHADER], 
                 gst->shaders[PROJECTILES_PSYSTEM_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
-
+        
 
         // Update values for shaders.
 
@@ -131,15 +144,10 @@ void loop(struct state_t* gst) {
 
         // --- Rendering ---
 
+
         // Render 3D stuff into texture and post process it later.
         BeginTextureMode(render_target);
-        ClearBackground((Color){ 
-                (0.3) * 255,
-                (0.15) * 255,
-                (0.15) * 255,
-                255 });
-
-        rlEnableDepthTest();
+        ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
         BeginMode3D(gst->player.cam);
         {
 
@@ -150,16 +158,17 @@ void loop(struct state_t* gst) {
             {
                 testmodel.transform = MatrixRotateXYZ((Vector3){ gst->time, 0.0, gst->time });
                 DrawModel(testmodel, (Vector3){ 5.0, 5.0, -5.0 }, 1.0, (Color){ 255, 255, 255, 255});
-
             }
 
             // Terrain.
             render_terrain(gst, &gst->terrain);
 
+            /*
             // Entities.
             for(size_t i = 0; i < gst->num_entities; i++) {
                 update_entity(gst, &gst->entities[i], ENT_RENDER_ON_UPDATE);
             }
+            */
 
             // Player.
             player_render(gst, &gst->player);
@@ -169,28 +178,69 @@ void loop(struct state_t* gst) {
         EndMode3D();
         EndTextureMode();
 
+        // Render projectiles
 
-        // Render projectiles to different target.
         BeginTextureMode(prj_render_target);
-        ClearBackground((Color){ 
-                0,
-                0,
-                0,
-                255 });
-
-
+        ClearBackground((Color){ 0, 0, 0, 255 });
         BeginMode3D(gst->player.cam);
         {
             BeginShaderMode(gst->shaders[PROJECTILES_PSYSTEM_SHADER]);
-            // Weapons.
-            weapon_update(gst, &gst->player.weapon);
-            for(size_t i = 0; i < gst->num_entity_weapons; i++) {
-                weapon_update(gst, &gst->entity_weapons[i]);
-            }
+
+            gst->player.weapon.psystem.particle_material.shader
+                = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
+            weapon_render_projectiles(gst, &gst->player.weapon);
+
             EndShaderMode();
         }
         EndMode3D();
         EndTextureMode();
+
+
+
+
+
+        // Render ENVIRONMENT to DEPTH TEXTURE
+        //
+        BeginTextureMode(env_depth_tex);
+        ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
+        BeginMode3D(gst->player.cam);
+        {
+            BeginShaderMode(gst->shaders[WRITEDEPTH_SHADER]);
+
+            // Terrain.
+            gst->terrain.material.shader = gst->shaders[WRITEDEPTH_SHADER];
+            render_terrain(gst, &gst->terrain);
+            
+            gst->terrain.material.shader = gst->shaders[DEFAULT_SHADER];
+
+            EndShaderMode();
+        }
+        EndMode3D();
+        EndTextureMode();
+
+
+        // Render PROJECTILES to DEPTH TEXTURE
+        //
+        BeginTextureMode(prj_depth_tex);
+        ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
+        BeginMode3D(gst->player.cam);
+        {
+
+            //render_psystem_depth(gst, &gst->player.weapon.psystem);
+            BeginShaderMode(gst->shaders[PARTICLE_WRITEDEPTH_SHADER]);
+
+            gst->player.weapon.psystem.particle_material.shader
+                = gst->shaders[PARTICLE_WRITEDEPTH_SHADER];
+            weapon_render_projectiles(gst, &gst->player.weapon);
+           
+
+            EndShaderMode();
+        }
+        EndMode3D();
+        EndTextureMode();
+
+
+
 
 
 
@@ -203,7 +253,7 @@ void loop(struct state_t* gst) {
 
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
-                DrawTextureRec(
+            DrawTextureRec(
                         render_target.texture,
                         (Rectangle) { 
                             0.0, 0.0, 
@@ -219,6 +269,17 @@ void loop(struct state_t* gst) {
 
             BeginShaderMode(gst->shaders[PROJECTILE_POSTPROCESS_SHADER]);
             {
+               
+                rlEnableShader(gst->shaders[PROJECTILE_POSTPROCESS_SHADER].id);
+               
+                // Environment depth texture
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[PROJECTILE_POSTPROCESS_SHADER],
+                            "env_depth_tex"), env_depth_tex.texture.id);
+                
+                // Projectile depth texture
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[PROJECTILE_POSTPROCESS_SHADER],
+                            "prj_depth_tex"), prj_depth_tex.texture.id);
+
                 DrawTextureRec(
                         prj_render_target.texture,
                         (Rectangle) { 
@@ -232,6 +293,24 @@ void loop(struct state_t* gst) {
             }
             EndShaderMode();
 
+
+            if(gst->debug) {
+ 
+                BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
+                {
+                    DrawTextureRec(
+                            prj_depth_tex.texture,
+                            (Rectangle) { 
+                                0.0, 0.0, 
+                                (float)render_target.texture.width,
+                                -(float)render_target.texture.height
+                            },
+                            (Vector2){ 0.0, 0.0 },
+                            WHITE
+                            );
+                }
+                EndShaderMode();
+            }
 
 
             if(IsKeyPressed(KEY_F)) {
@@ -362,6 +441,9 @@ void loop(struct state_t* gst) {
     UnloadModel(testmodel);
     UnloadRenderTexture(render_target);
     UnloadRenderTexture(prj_render_target);
+    UnloadRenderTextureDepthTex(env_depth_tex);
+    UnloadRenderTextureDepthTex(prj_depth_tex);
+
 }
 
 
@@ -391,9 +473,10 @@ void cleanup(struct state_t* gst) {
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
     UnloadShader(gst->shaders[PROJECTILES_PSYSTEM_SHADER]); 
     UnloadShader(gst->shaders[PROJECTILE_POSTPROCESS_SHADER]); 
+    UnloadShader(gst->shaders[DEPTHTEXTURE_SHADER]);
+    UnloadShader(gst->shaders[WRITEDEPTH_SHADER]);
+    UnloadShader(gst->shaders[PARTICLE_WRITEDEPTH_SHADER]);
     delete_terrain(&gst->terrain);
-
-
 
     CloseWindow();
 }
@@ -418,7 +501,7 @@ void first_setup(struct state_t* gst) {
     DisableCursor();
     SetTargetFPS(500);
     gst->num_textures = 0;
-    gst->draw_debug = 0;
+    gst->debug = 0;
     gst->objects = NULL;
     gst->objarray_size = 0;
     gst->num_objects = 0;
@@ -512,6 +595,44 @@ void first_setup(struct state_t* gst) {
         gst->fs_unilocs[PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC]
             = GetShaderLocation(*shader, "screen_size");
     }
+
+
+
+    // --- Setup Depth texture shader ---
+    {
+        Shader* shader = &gst->shaders[DEPTHTEXTURE_SHADER];
+        *shader = LoadShader(
+            0 /* use raylibs default vertex shader */, 
+            "res/shaders/depth.fs"
+        );
+
+    }
+
+    // --- Setup Write depth shader ---
+    {
+        Shader* shader = &gst->shaders[WRITEDEPTH_SHADER];
+        *shader = LoadShader(
+            0 /* use raylibs default vertex shader */, 
+            "res/shaders/write_depth.fs"
+        );
+
+    }
+
+    // --- Setup Write depth shader (For particles) ---
+    {
+        Shader* shader = &gst->shaders[PARTICLE_WRITEDEPTH_SHADER];
+        *shader = LoadShader(
+            "res/shaders/particle_core.vs", 
+            "res/shaders/write_depth.fs"
+        );
+
+
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+        
+    }
+
 
 
 
@@ -649,6 +770,49 @@ void first_setup(struct state_t* gst) {
 
 }
 
+RenderTexture2D LoadRenderTextureDepthTex(int width, int height) {
+    RenderTexture2D target = { 0 };
+    target.id = rlLoadFramebuffer();
+
+    if(target.id > 0) {
+        rlEnableFramebuffer(target.id);
+
+         // Create color texture (default to RGBA)
+        target.texture.id = rlLoadTexture(0, width, height, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, 1);
+        target.texture.width = width;
+        target.texture.height = height;
+        target.texture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        target.texture.mipmaps = 1;
+
+         // Create depth texture buffer (instead of raylib default renderbuffer)
+         target.depth.id = rlLoadTextureDepth(width, height, false);
+         target.depth.width = width;
+         target.depth.height = height;
+         target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
+         target.depth.mipmaps = 1;
+
+         // Attach color texture and depth texture to FBO
+         rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0,
+                 RL_ATTACHMENT_TEXTURE2D, 0);
+         rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_TEXTURE2D,0);
+
+         // Check if fbo is complete with attachments (valid)
+
+         rlDisableFramebuffer();
+     }
+     else TRACELOG(LOG_WARNING, "FBO: Framebuffer object can not be created");
+
+     return target;
+
+}
+
+void UnloadRenderTextureDepthTex(RenderTexture2D target) {
+    if(target.id > 0) {
+        rlUnloadTexture(target.texture.id);
+        rlUnloadTexture(target.depth.id);
+        rlUnloadFramebuffer(target.id);
+    }
+}
 
 int main(void) {
 

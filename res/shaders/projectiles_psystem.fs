@@ -6,6 +6,7 @@ in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragNormal;
 
+uniform sampler2D texture0;
 
 out vec4 finalColor;
 uniform vec3 viewPos;
@@ -70,8 +71,11 @@ void main()
 {
     vec3 col = psystem_color;
     float v = voronoi3d(fragPosition*2.0).x;
+   
 
     finalColor = vec4(col, v);
 }
+
+
 
 

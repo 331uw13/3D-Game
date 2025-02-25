@@ -24,6 +24,7 @@ float lerp(float t, float min, float max) {
 void main()
 {
 
+    /*
     float gamma = 0.8;
 
 
@@ -51,4 +52,7 @@ void main()
 
     finalColor = vec4(texcolor, 1.0);
     finalColor = pow(finalColor, vec4(1.0/gamma));
+    */
+
+    finalColor = texture(texture0, fragTexCoord);
 }

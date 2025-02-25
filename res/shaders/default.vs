@@ -26,7 +26,6 @@ void main()
 {
     vec3 vertpos = vertexPosition;
 
-  
 
     // Send vertex attributes to fragment shader
     fragPosition = vec3(matModel*vec4(vertpos, 1.0));

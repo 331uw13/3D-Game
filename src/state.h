@@ -31,7 +31,10 @@
 #define POSTPROCESS_SHADER 1
 #define PROJECTILES_PSYSTEM_SHADER 2
 #define PROJECTILE_POSTPROCESS_SHADER 3
-#define MAX_SHADERS 6
+#define DEPTHTEXTURE_SHADER 4
+#define WRITEDEPTH_SHADER 5
+#define PARTICLE_WRITEDEPTH_SHADER 6
+#define MAX_SHADERS 8
 // ...
 
 // particle systems.
@@ -83,7 +86,6 @@ struct state_t {
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
-    int draw_debug; // <- TODO.
 
     struct obj_t* objects;
     size_t objarray_size;
@@ -96,6 +98,7 @@ struct state_t {
     size_t num_entity_weapons;
 
     int rseed; // seed for randomgen functions.
+    int debug;
 };
 
 

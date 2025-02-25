@@ -195,6 +195,11 @@ void handle_userinput(struct state_t* gst) {
     if(!aimkeydown) {
         gst->player.ready_to_shoot = 0;
     }
+
+
+    if(IsKeyPressed(KEY_T)) {
+        gst->debug = !gst->debug;
+    }
 }
 
 
