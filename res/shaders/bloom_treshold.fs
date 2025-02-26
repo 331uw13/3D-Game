@@ -31,8 +31,8 @@ vec3 bloom_treshold(vec3 fcolor, vec3 treshold) {
 
 void main()
 {
-    vec3 color = texture(texture0, fragTexCoord).rgb * 0.8;
-    color = bloom_treshold(color, vec3(0.85, 0.9, 0.9));
+    vec3 color = texture(texture0, fragTexCoord).rgb;
+    color = bloom_treshold(color, vec3(0.85, 0.86, 0.8));
 
 
     finalColor = vec4(color, 1.0);

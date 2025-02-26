@@ -37,7 +37,8 @@ struct player_t {
     int  is_aiming;
 
     Model gunmodel;
-   
+    Material arms_material;
+
     //Vector3 gunmodel_offset;
     Matrix gunmodel_aim_offset_m;
     Matrix gunmodel_rest_offset_m;

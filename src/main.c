@@ -104,7 +104,7 @@ void loop(struct state_t* gst) {
                 const int bar_width = 150;
                 const int bar_height = 10;
 
-                int bar_inc = 20;
+                int bar_inc = 15;
                 int bar_next_y = 10;
 
                 // Health
@@ -134,7 +134,7 @@ void loop(struct state_t* gst) {
 
 
                 }
-                bar_next_y += bar_inc;
+                bar_next_y += bar_inc+5;
 
                 // Fire rate timer.
                 {
@@ -156,6 +156,28 @@ void loop(struct state_t* gst) {
                             (Color){ 10, 180, 255, 255 }
                             );
                 }
+                bar_next_y += bar_inc;
+
+                // Weapon temperature.
+                {
+                    const float  tempvalue = gst->player.weapon.temp;
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            bar_width,
+                            bar_height,
+                            (Color){ 20, 20, 20, 255 }
+                            );
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            map(tempvalue, 0.0, gst->player.weapon.overheat_temp, 0, bar_width),
+                            bar_height,
+                            (Color){ 255, 58, 30, 255 }
+                            );
+                }
             }
 
 
@@ -175,6 +197,9 @@ void loop(struct state_t* gst) {
             DrawText(TextFormat("z: %0.2f", gst->player.position.x),
                         15.0+100.0*2, gst->scrn_h-30.0, 20.0, BLACK);
  
+
+            DrawText(TextFormat("FPS: %i", GetFPS()),
+                    gst->scrn_w - 100, gst->scrn_h-30, 20, WHITE);
 
             if(gst->debug) {
                 DrawText("(Debug ON)", gst->scrn_w - 200, 10, 20, RED);
@@ -265,7 +290,7 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
     load_texture(gst, "res/textures/gun_0.png", GUN_0_TEXID);
     load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
-
+    load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
 
     // --- Setup Default Shader ---
     {
@@ -383,7 +408,6 @@ void first_setup(struct state_t* gst) {
 
     // --- Create entities (FOR TESTING) ---
 
-    /*
     for(int i = 0; i < 20; i++) {
 
         Vector3 pos = (Vector3){ 0 };
@@ -405,7 +429,6 @@ void first_setup(struct state_t* gst) {
                 );
 
     }
-    */
 
 
     // --- Add sun ---
@@ -413,7 +436,7 @@ void first_setup(struct state_t* gst) {
     add_light(gst,
             LIGHT_DIRECTIONAL,
             sun_position,
-            (Color) { 220, 200, 230, 255 },
+            (Color) { 220, 170, 230, 255 },
             gst->shaders[DEFAULT_SHADER]
             );
    

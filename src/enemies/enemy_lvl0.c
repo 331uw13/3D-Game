@@ -70,14 +70,7 @@ static Vector3 _normalize(Vector3 a) {
 }
 
 
-void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent, int render_setting) {
-    const float dst2player = Vector3Distance(gst->player.position, ent->position);
-
-
-    if(dst2player >= 300) {
-        return;
-    }
-
+void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
 
 
     // Rotate to terrain surface
@@ -87,11 +80,11 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent, int render_set
     Matrix pos_m = MatrixTranslate(ent->position.x, y, ent->position.z);
 
     ent->model.transform = MatrixMultiply(rotate_m, pos_m);
-
     ent->position.y = y;
 
 
-    int has_target_now = (dst2player <= ent->target_range);
+    int has_target_now = 0;
+    //int has_target_now = (dst2player <= ent->target_range);
 
 
     ent->body_matrix = ent->model.transform;
@@ -192,10 +185,11 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent, int render_set
 
             }
             break;
-
     }
 
+}
 
+void enemy_lvl0_render(struct state_t* gst, struct entity_t* ent) {
 
     // Turret body
 
@@ -224,8 +218,6 @@ void enemy_lvl0_death(struct state_t* gst, struct entity_t* ent) {
 
 void enemy_lvl0_created(struct state_t* gst, struct entity_t* ent) {
     ent->state = ENT_STATE_SEARCHING_TARGET;
-
-
 
 }
 

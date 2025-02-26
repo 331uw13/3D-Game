@@ -16,7 +16,7 @@ out vec4 finalColor;
 
 
 // NOTE: these 2 values must same as in 'light.h'
-#define MAX_PROJECTILE_LIGHTS 16
+#define MAX_PROJECTILE_LIGHTS 512
 #define MAX_NORMAL_LIGHTS 4
 
 #define     LIGHT_DIRECTIONAL       0
@@ -74,7 +74,9 @@ void compute_light(vec3 light_position, int light_type, vec4 light_color, vec3 v
         specCo = pow(max(0.0, dot(viewD, reflect(-lightdir, normal))), 36.0);
     }
 
+    if(light_type != LIGHT_DIRECTIONAL) {
     g_specular += (dist * light_color.rgb) * (specCo * specCo);
+    }
 }
 
 
@@ -116,13 +118,13 @@ void main()
         }
     }
 
-    
-    finalColor = (texelColor*((colDiffuse + vec4(g_specular,1))*vec4(g_lightdot, 1.0)));
-    finalColor += texelColor*(ambient/10.0);
+
+    finalColor = (texelColor * ((colDiffuse + vec4(g_specular, 1.0)) * vec4(g_lightdot,1.0)));
+    finalColor += texelColor * (ambient/6.0);
 
     // Scale colors back to more bright while post processing
-    vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.0));
-    finalColor.xyz = pow(mapped, vec3(1.0 / 0.5));
+    vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
+    finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));
    
 
     float dist = length(fragViewPos - fragPosition);

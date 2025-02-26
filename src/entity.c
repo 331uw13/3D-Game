@@ -120,15 +120,12 @@ void delete_entity(struct entity_t* ent) {
     ent->weapon = NULL;
 }
 
-// "Render settings"
-#define ENT_UPDATE_ONLY 0
-#define ENT_RENDER_ON_UPDATE 1
-void update_entity(struct state_t* gst, struct entity_t* ent, int render_setting) {
 
+void update_entity(struct state_t* gst, struct entity_t* ent) {
     switch(ent->type)
     {
         case ENT_TYPE_LVL0:
-            enemy_lvl0_update(gst, ent, render_setting);
+            enemy_lvl0_update(gst, ent);
             break;
 
 
@@ -138,6 +135,19 @@ void update_entity(struct state_t* gst, struct entity_t* ent, int render_setting
 
 }
 
+void render_entity(struct state_t* gst, struct entity_t* ent) {
+    switch(ent->type)
+    {
+        case ENT_TYPE_LVL0:
+            enemy_lvl0_render(gst, ent);
+            break;
+
+
+        // ...
+    }
+
+
+}
 
 void entity_hit(struct state_t* gst, struct entity_t* ent) {
 }

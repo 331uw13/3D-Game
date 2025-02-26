@@ -37,12 +37,12 @@ vec3 bloom_treshold(vec3 fcolor, vec3 treshold) {
 }
 
 #define BLOOM_SAMPLES 30.0
-#define BLOOM_POS_M 0.7
-#define BLOOM_ADD_M 0.8
+#define BLOOM_POS_M 0.5
+#define BLOOM_ADD_M 0.6
 
 vec3 get_bloom() {
     vec3 result = vec3(0);
-    vec2 size = screen_size * 0.32;
+    vec2 size = screen_size * 0.22;
     vec2 sf = 1.0/(size * 2.0);
     const int r = 4;
     
@@ -74,8 +74,35 @@ void main()
 
     vec3 tobloom = texture(texture0, fragTexCoord).rgb;
     vec3 bloom = get_bloom();
+    color += bloom;
+
+
+    // small blur effect to smooth things out.
+
+    vec3 result = vec3(0);
+    vec2 size = screen_size * 0.62;
+    vec2 sf = 1.0/(size * 2.0);
+    float blur_add = 0.6;
+    const int r = 3;
     
-    color += bloom * 0.5;
+    for(int x = -r; x <= r; x++) {
+        for(int y = -r; y <= r; y++) {
+            vec2 p = vec2(x, y) * 0.9;
+            result += blur_add * texture(texture0, fragTexCoord + p * sf).rgb;
+        }     
+    }
+
+
+    for(int y = -r; y <= r; y++) {
+        for(int x = -r; x <= r; x++) {
+            vec2 p = vec2(x, y) * 0.9;
+            result += blur_add * texture(texture0, fragTexCoord + p * sf).rgb;
+        }     
+    }
+
+    color = mix(result/20.0, color, 0.5);
+
+
 
 
     finalColor = vec4(color, 1.0);

@@ -116,21 +116,28 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             (struct weapon_t)
             {
                 .accuracy = 7.5,
-                .prj_speed = 80,
+                .prj_speed = 100,
                 .prj_damage = 10,
                 .prj_max_lifetime = 5.0,
                 .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
-                .prj_color = (Color) { 20, 255, 255, 255 }
+                .prj_color = (Color) { 20, 255, 255, 255 },
+                .overheat_temp = 100.0,
+                .heat_increase = 1.0,
+                .cooling_level = 6.0
             }
             );
 
-    p->firerate = 0.05;
+    p->firerate = 0.03;
     p->firerate_timer = p->firerate;
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
     p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUN_0_TEXID];
 
+
+    p->arms_material = LoadMaterialDefault();
+    p->arms_material.shader = gst->shaders[DEFAULT_SHADER];
+    p->arms_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_ARMS_TEXID];
 
     // calculate matrices for when player is aiming and not aiming.
     
@@ -146,7 +153,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     // (Aiming)
     {
         p->gunmodel_aim_offset_m 
-            = MatrixTranslate(0.1, -0.1, -0.4);
+            = MatrixTranslate(0.1, 0.3, -0.4);
     }
 
 }
@@ -166,6 +173,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     }
 
     if(p->firerate_timer >= p->firerate) {
+        p->firerate_timer = 0.0;
         Vector3 prj_position = (Vector3){0};
         prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
@@ -175,8 +183,12 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         prj_position.z += p->looking_at.z*2.5;
 
 
-        weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at);
+        int result = weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at);
+        
 
+        if(!result) {
+            return;
+        }
 
         p->recoil = 0.2;
         p->recoil_done = 0;
@@ -184,7 +196,6 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         p->recoil_strength = 0.6;
         p->recoil_in_progress = 1;
 
-        p->firerate_timer = 0.0;
     }
 }
 
@@ -231,11 +242,30 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     p->gunmodel.transform = transform;
 
+    // Gun
     DrawMesh(
+            p->gunmodel.meshes[2],
+            p->gunmodel.materials[0],
+            p->gunmodel.transform
+            );
+
+
+    // Hands
+   DrawMesh(
             p->gunmodel.meshes[0],
             p->gunmodel.materials[0],
             p->gunmodel.transform
             );
+
+   DrawMesh(
+            p->gunmodel.meshes[1],
+            p->gunmodel.materials[0],
+            p->gunmodel.transform
+            );
+
+
+ 
+
 }
 
 

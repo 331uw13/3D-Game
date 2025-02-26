@@ -20,9 +20,12 @@ void setup_weapon(
         struct weapon_t weapon_stats
 ){
 
+    w->cooling_level = 0.0;
+    w->heat_increase = 0.0;
+    w->overheat_temp = -1.0;
     *w = weapon_stats;
 
-    create_psystem(gst, &w->psystem, 64, update_callback_ptr, pinit_callback_ptr);
+    create_psystem(gst, &w->psystem, 512, update_callback_ptr, pinit_callback_ptr);
 
     w->psystem.particle_mesh = GenMeshSphere(0.5, 8, 8);
     w->psystem.particle_material = LoadMaterialDefault();
@@ -31,6 +34,7 @@ void setup_weapon(
     w->knockback = CLAMP(w->knockback, 0.0, 10.0);
     w->accuracy = CLAMP(w->accuracy, 0.0, 10.0);
     w->prj_damage = CLAMP(w->prj_damage, 0.0, 10000.0);
+    w->temp = 0.0;
 }
 
 void delete_weapon(struct weapon_t* w) {
@@ -38,12 +42,23 @@ void delete_weapon(struct weapon_t* w) {
 }
 
 
-void weapon_add_projectile(
+int weapon_add_projectile(
         struct state_t* gst,
         struct weapon_t* w,
         Vector3 position,
         Vector3 direction
 ){
+    int result = 0;
+
+    if(w->overheat_temp > 0.0) {
+        if(w->temp < w->overheat_temp) {
+            w->temp += w->heat_increase;
+        }
+
+        if(w->temp >= w->overheat_temp) {
+            goto skip;
+        }
+    }
 
     const float ak = 0.1;
     const float ac = ak - map(w->accuracy, 0.0, 10.0, 0.0, ak);
@@ -55,12 +70,22 @@ void weapon_add_projectile(
 
     w->psystem.userptr = w;
     add_particles(gst, &w->psystem, 1, position, direction, NULL, NO_EXTRADATA);
+
+
+skip:
+    return result;
 }
 
 
 
 void weapon_update(struct state_t* gst, struct weapon_t* w) {
     update_psystem(gst, &w->psystem);
+
+    if(w->temp > 0.0) {
+        w->temp -= gst->dt * w->cooling_level;
+    }
+    if(w->temp < 0.0) { w->temp = 0.0; }
+
     // ...
 }
 

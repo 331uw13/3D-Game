@@ -7,7 +7,7 @@
 #include "light.h"
 #include "psystem.h"
 
-#define MAX_WEAPON_PROJECTILES 64
+#define MAX_WEAPON_PROJECTILES 512
 
 
 // TODO: render projectiles as particle system.
@@ -31,6 +31,17 @@ struct weapon_t {
     float    prj_max_lifetime;
     Vector3  prj_size;
     Color    prj_color;
+
+
+    // Weapon temperature:
+    // 'temp' increases when shooting. Cooldown is applied if the weapon overheats
+    // It also cools down slowly over time.
+    // by setting 'overheat_temp' to negative value ignores this effect (set by default).
+    // 'cooling_level' is how fast the weapon cools down.
+    float    temp;
+    float    heat_increase;
+    float    overheat_temp;
+    float    cooling_level;
 };
 
 
@@ -48,7 +59,7 @@ void delete_weapon(struct weapon_t* w);
 
 float compute_weapon_accuracy(struct state_t* gst, struct weapon_t* weapon);
 
-void weapon_add_projectile(
+int weapon_add_projectile(
         struct state_t* gst,
         struct weapon_t* w,
         Vector3 position,

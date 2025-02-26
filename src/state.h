@@ -14,7 +14,7 @@
 #define GRID9x9_TEXID 2
 #define GUN_0_TEXID 3
 #define ENEMY_LVL0_TEXID 4
-
+#define PLAYER_ARMS_TEXID 5
 #define MAX_TEXTURES 16
 
 

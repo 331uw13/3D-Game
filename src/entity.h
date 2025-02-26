@@ -112,7 +112,8 @@ void delete_entity(struct entity_t* ent);
 #define ENT_RENDER_ON_UPDATE 1
 
 // These functions "redirects" the call based on entity type
-void update_entity(struct state_t* gst, struct entity_t* ent, int render_setting);
+void update_entity(struct state_t* gst, struct entity_t* ent);
+void render_entity(struct state_t* gst, struct entity_t* ent);
 void entity_hit(struct state_t* gst, struct entity_t* ent);
 void entity_death(struct state_t* gst, struct entity_t* ent);
 

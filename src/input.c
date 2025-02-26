@@ -196,11 +196,6 @@ void handle_userinput(struct state_t* gst) {
         gst->player.ready_to_shoot = 0;
     }
 
-
-    if(IsKeyPressed(KEY_T)) {
-        gst->debug = !gst->debug;
-        gst->player.weapon.prj_speed = (!gst->debug) * 80.0;
-    }
 }
 
 
