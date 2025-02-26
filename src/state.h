@@ -30,20 +30,17 @@
 #define DEFAULT_SHADER 0
 #define POSTPROCESS_SHADER 1
 #define PROJECTILES_PSYSTEM_SHADER 2
-#define PROJECTILE_POSTPROCESS_SHADER 3
-#define DEPTHTEXTURE_SHADER 4
-#define WRITEDEPTH_SHADER 5
-#define PARTICLE_WRITEDEPTH_SHADER 6
+#define BLOOM_TRESHOLD_SHADER 4
 #define MAX_SHADERS 8
 // ...
-
-// particle systems.
+ 
+// Particle systems.
 #define MAX_PSYSTEMS 2
-#define PSYS_ENEMYHIT 0
 // ...
 
 
-// uniform locations (index) for fragment shaders
+// Uniform locations for fragment shaders
+// (index in 'fs_unilocs' array)
 #define POSTPROCESS_TIME_FS_UNILOC 0
 #define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
 #define POSTPROCESS_PLAYER_HEALTH_FS_UNILOC 2
@@ -62,10 +59,11 @@
 #define MAX_ENTITY_WEAPONS 2
 
 
-// Game state.
+
+// Game state "gst".
 struct state_t {
     float time;
-    float dt; // previous frame time.
+    float dt; // Previous frame time.
     struct player_t player;
 
 
@@ -87,27 +85,35 @@ struct state_t {
     struct terrain_t terrain;
 
 
-    struct obj_t* objects;
-    size_t objarray_size;
-    size_t num_objects;
-
     struct entity_t entities[MAX_ENTITIES];
     size_t num_entities;
 
     struct weapon_t entity_weapons[MAX_ENTITY_WEAPONS];
     size_t num_entity_weapons;
 
-    int rseed; // seed for randomgen functions.
+    int scrn_w; // Screen width
+    int scrn_h; // Screen height
+
+    int rseed; // Seed for randomgen functions.
     int debug;
+
+
+    // Everything is rendered to this texture
+    // and then post processed.
+    RenderTexture2D env_render_target;
+
+    // Bloom treshold is written here.
+    // when post processing. bloom is aplied and mixed into 'env_render_target' texture
+    RenderTexture2D bloomtreshold_target;
+
 };
 
+void state_update_shader_uniforms(struct state_t* gst);
+void state_update_frame(struct state_t* gst);
 
-struct enemyhit_psys_extra_t {
-
-    Vector3 spawn_position;
-    Vector3 proj_direction;
-
-};
+// Render everything to 'env_render_target'
+// and post process it later.
+void state_render_environment(struct state_t* gst);
 
 
 

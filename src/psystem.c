@@ -149,7 +149,7 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys) {
             );
 
     // clear the transform matrix array for next frame.
-    //memset(psys->transforms, 0, psys->max_particles * sizeof *psys->transforms);
+    memset(psys->transforms, 0, psys->max_particles * sizeof *psys->transforms);
 }
 
 

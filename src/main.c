@@ -25,37 +25,22 @@ void UnloadRenderTextureDepthTex(RenderTexture2D target);
 
 void loop(struct state_t* gst) {
 
-   
-    /*
-    Model testfloor = LoadModelFromMesh(GenMeshCube(40.0, 0.25, 40.0));
-    testfloor.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[GRID9x9_TEXID];
-    testfloor.materials[0].shader = gst->shaders[DEFAULT_SHADER];
-    */
-
-    //create_object(gst, "res/models/street-lamp.glb", NONE_TEXID, (Vector3){ -3.0, 0.0, 0.0 });
-
-    Model testmodel = LoadModelFromMesh(GenMeshKnot(1.0, 3.0, 32, 32));
+    Model testmodel = LoadModelFromMesh(GenMeshKnot(1.3, 3.5, 64, 64));
     testmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GRID4x4_TEXID];
     testmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
 
 
-    int scrn_w = GetScreenWidth();
-    int scrn_h = GetScreenHeight();
-    
+    gst->scrn_w = GetScreenWidth();
+    gst->scrn_h = GetScreenHeight();
 
-    RenderTexture2D render_target = LoadRenderTexture(scrn_w, scrn_h);
-    RenderTexture2D prj_render_target = LoadRenderTexture(scrn_w, scrn_h);
-
-    RenderTexture2D env_depth_tex = LoadRenderTexture(scrn_w, scrn_h);
-    RenderTexture2D prj_depth_tex = LoadRenderTexture(scrn_w, scrn_h);
-
+    gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+    gst->bloomtreshold_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
 
 
     while(!WindowShouldClose()) {
-        float dt = GetFrameTime();
 
-        gst->dt = dt;
+        gst->dt = GetFrameTime();
         gst->time = GetTime();
 
 
@@ -63,185 +48,22 @@ void loop(struct state_t* gst) {
         {
             const int sw = GetScreenWidth();
             const int sh = GetScreenHeight();
-
-            if((sw != scrn_w) || (sh != scrn_h)) {
-                scrn_w = sw;
-                scrn_h = sh;
-                UnloadRenderTexture(render_target);
-                render_target = LoadRenderTexture(scrn_w, scrn_h);
+            if((sw != gst->scrn_w) || (sh != gst->scrn_h)) {
+                gst->scrn_w = sw;
+                gst->scrn_h = sh;
+                UnloadRenderTexture(gst->env_render_target);
+                UnloadRenderTexture(gst->bloomtreshold_target);
+                gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+                gst->bloomtreshold_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
               
-                UnloadRenderTexture(prj_render_target);
-                prj_render_target = LoadRenderTexture(scrn_w, scrn_h);
                 printf(" Resized to %ix%i\n", sw, sh);
             }
-
         }
 
-        // Update Weapons.
-
-        weapon_update(gst, &gst->player.weapon);
-       
-        for(size_t i = 0; i < gst->num_entity_weapons; i++) {
-            weapon_update(gst, &gst->entity_weapons[i]);
-        }
-
-
-       
-
-        // Update view position for shaders.
-
-        float camposf3[3] = { gst->player.cam.position.x, gst->player.cam.position.y, gst->player.cam.position.z };
-        
-        SetShaderValue(gst->shaders[DEFAULT_SHADER], 
-                gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-
-                
-        SetShaderValue(gst->shaders[PROJECTILES_PSYSTEM_SHADER], 
-                gst->shaders[PROJECTILES_PSYSTEM_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-
-        
-
-        // Update values for shaders.
-
-        SetShaderValue(
-                gst->shaders[POSTPROCESS_SHADER],
-                gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC],
-                &gst->time,
-                SHADER_UNIFORM_FLOAT
-                );
-
-        SetShaderValue(
-                gst->shaders[POSTPROCESS_SHADER],
-                gst->fs_unilocs[POSTPROCESS_PLAYER_HEALTH_FS_UNILOC],
-                &gst->player.health_normalized,
-                SHADER_UNIFORM_FLOAT
-                );
-
-
-        // Update screen size for post process shaders
-
-        {
-
-            const float screen_size[2] = {
-                GetScreenWidth(), GetScreenHeight()
-            };
-            SetShaderValue(
-                    gst->shaders[POSTPROCESS_SHADER],
-                    gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC],
-                    screen_size,
-                    SHADER_UNIFORM_VEC2
-                    );
-
-            SetShaderValue(
-                    gst->shaders[PROJECTILE_POSTPROCESS_SHADER],
-                    gst->fs_unilocs[PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC],
-                    screen_size,
-                    SHADER_UNIFORM_VEC2
-                    );
-
-        }
-
-
-        // --- Rendering ---
-
-
-        // Render 3D stuff into texture and post process it later.
-        BeginTextureMode(render_target);
-        ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
-        BeginMode3D(gst->player.cam);
-        {
-
-            BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
-
-
-            // Test thing.
-            {
-                testmodel.transform = MatrixRotateXYZ((Vector3){ gst->time, 0.0, gst->time });
-                DrawModel(testmodel, (Vector3){ 5.0, 5.0, -5.0 }, 1.0, (Color){ 255, 255, 255, 255});
-            }
-
-            // Terrain.
-            render_terrain(gst, &gst->terrain);
-
-            /*
-            // Entities.
-            for(size_t i = 0; i < gst->num_entities; i++) {
-                update_entity(gst, &gst->entities[i], ENT_RENDER_ON_UPDATE);
-            }
-            */
-
-            // Player.
-            player_render(gst, &gst->player);
-
-            EndShaderMode();
-        }
-        EndMode3D();
-        EndTextureMode();
-
-        // Render projectiles
-
-        BeginTextureMode(prj_render_target);
-        ClearBackground((Color){ 0, 0, 0, 255 });
-        BeginMode3D(gst->player.cam);
-        {
-            BeginShaderMode(gst->shaders[PROJECTILES_PSYSTEM_SHADER]);
-
-            gst->player.weapon.psystem.particle_material.shader
-                = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
-            weapon_render_projectiles(gst, &gst->player.weapon);
-
-            EndShaderMode();
-        }
-        EndMode3D();
-        EndTextureMode();
-
-
-
-
-
-        // Render ENVIRONMENT to DEPTH TEXTURE
-        //
-        BeginTextureMode(env_depth_tex);
-        ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
-        BeginMode3D(gst->player.cam);
-        {
-            BeginShaderMode(gst->shaders[WRITEDEPTH_SHADER]);
-
-            // Terrain.
-            gst->terrain.material.shader = gst->shaders[WRITEDEPTH_SHADER];
-            render_terrain(gst, &gst->terrain);
-            
-            gst->terrain.material.shader = gst->shaders[DEFAULT_SHADER];
-
-            EndShaderMode();
-        }
-        EndMode3D();
-        EndTextureMode();
-
-
-        // Render PROJECTILES to DEPTH TEXTURE
-        //
-        BeginTextureMode(prj_depth_tex);
-        ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
-        BeginMode3D(gst->player.cam);
-        {
-
-            //render_psystem_depth(gst, &gst->player.weapon.psystem);
-            BeginShaderMode(gst->shaders[PARTICLE_WRITEDEPTH_SHADER]);
-
-            gst->player.weapon.psystem.particle_material.shader
-                = gst->shaders[PARTICLE_WRITEDEPTH_SHADER];
-            weapon_render_projectiles(gst, &gst->player.weapon);
-           
-
-            EndShaderMode();
-        }
-        EndMode3D();
-        EndTextureMode();
-
-
-
-
+      
+        state_update_frame(gst);
+        state_update_shader_uniforms(gst);
+        state_render_environment(gst);
 
 
 
@@ -250,42 +72,20 @@ void loop(struct state_t* gst) {
             ClearBackground(BLACK);
 
 
-
+            // Finally post process everything.
+            //
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
-            DrawTextureRec(
-                        render_target.texture,
-                        (Rectangle) { 
-                            0.0, 0.0, 
-                            (float)render_target.texture.width,
-                            -(float)render_target.texture.height
-                        },
-                        (Vector2){ 0.0, 0.0 },
-                        WHITE
-                        );
-            }
-            EndShaderMode();
-
-
-            BeginShaderMode(gst->shaders[PROJECTILE_POSTPROCESS_SHADER]);
-            {
-               
-                rlEnableShader(gst->shaders[PROJECTILE_POSTPROCESS_SHADER].id);
-               
-                // Environment depth texture
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[PROJECTILE_POSTPROCESS_SHADER],
-                            "env_depth_tex"), env_depth_tex.texture.id);
+                rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
+                            "bloom_treshold_texture"), gst->bloomtreshold_target.texture.id);
                 
-                // Projectile depth texture
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[PROJECTILE_POSTPROCESS_SHADER],
-                            "prj_depth_tex"), prj_depth_tex.texture.id);
-
                 DrawTextureRec(
-                        prj_render_target.texture,
+                        gst->env_render_target.texture,
                         (Rectangle) { 
                             0.0, 0.0, 
-                            (float)prj_render_target.texture.width,
-                            -(float)prj_render_target.texture.height
+                            (float)gst->env_render_target.texture.width,
+                            -(float)gst->env_render_target.texture.height
                         },
                         (Vector2){ 0.0, 0.0 },
                         WHITE
@@ -293,24 +93,6 @@ void loop(struct state_t* gst) {
             }
             EndShaderMode();
 
-
-            if(gst->debug) {
- 
-                BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
-                {
-                    DrawTextureRec(
-                            prj_depth_tex.texture,
-                            (Rectangle) { 
-                                0.0, 0.0, 
-                                (float)render_target.texture.width,
-                                -(float)render_target.texture.height
-                            },
-                            (Vector2){ 0.0, 0.0 },
-                            WHITE
-                            );
-                }
-                EndShaderMode();
-            }
 
 
             if(IsKeyPressed(KEY_F)) {
@@ -385,65 +167,24 @@ void loop(struct state_t* gst) {
 
 
             DrawText(TextFormat("x: %0.2f", gst->player.position.x),
-                        15.0, scrn_h-30, 20.0, BLACK);
+                        15.0, gst->scrn_h-30, 20.0, BLACK);
                 
             DrawText(TextFormat("y: %0.2f", gst->player.position.x),
-                        15.0+100.0, scrn_h-30, 20.0, BLACK);
+                        15.0+100.0, gst->scrn_h-30, 20.0, BLACK);
                 
             DrawText(TextFormat("z: %0.2f", gst->player.position.x),
-                        15.0+100.0*2, scrn_h-30.0, 20.0, BLACK);
-  
-            // text and info.
-                /*
-            {
-                // draw cursor.
+                        15.0+100.0*2, gst->scrn_h-30.0, 20.0, BLACK);
+ 
 
-
-
-                DrawText(TextFormat("FPS(%i)", GetFPS()),
-                        15.0, 40.0, 20.0, (Color){ 150, 150, 150, 255 });
-
-                DrawText(TextFormat("NoClip(%s)", gst->player.noclip ? "ON" : "OFF"),
-                        120.0, 40.0, 20.0, (Color){ 150, 150, 150, 255 });
-
-
-           
-
-                DrawText(TextFormat("Accuracy:            %0.3f", gst->player.weapon.accuracy),
-                        15.0, 100.0, 20.0, RED);
-                DrawText(TextFormat("Accuracy (Mapped):   %0.3f", compute_weapon_accuracy(gst, &gst->player.weapon)),
-                        15.0, 130.0, 20.0, RED);
-
-
-                if(IsKeyDown(KEY_ONE)) {
-                    gst->player.weapon.accuracy -= 0.01;
-                    if(gst->player.weapon.accuracy < 0) {
-                        gst->player.weapon.accuracy = 0.0;
-                    }
-                }
-                else if(IsKeyDown(KEY_TWO)) {
-                    gst->player.weapon.accuracy += 0.01;
-                    if(gst->player.weapon.accuracy > 10.0) {
-                        gst->player.weapon.accuracy = 10.0;
-                    }
-                }
+            if(gst->debug) {
+                DrawText("(Debug ON)", gst->scrn_w - 200, 10, 20, RED);
             }
-            */
-
         }
         EndDrawing();
-
-        handle_userinput(gst);
-        player_update(gst, &gst->player);
     }
 
 
     UnloadModel(testmodel);
-    UnloadRenderTexture(render_target);
-    UnloadRenderTexture(prj_render_target);
-    UnloadRenderTextureDepthTex(env_depth_tex);
-    UnloadRenderTextureDepthTex(prj_depth_tex);
-
 }
 
 
@@ -465,18 +206,15 @@ void cleanup(struct state_t* gst) {
     }
 
     
-    //free_objarray(gst);
-    //delete_psystem(&gst->psystems[PSYS_ENEMYHIT]);
-    //free_enemyarray(gst);
     free_player(&gst->player);
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
     UnloadShader(gst->shaders[PROJECTILES_PSYSTEM_SHADER]); 
-    UnloadShader(gst->shaders[PROJECTILE_POSTPROCESS_SHADER]); 
-    UnloadShader(gst->shaders[DEPTHTEXTURE_SHADER]);
-    UnloadShader(gst->shaders[WRITEDEPTH_SHADER]);
-    UnloadShader(gst->shaders[PARTICLE_WRITEDEPTH_SHADER]);
+    UnloadShader(gst->shaders[BLOOM_TRESHOLD_SHADER]); 
     delete_terrain(&gst->terrain);
+
+    UnloadRenderTexture(gst->env_render_target);
+    UnloadRenderTexture(gst->bloomtreshold_target);
 
     CloseWindow();
 }
@@ -502,9 +240,6 @@ void first_setup(struct state_t* gst) {
     SetTargetFPS(500);
     gst->num_textures = 0;
     gst->debug = 0;
-    gst->objects = NULL;
-    gst->objarray_size = 0;
-    gst->num_objects = 0;
     gst->num_entities = 0;
     gst->num_normal_lights = 0;
     gst->num_projectile_lights = 0;
@@ -582,98 +317,19 @@ void first_setup(struct state_t* gst) {
         gst->fs_unilocs[PROJECTILES_PSYSTEM_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "psystem_color");
        
     }
-    // -----------------------
 
-    // --- Setup Projectiles Post Processing Shader ---
+
+
+    // --- Setup Bloom Treshold Shader ---
     {
-        Shader* shader = &gst->shaders[PROJECTILE_POSTPROCESS_SHADER];
+        Shader* shader = &gst->shaders[BLOOM_TRESHOLD_SHADER];
         *shader = LoadShader(
             0 /* use raylibs default vertex shader */, 
-            "res/shaders/projectile_postprocess.fs"
+            "res/shaders/bloom_treshold.fs"
         );
-
-        gst->fs_unilocs[PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC]
-            = GetShaderLocation(*shader, "screen_size");
     }
 
 
-
-    // --- Setup Depth texture shader ---
-    {
-        Shader* shader = &gst->shaders[DEPTHTEXTURE_SHADER];
-        *shader = LoadShader(
-            0 /* use raylibs default vertex shader */, 
-            "res/shaders/depth.fs"
-        );
-
-    }
-
-    // --- Setup Write depth shader ---
-    {
-        Shader* shader = &gst->shaders[WRITEDEPTH_SHADER];
-        *shader = LoadShader(
-            0 /* use raylibs default vertex shader */, 
-            "res/shaders/write_depth.fs"
-        );
-
-    }
-
-    // --- Setup Write depth shader (For particles) ---
-    {
-        Shader* shader = &gst->shaders[PARTICLE_WRITEDEPTH_SHADER];
-        *shader = LoadShader(
-            "res/shaders/particle_core.vs", 
-            "res/shaders/write_depth.fs"
-        );
-
-
-        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-        
-    }
-
-
-
-
-    /*
-    // --- Setup (ENEMY_HIT) Particle System. ---
-    {
-        create_psystem(
-                gst,
-                &gst->psystems[PSYS_ENEMYHIT],
-                1024,
-                enemy_hit_psys_pupdate,
-                enemy_hit_psys_pinit
-                );
-        struct psystem_t* psys = &gst->psystems[PSYS_ENEMYHIT];
-
-        /psys->particle_material = LoadMaterialDefault();
-        psys->particle_material.shader = gst->shaders[ENEMY_HIT_PSYS_SHADER];
-        psys->particle_mesh = GenMeshCube(0.2, 0.2, 0.2);
-    }
-    */
-
-    /* TODO!!!!!!
-    // Make sure all lights are disabled.
-    for(int i = 0; i < MAX_LIGHTS; i++) {
-        int enabled = 0;
-        int loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], TextFormat("lights[%i].enabled", i));
-        SetShaderValue(gst->shaders[DEFAULT_SHADER], loc, &enabled, SHADER_UNIFORM_INT);
-    }
-    */
-
-    /*
-    // -------------- TODO: move this into player.c -------------
-    // Make sure all projectiles are intialized correctly.
-    struct weapon_t* player_weapon = &gst->player.weapon;
-    for(int i = 0; i < MAX_WEAPON_PROJECTILES; i++) {
-        player_weapon->projectiles[i].position = (Vector3){ 0 };
-        player_weapon->projectiles[i].direction = (Vector3){ 0 };
-        player_weapon->projectiles[i].lifetime = 0.0;
-        player_weapon->projectiles[i].alive = 0;
-    }
-    */
 
 
     init_player_struct(gst, &gst->player);
@@ -727,6 +383,7 @@ void first_setup(struct state_t* gst) {
 
     // --- Create entities (FOR TESTING) ---
 
+    /*
     for(int i = 0; i < 20; i++) {
 
         Vector3 pos = (Vector3){ 0 };
@@ -748,6 +405,7 @@ void first_setup(struct state_t* gst) {
                 );
 
     }
+    */
 
 
     // --- Add sun ---
@@ -755,14 +413,14 @@ void first_setup(struct state_t* gst) {
     add_light(gst,
             LIGHT_DIRECTIONAL,
             sun_position,
-            (Color) { 200, 100, 30, 255 },
+            (Color) { 220, 200, 230, 255 },
             gst->shaders[DEFAULT_SHADER]
             );
    
     add_light(gst,
             LIGHT_POINT,
-            (Vector3){-5, 3, 0 },
-            (Color) { 2, 200, 30, 255 },
+            (Vector3){-1, 3, 0 },
+            (Color) { 200, 20, 50, 255 },
             gst->shaders[DEFAULT_SHADER]
             );
    
@@ -806,13 +464,6 @@ RenderTexture2D LoadRenderTextureDepthTex(int width, int height) {
 
 }
 
-void UnloadRenderTextureDepthTex(RenderTexture2D target) {
-    if(target.id > 0) {
-        rlUnloadTexture(target.texture.id);
-        rlUnloadTexture(target.depth.id);
-        rlUnloadFramebuffer(target.id);
-    }
-}
 
 int main(void) {
 

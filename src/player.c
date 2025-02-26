@@ -116,15 +116,15 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             (struct weapon_t)
             {
                 .accuracy = 7.5,
-                .prj_speed = 40,
+                .prj_speed = 80,
                 .prj_damage = 10,
                 .prj_max_lifetime = 5.0,
                 .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
-                .prj_color = (Color) { 20, 255, 255,  255 }
+                .prj_color = (Color) { 20, 255, 255, 255 }
             }
             );
 
-    p->firerate = 0.1;
+    p->firerate = 0.05;
     p->firerate_timer = p->firerate;
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
