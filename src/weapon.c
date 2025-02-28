@@ -27,7 +27,7 @@ void setup_weapon(
 
     create_psystem(gst, &w->psystem, 512, update_callback_ptr, pinit_callback_ptr);
 
-    w->psystem.particle_mesh = GenMeshSphere(0.5, 8, 8);
+    w->psystem.particle_mesh = GenMeshSphere(0.2, 8, 8);
     w->psystem.particle_material = LoadMaterialDefault();
     w->psystem.particle_material.shader = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
 
@@ -46,7 +46,8 @@ int weapon_add_projectile(
         struct state_t* gst,
         struct weapon_t* w,
         Vector3 position,
-        Vector3 direction
+        Vector3 direction,
+        float accuracy
 ){
     int result = 0;
 
@@ -61,7 +62,7 @@ int weapon_add_projectile(
     }
 
     const float ak = 0.1;
-    const float ac = ak - map(w->accuracy, 0.0, 10.0, 0.0, ak);
+    const float ac = ak - map(accuracy, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX, 0.0, ak);
 
     direction.x += RSEEDRANDOMF(-ac, ac);
     direction.y += RSEEDRANDOMF(-ac, ac);
@@ -71,6 +72,7 @@ int weapon_add_projectile(
     w->psystem.userptr = w;
     add_particles(gst, &w->psystem, 1, position, direction, NULL, NO_EXTRADATA);
 
+    result = 1;
 
 skip:
     return result;
@@ -84,9 +86,9 @@ void weapon_update(struct state_t* gst, struct weapon_t* w) {
     if(w->temp > 0.0) {
         w->temp -= gst->dt * w->cooling_level;
     }
-    if(w->temp < 0.0) { w->temp = 0.0; }
+    w->temp = CLAMP(w->temp, 0.0, w->overheat_temp);
 
-    // ...
+
 }
 
 void weapon_render_projectiles(struct state_t* gst, struct weapon_t* w) {

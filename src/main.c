@@ -103,9 +103,9 @@ void loop(struct state_t* gst) {
             {
                 const int bar_width = 150;
                 const int bar_height = 10;
-
-                int bar_inc = 15;
+            
                 int bar_next_y = 10;
+                int bar_inc = 15;
 
                 // Health
                 {
@@ -160,7 +160,7 @@ void loop(struct state_t* gst) {
 
                 // Weapon temperature.
                 {
-                    const float  tempvalue = gst->player.weapon.temp;
+                    const float tempvalue = gst->player.weapon.temp;
 
                     DrawRectangle(
                             10,
@@ -178,25 +178,85 @@ void loop(struct state_t* gst) {
                             (Color){ 255, 58, 30, 255 }
                             );
                 }
+                bar_next_y += bar_inc;
+
+                // Weapon Accuracy
+                {
+                    const float accvalue 
+                        = gst->player.weapon.accuracy - gst->player.accuracy_decrease;
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            bar_width,
+                            bar_height,
+                            (Color){ 20, 20, 20, 255 }
+                            );
+
+                    DrawRectangle(
+                            10,
+                            bar_next_y,
+                            map(accvalue, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX, 0, bar_width),
+                            bar_height,
+                            (Color){ 255, 200, 30, 255 }
+                            );
+                }
             }
 
 
-            int center_x = GetScreenWidth() / 2;
-            int center_y = GetScreenHeight() / 2;
-            DrawPixel(center_x, center_y, WHITE);
-            
+            // Draw Crosshair if player is aiming.
+            if(gst->player.is_aiming) {
+                int center_x = GetScreenWidth() / 2;
+                int center_y = GetScreenHeight() / 2;
+                DrawPixel(center_x, center_y, WHITE);
+           
+                DrawPixel(center_x-1, center_y, GRAY);
+                DrawPixel(center_x, center_y-1, GRAY);
+                DrawPixel(center_x+1, center_y, GRAY);
+                DrawPixel(center_x, center_y+1, GRAY);
+          
+                DrawPixel(center_x-2, center_y, GRAY);
+                DrawPixel(center_x, center_y-2, GRAY);
+                DrawPixel(center_x+2, center_y, GRAY);
+                DrawPixel(center_x, center_y+2, GRAY);
+            }
+
+
+            // Some info for player:
+
+
+            // TODO: do this with texture...
+            if(gst->player.weapon.temp >= (gst->player.weapon.overheat_temp*0.7)) {
+                DrawText("(WARNING: OVERHEATING...)", 29.0, gst->scrn_h-149, 20,
+                        (Color){ 50, 30, 30, 255 });
+                DrawText("(WARNING: OVERHEATING...)", 30.0, gst->scrn_h-150, 20,
+                        (Color){ (sin(gst->time*10.0)*0.5+0.5)*125+120, 30, 30, 255 });    
+            }
+
+
+            {
+                const char* weapon_text = TextFormat("(x) [%s]", (gst->player.weapon_firetype) ? "SemiAuto" : "FullAuto");
+                DrawText(weapon_text,
+                        29.0, gst->scrn_h-99, 20, (Color){20, 40, 40, 255});
+ 
+                DrawText(weapon_text,
+                        30.0, gst->scrn_h-100, 20, (Color){ 30, 100, 100, 255 });
+            }
+           
+
+
 
 
 
             DrawText(TextFormat("x: %0.2f", gst->player.position.x),
-                        15.0, gst->scrn_h-30, 20.0, BLACK);
+                        15.0, gst->scrn_h-30, 20, BLACK);
                 
             DrawText(TextFormat("y: %0.2f", gst->player.position.x),
-                        15.0+100.0, gst->scrn_h-30, 20.0, BLACK);
+                        15.0+100.0, gst->scrn_h-30, 20, BLACK);
                 
             DrawText(TextFormat("z: %0.2f", gst->player.position.x),
-                        15.0+100.0*2, gst->scrn_h-30.0, 20.0, BLACK);
+                        15.0+100.0*2, gst->scrn_h-30.0, 20, BLACK);
  
+
 
             DrawText(TextFormat("FPS: %i", GetFPS()),
                     gst->scrn_w - 100, gst->scrn_h-30, 20, WHITE);
@@ -231,11 +291,16 @@ void cleanup(struct state_t* gst) {
     }
 
     
-    free_player(&gst->player);
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
     UnloadShader(gst->shaders[PROJECTILES_PSYSTEM_SHADER]); 
     UnloadShader(gst->shaders[BLOOM_TRESHOLD_SHADER]); 
+    free_player(&gst->player);
+
+    delete_psystem(&gst->psystems[PROJECTILE_ENVHIT_PSYSTEM]);
+    delete_psystem(&gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM]);
+    
+
     delete_terrain(&gst->terrain);
 
     UnloadRenderTexture(gst->env_render_target);
@@ -392,12 +457,12 @@ void first_setup(struct state_t* gst) {
                 enemy_lvl0_weapon_psystem_projectile_pinit,
                 (struct weapon_t)
                 {
-                    .accuracy = 8.75,
-                    .prj_speed = 90,
+                    .accuracy = 6.75,
+                    .prj_speed = 100,
                     .prj_damage = 10,
                     .prj_max_lifetime = 3.0,
                     .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
-                    .prj_color = (Color) { 255, 50, 20,  255 }
+                    .prj_color = (Color) { 255, 50, 255,  255 }
                 }
         );
         gst->num_entity_weapons++; // <- NOTE: keep track of this!
@@ -406,13 +471,49 @@ void first_setup(struct state_t* gst) {
     }
 
 
+    // --- Create Particle System  (PROJECTILE_ENVHIT_PSYSTEM) ---
+
+    {
+        struct psystem_t* psystem = &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM];
+        create_psystem(gst,
+                psystem, 32,
+                projectile_envhit_psystem_pupdate,
+                projectile_envhit_psystem_pinit
+                );
+
+        psystem->particle_material = LoadMaterialDefault();
+        psystem->particle_material.shader = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
+        psystem->particle_mesh = GenMeshSphere(0.3, 16, 16);
+
+    }
+
+
+    // --- Create Particle System  (PROJECTILE_ENTITYHIT_PSYSTEM) ---
+
+    {
+        struct psystem_t* psystem = &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM];
+        create_psystem(gst,
+                psystem, 512,
+                projectile_entityhit_psystem_pupdate,
+                projectile_entityhit_psystem_pinit
+                );
+
+        psystem->particle_material = LoadMaterialDefault();
+        psystem->particle_material.shader = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
+        psystem->particle_mesh = GenMeshSphere(0.3, 8, 8);
+
+    }
+
+
+
+
     // --- Create entities (FOR TESTING) ---
 
     for(int i = 0; i < 20; i++) {
 
         Vector3 pos = (Vector3){ 0 };
 
-        while(Vector3Distance(pos, gst->player.position) < 100) {
+        while(Vector3Distance(pos, gst->player.position) < 50) {
             pos = (Vector3){ RSEEDRANDOMF(-400, 400), 0.0, RSEEDRANDOMF(-400, 400) };
         }
 
@@ -423,8 +524,9 @@ void first_setup(struct state_t* gst) {
                 ENEMY_LVL0_TEXID,
                 100,
                 pos, // initial position
-                (Vector3){ 1.0, 1.0, 1.0 },    // hitbox size
-                100.0,  // target range
+                (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
+                (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
+                130.0,  // target range
                 0.3     // firerate
                 );
 

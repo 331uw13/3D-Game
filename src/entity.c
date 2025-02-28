@@ -18,6 +18,7 @@ struct entity_t* create_entity(
         int max_health,
         Vector3 initial_position,
         Vector3 hitbox_size,
+        Vector3 hitbox_position,
         float target_range,
         float firerate
 ){
@@ -44,9 +45,9 @@ struct entity_t* create_entity(
     entptr = &gst->entities[gst->num_entities];
     entptr->type = entity_type;
 
-    entptr->position = initial_position;
+    entptr->position = initial_position; 
     entptr->hitbox_size = hitbox_size;
-
+    entptr->hitbox_position = hitbox_position;
     entptr->health = max_health;
     entptr->max_health = max_health;
 
@@ -64,7 +65,8 @@ struct entity_t* create_entity(
     entptr->has_target = 0;
     entptr->body_matrix = MatrixIdentity();
     entptr->gun_index = 0;
-        
+    entptr->index = gst->num_entities;
+
     entptr->travel = (struct entity_travel_t) {
         .start = (Vector3){0},
         .dest  = (Vector3){0},
@@ -153,5 +155,20 @@ void entity_hit(struct state_t* gst, struct entity_t* ent) {
 }
 
 
-
+BoundingBox get_entity_boundingbox(struct entity_t* ent) {
+    return (BoundingBox) {
+        (Vector3) {
+            // Minimum box corner
+            (ent->position.x + ent->hitbox_position.x) - ent->hitbox_size.x/2,
+            (ent->position.y + ent->hitbox_position.y) - ent->hitbox_size.y/2,
+            (ent->position.z + ent->hitbox_position.z) - ent->hitbox_size.z/2
+        },
+        (Vector3) {
+            // Maximum box corner
+            (ent->position.x + ent->hitbox_position.x) + ent->hitbox_size.x/2,
+            (ent->position.y + ent->hitbox_position.y) + ent->hitbox_size.y/2,
+            (ent->position.z + ent->hitbox_position.z) + ent->hitbox_size.z/2
+        }
+    };
+}
 

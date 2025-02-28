@@ -70,7 +70,7 @@ vec3 voronoi3d(const in vec3 x) {
 void main()
 {
     vec3 col = psystem_color;
-    float v = voronoi3d(fragPosition*2.0).x;
+    float v = voronoi3d(fragPosition*0.5).x * 0.8;
    
 
     finalColor = vec4(col, v);

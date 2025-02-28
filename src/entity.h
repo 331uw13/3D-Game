@@ -42,7 +42,9 @@ struct entity_t {
 
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
     Vector3 hitbox_size; // TODO: multiple hitboxes.
+    Vector3 hitbox_position; // hitbox position from 'entity position'.
     Matrix body_matrix; // Some entities have rotating body and 'model.transform' is used for legs etc.
+
 
     float target_range; // how far can the entity "see" the player
     int   has_target;
@@ -100,6 +102,7 @@ struct entity_t* create_entity(
         int max_health,
         Vector3 initial_position,
         Vector3 hitbox_size,
+        Vector3 hitbox_position, // (from origin)
         float target_range,
         float firerate
         );
@@ -117,6 +120,7 @@ void render_entity(struct state_t* gst, struct entity_t* ent);
 void entity_hit(struct state_t* gst, struct entity_t* ent);
 void entity_death(struct state_t* gst, struct entity_t* ent);
 
+BoundingBox get_entity_boundingbox(struct entity_t* ent);
 
 
 

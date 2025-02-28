@@ -72,6 +72,13 @@ void state_update_frame(struct state_t* gst) {
         update_entity(gst, &gst->entities[i]);
     }
 
+    // One enemy type uses the same gun.
+    weapon_update(gst, &gst->entity_weapons[ENTWEAPON_LVL0]);
+
+
+    // Particle systems.
+    update_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM]);
+    update_psystem(gst, &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM]);
 }
 
 
@@ -84,6 +91,18 @@ void state_render_environment(struct state_t* gst) {
     ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
     BeginMode3D(gst->player.cam);
     {
+
+        // Render debug info if needed.
+        if(gst->debug) {
+            for(size_t i = 0; i < gst->num_entities; i++) {
+                struct entity_t* ent = &gst->entities[i];
+      
+                if(gst->debug) {          
+                    DrawBoundingBox(get_entity_boundingbox(ent), RED);
+                }
+            }
+        }
+ 
 
         BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
 
@@ -103,14 +122,56 @@ void state_render_environment(struct state_t* gst) {
         
         // Weapon projectiles.
         weapon_render_projectiles(gst, &gst->player.weapon);
+        weapon_render_projectiles(gst, &gst->entity_weapons[ENTWEAPON_LVL0]);
 
         // Entities.
         for(size_t i = 0; i < gst->num_entities; i++) {
-            render_entity(gst, &gst->entities[i]);
+            struct entity_t* ent = &gst->entities[i];
+            render_entity(gst, ent);
+      
         }
 
         // Player.
         player_render(gst, &gst->player);
+
+
+        // Particle systems.
+   
+
+
+        // FOR TESTING --  MOVE LATER ------
+
+        float psystem_color[3] = {
+            (float)gst->player.weapon.prj_color.r / 255.0,
+            (float)gst->player.weapon.prj_color.g / 255.0,
+            (float)gst->player.weapon.prj_color.b / 255.0
+        };
+
+        SetShaderValue(
+            gst->shaders[PROJECTILES_PSYSTEM_SHADER], 
+            gst->fs_unilocs[PROJECTILES_PSYSTEM_COLOR_FS_UNILOC],
+            psystem_color,
+            SHADER_UNIFORM_VEC3
+            );
+        render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM]);
+
+
+        float psystem2_color[3] = {
+            (float)255 / 255.0,
+            (float)120 / 255.0,
+            (float)50 / 255.0
+        };
+
+        SetShaderValue(
+            gst->shaders[PROJECTILES_PSYSTEM_SHADER], 
+            gst->fs_unilocs[PROJECTILES_PSYSTEM_COLOR_FS_UNILOC],
+            psystem2_color,
+            SHADER_UNIFORM_VEC3
+            );
+        
+        // ------------------------
+        
+        render_psystem(gst, &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM]);
 
         EndShaderMode();
     }

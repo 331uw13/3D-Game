@@ -10,6 +10,22 @@ struct state_t;
 #define PLAYER_HEALTH_COLOR_LOW (Color){ 255, 50, 20, 255 }
 #define PLAYER_HEALTH_COLOR_HIGH (Color){ 50, 255, 20, 255 }
 
+#define PLAYER_WEAPON_FULLAUTO 0
+#define PLAYER_WEAPON_SEMIAUTO 1
+
+
+#define PLAYER_SKILL_MIN 0.0
+#define PLAYER_SKILL_MAX 10.0
+
+
+// Values are from 0.0(Low) to 10.0(High)
+struct player_skills_t {
+
+    float recoil_control;
+
+    // ...
+};
+
 struct player_t {
 
     Camera   cam;
@@ -58,8 +74,19 @@ struct player_t {
     float max_health;
     float health_normalized;
 
+
+    struct player_skills_t skills;
+
+    // Some weapon related variables may be stored else where.
+    // For example the firerate, one enemy type uses the same weapon for all enemies in that type.
     float firerate;
     float firerate_timer;
+
+    // Entities cant have this setting.
+    int weapon_firetype; 
+
+    // This increases over time when shooting rapidly.
+    float accuracy_decrease;
 };
 
 

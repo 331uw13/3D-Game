@@ -177,15 +177,23 @@ void handle_userinput(struct state_t* gst) {
 
     gst->player.position = gst->player.cam.position;
 
-
     // ----- User interaction ---------
 
-    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    int shoot = 
+          (gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
+        ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+        : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+
+    if(shoot) {
         player_shoot(gst, &gst->player);
     }
 
     if(IsKeyPressed(KEY_G)) {
         gst->player.noclip = !gst->player.noclip;
+    }
+
+    if(IsKeyPressed(KEY_X)) {
+        gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
 
@@ -196,6 +204,10 @@ void handle_userinput(struct state_t* gst) {
         gst->player.ready_to_shoot = 0;
     }
 
+    if(IsKeyPressed(KEY_T)) {
+        gst->debug = !gst->debug;
+        printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
+    }
 }
 
 

@@ -10,11 +10,9 @@
 #define MAX_WEAPON_PROJECTILES 512
 
 
-// TODO: render projectiles as particle system.
+#define WEAPON_ACCURACY_MAX 10.0
+#define WEAPON_ACCURACY_MIN 0.0
 
-
-
-// TODO: create array of weapons in state struct and entities can use the weapon from there.
 
 struct weapon_t {
     struct psystem_t psystem; // Use particle system for projectiles.
@@ -23,6 +21,7 @@ struct weapon_t {
 
     float    knockback;
     float    accuracy;  // 0.0 (low accuracy) - 10.0 (high accuracy)
+    
 
     // Projectile settings.
     
@@ -42,8 +41,8 @@ struct weapon_t {
     float    heat_increase;
     float    overheat_temp;
     float    cooling_level;
-};
 
+};
 
 
 void setup_weapon(
@@ -63,7 +62,8 @@ int weapon_add_projectile(
         struct state_t* gst,
         struct weapon_t* w,
         Vector3 position,
-        Vector3 direction
+        Vector3 direction,
+        float accuracy
         );
 
 void weapon_update(

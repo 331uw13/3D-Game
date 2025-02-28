@@ -35,6 +35,50 @@ static void _player_weapon_psystem_projectile_pupdate(
 
     if(t_hit.point.y >= part->position.y) {
         disable_particle(gst, part);
+        
+        add_particles(gst, 
+                &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM], 1,
+                part->position, part->velocity, NULL, NO_EXTRADATA);
+
+        return;
+    }
+
+
+    // Check collision with entities.
+
+
+    // TODO: get nearby enemies from list.
+
+    const BoundingBox particle_boundingbox = (BoundingBox) {
+        (Vector3) {
+            // Minimum box corner
+            part->position.x - weapon->prj_size.x/2,
+            part->position.y - weapon->prj_size.y/2,
+            part->position.z - weapon->prj_size.z/2
+        },
+        (Vector3) {
+            // Maximum box corner
+            part->position.x + weapon->prj_size.x/2,
+            part->position.y + weapon->prj_size.y/2,
+            part->position.z + weapon->prj_size.z/2
+        }
+    };
+
+
+    for(size_t i = 0; i < gst->num_entities; i++) {
+        struct entity_t* ent = &gst->entities[i];
+        if(ent->health <= 0.0) {
+            continue;
+        }
+
+        if(CheckCollisionBoxes(particle_boundingbox, get_entity_boundingbox(ent))) {
+            disable_particle(gst, part);
+            add_particles(gst, 
+                    &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM], 10,
+                    part->position, part->velocity, NULL, NO_EXTRADATA);
+        }
+
+
     }
 
 }
@@ -66,8 +110,6 @@ static void _player_weapon_psystem_projectile_pinit(
     part->has_light = 1;
 
     *part->transform = position_m;
-    part->alive = 1;
-    part->lifetime = 0.0;
     part->max_lifetime = weapon->prj_max_lifetime;
 }
 
@@ -115,20 +157,27 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             _player_weapon_psystem_projectile_pinit,
             (struct weapon_t)
             {
-                .accuracy = 7.5,
+                .accuracy = 8.5,
                 .prj_speed = 100,
                 .prj_damage = 10,
                 .prj_max_lifetime = 5.0,
                 .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
                 .prj_color = (Color) { 20, 255, 255, 255 },
-                .overheat_temp = 100.0,
-                .heat_increase = 1.0,
-                .cooling_level = 6.0
+                .overheat_temp = 500.0,
+                .heat_increase = 2.0,
+                .cooling_level = 6.0,
             }
             );
 
-    p->firerate = 0.03;
+    p->firerate = 0.038;
     p->firerate_timer = p->firerate;
+    p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
+    p->accuracy_decrease = 0.0;
+
+    p->skills = (struct player_skills_t) {
+        .recoil_control = 3.6
+        // ...
+    };
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
@@ -136,8 +185,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
 
     p->arms_material = LoadMaterialDefault();
-    p->arms_material.shader = gst->shaders[DEFAULT_SHADER];
     p->arms_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_ARMS_TEXID];
+    p->arms_material.shader = gst->shaders[DEFAULT_SHADER];
 
     // calculate matrices for when player is aiming and not aiming.
     
@@ -153,7 +202,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     // (Aiming)
     {
         p->gunmodel_aim_offset_m 
-            = MatrixTranslate(0.1, 0.3, -0.4);
+            = MatrixTranslate(0.3, 0.3, -0.6);
     }
 
 }
@@ -172,6 +221,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         return;
     }
 
+
     if(p->firerate_timer >= p->firerate) {
         p->firerate_timer = 0.0;
         Vector3 prj_position = (Vector3){0};
@@ -183,19 +233,21 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         prj_position.z += p->looking_at.z*2.5;
 
 
-        int result = weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at);
+        float accuracy = p->weapon.accuracy - p->accuracy_decrease;
+
+        int result = weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at, accuracy);
         
 
         if(!result) {
             return;
         }
 
+        p->accuracy_decrease += 0.45;
         p->recoil = 0.2;
         p->recoil_done = 0;
         p->recoil_timer = 0.0;
-        p->recoil_strength = 0.6;
+        p->recoil_strength = 0.5;
         p->recoil_in_progress = 1;
-
     }
 }
 
@@ -244,28 +296,17 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     // Gun
     DrawMesh(
-            p->gunmodel.meshes[2],
-            p->gunmodel.materials[0],
-            p->gunmodel.transform
-            );
-
-
-    // Hands
-   DrawMesh(
-            p->gunmodel.meshes[0],
-            p->gunmodel.materials[0],
-            p->gunmodel.transform
-            );
-
-   DrawMesh(
             p->gunmodel.meshes[1],
             p->gunmodel.materials[0],
             p->gunmodel.transform
             );
 
-
- 
-
+    // Hands
+    DrawMesh(
+            p->gunmodel.meshes[0],
+            p->arms_material,
+            p->gunmodel.transform
+            );
 }
 
 
@@ -286,7 +327,15 @@ void player_update(struct state_t* gst, struct player_t* p) {
     if(p->firerate_timer < p->firerate) {
         p->firerate_timer += gst->dt;
     }
-        
+    
+    p->firerate_timer = CLAMP(p->firerate_timer, 0.0, p->firerate);
+   
+    if(p->firerate_timer >= p->firerate) {
+        p->accuracy_decrease -= gst->dt * 20.0;
+        p->accuracy_decrease = CLAMP(p->accuracy_decrease, 0.0, WEAPON_ACCURACY_MAX - p->skills.recoil_control);
+    }
+
+
     p->gunmodel_aim_offset_m 
             = MatrixTranslate((0.1 + p->recoil*0.07), -0.1, (-0.4 + p->recoil));
    

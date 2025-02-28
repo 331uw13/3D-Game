@@ -59,7 +59,6 @@ struct psystem_t {
     
     Material    particle_material;
     Mesh        particle_mesh;
-    Shader      particle_shader;
 
     size_t max_particles;
     size_t num_alive_parts;
@@ -84,6 +83,8 @@ struct psystem_t {
          int      // has extra data?
          );
 
+    int   first_render;
+    int   halt;
     void* userptr;
 };
 

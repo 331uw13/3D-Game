@@ -26,6 +26,8 @@ void delete_psystem(struct psystem_t* psys) {
     psys->enabled = 0;
     psys->update_callback = NULL;
     psys->pinit_callback = NULL;
+    
+    printf(" >> Unloaded ParticleSystem\n");
 }
 
 void create_psystem(
@@ -83,14 +85,19 @@ void create_psystem(
     }
 
 
+    psys->halt = 0;
+    psys->first_render = 1;
     psys->enabled = 1;
 }
 
 
 static struct particle_t* _add_particle(struct psystem_t* psys) {
-
     struct particle_t* p = &psys->particles[psys->nextpart_index];
     p->transform = &psys->transforms[psys->nextpart_index];
+
+    p->alive = 1;
+    p->lifetime = 0.0;
+    p->has_light = 0;
 
     psys->nextpart_index++;
     if(psys->nextpart_index >= psys->max_particles) {
@@ -121,6 +128,11 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             continue;
         }
 
+        if(p->max_lifetime <= 0.0) {
+            fprintf(stderr, "\033[35m(WARNING) '%s': Particle 'max_lifetime' is 0 or less\033[0m\n",
+                    __func__);
+        }
+
         psys->num_alive_parts++;
         psys->update_callback(gst, psys, p);
 
@@ -129,6 +141,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         p->lifetime += gst->dt;
         if(p->lifetime > p->max_lifetime) {
             p->alive = 0;
+
             if(p->has_light) {
                 disable_light(&p->light, gst->shaders[DEFAULT_SHADER]);
             }
@@ -141,6 +154,36 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 }
 
 void render_psystem(struct state_t* gst, struct psystem_t* psys) {
+    if(psys->halt) {
+        return;
+    }
+
+    // Safety check first render.
+    // TODO. add 'tag' in psystem to see where these errors may be coming from?
+    if(psys->first_render) {
+        if(!IsMaterialValid(psys->particle_material)) {
+            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_material' is not loaded.\033[0m\n",
+                    __func__);
+            psys->halt = 1;
+            return;
+        }
+        if(!IsShaderValid(psys->particle_material.shader)) {
+            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_shader' is not loaded.\033[0m\n",
+                    __func__);
+            psys->halt = 1;
+            return;
+        }
+        if(!(psys->particle_mesh.vertices)) {
+            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_mesh' is not loaded.\033[0m\n",
+                    __func__);
+            psys->halt = 1;
+            return;
+        }
+
+        psys->first_render = 0;
+    }
+
+
     DrawMeshInstanced(
             psys->particle_mesh,
             psys->particle_material,
@@ -163,10 +206,7 @@ void add_particles(
         int has_extradata
         )
 {
-
-
     for(size_t i = 0; i < n; i++) {
-
         struct particle_t* p = _add_particle(psys);
 
         // callback to initialize the particle.

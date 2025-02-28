@@ -26,6 +26,11 @@
 #include "terrain.h"
 #include "entity.h"
 
+
+#include "particle_systems/prj_envhit.h"
+#include "particle_systems/prj_entityhit.h"
+
+
 // shaders.
 #define DEFAULT_SHADER 0
 #define POSTPROCESS_SHADER 1
@@ -35,6 +40,8 @@
 // ...
  
 // Particle systems.
+#define PROJECTILE_ENVHIT_PSYSTEM 0  // When projectile hits environment. terrain etc..
+#define PROJECTILE_ENTITYHIT_PSYSTEM 1
 #define MAX_PSYSTEMS 2
 // ...
 

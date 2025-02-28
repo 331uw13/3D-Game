@@ -47,7 +47,6 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
     }
 
 
-
     part->velocity = velocity;
     part->position = origin;
     Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
@@ -56,8 +55,6 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
     part->has_light = 1;
 
     *part->transform = position_m;
-    part->alive = 1;
-    part->lifetime = 0.0;
     part->max_lifetime = weapon->prj_max_lifetime;
 }
 
@@ -82,9 +79,10 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
     ent->model.transform = MatrixMultiply(rotate_m, pos_m);
     ent->position.y = y;
 
+    float dst2player = Vector3Distance(ent->position, gst->player.position);
 
-    int has_target_now = 0;
-    //int has_target_now = (dst2player <= ent->target_range);
+    //int has_target_now = 0;
+    int has_target_now = (dst2player <= ent->target_range);
 
 
     ent->body_matrix = ent->model.transform;
@@ -156,6 +154,7 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
                 const float ang_rad = 1.5;
 
 
+                /*
                 if(!gst->player.noclip) {
                     prj_position.x += 0.2;
                     prj_position.z -= 0.4;
@@ -182,6 +181,7 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
                         ent->gun_index = !ent->gun_index;
                     }
                 }
+                */
 
             }
             break;
