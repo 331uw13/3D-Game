@@ -27,7 +27,7 @@ void setup_weapon(
 
     create_psystem(gst, &w->psystem, 512, update_callback_ptr, pinit_callback_ptr);
 
-    w->psystem.particle_mesh = GenMeshSphere(0.2, 8, 8);
+    w->psystem.particle_mesh = GenMeshSphere(0.356, 8, 8);
     w->psystem.particle_material = LoadMaterialDefault();
     w->psystem.particle_material.shader = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
 

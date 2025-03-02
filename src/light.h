@@ -7,7 +7,7 @@
 
 
 // NOTE: these 2 values must be the same as in 'default' fragment shader code.
-#define MAX_PROJECTILE_LIGHTS 512
+#define MAX_PROJECTILE_LIGHTS 64
 #define MAX_NORMAL_LIGHTS 4
 
 

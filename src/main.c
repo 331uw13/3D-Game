@@ -12,6 +12,7 @@
 #include "input.h"
 #include "util.h"
 #include "terrain.h"
+#include "shaders.h"
 
 #define SCRN_W 1200
 #define SCRN_H 800
@@ -298,6 +299,7 @@ void cleanup(struct state_t* gst) {
     free_player(&gst->player);
 
     delete_psystem(&gst->psystems[PROJECTILE_ENVHIT_PSYSTEM]);
+    delete_psystem(&gst->psystems[PROJECTILE_ELVL0_ENVHIT_PSYSTEM]);
     delete_psystem(&gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM]);
     
 
@@ -339,7 +341,6 @@ void first_setup(struct state_t* gst) {
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
     memset(gst->entities, 0, MAX_ENTITIES * sizeof *gst->entities);
 
-    const float fog_density = 0.006;
     const float terrain_scale = 8.0;
     const u32   terrain_size = 500;
     const float terrain_amplitude = 30.0;
@@ -357,70 +358,8 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
 
-    // --- Setup Default Shader ---
-    {
-  
-        Shader* shader = &gst->shaders[DEFAULT_SHADER];
 
-        *shader = LoadShader(
-            "res/shaders/default.vs",
-            "res/shaders/default.fs"
-        );
-
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-   
-        int ambientloc = GetShaderLocation(*shader, "ambient");
-        int fogdensityloc = GetShaderLocation(*shader, "fogDensity");
-        
-        SetShaderValue(*shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
-        SetShaderValue(*shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
-    }
-
-
-    // --- Setup Post Processing Shader ---
-    {
-        Shader* shader = &gst->shaders[POSTPROCESS_SHADER];
-        *shader = LoadShader(
-            0 /* use raylibs default vertex shader */, 
-            "res/shaders/postprocess.fs"
-        );
-
-        gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
-        gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC] = GetShaderLocation(*shader, "screen_size");
-        gst->fs_unilocs[POSTPROCESS_PLAYER_HEALTH_FS_UNILOC] = GetShaderLocation(*shader, "health");
-    }
-
- 
-    // --- Setup Projectiles (Particle System) shader ---
-    {
-        Shader* shader = &gst->shaders[PROJECTILES_PSYSTEM_SHADER];
-        *shader = LoadShader(
-            "res/shaders/particle_core.vs",
-            "res/shaders/projectiles_psystem.fs"
-        );
-       
-        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-        
-        gst->fs_unilocs[PROJECTILES_PSYSTEM_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "psystem_color");
-       
-    }
-
-
-
-    // --- Setup Bloom Treshold Shader ---
-    {
-        Shader* shader = &gst->shaders[BLOOM_TRESHOLD_SHADER];
-        *shader = LoadShader(
-            0 /* use raylibs default vertex shader */, 
-            "res/shaders/bloom_treshold.fs"
-        );
-    }
-
-
-
+    setup_all_shaders(gst);
 
     init_player_struct(gst, &gst->player);
 
@@ -482,7 +421,7 @@ void first_setup(struct state_t* gst) {
                 );
 
         psystem->particle_material = LoadMaterialDefault();
-        psystem->particle_material.shader = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
+        psystem->particle_material.shader = gst->shaders[PROJECTILES_ENVHIT_SHADER];
         psystem->particle_mesh = GenMeshSphere(0.3, 16, 16);
 
     }
@@ -504,8 +443,26 @@ void first_setup(struct state_t* gst) {
 
     }
 
+    // --- Create Particle System  (PROJECTILE_ELVL0_ENVHIT_PSYSTEM) ---
+
+    {
+        struct psystem_t* psystem = &gst->psystems[PROJECTILE_ELVL0_ENVHIT_PSYSTEM];
+        create_psystem(gst,
+                psystem, 32,
+                projectile_elvl0_envhit_psystem_pupdate,
+                projectile_elvl0_envhit_psystem_pinit
+                );
+
+        psystem->particle_material = LoadMaterialDefault();
+        psystem->particle_material.shader = gst->shaders[PROJECTILES_ENVHIT_SHADER];
+        psystem->particle_mesh = GenMeshSphere(0.3, 8, 8);
+
+    }
 
 
+
+
+    /*
 
     // --- Create entities (FOR TESTING) ---
 
@@ -529,9 +486,22 @@ void first_setup(struct state_t* gst) {
                 130.0,  // target range
                 0.3     // firerate
                 );
-
     }
+    */
 
+
+    create_entity(gst,
+                ENT_TYPE_LVL0,
+                ENT_TRAVELING_DISABLED,
+                "res/models/lvl0_enemy.glb",
+                ENEMY_LVL0_TEXID,
+                300,
+                (Vector3){ 50, 1, -100 }, // initial position
+                (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
+                (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
+                170.0,  // target range
+                0.3     // firerate
+                );
 
     // --- Add sun ---
    

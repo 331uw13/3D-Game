@@ -25,6 +25,8 @@ void projectile_entityhit_psystem_pupdate(
     *part->transform = position_m;
 
     part->velocity = Vector3Add(part->velocity, Vector3Scale(part->accel, gst->dt));
+
+
 }
 
 
@@ -41,9 +43,9 @@ void projectile_entityhit_psystem_pinit(
 
     part->position = origin;
     part->velocity = Vector3Negate(velocity);
-    part->velocity = Vector3Scale(part->velocity, 30.0);
+    part->velocity = Vector3Scale(part->velocity, 10.0);
 
-    part->accel.y = -10.3;
+    part->accel.y = -6.0;
 
     const float vr = 10.0;
     part->velocity.x += RSEEDRANDOMF(-vr, vr);

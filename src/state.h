@@ -29,12 +29,14 @@
 
 #include "particle_systems/prj_envhit.h"
 #include "particle_systems/prj_entityhit.h"
+#include "particle_systems/prj_elvl0_envhit.h"
 
 
 // shaders.
 #define DEFAULT_SHADER 0
 #define POSTPROCESS_SHADER 1
 #define PROJECTILES_PSYSTEM_SHADER 2
+#define PROJECTILES_ENVHIT_SHADER 3
 #define BLOOM_TRESHOLD_SHADER 4
 #define MAX_SHADERS 8
 // ...
@@ -42,7 +44,8 @@
 // Particle systems.
 #define PROJECTILE_ENVHIT_PSYSTEM 0  // When projectile hits environment. terrain etc..
 #define PROJECTILE_ENTITYHIT_PSYSTEM 1
-#define MAX_PSYSTEMS 2
+#define PROJECTILE_ELVL0_ENVHIT_PSYSTEM 2
+#define MAX_PSYSTEMS 3
 // ...
 
 
@@ -52,8 +55,10 @@
 #define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
 #define POSTPROCESS_PLAYER_HEALTH_FS_UNILOC 2
 #define PROJECTILES_PSYSTEM_COLOR_FS_UNILOC 3
-#define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 4
-#define MAX_FS_UNILOCS 5
+#define PROJECTILES_ENVHIT_COLOR_FS_UNILOC 4
+#define PROJECTILES_ENVHIT_TIME_FS_UNILOC 5
+#define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 8
+#define MAX_FS_UNILOCS 9
 
 
 

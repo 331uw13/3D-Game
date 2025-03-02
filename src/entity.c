@@ -54,7 +54,8 @@ struct entity_t* create_entity(
     entptr->knockback_velocity = (Vector3){0};
     entptr->hit_direction = (Vector3){0};
     entptr->rotation_from_hit = (Vector3){0};
-    entptr->was_hit = 0;
+    entptr->stun_timer = 0.0;
+    entptr->max_stun_time = 0.0;
 
     entptr->Q0 = QuaternionIdentity();
     entptr->Q1 = QuaternionIdentity();
@@ -151,7 +152,43 @@ void render_entity(struct state_t* gst, struct entity_t* ent) {
 
 }
 
-void entity_hit(struct state_t* gst, struct entity_t* ent) {
+
+void entity_hit(struct state_t* gst, struct entity_t* ent, float damage, 
+        Vector3 hit_direction, Vector3 hit_position) {
+    
+
+    ent->health -= damage;
+    if(ent->health <= 0.001) {
+        ent->health = 0.0;
+        entity_death(gst, ent);
+        return;
+    }
+
+    switch(ent->type)
+    {
+        case ENT_TYPE_LVL0:
+            enemy_lvl0_hit(gst, ent, damage, hit_direction, hit_position);
+            break;
+
+
+        // ...
+    }
+
+}
+
+void entity_death(struct state_t* gst, struct entity_t* ent) {
+
+    switch(ent->type)
+    {
+        case ENT_TYPE_LVL0:
+            enemy_lvl0_death(gst, ent);
+            break;
+
+
+        // ...
+    }
+
+   
 }
 
 

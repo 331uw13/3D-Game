@@ -28,6 +28,23 @@ void enemy_lvl0_weapon_psystem_projectile_pupdate(
     
     part->light.position = part->position;
     update_light_values(&part->light, gst->shaders[DEFAULT_SHADER]);
+
+
+
+    // Check collision with terrain.
+
+    RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
+
+    if(t_hit.point.y >= part->position.y) {
+        add_particles(gst, 
+                &gst->psystems[PROJECTILE_ELVL0_ENVHIT_PSYSTEM], 1,
+                part->position, part->velocity, NULL, NO_EXTRADATA);
+       
+        disable_particle(gst, part);
+        return;
+    }
+
+
 }
 
 // PROJECTILE PARTICLE INITIALIZATION ---
@@ -60,15 +77,43 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
 
 
 
-static Vector3 _normalize(Vector3 a) {
-    float len = Vector3Length(a);
-    Vector3 d = (Vector3){len, len, len};
-    return Vector3Divide(a, d);
-}
+static int terrain_blocking_view(struct state_t* gst, struct entity_t* ent) {
+    int result = 0;
 
+    Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
+    Vector3 ray_position = ent->position;
+
+    // Move 'ray_position' towards player
+    // and cast ray from 'terrain.highest_point' at ray_position.X and Z.
+    // to see if the hit Y position is bigger than ray Y position, if so terrain was hit.
+    // this is not perfect but will do for now i guess.
+
+    Vector3 step = Vector3Scale(ent_direction, 3.0);
+    const int max_steps = 100;
+    for(int i = 0; i < max_steps; i++) {
+        
+        ray_position = Vector3Add(ray_position, step);
+
+        RayCollision t_hit = raycast_terrain(&gst->terrain, ray_position.x, ray_position.z);
+        if(t_hit.point.y >= ray_position.y) {
+            result = 1;
+            break;
+        }
+        
+        if(Vector3Distance(ray_position, gst->player.position) < 4.0) {
+            break;
+        }
+    }
+
+    return result;
+}
 
 void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
 
+
+    if(ent->health <= 0.001) {
+        return;
+    }
 
     // Rotate to terrain surface
 
@@ -79,10 +124,11 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
     ent->model.transform = MatrixMultiply(rotate_m, pos_m);
     ent->position.y = y;
 
-    float dst2player = Vector3Distance(ent->position, gst->player.position);
 
-    //int has_target_now = 0;
-    int has_target_now = (dst2player <= ent->target_range);
+    float dst2player = Vector3Distance(ent->position, gst->player.position);
+    int has_target_now 
+        = (dst2player <= ent->target_range) 
+        && !terrain_blocking_view(gst, ent);
 
 
     ent->body_matrix = ent->model.transform;
@@ -115,21 +161,51 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
 
 
     switch(ent->state) {
-        
+       
+        case ENT_STATE_WASHIT:
+            {
+                ent->stun_timer += gst->dt;
+
+                Matrix rm = MatrixRotateXYZ((Vector3){
+                        ent->rotation_from_hit.x,
+                        ent->rotation_from_hit.y + ent->forward_angle,
+                        ent->rotation_from_hit.z
+                        });
+
+                rm = MatrixMultiply(rm, ent->body_matrix);
+                ent->body_matrix = rm;
+
+                ent->position.x += ent->knockback_velocity.x * gst->dt;
+                ent->position.z += ent->knockback_velocity.z * gst->dt;
+
+                float restore_angle = 0.99;
+                ent->rotation_from_hit.x *= restore_angle;
+                ent->rotation_from_hit.y *= restore_angle;
+                ent->rotation_from_hit.z *= restore_angle;
+
+                ent->knockback_velocity.x *= 0.99;
+                ent->knockback_velocity.z *= 0.99;
+
+
+                if(ent->stun_timer >= ent->max_stun_time) {
+                    ent->state = ENT_STATE_SEARCHING_TARGET;
+                    ent->has_target = 0;
+                }
+            }
+            break;
         case ENT_STATE_SEARCHING_TARGET:
             {
                 ent->forward_angle += gst->dt;
                 Matrix rm = MatrixRotateY(ent->forward_angle);
                 rm = MatrixMultiply(rm, ent->body_matrix);
                 ent->body_matrix = rm;
-
             }
             break;
 
         case ENT_STATE_CHANGING_ANGLE:
             {
                 Quaternion Q = QuaternionSlerp(ent->Q1, ent->Q0, ent->angle_change);
-                ent->angle_change += gst->dt * 4.0;
+                ent->angle_change += gst->dt * 5.0;
 
                 if(ent->angle_change > 1.0) {
                     ent->state = ENT_STATE_HAS_TARGET;
@@ -137,6 +213,7 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
 
                 Matrix qm = QuaternionToMatrix(Q);
                 ent->body_matrix = MatrixMultiply(qm, ent->body_matrix);
+      
             }
             break;
 
@@ -154,7 +231,6 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
                 const float ang_rad = 1.5;
 
 
-                /*
                 if(!gst->player.noclip) {
                     prj_position.x += 0.2;
                     prj_position.z -= 0.4;
@@ -175,13 +251,18 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
                     Vector3 prj_direction = Vector3Normalize(Vector3Subtract(gst->player.position, prj_position));
                     
                     if(ent->firerate_timer >= ent->firerate) {
-                        weapon_add_projectile(gst, ent->weapon, prj_position, prj_direction);
+                        weapon_add_projectile(
+                                gst,
+                                ent->weapon,
+                                prj_position,
+                                prj_direction,
+                                ent->weapon->accuracy
+                                );
                         ent->firerate_timer = 0.0;
                     
                         ent->gun_index = !ent->gun_index;
                     }
                 }
-                */
 
             }
             break;
@@ -210,10 +291,29 @@ void enemy_lvl0_render(struct state_t* gst, struct entity_t* ent) {
 }
 
 
-void enemy_lvl0_hit(struct state_t* gst, struct entity_t* ent) {
+void enemy_lvl0_hit(struct state_t* gst, struct entity_t* ent, float damage, 
+        Vector3 hit_direction, Vector3 hit_position) {
+   
+    const float rd = 0.35;
+    ent->rotation_from_hit = (Vector3) {
+        RSEEDRANDOMF(-rd, rd),
+        RSEEDRANDOMF(-rd, rd),
+        RSEEDRANDOMF(-rd, rd)
+    };
+
+    ent->knockback_velocity = Vector3Scale(hit_direction, 15.0);
+
+    printf("%f\n", ent->health);
+
+    ent->max_stun_time = 0.5;
+    ent->stun_timer = 0.0;
+    
+    ent->previous_state = ent->state;
+    ent->state = ENT_STATE_WASHIT;
 }
 
 void enemy_lvl0_death(struct state_t* gst, struct entity_t* ent) {
+    printf("Enemy %i Died\n", ent->index);
 }
 
 void enemy_lvl0_created(struct state_t* gst, struct entity_t* ent) {

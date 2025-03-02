@@ -16,7 +16,7 @@ out vec4 finalColor;
 
 
 // NOTE: these 2 values must same as in 'light.h'
-#define MAX_PROJECTILE_LIGHTS 512
+#define MAX_PROJECTILE_LIGHTS 64
 #define MAX_NORMAL_LIGHTS 4
 
 #define     LIGHT_DIRECTIONAL       0
@@ -145,5 +145,3 @@ void main()
 
     finalColor = mix(fogColor, finalColor, fogFactor);
 }
-
-

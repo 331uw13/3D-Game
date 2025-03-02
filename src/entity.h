@@ -8,6 +8,7 @@
 #define ENT_STATE_SEARCHING_TARGET 1
 #define ENT_STATE_HAS_TARGET 2
 #define ENT_STATE_CHANGING_ANGLE 3
+#define ENT_STATE_WASHIT 4
 
 #define ENT_TRAVELING_DISABLED 0
 #define ENT_TRAVELING_ENABLED 1
@@ -59,7 +60,9 @@ struct entity_t {
     // Rotation is applied when hit.
     Vector3 rotation_from_hit;
 
-    int was_hit;
+    // How long the enemy is stunned after it was hit.
+    float stun_timer;
+    float max_stun_time; 
     
     // Used for rotating angles.
     Quaternion Q0;
@@ -77,12 +80,15 @@ struct entity_t {
     float rnd_search_min_radius;
 
     int state;
+    int previous_state;
     size_t index; // index in gst->entities array.
 
     struct weapon_t* weapon;
     float firerate;
     float firerate_timer;
     int gun_index; // switch between model's guns.
+
+
 };
 
 // Probably not going to have ALOT of enemies at once.
@@ -117,7 +123,8 @@ void delete_entity(struct entity_t* ent);
 // These functions "redirects" the call based on entity type
 void update_entity(struct state_t* gst, struct entity_t* ent);
 void render_entity(struct state_t* gst, struct entity_t* ent);
-void entity_hit(struct state_t* gst, struct entity_t* ent);
+void entity_hit(struct state_t* gst, struct entity_t* ent, float damage, 
+        Vector3 hit_direction, Vector3 hit_position);
 void entity_death(struct state_t* gst, struct entity_t* ent);
 
 BoundingBox get_entity_boundingbox(struct entity_t* ent);

@@ -25,8 +25,12 @@ void handle_userinput(struct state_t* gst) {
     
     float camspeed = gst->player.walkspeed;
 
-    if(IsKeyDown(KEY_LEFT_SHIFT) && !gst->player.is_aiming) {
+    if((IsKeyDown(KEY_LEFT_SHIFT) && !gst->player.is_aiming && gst->player.onground)) {
         camspeed *= gst->player.run_mult;
+    }
+
+    if(!gst->player.onground) {
+        camspeed *= gst->player.air_speed_mult;
     }
     
     camspeed *= dt;
@@ -35,49 +39,32 @@ void handle_userinput(struct state_t* gst) {
     // ----- Handle player Y movement -------
     //
 
-
-    // TODO: CLEAN THIS SHIT.
-    // - fix terrain max y thing. clips into mesh.
-    // - make this helper function for enemies to use too.
-    // - clean enemy stuff too :)
-
     if(!gst->player.noclip)
     {
 
-        if(IsKeyPressed(KEY_T)) {
-            gst->player.position.y = 10;
+        if(IsKeyPressed(KEY_SPACE) && gst->player.onground) {
+            gst->player.velocity.y = gst->player.jump_force;
+            gst->player.onground = 0;
         }
 
         Vector3 pos = gst->player.position;
 
 
-        // pretty expensive to compute for bigger terrain
-        // but will work around that someday.
-
-        /*
-        printf("%f\n", gst->terrain.highest_point);
-
-        ray = (Ray) {
-            (Vector3) {
-                gst->player.position.x,
-                gst->terrain.highest_point,
-                gst->player.position.z
-            },
-            (Vector3) { 0.0, -0.99, 0.0 }
-        };
-        RayCollision mesh_info = { 0 };
-
-        //mesh_info = GetRayCollisionTriangle(ray, v1,v2,v3);
-        mesh_info = GetRayCollisionMesh(ray, gst->terrain.mesh, gst->terrain.transform);
-        
-
-        gst->player.position.y = ((gst->terrain.highest_point+4)-mesh_info.distance);
-
-        */
-
         RayCollision t_hit = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
-        gst->player.position.y = t_hit.point.y + gst->player.hitbox_size.y;
+        const float heightvalue = t_hit.point.y + gst->player.hitbox_size.y;
+        //gst->player.position.y = t_hit.point.y + gst->player.hitbox_size.y;
 
+        gst->player.position.y += gst->player.velocity.y;
+        
+        if((gst->player.position.y < heightvalue) || gst->player.onground) {
+            gst->player.position.y = heightvalue;
+            gst->player.velocity.y = 0;
+            gst->player.onground = 1;
+        }
+        
+        if(!gst->player.onground){
+            gst->player.velocity.y -= gst->player.gravity * gst->dt;
+        }
 
         float scale_up = ( gst->player.position.y - gst->player.cam.position.y);
 
@@ -99,6 +86,9 @@ void handle_userinput(struct state_t* gst) {
         camspeed *= noclip_speed_mult;
     }
  
+
+    // XZ Movement.
+
     if(IsKeyDown(KEY_W)) {
         gst->player.velocity.z += camspeed;
     }
@@ -169,7 +159,6 @@ void handle_userinput(struct state_t* gst) {
     CameraMoveRight(&gst->player.cam, gst->player.velocity.x, 1);
     
 
-
     const float f = (1.0 - gst->player.friction);
     gst->player.velocity.z *= f;
     gst->player.velocity.x *= f;
@@ -196,6 +185,10 @@ void handle_userinput(struct state_t* gst) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
+    if(IsKeyPressed(KEY_H)) {
+        gst->entities[0].health += 100;
+        printf("Entity 0 health: %0.1f\n", gst->entities[0].health);
+    }
 
     int aimkeydown = IsKeyDown(KEY_LEFT_CONTROL);
     gst->player.is_aiming = aimkeydown;

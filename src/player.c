@@ -72,15 +72,18 @@ static void _player_weapon_psystem_projectile_pupdate(
         }
 
         if(CheckCollisionBoxes(particle_boundingbox, get_entity_boundingbox(ent))) {
+            entity_hit(gst, ent, weapon->prj_damage, part->velocity, part->position);
             disable_particle(gst, part);
+        
             add_particles(gst, 
-                    &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM], 10,
+                    &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM], 1,
+                    part->position, part->velocity, NULL, NO_EXTRADATA);
+
+            add_particles(gst, 
+                    &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM], 20,
                     part->position, part->velocity, NULL, NO_EXTRADATA);
         }
-
-
     }
-
 }
 
 // PROJECTILE PARTICLE INITIALIZATION ---
@@ -129,13 +132,17 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
     p->hitbox_size = (Vector3){ 1.0, 3.5, 1.0 };
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
+    
     p->walkspeed = 0.45;
     p->run_mult = 1.5;
     p->walkspeed_aim_mult = 0.5;
+    p->air_speed_mult = 2.0;
+
     p->jump_force = 0.128;
-    p->gravity = 0.6;
+    p->gravity = 0.3;
+    
     p->onground = 1;
-    p->friction = 0.025;
+    p->friction = 0.015;
     p->num_jumps_inair = 0;
     p->max_jumps = 2;
 
@@ -165,7 +172,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
                 .prj_color = (Color) { 20, 255, 255, 255 },
                 .overheat_temp = 500.0,
                 .heat_increase = 2.0,
-                .cooling_level = 6.0,
+                .cooling_level = 10.0,
             }
             );
 
@@ -228,9 +235,9 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
         // move the projectile little bit forward so its not inside of the model.
-        prj_position.x += p->looking_at.x*2.5;
-        prj_position.y += p->looking_at.y*2.5;
-        prj_position.z += p->looking_at.z*2.5;
+        prj_position.x += p->looking_at.x*1.5;
+        prj_position.y += p->looking_at.y*1.5;
+        prj_position.z += p->looking_at.z*1.5;
 
 
         float accuracy = p->weapon.accuracy - p->accuracy_decrease;
@@ -368,6 +375,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
         && FloatEquals(p->velocity.z, 0.0));
 
 
+    /*
     if(!p->noclip) {
         // Add movement to camera scaled with velocity.
         float vm = Vector3Length(p->velocity) * 0.01;
@@ -376,6 +384,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
         p->cam.position.z += cos(gst->time*10.0)*vm;
 
     }
+    */
 }
 
 

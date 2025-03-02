@@ -1,4 +1,4 @@
-#include "prj_envhit.h"
+#include "prj_elvl0_envhit.h"
 #include "../state.h"
 #include "../util.h"
 
@@ -7,7 +7,7 @@
 
 
 // PARTICLE UPDATE
-void projectile_envhit_psystem_pupdate(
+void projectile_elvl0_envhit_psystem_pupdate(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
@@ -16,6 +16,7 @@ void projectile_envhit_psystem_pupdate(
     float ntime = normalize(part->lifetime*3.0, 0.0, part->max_lifetime);
     ntime *= 2;
     float st = lerp(ntime,  0.0, 1.0);
+
 
     Matrix scale_m = MatrixScale(st, st, st);
     Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
@@ -28,7 +29,7 @@ void projectile_envhit_psystem_pupdate(
 
 
 // PARTICLE INITIALIZATION
-void projectile_envhit_psystem_pinit(
+void projectile_elvl0_envhit_psystem_pinit(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,
@@ -41,7 +42,7 @@ void projectile_envhit_psystem_pinit(
     Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     
     *part->transform = position_m;
-    part->max_lifetime = RSEEDRANDOMF(0.185, 0.25);
+    part->max_lifetime = RSEEDRANDOMF(0.075, 0.15);
 }
 
 

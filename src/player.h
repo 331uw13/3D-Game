@@ -39,6 +39,7 @@ struct player_t {
     float    walkspeed;
     float    walkspeed_aim_mult; // multiply walk speed while aiming
     float    run_mult;
+    float    air_speed_mult;
     float    friction;
     float    jump_force;
     float    gravity;
