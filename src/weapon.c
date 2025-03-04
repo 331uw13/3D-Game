@@ -6,17 +6,37 @@
 
 
 
-float compute_weapon_accuracy(struct state_t* gst, struct weapon_t* weapon) {
+void add_projectile(struct state_t* gst, struct psystem_t* psys, struct weapon_t* w,
+        Vector3 initial_pos, Vector3 direction, float accuracy_modifier) {
+
+    // Modify direction based on accuracy.
     float k = 0.1;
-    return k-map(weapon->accuracy, 0, 10, 0.0, k);
+    float a = k-map(w->accuracy - accuracy_modifier, 0, 10, 0.0, k);
+
+    direction = (Vector3) {
+        direction.x + RSEEDRANDOMF(-a, a),
+        direction.y + RSEEDRANDOMF(-a, a),
+        direction.z + RSEEDRANDOMF(-a, a)
+    };
+
+    add_particles(
+            gst,
+            psys,
+            1,
+            initial_pos,
+            direction,
+            NULL,
+            NO_EXTRADATA
+            );
 }
+/*
+
+
 
 
 void setup_weapon(
         struct state_t* gst,
         struct weapon_t* w,
-        void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int),
         struct weapon_t weapon_stats
 ){
 
@@ -25,7 +45,7 @@ void setup_weapon(
     w->overheat_temp = -1.0;
     *w = weapon_stats;
 
-    create_psystem(gst, &w->psystem, 512, update_callback_ptr, pinit_callback_ptr);
+    //create_psystem(gst, &w->psystem, 512, update_callback_ptr, pinit_callback_ptr);
 
     w->psystem.particle_mesh = GenMeshSphere(0.356, 8, 8);
     w->psystem.particle_material = LoadMaterialDefault();
@@ -37,9 +57,6 @@ void setup_weapon(
     w->temp = 0.0;
 }
 
-void delete_weapon(struct weapon_t* w) {
-    delete_psystem(&w->psystem);
-}
 
 
 int weapon_add_projectile(
@@ -47,7 +64,8 @@ int weapon_add_projectile(
         struct weapon_t* w,
         Vector3 position,
         Vector3 direction,
-        float accuracy
+        float accuracy,
+        struct psystem_t* psystem
 ){
     int result = 0;
 
@@ -70,7 +88,7 @@ int weapon_add_projectile(
 
 
     w->psystem.userptr = w;
-    add_particles(gst, &w->psystem, 1, position, direction, NULL, NO_EXTRADATA);
+    add_particles(gst, psystem, 1, position, direction, NULL, NO_EXTRADATA);
 
     result = 1;
 
@@ -91,21 +109,6 @@ void weapon_update(struct state_t* gst, struct weapon_t* w) {
 
 }
 
-void weapon_render_projectiles(struct state_t* gst, struct weapon_t* w) {
-    float psystem_color[3] = {
-        (float)w->prj_color.r / 255.0,
-        (float)w->prj_color.g / 255.0,
-        (float)w->prj_color.b / 255.0,
-    };
 
-    SetShaderValue(
-            gst->shaders[PROJECTILES_PSYSTEM_SHADER], 
-            gst->fs_unilocs[PROJECTILES_PSYSTEM_COLOR_FS_UNILOC],
-            psystem_color,
-            SHADER_UNIFORM_VEC3
-            );
-
-
-    render_psystem(gst, &w->psystem);
-}
+*/
 

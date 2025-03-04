@@ -1,10 +1,52 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "util.h"
 #include "state.h"
+#include "glsl_preproc.h"
 
 #define _2PI 6.28318
+
+
+// Load shaders but preprocess fragment shader.
+int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader) {
+    int result = 0;
+    
+    struct file_t fragment_file  = { .data = NULL, .size = 0 };
+    struct file_t vertex_file    = { .data = NULL, .size = 0 };
+
+
+
+    // Errors are reported from functions.
+
+    if(!read_file(&vertex_file, vs_filename)) {
+        goto error;
+    }
+    if(!read_file(&fragment_file, fs_filename)) {
+        goto error_and_close;
+    }
+
+    
+    size_t sizeout = 0;
+    char* fs_code = preproc_glsl(&fragment_file, &sizeout);
+
+    *shader = LoadShaderFromMemory(vertex_file.data, fs_code);
+
+    if(fs_code) {
+        free(fs_code);
+    }
+
+    result = 1;
+
+error_and_close:
+    close_file(&vertex_file);
+    close_file(&fragment_file);
+
+error:
+    return result;
+}
+
 
 
 void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned char* blu) {

@@ -6,23 +6,20 @@
 #include <raymath.h>
 #include <time.h>
 #include <string.h>
-#include <rlgl.h>
 
 #include "state.h"
 #include "input.h"
 #include "util.h"
 #include "terrain.h"
-#include "shaders.h"
+
+#include <rlgl.h>
 
 #define SCRN_W 1200
 #define SCRN_H 800
 
-#define GLSL_VERSION 330
 
 
 void cleanup(struct state_t* gst);
-RenderTexture2D LoadRenderTextureDepthTex(int width, int height);
-void UnloadRenderTextureDepthTex(RenderTexture2D target);
 
 void loop(struct state_t* gst) {
 
@@ -183,8 +180,9 @@ void loop(struct state_t* gst) {
 
                 // Weapon Accuracy
                 {
-                    const float accvalue 
-                        = gst->player.weapon.accuracy - gst->player.accuracy_decrease;
+                    float accvalue 
+                        = gst->player.weapon.accuracy - gst->player.accuracy_modifier;
+                    
                     DrawRectangle(
                             10,
                             bar_next_y,
@@ -225,6 +223,7 @@ void loop(struct state_t* gst) {
             // Some info for player:
 
 
+            /*
             // TODO: do this with texture...
             if(gst->player.weapon.temp >= (gst->player.weapon.overheat_temp*0.7)) {
                 DrawText("(WARNING: OVERHEATING...)", 29.0, gst->scrn_h-149, 20,
@@ -232,6 +231,7 @@ void loop(struct state_t* gst) {
                 DrawText("(WARNING: OVERHEATING...)", 30.0, gst->scrn_h-150, 20,
                         (Color){ (sin(gst->time*10.0)*0.5+0.5)*125+120, 30, 30, 255 });    
             }
+            */
 
 
             {
@@ -242,6 +242,7 @@ void loop(struct state_t* gst) {
                 DrawText(weapon_text,
                         30.0, gst->scrn_h-100, 20, (Color){ 30, 100, 100, 255 });
             }
+            
            
 
 
@@ -283,25 +284,24 @@ void cleanup(struct state_t* gst) {
     }
 
     // Unload all entity models
-    for(size_t i = 0; i < gst->num_entities; i++) {
-        delete_entity(&gst->entities[i]);
+    for(size_t i = 0; i < gst->num_enemies; i++) {
+        delete_enemy(&gst->enemies[i]);
     }
 
+    /*
     for(size_t i = 0; i < gst->num_entity_weapons; i++) {
         delete_weapon(&gst->entity_weapons[i]);
     }
+    */
 
     
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
-    UnloadShader(gst->shaders[PROJECTILES_PSYSTEM_SHADER]); 
     UnloadShader(gst->shaders[BLOOM_TRESHOLD_SHADER]); 
+    UnloadShader(gst->shaders[PRJ_ENVHIT_PSYS_SHADER]);
+    UnloadShader(gst->shaders[BASIC_WEAPON_PSYS_SHADER]);
     free_player(&gst->player);
 
-    delete_psystem(&gst->psystems[PROJECTILE_ENVHIT_PSYSTEM]);
-    delete_psystem(&gst->psystems[PROJECTILE_ELVL0_ENVHIT_PSYSTEM]);
-    delete_psystem(&gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM]);
-    
 
     delete_terrain(&gst->terrain);
 
@@ -332,14 +332,14 @@ void first_setup(struct state_t* gst) {
     SetTargetFPS(500);
     gst->num_textures = 0;
     gst->debug = 0;
-    gst->num_entities = 0;
+    gst->num_enemies = 0;
     gst->num_normal_lights = 0;
     gst->num_projectile_lights = 0;
     gst->dt = 0.016;
-    gst->num_entity_weapons = 0;
+    gst->num_enemy_weapons = 0;
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
-    memset(gst->entities, 0, MAX_ENTITIES * sizeof *gst->entities);
+    memset(gst->enemies, 0, MAX_ENEMIES * sizeof *gst->enemies);
 
     const float terrain_scale = 8.0;
     const u32   terrain_size = 500;
@@ -359,9 +359,12 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
 
 
-    setup_all_shaders(gst);
+    state_setup_all_shaders(gst);
+    state_create_enemy_weapons(gst);
+    state_create_psystems(gst);
 
     init_player_struct(gst, &gst->player);
+
 
 
 
@@ -385,6 +388,7 @@ void first_setup(struct state_t* gst) {
     SetRandomSeed(seed);
 
 
+    /*
     // --- Create Weapons for entities ---
     {
 
@@ -405,13 +409,12 @@ void first_setup(struct state_t* gst) {
                 }
         );
         gst->num_entity_weapons++; // <- NOTE: keep track of this!
-
-
     }
+    */
 
 
+    /*
     // --- Create Particle System  (PROJECTILE_ENVHIT_PSYSTEM) ---
-
     {
         struct psystem_t* psystem = &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM];
         create_psystem(gst,
@@ -458,6 +461,7 @@ void first_setup(struct state_t* gst) {
         psystem->particle_mesh = GenMeshSphere(0.3, 8, 8);
 
     }
+    */
 
 
 
@@ -490,6 +494,7 @@ void first_setup(struct state_t* gst) {
     */
 
 
+    /*
     create_entity(gst,
                 ENT_TYPE_LVL0,
                 ENT_TRAVELING_DISABLED,
@@ -503,6 +508,24 @@ void first_setup(struct state_t* gst) {
                 0.3     // firerate
                 );
 
+                */
+
+
+    create_enemy(gst,
+                ENEMY_TYPE_LVL0,
+                ENEMY_LVL0_TEXID,
+                "res/models/lvl0_enemy.glb",
+                &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
+                300,
+                (Vector3){ 50, 1, -100 }, // initial position
+                (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
+                (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
+                170.0,  // target range
+                0.3     // firerate
+                );
+
+     
     // --- Add sun ---
    
     add_light(gst,
@@ -522,43 +545,6 @@ void first_setup(struct state_t* gst) {
 
 
 }
-
-RenderTexture2D LoadRenderTextureDepthTex(int width, int height) {
-    RenderTexture2D target = { 0 };
-    target.id = rlLoadFramebuffer();
-
-    if(target.id > 0) {
-        rlEnableFramebuffer(target.id);
-
-         // Create color texture (default to RGBA)
-        target.texture.id = rlLoadTexture(0, width, height, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, 1);
-        target.texture.width = width;
-        target.texture.height = height;
-        target.texture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        target.texture.mipmaps = 1;
-
-         // Create depth texture buffer (instead of raylib default renderbuffer)
-         target.depth.id = rlLoadTextureDepth(width, height, false);
-         target.depth.width = width;
-         target.depth.height = height;
-         target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
-         target.depth.mipmaps = 1;
-
-         // Attach color texture and depth texture to FBO
-         rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0,
-                 RL_ATTACHMENT_TEXTURE2D, 0);
-         rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_TEXTURE2D,0);
-
-         // Check if fbo is complete with attachments (valid)
-
-         rlDisableFramebuffer();
-     }
-     else TRACELOG(LOG_WARNING, "FBO: Framebuffer object can not be created");
-
-     return target;
-
-}
-
 
 int main(void) {
 

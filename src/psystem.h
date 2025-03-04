@@ -45,6 +45,9 @@ struct particle_t {
 #define HAS_EXTRADATA 1
 
 
+// TODO: have uniform buffer and write particles color each time update was done to
+// the uniform buffer. shaders can use that with gl_InstanceID.
+
 struct psystem_t {
 
     int enabled;
@@ -83,6 +86,12 @@ struct psystem_t {
          int      // has extra data?
          );
 
+    int shader_index; // Index in 'gst->shaders' array.
+    // ...uniformlocs are set to negative value if not used.
+    int shader_color_uniformloc;
+    int shader_time_uniformloc;
+
+
     int   first_render;
     int   halt;
     void* userptr;
@@ -97,12 +106,13 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3, Vector3, void*, int)
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int),
+        int shader_index // See state.h
         );
 
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys);
-void render_psystem(struct state_t* gst, struct psystem_t* psys);
+void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color);
 
 void add_particles(
         struct state_t* gst,

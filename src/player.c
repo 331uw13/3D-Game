@@ -6,119 +6,13 @@
 #include "player.h"
 #include "util.h"
 
-
-// PROJECTILE PARTICLE UPDATE ---
-static void _player_weapon_psystem_projectile_pupdate(
-        struct state_t* gst,
-        struct psystem_t* psys,
-        struct particle_t* part
-){
-    struct weapon_t* weapon = (struct weapon_t*)psys->userptr;
-    if(!weapon) {
-        MISSING_PSYSUSERPTR;
-        return;
-    }
-
-    Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
-    part->position = Vector3Add(part->position, vel);
-
-    Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    *part->transform = position_m;
-
-    part->light.position = part->position;
-    update_light_values(&part->light, gst->shaders[DEFAULT_SHADER]);
+#include "particle_systems/weapon_psys.h"
 
 
-    // Check collision with terrain
 
-    RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
-
-    if(t_hit.point.y >= part->position.y) {
-        disable_particle(gst, part);
-        
-        add_particles(gst, 
-                &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM], 1,
-                part->position, part->velocity, NULL, NO_EXTRADATA);
-
-        return;
-    }
-
-
-    // Check collision with entities.
-
-
-    // TODO: get nearby enemies from list.
-
-    const BoundingBox particle_boundingbox = (BoundingBox) {
-        (Vector3) {
-            // Minimum box corner
-            part->position.x - weapon->prj_size.x/2,
-            part->position.y - weapon->prj_size.y/2,
-            part->position.z - weapon->prj_size.z/2
-        },
-        (Vector3) {
-            // Maximum box corner
-            part->position.x + weapon->prj_size.x/2,
-            part->position.y + weapon->prj_size.y/2,
-            part->position.z + weapon->prj_size.z/2
-        }
-    };
-
-
-    for(size_t i = 0; i < gst->num_entities; i++) {
-        struct entity_t* ent = &gst->entities[i];
-        if(ent->health <= 0.0) {
-            continue;
-        }
-
-        if(CheckCollisionBoxes(particle_boundingbox, get_entity_boundingbox(ent))) {
-            entity_hit(gst, ent, weapon->prj_damage, part->velocity, part->position);
-            disable_particle(gst, part);
-        
-            add_particles(gst, 
-                    &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM], 1,
-                    part->position, part->velocity, NULL, NO_EXTRADATA);
-
-            add_particles(gst, 
-                    &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM], 20,
-                    part->position, part->velocity, NULL, NO_EXTRADATA);
-        }
-    }
+static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
+    *acc_mod = CLAMP(*acc_mod, 0.0, WEAPON_ACCURACY_MAX - acc_control);
 }
-
-// PROJECTILE PARTICLE INITIALIZATION ---
-static void _player_weapon_psystem_projectile_pinit(
-        struct state_t* gst,
-        struct psystem_t* psys, 
-        struct particle_t* part,
-        Vector3 origin,
-        Vector3 velocity,
-        void* extradata, int has_extradata
-){
-
-    struct weapon_t* weapon = (struct weapon_t*)psys->userptr;
-    if(!weapon) {
-        MISSING_PSYSUSERPTR;
-        return;
-    }
-
-
-
-    part->velocity = velocity;
-    part->position = origin;
-    Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-
-
-    add_projectile_light(gst, &part->light, part->position, weapon->prj_color, gst->shaders[DEFAULT_SHADER]);
-    part->has_light = 1;
-
-    *part->transform = position_m;
-    part->max_lifetime = weapon->prj_max_lifetime;
-}
-
-
-
-
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
 
@@ -157,34 +51,27 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->max_health = 500.0;
     p->health = p->max_health;
 
-
-    setup_weapon(gst,
-            &p->weapon,
-            _player_weapon_psystem_projectile_pupdate,
-            _player_weapon_psystem_projectile_pinit,
-            (struct weapon_t)
-            {
-                .accuracy = 8.5,
-                .prj_speed = 100,
-                .prj_damage = 10,
-                .prj_max_lifetime = 5.0,
-                .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
-                .prj_color = (Color) { 20, 255, 255, 255 },
-                .overheat_temp = 500.0,
-                .heat_increase = 2.0,
-                .cooling_level = 10.0,
-            }
+  
+    // Use particle system to handle projectiles.
+    create_psystem(
+            gst,
+            &p->weapon_psys,
+            64,
+            weapon_psys_prj_update,
+            weapon_psys_prj_init,
+            BASIC_WEAPON_PSYS_SHADER
             );
 
-    p->firerate = 0.038;
-    p->firerate_timer = p->firerate;
-    p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
-    p->accuracy_decrease = 0.0;
+    p->weapon_psys.particle_mesh = GenMeshSphere(0.5, 8, 8);
+    p->weapon_psys.userptr = &p->weapon;
+    p->accuracy_modifier = 0.0;
+    p->accuracy_control = 3.0;
+    p->time_from_last_shot = 0.0;
+    p->firerate = 0.05;
+    p->firerate_timer = 0.0;
 
-    p->skills = (struct player_skills_t) {
-        .recoil_control = 3.6
-        // ...
-    };
+    p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
+
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
@@ -216,7 +103,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
 void free_player(struct player_t* p) {
     UnloadModel(p->gunmodel);
-    delete_weapon(&p->weapon);
+    delete_psystem(&p->weapon_psys);
 }
 
 void player_shoot(struct state_t* gst, struct player_t* p) {
@@ -228,34 +115,40 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         return;
     }
 
-
-    if(p->firerate_timer >= p->firerate) {
-        p->firerate_timer = 0.0;
-        Vector3 prj_position = (Vector3){0};
-        prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
-
-        // move the projectile little bit forward so its not inside of the model.
-        prj_position.x += p->looking_at.x*1.5;
-        prj_position.y += p->looking_at.y*1.5;
-        prj_position.z += p->looking_at.z*1.5;
-
-
-        float accuracy = p->weapon.accuracy - p->accuracy_decrease;
-
-        int result = weapon_add_projectile(gst, &p->weapon, prj_position, p->looking_at, accuracy);
-        
-
-        if(!result) {
-            return;
-        }
-
-        p->accuracy_decrease += 0.45;
-        p->recoil = 0.2;
-        p->recoil_done = 0;
-        p->recoil_timer = 0.0;
-        p->recoil_strength = 0.5;
-        p->recoil_in_progress = 1;
+    if(p->firerate_timer < p->firerate) {
+        return;
     }
+
+
+    p->firerate_timer = 0.0;
+
+    Vector3 prj_position = (Vector3){0};
+    prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
+
+    // Move the projectile initial position little bit ahead.
+    prj_position.x += p->looking_at.x * 2.35;
+    prj_position.y += p->looking_at.y * 2.35;
+    prj_position.z += p->looking_at.z * 2.35;
+
+    add_projectile(gst, &p->weapon_psys, &p->weapon, 
+            prj_position, p->looking_at, p->accuracy_modifier);
+
+    // Recoil animation.
+    p->recoil = 0.2;
+    p->recoil_done = 0;
+    p->recoil_timer = 0.0;
+    p->recoil_strength = 0.5;
+    p->recoil_in_progress = 1;
+
+
+    p->time_from_last_shot = 0.0;
+    p->accuracy_modifier += 0.45;
+    
+    _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
+    /*
+    p->accuracy_modifier = CLAMP(p->accuracy_modifier, 
+            0.0, WEAPON_ACCURACY_MAX - p->accuracy_control);
+    */
 }
 
 
@@ -331,17 +224,21 @@ void player_update(struct state_t* gst, struct player_t* p) {
         p->gun_draw_timer -= p->gun_draw_speed * gst->dt;
     }
 
+
     if(p->firerate_timer < p->firerate) {
         p->firerate_timer += gst->dt;
     }
-    
-    p->firerate_timer = CLAMP(p->firerate_timer, 0.0, p->firerate);
-   
-    if(p->firerate_timer >= p->firerate) {
-        p->accuracy_decrease -= gst->dt * 20.0;
-        p->accuracy_decrease = CLAMP(p->accuracy_decrease, 0.0, WEAPON_ACCURACY_MAX - p->skills.recoil_control);
-    }
 
+    p->firerate_timer = CLAMP(p->firerate_timer, 0.0, p->firerate);
+    p->time_from_last_shot += gst->dt;
+   
+
+    // Move accuracy modifier back to normal value.
+    // TODO: "player->weapon_control" variable for this time?
+    if(p->time_from_last_shot > 0.25) {
+        p->accuracy_modifier -= gst->dt * 20.0;
+        _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
+    }
 
     p->gunmodel_aim_offset_m 
             = MatrixTranslate((0.1 + p->recoil*0.07), -0.1, (-0.4 + p->recoil));

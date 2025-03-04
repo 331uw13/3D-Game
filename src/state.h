@@ -1,6 +1,8 @@
 #ifndef GSTATE_H
 #define GSTATE_H
 
+#define GRAPHICS_API_OPENGL_43
+
 #include <raylib.h>
 #include <rcamera.h> // raylib camera
 
@@ -24,27 +26,26 @@
 #include "object.h"
 #include "psystem.h"
 #include "terrain.h"
-#include "entity.h"
+#include "enemy.h"
 
 
-#include "particle_systems/prj_envhit.h"
-#include "particle_systems/prj_entityhit.h"
-#include "particle_systems/prj_elvl0_envhit.h"
 
-
-// shaders.
+// Shaders.
 #define DEFAULT_SHADER 0
 #define POSTPROCESS_SHADER 1
-#define PROJECTILES_PSYSTEM_SHADER 2
-#define PROJECTILES_ENVHIT_SHADER 3
-#define BLOOM_TRESHOLD_SHADER 4
+#define BLOOM_TRESHOLD_SHADER 2
+#define PRJ_ENVHIT_PSYS_SHADER 3
+#define BASIC_WEAPON_PSYS_SHADER 4
 #define MAX_SHADERS 8
 // ...
  
-// Particle systems.
-#define PROJECTILE_ENVHIT_PSYSTEM 0  // When projectile hits environment. terrain etc..
-#define PROJECTILE_ENTITYHIT_PSYSTEM 1
-#define PROJECTILE_ELVL0_ENVHIT_PSYSTEM 2
+
+// Player's weapon particle system is stored in player struct.
+// Enemies have pointers into global particle systems and weapons.
+// Global particle systems:
+#define PLAYER_PRJ_ENVHIT_PSYS 0
+#define ENEMY_PRJ_ENVHIT_PSYS 1
+#define ENEMY_LVL0_WEAPON_PSYS 2
 #define MAX_PSYSTEMS 3
 // ...
 
@@ -54,9 +55,6 @@
 #define POSTPROCESS_TIME_FS_UNILOC 0
 #define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
 #define POSTPROCESS_PLAYER_HEALTH_FS_UNILOC 2
-#define PROJECTILES_PSYSTEM_COLOR_FS_UNILOC 3
-#define PROJECTILES_ENVHIT_COLOR_FS_UNILOC 4
-#define PROJECTILES_ENVHIT_TIME_FS_UNILOC 5
 #define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 8
 #define MAX_FS_UNILOCS 9
 
@@ -64,11 +62,12 @@
 
 #include "enemies/enemy_lvl0.h"
 
-#define MAX_ENTITIES 32
+#define MAX_ENEMIES 32
 
-#define ENTWEAPON_LVL0 0
-#define ENTWEAPON_LVL1 1
-#define MAX_ENTITY_WEAPONS 2
+
+#define ENEMY_LVL0_WEAPON 0
+#define ENEMY_LVL1_WEAPON 1
+#define MAX_ENEMY_WEAPONS 2
 
 
 
@@ -82,10 +81,7 @@ struct state_t {
     struct light_t normal_lights[MAX_NORMAL_LIGHTS];
     size_t num_normal_lights;
 
-    // Projectile lights are created into 'weapon projectile structure'
-    // NOT into 'state lights'
     size_t num_projectile_lights;
-
 
     Shader shaders[MAX_SHADERS];
     int    fs_unilocs[MAX_FS_UNILOCS];
@@ -96,18 +92,18 @@ struct state_t {
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
+    struct enemy_t enemies[MAX_ENEMIES];
+    size_t num_enemies;
 
-    struct entity_t entities[MAX_ENTITIES];
-    size_t num_entities;
-
-    struct weapon_t entity_weapons[MAX_ENTITY_WEAPONS];
-    size_t num_entity_weapons;
+    struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
+    size_t num_enemy_weapons;
 
     int scrn_w; // Screen width
     int scrn_h; // Screen height
 
     int rseed; // Seed for randomgen functions.
     int debug;
+
 
 
     // Everything is rendered to this texture
@@ -127,6 +123,9 @@ void state_update_frame(struct state_t* gst);
 // and post process it later.
 void state_render_environment(struct state_t* gst);
 
+void state_setup_all_shaders(struct state_t* gst);
+void state_create_enemy_weapons(struct state_t* gst);
+void state_create_psystems(struct state_t* gst);
 
 
 #endif

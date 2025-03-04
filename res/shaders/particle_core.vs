@@ -1,4 +1,6 @@
+
 #version 330
+
 
 // Input vertex attributes
 in vec3 vertexPosition;
@@ -15,8 +17,10 @@ out vec3 fragPosition;
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
+flat out int instance_id;
 
 in mat4 instanceTransform;
+
 
 // NOTE: Add here your custom variables
 
@@ -27,6 +31,8 @@ void main()
     fragTexCoord = vertexTexCoord;
     fragColor = vec4(1.0);
     fragNormal = normalize(vec3(matNormal*vec4(vertexNormal, 1.0)));
+
+    instance_id = gl_InstanceID;
 
     // Calculate final vertex position
     gl_Position = mvp * instanceTransform * vec4(vertexPosition, 1.0);

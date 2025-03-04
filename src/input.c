@@ -185,11 +185,6 @@ void handle_userinput(struct state_t* gst) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
-    if(IsKeyPressed(KEY_H)) {
-        gst->entities[0].health += 100;
-        printf("Entity 0 health: %0.1f\n", gst->entities[0].health);
-    }
-
     int aimkeydown = IsKeyDown(KEY_LEFT_CONTROL);
     gst->player.is_aiming = aimkeydown;
 

@@ -8,6 +8,8 @@ struct state_t;
 
 #define RANDOMGEN_MAX 0x7FFF
 
+// Load shaders but preprocess fragment shader.
+int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader);
 void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned char* blu);
 
 // multiply direction by factor(f) and add it to v1
@@ -30,6 +32,5 @@ Color color_lerp(float t, Color a, Color b);
 
 #define RSEEDRANDOMF(min, max) randomf(&gst->rseed, min, max)
 #define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)
-#define MISSING_PSYSUSERPTR fprintf(stderr, "\033[31m(ERROR) '%s': Missing psystem 'userptr'\033[0m\n", __func__)
 
 #endif

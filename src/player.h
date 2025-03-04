@@ -14,18 +14,6 @@ struct state_t;
 #define PLAYER_WEAPON_SEMIAUTO 1
 
 
-#define PLAYER_SKILL_MIN 0.0
-#define PLAYER_SKILL_MAX 10.0
-
-
-// Values are from 0.0(Low) to 10.0(High)
-struct player_skills_t {
-
-    float recoil_control;
-
-    // ...
-};
-
 struct player_t {
 
     Camera   cam;
@@ -44,14 +32,10 @@ struct player_t {
     float    jump_force;
     float    gravity;
     int      onground;
-
     int      max_jumps;
     int      num_jumps_inair;
-
     int      noclip;
-
-    struct weapon_t weapon;
-    int  is_aiming;
+    int      is_aiming;
 
     Model gunmodel;
     Material arms_material;
@@ -75,19 +59,21 @@ struct player_t {
     float max_health;
     float health_normalized;
 
-
-    struct player_skills_t skills;
+    struct weapon_t  weapon; // Weapon stats.
+    struct psystem_t weapon_psys;
+    float accuracy_modifier; // Used to decrease accuracy if shooting rapidly.
+    float accuracy_control; // 'WEAPON_ACCURACY_MIN' to 'WEAPON_ACCURACY_MAX'. 
+                            //  higher number means better accuracy control
+    float time_from_last_shot;
 
     // Some weapon related variables may be stored else where.
-    // For example the firerate, one enemy type uses the same weapon for all enemies in that type.
-    float firerate;
+    // For example the firerate because enemies use pointers to "global weapons"
+    // and not their own weapon like the player has.
     float firerate_timer;
+    float firerate;
 
     // Entities cant have this setting.
     int weapon_firetype; 
-
-    // This increases over time when shooting rapidly.
-    float accuracy_decrease;
 };
 
 

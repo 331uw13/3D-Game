@@ -7,32 +7,36 @@
 #include "light.h"
 #include "psystem.h"
 
-#define MAX_WEAPON_PROJECTILES 512
 
 
 #define WEAPON_ACCURACY_MAX 10.0
 #define WEAPON_ACCURACY_MIN 0.0
 
+#define PLAYER_WEAPON_ID 0
+#define ENEMY_WEAPON_ID 1
+#define INVLID_WEAPON_ID 2
 
 struct weapon_t {
-    struct psystem_t psystem; // Use particle system for projectiles.
+
+    int id; // This can be used to know who the weapon belongs to.
 
     // Weapon settings.
 
     float    knockback;
     float    accuracy;  // 0.0 (low accuracy) - 10.0 (high accuracy)
+    float    damage;
+    float    critical_chance; // 0% - 100% (TODO)
+    Color    color;
     
 
     // Projectile settings.
     
     float    prj_speed;
-    float    prj_damage;
     float    prj_max_lifetime;
-    Vector3  prj_size;
-    Color    prj_color;
+    Vector3  prj_hitbox_size;
 
 
-    // Weapon temperature:
+    // Weapon temperature: (TODO)
     // 'temp' increases when shooting. Cooldown is applied if the weapon overheats
     // It also cools down slowly over time.
     // by setting 'overheat_temp' to negative value ignores this effect (set by default).
@@ -44,36 +48,19 @@ struct weapon_t {
 
 };
 
+struct state_t;
+struct psystem_t;
 
-void setup_weapon(
+
+#define NO_ACCURACY_MOD 0.0
+
+void add_projectile(
         struct state_t* gst,
+        struct psystem_t* psys, 
         struct weapon_t* w,
-        void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int),
-        struct weapon_t weapon_stats
-        );
-
-void delete_weapon(struct weapon_t* w);
-
-
-float compute_weapon_accuracy(struct state_t* gst, struct weapon_t* weapon);
-
-int weapon_add_projectile(
-        struct state_t* gst,
-        struct weapon_t* w,
-        Vector3 position,
-        Vector3 direction,
-        float accuracy
-        );
-
-void weapon_update(
-        struct state_t* gst,
-        struct weapon_t* w
-        );
-
-void weapon_render_projectiles(
-        struct state_t* gst,
-        struct weapon_t* w
+        Vector3 initial_pos,
+        Vector3 direciton,
+        float accuracy_modifier // Used to decrease accuracy if/when shooting rapidly.
         );
 
 #endif

@@ -6,7 +6,7 @@
 #include <raymath.h>
 #include <stdio.h>
 
-
+/*
 // PROJECTILE PARTICLE UPDATE ---
 void enemy_lvl0_weapon_psystem_projectile_pupdate(
         struct state_t* gst,
@@ -68,16 +68,16 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
     part->position = origin;
     Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     
-    add_projectile_light(gst, &part->light, part->position, weapon->prj_color, gst->shaders[DEFAULT_SHADER]);
+    add_projectile_light(gst, &part->light, part->position, weapon->color, gst->shaders[DEFAULT_SHADER]);
     part->has_light = 1;
 
     *part->transform = position_m;
     part->max_lifetime = weapon->prj_max_lifetime;
 }
+*/
 
 
-
-static int terrain_blocking_view(struct state_t* gst, struct entity_t* ent) {
+static int terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
     int result = 0;
 
     Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
@@ -108,7 +108,7 @@ static int terrain_blocking_view(struct state_t* gst, struct entity_t* ent) {
     return result;
 }
 
-void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
+void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
 
     if(ent->health <= 0.001) {
@@ -245,32 +245,24 @@ void enemy_lvl0_update(struct state_t* gst, struct entity_t* ent) {
                     }
                    
                     prj_position.y += 1.0;
-
-
-
                     Vector3 prj_direction = Vector3Normalize(Vector3Subtract(gst->player.position, prj_position));
-                    
+
+
                     if(ent->firerate_timer >= ent->firerate) {
-                        weapon_add_projectile(
-                                gst,
-                                ent->weapon,
-                                prj_position,
-                                prj_direction,
-                                ent->weapon->accuracy
-                                );
+                        
+                        add_projectile(gst, ent->weapon_psysptr, ent->weaponptr,
+                                prj_position, prj_direction, NO_ACCURACY_MOD);
+                        
                         ent->firerate_timer = 0.0;
-                    
                         ent->gun_index = !ent->gun_index;
                     }
                 }
-
             }
             break;
     }
-
 }
 
-void enemy_lvl0_render(struct state_t* gst, struct entity_t* ent) {
+void enemy_lvl0_render(struct state_t* gst, struct enemy_t* ent) {
 
     // Turret body
 
@@ -291,7 +283,7 @@ void enemy_lvl0_render(struct state_t* gst, struct entity_t* ent) {
 }
 
 
-void enemy_lvl0_hit(struct state_t* gst, struct entity_t* ent, float damage, 
+void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, float damage, 
         Vector3 hit_direction, Vector3 hit_position) {
    
     const float rd = 0.35;
@@ -312,13 +304,12 @@ void enemy_lvl0_hit(struct state_t* gst, struct entity_t* ent, float damage,
     ent->state = ENT_STATE_WASHIT;
 }
 
-void enemy_lvl0_death(struct state_t* gst, struct entity_t* ent) {
-    printf("Enemy %i Died\n", ent->index);
+void enemy_lvl0_death(struct state_t* gst, struct enemy_t* ent) {
+    printf("Enemy %li Died\n", ent->index);
 }
 
-void enemy_lvl0_created(struct state_t* gst, struct entity_t* ent) {
+void enemy_lvl0_created(struct state_t* gst, struct enemy_t* ent) {
     ent->state = ENT_STATE_SEARCHING_TARGET;
 
 }
-
 

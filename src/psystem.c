@@ -5,7 +5,9 @@
 #include "psystem.h"
 #include <raymath.h>
 #include "state.h"
-
+#include "util.h"
+#include <rlgl.h>
+#include "lib/glad.h"
 
 
 
@@ -35,9 +37,10 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int)
-        )
-{
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int),
+        int shader_index
+){
+    psys->halt = 1;
 
     if(!update_callback_ptr) {
         fprintf(stderr, " >> (ERROR) '%s' Update callback pointer is missing for particle system.\n",
@@ -78,11 +81,18 @@ void create_psystem(
         return;
     }
 
-
     for(size_t i = 0; i < max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
         p->index = i;
     }
+
+    psys->shader_index = shader_index;
+
+    psys->shader_color_uniformloc = GetShaderLocation(gst->shaders[shader_index], "psystem_color");
+    psys->shader_time_uniformloc = GetShaderLocation(gst->shaders[shader_index], "time");
+
+    psys->particle_material = LoadMaterialDefault();
+    psys->particle_material.shader = gst->shaders[shader_index];
 
 
     psys->halt = 0;
@@ -118,6 +128,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         return;
     }
 
+    int num_rendering = 0;
 
     for(size_t i = 0; i < psys->max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
@@ -138,6 +149,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
         p->prev_position = p->position;
 
+
         p->lifetime += gst->dt;
         if(p->lifetime > p->max_lifetime) {
             p->alive = 0;
@@ -146,14 +158,16 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
                 disable_light(&p->light, gst->shaders[DEFAULT_SHADER]);
             }
 
-            //psys->pinit_callback(gst, psys, p);
-
+            continue;
+            // TODO -> psys->pinit_callback(gst, psys, p);
         }
+
+
     }
 
 }
 
-void render_psystem(struct state_t* gst, struct psystem_t* psys) {
+void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
     if(psys->halt) {
         return;
     }
@@ -184,6 +198,23 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys) {
     }
 
 
+    // TODO: optimize these uniform things.
+
+    const float psystem_color[4] = {
+        (float)color.r / 255.0,
+        (float)color.g / 255.0,
+        (float)color.b / 255.0,
+        (float)color.a / 255.0,
+    };
+
+    SetShaderValue(gst->shaders[psys->shader_index], psys->shader_color_uniformloc,
+            psystem_color, SHADER_UNIFORM_VEC4);
+
+
+    SetShaderValue(gst->shaders[psys->shader_index], psys->shader_time_uniformloc,
+            &gst->time, SHADER_UNIFORM_FLOAT);
+    
+    
     DrawMeshInstanced(
             psys->particle_mesh,
             psys->particle_material,

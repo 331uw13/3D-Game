@@ -1,7 +1,7 @@
 #ifndef ENEMY_LVL0
 #define ENEMY_LVL0
 
-#include "../entity.h"
+#include "../enemy.h"
 
 
 struct state_t;
@@ -23,13 +23,13 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
         void* extradata, int has_extradata
 );
 
-void enemy_lvl0_hit(struct state_t* gst, struct entity_t* ent, float damage, 
+void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, float damage, 
         Vector3 hit_direction, Vector3 hit_position);
 
-void enemy_lvl0_update  (struct state_t* gst, struct entity_t* ent);
-void enemy_lvl0_render  (struct state_t* gst, struct entity_t* ent);
-void enemy_lvl0_death   (struct state_t* gst, struct entity_t* ent);
-void enemy_lvl0_created (struct state_t* gst, struct entity_t* ent);
+void enemy_lvl0_update  (struct state_t* gst, struct enemy_t* ent);
+void enemy_lvl0_render  (struct state_t* gst, struct enemy_t* ent);
+void enemy_lvl0_death   (struct state_t* gst, struct enemy_t* ent);
+void enemy_lvl0_created (struct state_t* gst, struct enemy_t* ent);
 
 
 
