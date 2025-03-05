@@ -1,4 +1,5 @@
-## 3D First-Person shooter game made with Raylib (https://github.com/raysan5/raylib)
+## 3D First-Person shooter game
+###  Made with raylib (https://github.com/raysan5/raylib)
 
 
 * TODO: add screenshots and videos here.?
