@@ -1,11 +1,11 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
+#include <stddef.h>
 #include <raylib.h>
 
 #include "perlin_noise.h"
 #include "typedefs.h"
-#include <stddef.h>
 
 struct state_t;
 

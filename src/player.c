@@ -51,19 +51,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->max_health = 500.0;
     p->health = p->max_health;
 
-  
-    // Use particle system to handle projectiles.
-    create_psystem(
-            gst,
-            &p->weapon_psys,
-            64,
-            weapon_psys_prj_update,
-            weapon_psys_prj_init,
-            BASIC_WEAPON_PSYS_SHADER
-            );
-
-    p->weapon_psys.particle_mesh = GenMeshSphere(0.5, 8, 8);
-    p->weapon_psys.userptr = &p->weapon;
     p->accuracy_modifier = 0.0;
     p->accuracy_control = 3.0;
     p->time_from_last_shot = 0.0;
@@ -235,7 +222,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
 
     // Move accuracy modifier back to normal value.
     // TODO: "player->weapon_control" variable for this time?
-    if(p->time_from_last_shot > 0.25) {
+    if(p->time_from_last_shot > 0.15) {
         p->accuracy_modifier -= gst->dt * 20.0;
         _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
     }

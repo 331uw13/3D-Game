@@ -23,7 +23,6 @@
 
 #include "light.h"
 #include "player.h"
-#include "object.h"
 #include "psystem.h"
 #include "terrain.h"
 #include "enemy.h"
@@ -42,11 +41,13 @@
 
 // Player's weapon particle system is stored in player struct.
 // Enemies have pointers into global particle systems and weapons.
+
 // Global particle systems:
 #define PLAYER_PRJ_ENVHIT_PSYS 0
 #define ENEMY_PRJ_ENVHIT_PSYS 1
 #define ENEMY_LVL0_WEAPON_PSYS 2
-#define MAX_PSYSTEMS 3
+#define ENEMY_HIT_PSYS 3 // When enemy gets hit.
+#define MAX_PSYSTEMS 4
 // ...
 
 

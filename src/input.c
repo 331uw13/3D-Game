@@ -104,49 +104,6 @@ void handle_userinput(struct state_t* gst) {
 
 
 
-    /*
-    // ----- Handle player Y movement -------
-    if(!gst->player.noclip) {
-        if(IsKeyPressed(KEY_SPACE) && gst->player.onground) {
-
-            gst->player.velocity.y = 0;
-            gst->player.velocity.y += gst->player.jump_force;
-            
-            gst->player.num_jumps_inair++;
-            if(gst->player.num_jumps_inair >= gst->player.max_jumps) {
-                gst->player.onground = 0;
-            }
-        }
-
-        gst->player.velocity.y = CLAMP(gst->player.velocity.y,
-                -5.0, 5.0);
-
-        CameraMoveUp(&gst->player.cam, gst->player.velocity.y);
-
-        int ix = round((int)gst->player.position.x);
-        int iz = round((int)gst->player.position.z);
-
-        float heightpoint = 2.0*get_heightmap_value(&gst->terrain, ix, iz);
-
-        printf("%f\n", heightpoint);
-
-        if(gst->player.cam.position.y > (2.1 + heightpoint)) {
-            gst->player.velocity.y -= gst->player.gravity * dt;
-        }
-        else {
-            // Player is on ground
-            gst->player.onground = 1;
-            gst->player.velocity.y = 0.0;
-            gst->player.num_jumps_inair = 0;
-        }
-        
-    }
-    else {
-       
-    }
-    */
-
-
 
     // X Z  movement.
 

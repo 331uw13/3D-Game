@@ -1,5 +1,5 @@
-#ifndef PRJ_ENVHIT_PSYSTEM_H
-#define PRJ_ENVHIT_PSYSTEM_H
+#ifndef ENEMY_HIT_PSYSTEM_H
+#define ENEMY_HIT_PSYSTEM_H
 
 
 
@@ -15,7 +15,7 @@ struct particle_t;
 
 
 // PARTICLE UPDATE
-void prj_envhit_psys_update(
+void enemy_hit_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
@@ -23,7 +23,7 @@ void prj_envhit_psys_update(
 
 
 // PARTICLE INITIALIZATION
-void prj_envhit_psys_init(
+void enemy_hit_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,

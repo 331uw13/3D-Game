@@ -28,8 +28,8 @@ void weapon_psys_prj_update(
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
 
-    Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    *part->transform = position_m;
+    Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
+    *part->transform = transform;
 
     part->light.position = part->position;
     update_light_values(&part->light, gst->shaders[DEFAULT_SHADER]);
@@ -40,7 +40,6 @@ void weapon_psys_prj_update(
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
 
     if(t_hit.point.y >= part->position.y) {
-        disable_particle(gst, part);
 
         struct psystem_t* psystem = NULL;
         if(weapon->id == PLAYER_WEAPON_ID) {
@@ -60,9 +59,61 @@ void weapon_psys_prj_update(
                 NULL,
                 NO_EXTRADATA
                 );
-
+        
+        disable_particle(gst, part);
         return;
     }
+
+
+    BoundingBox part_boundingbox = (BoundingBox) {
+        (Vector3) { // Min box corner
+            part->position.x - weapon->prj_hitbox_size.x/2,
+            part->position.y - weapon->prj_hitbox_size.y/2,
+            part->position.z - weapon->prj_hitbox_size.z/2
+        },
+        (Vector3) { // Max box corner
+            part->position.x + weapon->prj_hitbox_size.x/2,
+            part->position.y + weapon->prj_hitbox_size.y/2,
+            part->position.z + weapon->prj_hitbox_size.z/2
+        }
+    };
+
+    // TODO: Optimize this! <---
+    // Check collision with enemies.
+   
+    if(psys->groupid == PSYS_GROUPID_PLAYER) {
+        struct enemy_t* enemy = NULL;
+        for(size_t i = 0; i < gst->num_enemies; i++) {
+            enemy = &gst->enemies[i];
+
+            if(CheckCollisionBoxes(part_boundingbox, get_enemy_boundingbox(enemy))) {
+                printf("HIT\n");
+                
+                add_particles(
+                        gst,
+                        &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS],
+                        1,
+                        part->position,
+                        (Vector3){0, 0, 0},
+                        NULL,
+                        NO_EXTRADATA
+                        );
+
+                add_particles(
+                        gst,
+                        &gst->psystems[ENEMY_HIT_PSYS],
+                        10,
+                        part->position,
+                        part->velocity,
+                        NULL,
+                        NO_EXTRADATA
+                        );
+
+                disable_particle(gst, part);
+            }
+        }
+    }
+
 }
 
 void weapon_psys_prj_init(
@@ -81,15 +132,15 @@ void weapon_psys_prj_init(
 
     part->velocity = velocity;
     part->position = origin;
-    Matrix position_m = MatrixTranslate(part->position.x, part->position.y, part->position.z);
+    Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     Matrix rotation_m = MatrixRotateXYZ((Vector3){
             RSEEDRANDOMF(-3.0, 3.0), 0.0, RSEEDRANDOMF(-3.0, 3.0)
             });
 
-    position_m = MatrixMultiply(position_m, rotation_m);
+    transform = MatrixMultiply(transform, rotation_m);
     add_projectile_light(gst, &part->light, part->position, weapon->color, gst->shaders[DEFAULT_SHADER]);
     part->has_light = 1;
 
-    *part->transform = position_m;
+    *part->transform = transform;
     part->max_lifetime = weapon->prj_max_lifetime;
 }

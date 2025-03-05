@@ -44,12 +44,16 @@ struct particle_t {
 #define NO_EXTRADATA 0
 #define HAS_EXTRADATA 1
 
+#define PSYS_GROUPID_PLAYER 0
+#define PSYS_GROUPID_ENEMY 1
+#define PSYS_GROUPID_ENV 2
 
 // TODO: have uniform buffer and write particles color each time update was done to
 // the uniform buffer. shaders can use that with gl_InstanceID.
 
 struct psystem_t {
 
+    int groupid;
     int enabled;
 
     // if "true": particle system will be disabled after all particles are dead.
@@ -103,6 +107,7 @@ void delete_psystem(struct psystem_t* psys);
 // IMPORTANT NOTE: do NOT set psystem.userptr before calling 'create_psystem'. set it AFTER.
 void create_psystem(
         struct state_t* gst,
+        int groupid,
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),

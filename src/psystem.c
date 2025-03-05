@@ -3,11 +3,9 @@
 #include <string.h>
 
 #include "psystem.h"
-#include <raymath.h>
+
 #include "state.h"
 #include "util.h"
-#include <rlgl.h>
-#include "lib/glad.h"
 
 
 
@@ -34,6 +32,7 @@ void delete_psystem(struct psystem_t* psys) {
 
 void create_psystem(
         struct state_t* gst,
+        int groupid,
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
@@ -54,6 +53,7 @@ void create_psystem(
         return;
     }
 
+    psys->groupid = groupid;
     psys->enabled = 0;
     psys->max_particles = max_particles;
     psys->num_alive_parts = 0;

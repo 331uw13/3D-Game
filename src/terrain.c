@@ -5,7 +5,6 @@
 
 #include "terrain.h"
 #include "state.h"
-#include <raymath.h>
 
 #include "util.h"
 

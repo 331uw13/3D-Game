@@ -8,6 +8,7 @@
 
 #include "particle_systems/weapon_psys.h"
 #include "particle_systems/prj_envhit_psys.h"
+#include "particle_systems/enemy_hit_psys.h"
 
 
 void state_update_shader_uniforms(struct state_t* gst) {
@@ -61,6 +62,7 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS]);
+    update_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS]);
 }
 
 
@@ -102,11 +104,11 @@ void state_render_environment(struct state_t* gst) {
       
         }
 
-        // Player.
         player_render(gst, &gst->player);
         render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
         render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
         render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
+        render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 160, 20});
        
 
         // Enemy projectiles
@@ -126,7 +128,7 @@ void state_render_environment(struct state_t* gst) {
     // Get bloom treshold texture.
 
     BeginTextureMode(gst->bloomtreshold_target);
-    ClearBackground((Color){0,0,0, 255 });
+    ClearBackground((Color){ 0,0,0, 255 });
     BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
     {
         DrawTextureRec(
@@ -226,13 +228,14 @@ void state_setup_all_shaders(struct state_t* gst) {
 
 void state_create_enemy_weapons(struct state_t* gst) {
 
-    
+   
+    // Player's weapon.
     gst->player.weapon = (struct weapon_t) {
         .id = PLAYER_WEAPON_ID,
-        .accuracy = 6.53,
+        .accuracy = 7.85,
         .damage = 10.0,
         .critical_chance = 5.0,
-        .prj_speed = 100.0,
+        .prj_speed = 200.0,
         .prj_max_lifetime = 2.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .color = (Color) { 20, 255, 150, 255 },
@@ -242,6 +245,7 @@ void state_create_enemy_weapons(struct state_t* gst) {
     };
  
 
+    // Enemy lvl0 weapon.
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
         .accuracy = 8.0,
@@ -258,51 +262,12 @@ void state_create_enemy_weapons(struct state_t* gst) {
 
 void state_create_psystems(struct state_t* gst) {
 
-    // Player's weapon particle system is created in 'setup_player_struct()' player.c
-
-
-    // Create PLAYER_PRJ_ENVHIT_PSYS.
-    { // (when player's projectile hits environment)
-        struct psystem_t* psystem = &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS];
+    // Create PLAYER_WEAPON_PSYS
+    { // (projectile particle system for player)
+        struct psystem_t* psystem = &gst->player.weapon_psys;
         create_psystem(
                 gst,
-                psystem,
-                64,
-                prj_envhit_psys_update,
-                prj_envhit_psys_init,
-                PRJ_ENVHIT_PSYS_SHADER
-                );
-
-        psystem->particle_mesh = GenMeshSphere(0.5, 32, 32);
-        psystem->userptr = &gst->player.weapon;
-    }
-
-
-    // Create ENEMY_PRJ_ENVHIT_PSYS.
-    { // (when enemies projectile hits environment)
-        struct psystem_t* psystem = &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS];
-        create_psystem(
-                gst,
-                psystem,
-                64,
-                prj_envhit_psys_update,
-                prj_envhit_psys_init,
-                PRJ_ENVHIT_PSYS_SHADER
-                );
-
-        psystem->particle_mesh = GenMeshSphere(0.5, 32, 32);
-        psystem->userptr = &gst->player.weapon;
-    }
-
-
-    // TODO: rename: weapon_psys to basci_weapon_psys
-
-
-    // Create ENEMY_LVL0_WEAPON_PSYS.
-    { // (projectile particle system for enemy lvl 0)
-        struct psystem_t* psystem = &gst->psystems[ENEMY_LVL0_WEAPON_PSYS];
-        create_psystem(
-                gst,
+                PSYS_GROUPID_PLAYER,
                 psystem,
                 64,
                 weapon_psys_prj_update,
@@ -310,10 +275,80 @@ void state_create_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.5, 8, 8);
+        psystem->particle_mesh = GenMeshSphere(0.5, 16, 16);
+        psystem->userptr = &gst->player.weapon;
+    }
+
+    // Create PLAYER_PRJ_ENVHIT_PSYS.
+    { // (when player's projectile hits environment)
+        struct psystem_t* psystem = &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_PLAYER,
+                psystem,
+                64,
+                prj_envhit_psys_update,
+                prj_envhit_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 32, 32);
+        psystem->userptr = &gst->player.weapon;
+    }
+
+
+
+    // Create ENEMY_LVL0_WEAPON_PSYS.
+    { // (projectile particle system for enemy lvl 0)
+        struct psystem_t* psystem = &gst->psystems[ENEMY_LVL0_WEAPON_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENEMY,
+                psystem,
+                64,
+                weapon_psys_prj_update,
+                weapon_psys_prj_init,
+                BASIC_WEAPON_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 16, 16);
         psystem->userptr = &gst->enemy_weapons[ENEMY_LVL0_WEAPON];
     }
 
+    // Create ENEMY_PRJ_ENVHIT_PSYS.
+    { // (when enemies projectile hits environment)
+        struct psystem_t* psystem = &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENEMY,
+                psystem,
+                64,
+                prj_envhit_psys_update,
+                prj_envhit_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 32, 32);
+        psystem->userptr = &gst->player.weapon;
+    }
+
+
+    // Create ENEMY_HIT_PSYS.
+    { // (when enemy gets hit)
+        struct psystem_t* psystem = &gst->psystems[ENEMY_HIT_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                psystem,
+                64,
+                enemy_hit_psys_update,
+                enemy_hit_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 32, 32);
+        psystem->userptr = &gst->player.weapon;
+    }
 
 
 }
@@ -322,5 +357,6 @@ void state_delete_psystems(struct state_t* gst) {
     delete_psystem(&gst->psystems[PLAYER_PRJ_ENVHIT_PSYS]);
     delete_psystem(&gst->psystems[ENEMY_PRJ_ENVHIT_PSYS]);
     delete_psystem(&gst->psystems[ENEMY_LVL0_WEAPON_PSYS]);
+    delete_psystem(&gst->psystems[ENEMY_HIT_PSYS]);
 }
 
