@@ -53,8 +53,8 @@ int read_file(struct file_t* file, const char* filename) {
 
 
     file->data = NULL;
-    file->data = malloc(sb.st_size+8);
-    memset(file->data, 0, sb.st_size+8);
+    file->data = malloc(sb.st_size+1);
+    memset(file->data, 0, sb.st_size+1);
     memmove(file->data, ptr, sb.st_size);
 
 
@@ -272,6 +272,8 @@ discard_tmpbuf:
             }
         }
     }
+
+    code[code_size-1] = '\0';
 
 error:
     return code;

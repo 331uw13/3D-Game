@@ -156,11 +156,17 @@ void render_enemy(struct state_t* gst, struct enemy_t* ent) {
 }
 
 
-void enemy_hit(struct state_t* gst, struct enemy_t* ent, float damage, 
-        Vector3 hit_direction, Vector3 hit_position) {
     
+void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon, 
+        Vector3 hit_position, Vector3 hit_direction) {
 
-    ent->health -= damage;
+    int was_critical_hit = 0;
+    ent->health -= get_weapon_damage(weapon, &was_critical_hit);
+
+    if(was_critical_hit) {
+        state_add_crithit_marker(gst, hit_position);
+    }
+
     if(ent->health <= 0.001) {
         ent->health = 0.0;
         enemy_death(gst, ent);
@@ -170,7 +176,7 @@ void enemy_hit(struct state_t* gst, struct enemy_t* ent, float damage,
     switch(ent->type)
     {
         case ENEMY_TYPE_LVL0:
-            enemy_lvl0_hit(gst, ent, damage, hit_direction, hit_position);
+            enemy_lvl0_hit(gst, ent, hit_position, hit_direction);
             break;
 
 

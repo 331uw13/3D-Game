@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "../state.h"
 #include "../util.h"
+#include "../enemy.h"
 
 
 #define MISSING_PSYSUSERPTR fprintf(stderr, "\033[31m(ERROR) '%s': Missing psystem 'userptr'\033[0m\n", __func__)
@@ -79,38 +80,56 @@ void weapon_psys_prj_update(
     };
 
     // TODO: Optimize this! <---
-    // Check collision with enemies.
    
     if(psys->groupid == PSYS_GROUPID_PLAYER) {
+        // Check collision with enemies.
+        
         struct enemy_t* enemy = NULL;
         for(size_t i = 0; i < gst->num_enemies; i++) {
             enemy = &gst->enemies[i];
+            if(enemy->health <= 0.001) {
+                continue;
+            }
 
             if(CheckCollisionBoxes(part_boundingbox, get_enemy_boundingbox(enemy))) {
-                printf("HIT\n");
-                
-                add_particles(
-                        gst,
+                enemy_hit(gst, enemy, weapon, part->position, part->velocity);
+
+                add_particles(gst,
                         &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS],
                         1,
                         part->position,
                         (Vector3){0, 0, 0},
-                        NULL,
-                        NO_EXTRADATA
+                        NULL, NO_EXTRADATA
                         );
 
-                add_particles(
-                        gst,
+                add_particles(gst,
                         &gst->psystems[ENEMY_HIT_PSYS],
                         10,
                         part->position,
                         part->velocity,
-                        NULL,
-                        NO_EXTRADATA
+                        NULL, NO_EXTRADATA
                         );
 
                 disable_particle(gst, part);
             }
+        }
+    }
+    else
+    if(psys->groupid == PSYS_GROUPID_ENEMY) {
+        // Check collision with player.
+
+        if(CheckCollisionBoxes(part_boundingbox, get_player_boundingbox(&gst->player))) {
+            player_hit(gst, &gst->player, weapon);
+
+            add_particles(gst,
+                    &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS],
+                    1,
+                    part->position,
+                    (Vector3){0, 0, 0},
+                    NULL, NO_EXTRADATA
+                    );
+
+            disable_particle(gst, part);
         }
     }
 

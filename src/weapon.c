@@ -5,6 +5,36 @@
 #include "util.h"
 
 
+float get_weapon_damage(struct weapon_t* weapon, int* was_critical_hit) {
+    float damage = weapon->damage;
+
+    if(weapon->id == PLAYER_WEAPON_ID) {
+        printf("(PLAYER_WEAPON) ");
+    }
+    else
+    if(weapon->id == ENEMY_WEAPON_ID) {
+        printf("(ENEMY_WEAPON) ");
+    }
+    else {
+        printf("(UNKNOWN?) ");
+    }
+
+
+    int critical_hit = (GetRandomValue(0, 100) < weapon->critical_chance);
+    if(critical_hit) {
+        damage *= weapon->critical_mult;
+        printf("\033[31m(CRITICAL)\033[0m ");
+    }
+
+    if(was_critical_hit) {
+        *was_critical_hit = critical_hit;
+    }
+
+
+    printf("damage: %0.2f\n", damage);
+
+    return damage;
+}
 
 void add_projectile(struct state_t* gst, struct psystem_t* psys, struct weapon_t* w,
         Vector3 initial_pos, Vector3 direction, float accuracy_modifier) {

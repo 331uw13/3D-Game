@@ -24,7 +24,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.projection = CAMERA_PERSPECTIVE;
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->hitbox_size = (Vector3){ 1.0, 3.5, 1.0 };
+    p->height = 3.5;
+    p->hitbox_size = (Vector3){ 1.0, 2.0, 1.0 };
+    p->hitbox_y_offset = -0.8;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     
     p->walkspeed = 0.45;
@@ -132,71 +134,15 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     p->accuracy_modifier += 0.45;
     
     _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
-    /*
-    p->accuracy_modifier = CLAMP(p->accuracy_modifier, 
-            0.0, WEAPON_ACCURACY_MAX - p->accuracy_control);
-    */
 }
 
 
-
-
-void player_render(struct state_t* gst, struct player_t* p) {
-
-    if(p->noclip) {
-        return;
-    }
+void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon) {
     
+    p->health -= get_weapon_damage(weapon, NULL);
 
-    Matrix rotate_m = MatrixInvert(GetCameraViewMatrix(&p->cam));
-    Matrix transform = MatrixTranslate(0.0, 0.0, 0.0);
-
-    Matrix offset = (p->is_aiming) ? p->gunmodel_aim_offset_m : p->gunmodel_rest_offset_m;
-
-
-    if(!p->is_aiming) {
-        // some movement to look more natural.
-
-        const float time = GetTime() * 3.0;
-        Matrix move_anim = MatrixTranslate(
-                0.0,
-                sin(time)*0.015,
-                sin(time)*0.018
-                );
-        
-    
-        offset = MatrixMultiply(move_anim, offset);
-    }
-
-
-    Quaternion no_aim_q = QuaternionFromMatrix(p->gunmodel_rest_offset_m);
-    Quaternion aim_q    = QuaternionFromMatrix(p->gunmodel_aim_offset_m);
-
-    Quaternion Q = QuaternionLerp(no_aim_q, aim_q, (p->gun_draw_timer * p->gun_draw_timer));
-
-    transform = QuaternionToMatrix(Q);
-    transform = MatrixMultiply(transform, offset);
-    transform = MatrixMultiply(transform, rotate_m);
-
-
-    p->gunmodel.transform = transform;
-
-    // Gun
-    DrawMesh(
-            p->gunmodel.meshes[1],
-            p->gunmodel.materials[0],
-            p->gunmodel.transform
-            );
-
-    // Hands
-    DrawMesh(
-            p->gunmodel.meshes[0],
-            p->arms_material,
-            p->gunmodel.transform
-            );
+    //...
 }
-
-
 
 void player_update(struct state_t* gst, struct player_t* p) {
 
@@ -258,18 +204,78 @@ void player_update(struct state_t* gst, struct player_t* p) {
         && FloatEquals(p->velocity.y, 0.0)
         && FloatEquals(p->velocity.z, 0.0));
 
-
-    /*
-    if(!p->noclip) {
-        // Add movement to camera scaled with velocity.
-        float vm = Vector3Length(p->velocity) * 0.01;
-        p->cam.position.y += sin(gst->time*20.0)*vm;
-        p->cam.position.x += cos(gst->time*10.0)*vm;
-        p->cam.position.z += cos(gst->time*10.0)*vm;
-
-    }
-    */
 }
 
 
+void player_render(struct state_t* gst, struct player_t* p) {
+
+    if(p->noclip) {
+        return;
+    }
+    
+
+    Matrix rotate_m = MatrixInvert(GetCameraViewMatrix(&p->cam));
+    Matrix transform = MatrixTranslate(0.0, 0.0, 0.0);
+
+    Matrix offset = (p->is_aiming) ? p->gunmodel_aim_offset_m : p->gunmodel_rest_offset_m;
+
+
+    if(!p->is_aiming) {
+        // some movement to look more natural.
+
+        const float time = GetTime() * 3.0;
+        Matrix move_anim = MatrixTranslate(
+                0.0,
+                sin(time)*0.015,
+                sin(time)*0.018
+                );
+        
+    
+        offset = MatrixMultiply(move_anim, offset);
+    }
+
+
+    Quaternion no_aim_q = QuaternionFromMatrix(p->gunmodel_rest_offset_m);
+    Quaternion aim_q    = QuaternionFromMatrix(p->gunmodel_aim_offset_m);
+
+    Quaternion Q = QuaternionLerp(no_aim_q, aim_q, (p->gun_draw_timer * p->gun_draw_timer));
+
+    transform = QuaternionToMatrix(Q);
+    transform = MatrixMultiply(transform, offset);
+    transform = MatrixMultiply(transform, rotate_m);
+
+
+    p->gunmodel.transform = transform;
+
+    // Gun
+    DrawMesh(
+            p->gunmodel.meshes[1],
+            p->gunmodel.materials[0],
+            p->gunmodel.transform
+            );
+
+    // Hands
+    DrawMesh(
+            p->gunmodel.meshes[0],
+            p->arms_material,
+            p->gunmodel.transform
+            );
+}
+
+
+
+BoundingBox get_player_boundingbox(struct player_t* p) {
+    return (BoundingBox) {
+        (Vector3) { // Min box corner.
+            (p->position.x) - p->hitbox_size.x/2,
+            (p->position.y + p->hitbox_y_offset) - p->hitbox_size.y/2,
+            (p->position.z) - p->hitbox_size.z/2
+        },
+        (Vector3) { // Max box corner.
+            (p->position.x) + p->hitbox_size.x/2,
+            (p->position.y + p->hitbox_y_offset) + p->hitbox_size.y/2,
+            (p->position.z) + p->hitbox_size.z/2
+        }
+    };
+}
 

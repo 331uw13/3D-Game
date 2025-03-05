@@ -122,10 +122,12 @@ void delete_enemy(struct enemy_t* ent);
 #define ENT_RENDER_ON_UPDATE 1
 
 // These functions "redirects" the call based on enemy type
+
+void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon, 
+        Vector3 hit_position, Vector3 hit_direction);
+
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);
-void enemy_hit(struct state_t* gst, struct enemy_t* ent, float damage, 
-        Vector3 hit_direction, Vector3 hit_position);
 void enemy_death(struct state_t* gst, struct enemy_t* ent);
 
 BoundingBox get_enemy_boundingbox(struct enemy_t* ent);

@@ -23,8 +23,8 @@ void enemy_lvl0_weapon_psystem_projectile_pinit(
         void* extradata, int has_extradata
 );
 
-void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, float damage, 
-        Vector3 hit_direction, Vector3 hit_position);
+void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, 
+        Vector3 hit_position, Vector3 hit_direction);
 
 void enemy_lvl0_update  (struct state_t* gst, struct enemy_t* ent);
 void enemy_lvl0_render  (struct state_t* gst, struct enemy_t* ent);

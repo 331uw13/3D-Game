@@ -69,36 +69,11 @@ void add_movement_vec3(Vector3* v1, Vector3 dir, float f) {
     v1->z += dir.z * f;
 }
 
-/*
-int setup_3Dmodel(struct state_t* gst, Model* model, const char* model_filepath, int texture_id, Vector3 init_pos) {
-    int ok = 0;
-
-    if(!FileExists(model_filepath)) {
-        fprintf(stderr, "\033[31m(ERROR) %s: '%s' doesnt exist.\033[0m\n",
-                __func__, model_filepath);
-        goto error;
-    }
-
-    *model = LoadModel(model_filepath);
-    model->materials[0].shader = gst->shaders[DEFAULT_SHADER];
-    model->transform = MatrixTranslate(init_pos.x, init_pos.y, init_pos.z);
-
-    if(texture_id >= 0) {
-        model->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->tex[texture_id];
-    }
-
-    ok = 1;
-
-error:
-
-    return ok;
-}
-*/
-
 float angle_xz(Vector3 a, Vector3 b) {
     Vector3 diff = Vector3Subtract(a, b);
     return -(atan2(diff.z, diff.x) + M_PI);
 }
+
 
 Vector3 vec3mult_v(Vector3 a, float v) {
     return (Vector3) { a.x*v, a.y*v, a.z*v };

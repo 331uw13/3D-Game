@@ -51,7 +51,7 @@ void handle_userinput(struct state_t* gst) {
 
 
         RayCollision t_hit = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
-        const float heightvalue = t_hit.point.y + gst->player.hitbox_size.y;
+        const float heightvalue = t_hit.point.y + gst->player.height;
         //gst->player.position.y = t_hit.point.y + gst->player.hitbox_size.y;
 
         gst->player.position.y += gst->player.velocity.y;

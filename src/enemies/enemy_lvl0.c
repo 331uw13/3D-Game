@@ -283,8 +283,8 @@ void enemy_lvl0_render(struct state_t* gst, struct enemy_t* ent) {
 }
 
 
-void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, float damage, 
-        Vector3 hit_direction, Vector3 hit_position) {
+void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent,
+        Vector3 hit_position, Vector3 hit_direction) {
    
     const float rd = 0.35;
     ent->rotation_from_hit = (Vector3) {
@@ -293,9 +293,8 @@ void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, float damage,
         RSEEDRANDOMF(-rd, rd)
     };
 
-    ent->knockback_velocity = Vector3Scale(hit_direction, 15.0);
+    ent->knockback_velocity = Vector3Scale(hit_direction, 5.0);
 
-    printf("%f\n", ent->health);
 
     ent->max_stun_time = 0.5;
     ent->stun_timer = 0.0;

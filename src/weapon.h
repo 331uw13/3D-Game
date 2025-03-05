@@ -25,7 +25,8 @@ struct weapon_t {
     float    knockback;
     float    accuracy;  // 0.0 (low accuracy) - 10.0 (high accuracy)
     float    damage;
-    float    critical_chance; // 0% - 100% (TODO)
+    int      critical_chance; // 0% - 100%
+    float    critical_mult;
     Color    color;
     
 
@@ -54,6 +55,7 @@ struct psystem_t;
 
 #define NO_ACCURACY_MOD 0.0
 
+float get_weapon_damage(struct weapon_t* weapon, int* was_critical_hit);
 void add_projectile(
         struct state_t* gst,
         struct psystem_t* psys, 

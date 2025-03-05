@@ -17,6 +17,7 @@
 #define GUN_0_TEXID 3
 #define ENEMY_LVL0_TEXID 4
 #define PLAYER_ARMS_TEXID 5
+#define CRITICALHIT_TEXID 6
 #define MAX_TEXTURES 16
 
 
@@ -70,7 +71,15 @@
 #define ENEMY_LVL1_WEAPON 1
 #define MAX_ENEMY_WEAPONS 2
 
+#define MAX_RENDER_CRITHITS 8
 
+// Critical hit marker.
+struct crithit_marker_t {
+    Vector3 position;
+    float   lifetime; // Scale smaller overtime.
+    int     visible;
+    float   dst; // Distance to player. Used for sorting to fix alpha blending.
+};
 
 // Game state "gst".
 struct state_t {
@@ -105,7 +114,9 @@ struct state_t {
     int rseed; // Seed for randomgen functions.
     int debug;
 
-
+    struct crithit_marker_t crithit_markers[MAX_RENDER_CRITHITS];
+    size_t   num_crithit_markers;
+    float    crithit_marker_maxlifetime;
 
     // Everything is rendered to this texture
     // and then post processed.
@@ -128,5 +139,6 @@ void state_setup_all_shaders(struct state_t* gst);
 void state_create_enemy_weapons(struct state_t* gst);
 void state_create_psystems(struct state_t* gst);
 
+void state_add_crithit_marker(struct state_t* gst, Vector3 position);
 
 #endif

@@ -21,6 +21,8 @@ struct player_t {
     float cam_pitch;
     Vector3  position;
     Vector3  hitbox_size;
+    float    hitbox_y_offset;
+    float    height;
     Vector3  looking_at; // normalized vector where the player is looking towards
     int      is_moving;
     Vector3  velocity;
@@ -80,14 +82,15 @@ struct player_t {
 void init_player_struct(struct state_t* gst, struct player_t* p);
 void free_player(struct player_t* p);
 
-
 void player_shoot(struct state_t* gst, struct player_t* p);
-void player_render(struct state_t* gst, struct player_t* p);
+void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon);
 
-// updates player's variables. not movement
-// for movement see (input.c)
+// updates player's variables. not movement for movement see (input.c)
 void player_update(struct state_t* gst, struct player_t* p);
 
+void player_render(struct state_t* gst, struct player_t* p);
+
+BoundingBox get_player_boundingbox(struct player_t* p);
 
 
 #endif

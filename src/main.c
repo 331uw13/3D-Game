@@ -286,20 +286,13 @@ void cleanup(struct state_t* gst) {
         delete_enemy(&gst->enemies[i]);
     }
 
-    /*
-    for(size_t i = 0; i < gst->num_entity_weapons; i++) {
-        delete_weapon(&gst->entity_weapons[i]);
-    }
-    */
 
-    
     UnloadShader(gst->shaders[DEFAULT_SHADER]);
     UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
     UnloadShader(gst->shaders[BLOOM_TRESHOLD_SHADER]); 
     UnloadShader(gst->shaders[PRJ_ENVHIT_PSYS_SHADER]);
     UnloadShader(gst->shaders[BASIC_WEAPON_PSYS_SHADER]);
     free_player(&gst->player);
-
 
     delete_terrain(&gst->terrain);
 
@@ -324,7 +317,11 @@ void load_texture(struct state_t* gst, const char* filepath, int texid) {
 
 void first_setup(struct state_t* gst) {
 
-    InitWindow(SCRN_W, SCRN_H, "Game");
+    InitWindow(SCRN_W, SCRN_H, "331uw13's 3D-Game");
+
+    // REMOVE THIS:
+    SetWindowPosition(1700, 100);
+
 
     DisableCursor();
     SetTargetFPS(500);
@@ -345,6 +342,11 @@ void first_setup(struct state_t* gst) {
     const float terrain_pnfrequency = 10.0;
     const int   terrain_octaves = 3;
     const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
+   
+    gst->num_crithit_markers = 0;
+    gst->crithit_marker_maxlifetime = 1.5;
+
+    memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
 
 
     // --- Load textures ---
@@ -355,6 +357,7 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/gun_0.png", GUN_0_TEXID);
     load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
+    load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
 
 
     state_setup_all_shaders(gst);
@@ -362,7 +365,6 @@ void first_setup(struct state_t* gst) {
     state_create_psystems(gst);
 
     init_player_struct(gst, &gst->player);
-
 
 
 
@@ -515,12 +517,12 @@ void first_setup(struct state_t* gst) {
                 "res/models/lvl0_enemy.glb",
                 &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
                 &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
-                300,
+                100000, // health
                 (Vector3){ 50, 1, -100 }, // initial position
                 (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
                 (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                170.0,  // target range
-                0.3     // firerate
+                230.0,  // target range
+                0.4     // firerate
                 );
 
      
