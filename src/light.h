@@ -2,11 +2,12 @@
 #define LIGHT_H
 
 #include <raylib.h>
-
+#include <stddef.h>
+#include "lib/glad.h"
 // Modified from raylibs 'rlights'
 
 
-// NOTE: these 2 values must be the same as in 'default' fragment shader code.
+// NOTE: these 2 values must be the same as in 'res/shaders/light.glsl'
 #define MAX_PROJECTILE_LIGHTS 64
 #define MAX_NORMAL_LIGHTS 4
 
@@ -26,6 +27,7 @@
 
 struct state_t;
 
+#define LIGHT_SHADER_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 
 struct light_t {
     int type;
@@ -33,33 +35,18 @@ struct light_t {
     Vector3 position;
     Color   color;
     float   strength;
-        
-    // Uniform locations.
-    int locs[MAX_LIGHT_LOCS];
+   
+    int index; // Index in lights or projectile lights uniform block array.
 };
 
 
-// This one creates the light into 'state normal_lights' array.
-void add_light(
+void set_light(
         struct state_t* gst,
-        int light_type,
-        Vector3 position,
-        Color color,
-        Shader shader
+        struct light_t* light,
+        unsigned int ubo
         );
 
+void disable_light(struct state_t* gst, struct light_t* light, unsigned int ubo);
 
-// This one create the light into where ever the 'lightptr' points to
-void add_projectile_light(
-        struct state_t* gst,
-        struct light_t* lightptr,
-        Vector3 position,
-        Color color,
-        Shader shader
-        );
-
-
-void update_light_values(struct light_t* light, Shader shader);
-void disable_light(struct light_t* light, Shader shader);
 
 #endif

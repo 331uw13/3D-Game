@@ -155,7 +155,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             p->alive = 0;
 
             if(p->has_light) {
-                disable_light(&p->light, gst->shaders[DEFAULT_SHADER]);
+                disable_light(gst, &p->light, gst->prj_lights_ubo);
             }
 
             continue;
@@ -249,7 +249,7 @@ void disable_particle(struct state_t* gst, struct particle_t* p) {
     p->alive = 0;
     p->lifetime = p->max_lifetime;
     if(p->has_light) {
-        disable_light(&p->light, gst->shaders[DEFAULT_SHADER]);
+        disable_light(gst, &p->light, gst->prj_lights_ubo);
         p->has_light = 0;
     }
 }

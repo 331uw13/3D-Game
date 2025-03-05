@@ -300,12 +300,13 @@ void cleanup(struct state_t* gst) {
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtreshold_target);
 
+    glDeleteBuffers(1, &gst->lights_ubo);
+
     CloseWindow();
 }
 
 
 void load_texture(struct state_t* gst, const char* filepath, int texid) {
-    
     if(texid >= MAX_TEXTURES) {
         fprintf(stderr, "ERROR: Texture id is invalid. (%i) for '%s'\n", texid, filepath);
         return;
@@ -328,8 +329,7 @@ void first_setup(struct state_t* gst) {
     gst->num_textures = 0;
     gst->debug = 0;
     gst->num_enemies = 0;
-    gst->num_normal_lights = 0;
-    gst->num_projectile_lights = 0;
+    gst->num_prj_lights = 0;
     gst->dt = 0.016;
     gst->num_enemy_weapons = 0;
 
@@ -359,6 +359,33 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
     load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
     load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
+    
+    gst->lights_ubo = 0;
+
+    const size_t lights_ubo_size = MAX_NORMAL_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
+    glGenBuffers(1, &gst->lights_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, gst->lights_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, lights_ubo_size, NULL, GL_STATIC_DRAW);
+    
+    glBindBufferBase(GL_UNIFORM_BUFFER, 2, gst->lights_ubo);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 2, gst->lights_ubo, 0, lights_ubo_size);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+
+
+
+    gst->prj_lights_ubo = 0;
+    const size_t prj_lights_ubo_size = MAX_PROJECTILE_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
+    glGenBuffers(1, &gst->prj_lights_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, gst->prj_lights_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, prj_lights_ubo_size, NULL, GL_STATIC_DRAW);
+    
+    glBindBufferBase(GL_UNIFORM_BUFFER, 3, gst->prj_lights_ubo);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 3, gst->prj_lights_ubo, 0, prj_lights_ubo_size);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 
 
     state_setup_all_shaders(gst);
@@ -406,25 +433,49 @@ void first_setup(struct state_t* gst) {
                 );
 
 
-     
-    // --- Add sun ---
-   
-    add_light(gst,
-            LIGHT_DIRECTIONAL,
-            sun_position,
-            (Color) { 220, 170, 230, 255 },
-            gst->shaders[DEFAULT_SHADER]
-            );
-   
-    add_light(gst,
-            LIGHT_POINT,
-            (Vector3){0},
-            gst->player.weapon.color,
-            gst->shaders[DEFAULT_SHADER]
-            );
-    
+
+    struct light_t SUN = (struct light_t) {
+        .type = LIGHT_DIRECTIONAL,
+        .enabled = 1,
+        .color = (Color){ 240, 210, 200, 255 },
+        .position = (Vector3){ -1, 1, -1 },
+        .strength = 0.3,
+        .index = 0
+    };
+
+    struct light_t A = (struct light_t) {
+        .type = LIGHT_POINT,
+        .enabled = 1,
+        .color = (Color){ 255, 30, 30, 255 },
+        .position = (Vector3){ 10, 3, 0 },
+        .strength = 10.0,
+        .index = 1
+    };
 
 
+    struct light_t B = (struct light_t) {
+        .type = LIGHT_POINT,
+        .enabled = 1,
+        .color = (Color){ 255, 30, 255, 255 },
+        .position = (Vector3){ 10, 3, 10 },
+        .strength = 1.0,
+        .index = 2
+    };
+
+    struct light_t C = (struct light_t) {
+        .type = LIGHT_POINT,
+        .enabled = 1,
+        .color = (Color){ 255, 30, 255, 255 },
+        .position = (Vector3){ -10, 3, 10 },
+        .strength = 1.0,
+        .index = 3
+    };
+
+    set_light(gst,  &SUN, gst->lights_ubo);
+    set_light(gst,  &A,   gst->lights_ubo);
+    set_light(gst,  &B,   gst->lights_ubo);
+    set_light(gst,  &C,   gst->lights_ubo);
+   
 }
 
 int main(void) {

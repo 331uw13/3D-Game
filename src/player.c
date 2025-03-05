@@ -265,6 +265,7 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     p->gunmodel.transform = transform;
 
+    /*
     // Update Gun Light here because otherwise it will be one frame behind.
     {
         Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
@@ -276,7 +277,9 @@ void player_render(struct state_t* gst, struct player_t* p) {
         gl->strength = 0.2;
         gl->position = lpos;
         update_light_values(gl, gst->shaders[DEFAULT_SHADER]);
-    }   
+    } 
+    */
+
     // Gun
     DrawMesh(
             p->gunmodel.meshes[1],

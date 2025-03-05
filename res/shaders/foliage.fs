@@ -16,26 +16,22 @@ in vec3 fragViewPos;
 
 #include "res/shaders/fog.glsl"
 #include "res/shaders/voronoi.glsl"
-
-
+#include "res/shaders/light.glsl"
 
 void main()
 {
     vec3 col;
+    vec3 g_lightdot = vec3(0.0);
 
-    col = texture(texture0, fragTexCoord).rgb * 0.5;
-    col *= vec3(0.7, 0.5, 0.2);
+    vec3 texelcolor = texture(texture0, fragTexCoord).rgb * 0.5;
+    texelcolor *= vec3(0.7, 0.5, 0.2);
 
+    vec3 view_dir = normalize(fragViewPos - fragPosition);
+    compute_lights(view_dir);
+   
 
-    /*
-    vec3 lightdir = normalize(vec3(1.0, 1.0, 1.0) - fragPosition);
-    float NdotL = max(dot(fragNormal, lightdir), 0.1);
-    vec3 g_lightdot = (vec3(1.0, 0.3, 0.3) * NdotL);
-    col *= g_lightdot;
-    */
-
-
-
+    col = texelcolor * g_lightcolor;
+    col += texelcolor * AMBIENT;
 
     float dist = length(fragViewPos - fragPosition);
     col = get_fog(col, dist);

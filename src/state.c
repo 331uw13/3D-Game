@@ -130,7 +130,12 @@ void state_render_environment(struct state_t* gst) {
 
     // Render 3D stuff into texture and post process it later.
     BeginTextureMode(gst->env_render_target);
-    ClearBackground((Color){(0.3) * 255, (0.15) * 255, (0.15) * 255, 255 });
+    ClearBackground((Color){
+            (0.3) * 255, 
+            (0.15) * 255,
+            (0.15) * 255,
+            255
+            });
     BeginMode3D(gst->player.cam);
     {
 

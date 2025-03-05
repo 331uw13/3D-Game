@@ -94,10 +94,11 @@ struct state_t {
     struct player_t player;
 
 
-    struct light_t normal_lights[MAX_NORMAL_LIGHTS];
-    size_t num_normal_lights;
+    unsigned int lights_ubo;
+    unsigned int prj_lights_ubo;
+    
+    size_t num_prj_lights;
 
-    size_t num_projectile_lights;
 
     Shader shaders[MAX_SHADERS];
     int    fs_unilocs[MAX_FS_UNILOCS];
@@ -131,6 +132,7 @@ struct state_t {
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtreshold_target;
+
 
 };
 

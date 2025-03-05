@@ -33,7 +33,8 @@ void weapon_psys_prj_update(
     *part->transform = transform;
 
     part->light.position = part->position;
-    update_light_values(&part->light, gst->shaders[DEFAULT_SHADER]);
+    set_light(gst, &part->light, gst->prj_lights_ubo);
+
 
 
     // Check collision with terrain
@@ -157,7 +158,22 @@ void weapon_psys_prj_init(
             });
 
     transform = MatrixMultiply(transform, rotation_m);
-    add_projectile_light(gst, &part->light, part->position, weapon->color, gst->shaders[DEFAULT_SHADER]);
+    //add_projectile_light(gst, &part->light, part->position, weapon->color, gst->shaders[DEFAULT_SHADER]);
+
+    part->light = (struct light_t) {
+        .enabled = 1,
+        .type = LIGHT_POINT,
+        .color = weapon->color,
+        .strength = 1.0,
+        .index = gst->num_prj_lights
+        // position is updated later.
+    };
+
+    gst->num_prj_lights++;
+    if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
+        gst->num_prj_lights = 0;
+    }
+
     part->has_light = 1;
 
     *part->transform = transform;
