@@ -33,6 +33,17 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
     Vector3 b2;
 };
 
+
+#define NUM_TREE_TYPE0 5000 
+
+struct foliage_t {
+
+    Model     tree0_model;
+    Material  tree0_material;
+    Matrix    tree0_transforms[NUM_TREE_TYPE0];
+
+};
+
 struct terrain_t {
     Mesh      mesh;
     Material  material;
@@ -45,6 +56,8 @@ struct terrain_t {
 
     // triangles saved but in order to get triangle at xz location efficiently.
     struct triangle2x_t* triangle_lookup;
+
+    struct foliage_t foliage;
 };
 
 
@@ -69,7 +82,10 @@ void generate_terrain(
         int    octaves
         );
 
-void delete_terrain    (struct terrain_t* terrain);
+void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
+
+void delete_terrain         (struct terrain_t* terrain);
+void delete_terrain_foliage (struct terrain_t* terrain);
 
 //void generate_heightmap(struct terrain_t* terrain);
 //void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain);

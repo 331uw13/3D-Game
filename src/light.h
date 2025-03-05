@@ -16,8 +16,8 @@
 #define LIGHT_TYPE_LOC 1
 #define LIGHT_POSITION_LOC 2
 #define LIGHT_COLOR_LOC 3
-
-#define MAX_LIGHT_LOCS 4
+#define LIGHT_STRENGTH_LOC 4
+#define MAX_LIGHT_LOCS 5
 
 // Light types.
 #define LIGHT_DIRECTIONAL 0
@@ -32,7 +32,8 @@ struct light_t {
     int enabled;
     Vector3 position;
     Color   color;
-
+    float   strength;
+        
     // Uniform locations.
     int locs[MAX_LIGHT_LOCS];
 };

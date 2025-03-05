@@ -104,7 +104,7 @@ void weapon_psys_prj_update(
 
                 add_particles(gst,
                         &gst->psystems[ENEMY_HIT_PSYS],
-                        10,
+                        GetRandomValue(10, 30),
                         part->position,
                         part->velocity,
                         NULL, NO_EXTRADATA

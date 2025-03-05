@@ -13,6 +13,7 @@ uniform vec4 colDiffuse;
 // Output fragment color
 out vec4 finalColor;
 
+#include "res/shaders/fog.glsl"
 
 
 // NOTE: these 2 values must same as in 'light.h'
@@ -29,6 +30,7 @@ struct Light {
     int type;
     vec3 position;
     vec4 color;
+    float strength;
 };
 
 uniform Light lights[MAX_NORMAL_LIGHTS];
@@ -36,8 +38,6 @@ uniform Light prj_lights[MAX_PROJECTILE_LIGHTS];
 
 
 uniform vec4 ambient;
-uniform float fogDensity;
-
 in vec3 fragViewPos;
 
 
@@ -54,6 +54,9 @@ vec3 g_specular = vec3(0.0);
 void compute_light(vec3 light_position, int light_type, vec4 light_color, vec3 viewD, vec3 normal) {
     float dist = 1.0;
     vec3 lightdir = vec3(0);
+   
+    lightdir = normalize(light_position - fragPosition);
+
     
     if(light_type == LIGHT_POINT) {
         lightdir = normalize(light_position - fragPosition);
@@ -66,7 +69,7 @@ void compute_light(vec3 light_position, int light_type, vec4 light_color, vec3 v
         lightdir = -normalize(-light_position);
     }
 
-    float NdotL = max(dot(normal, lightdir), 0.0);
+    float NdotL = max(dot(normal, lightdir), 0.1);
     g_lightdot += (light_color.rgb * NdotL) * dist;
 
     float specCo = 0.0;
@@ -75,7 +78,7 @@ void compute_light(vec3 light_position, int light_type, vec4 light_color, vec3 v
     }
 
     if(light_type != LIGHT_DIRECTIONAL) {
-    g_specular += (dist * light_color.rgb) * (specCo * specCo);
+        g_specular += (dist * light_color.rgb) * (specCo * specCo);
     }
 }
 
@@ -84,9 +87,10 @@ void compute_light(vec3 light_position, int light_type, vec4 light_color, vec3 v
 
 void main()
 {
+
     // Texel color fetching from texture sampler
     vec4 texelColor = texture(texture0, fragTexCoord);
-    vec3 normal = normalize(fragNormal);
+    vec3 normal = fragNormal;
     vec3 viewD = normalize(fragViewPos - fragPosition);
 
 
@@ -101,6 +105,8 @@ void main()
                     viewD,
                     normal
                     );
+            g_lightdot *= lights[i].strength;
+            g_specular *= lights[i].strength;
         }
     }
 
@@ -119,8 +125,14 @@ void main()
     }
 
 
+    finalColor = texelColor * vec4(g_lightdot,1.0);
+
+
+    //finalColor = (texelColor) * vec4(g_lightdot,1.0);
+
     finalColor = (texelColor * ((colDiffuse + vec4(g_specular, 1.0)) * vec4(g_lightdot,1.0)));
     finalColor += texelColor * (ambient/6.0);
+
 
     // Scale colors back to more bright while post processing
     vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
@@ -129,7 +141,10 @@ void main()
 
     float dist = length(fragViewPos - fragPosition);
 
+    finalColor.xyz = get_fog(finalColor.rgb, dist);
 
+
+    /*
     // interesting effect..
     float lr = lerp((fragPosition.y*0.002)-0.3, 1.0, 0.0);
     lr = pow(lr, 10.0);
@@ -142,6 +157,7 @@ void main()
     vec4 fogColor2 = vec4(0.35, 0.1, 0.9, 1.0);
     fogColor = mix(fogColor, fogColor2, fogFactor/2);
 
+    */
 
-    finalColor = mix(fogColor, finalColor, fogFactor);
+    //finalColor = mix(fogColor, finalColor, fogFactor);
 }

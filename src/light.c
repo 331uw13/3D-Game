@@ -27,11 +27,13 @@ void add_light(
     light->type = light_type;
     light->position = position;
     light->color = color;
+    light->strength = 1.0;
 
     light->locs[LIGHT_ENABLED_LOC]  = GetShaderLocation(shader, TextFormat("lights[%i].enabled",  index));
     light->locs[LIGHT_TYPE_LOC]     = GetShaderLocation(shader, TextFormat("lights[%i].type",     index));
     light->locs[LIGHT_POSITION_LOC] = GetShaderLocation(shader, TextFormat("lights[%i].position", index));
     light->locs[LIGHT_COLOR_LOC]    = GetShaderLocation(shader, TextFormat("lights[%i].color",    index));
+    light->locs[LIGHT_STRENGTH_LOC] = GetShaderLocation(shader, TextFormat("lights[%i].strength", index));
 
    
     update_light_values(light, shader);
@@ -61,6 +63,7 @@ void add_projectile_light(
     light->locs[LIGHT_TYPE_LOC]     = GetShaderLocation(shader, TextFormat("prj_lights[%i].type",     index));
     light->locs[LIGHT_POSITION_LOC] = GetShaderLocation(shader, TextFormat("prj_lights[%i].position", index));
     light->locs[LIGHT_COLOR_LOC]    = GetShaderLocation(shader, TextFormat("prj_lights[%i].color",    index));
+    light->locs[LIGHT_STRENGTH_LOC] = GetShaderLocation(shader, TextFormat("prj_lights[%i].strength", index));
 
    
     update_light_values(light, shader);
@@ -91,6 +94,7 @@ void update_light_values(struct light_t* light, Shader shader) {
         1.0
     };
     SetShaderValue(shader, light->locs[LIGHT_COLOR_LOC], color, SHADER_UNIFORM_VEC4);
+    SetShaderValue(shader, light->locs[LIGHT_STRENGTH_LOC], &light->strength, SHADER_UNIFORM_FLOAT);
 }
 
 void disable_light(struct light_t* light, Shader shader) {

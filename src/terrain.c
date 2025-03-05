@@ -313,6 +313,46 @@ void generate_terrain(
     terrain->mesh_generated = 1;
 }
 
+void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain) {
+    if(!terrain->mesh_generated) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Terrain must be generated first.\033[0m\n",
+                __func__);
+        return;
+    }
+
+    // Create tree type0
+
+    terrain->foliage.tree0_model = LoadModel("res/models/tree.glb");
+    terrain->foliage.tree0_material = LoadMaterialDefault();
+    terrain->foliage.tree0_material.shader = gst->shaders[FOLIAGE_SHADER];
+    terrain->foliage.tree0_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[TREEBARK_TEXID];
+
+    const float tscale = terrain->heightmap.size * terrain->scaling;
+
+    for(int i = 0; i < NUM_TREE_TYPE0; i++) {
+    
+        float x = RSEEDRANDOMF(-tscale, tscale);
+        float z = RSEEDRANDOMF(-tscale, tscale);
+
+        RayCollision ray = raycast_terrain(terrain, x, z);
+        Vector3 pos = (Vector3) {
+            x, ray.point.y, z
+        };
+
+        Matrix transform = MatrixTranslate(pos.x, pos.y, pos.z);
+        //Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
+        //transform = MatrixMultiply(rotation, transform);
+
+        terrain->foliage.tree0_transforms[i] = transform;
+    }
+}
+
+
+void delete_terrain_foliage(struct terrain_t* terrain) {
+    UnloadModel(terrain->foliage.tree0_model);
+
+}
+
 void delete_terrain(struct terrain_t* terrain) {
 
     if(terrain->mesh.vertices) {

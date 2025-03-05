@@ -292,6 +292,7 @@ void cleanup(struct state_t* gst) {
     UnloadShader(gst->shaders[BLOOM_TRESHOLD_SHADER]); 
     UnloadShader(gst->shaders[PRJ_ENVHIT_PSYS_SHADER]);
     UnloadShader(gst->shaders[BASIC_WEAPON_PSYS_SHADER]);
+    UnloadShader(gst->shaders[FOLIAGE_SHADER]);
     free_player(&gst->player);
 
     delete_terrain(&gst->terrain);
@@ -321,7 +322,6 @@ void first_setup(struct state_t* gst) {
 
     // REMOVE THIS:
     SetWindowPosition(1700, 100);
-
 
     DisableCursor();
     SetTargetFPS(500);
@@ -358,6 +358,7 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
     load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
+    load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
 
 
     state_setup_all_shaders(gst);
@@ -381,6 +382,8 @@ void first_setup(struct state_t* gst) {
                 terrain_pnfrequency,
                 terrain_octaves
                 );
+
+        generate_terrain_foliage(gst, &gst->terrain);
     }
 
     int seed = time(0);
@@ -398,23 +401,8 @@ void first_setup(struct state_t* gst) {
                 (Vector3){ 50, 1, -100 }, // initial position
                 (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
                 (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                500.0,  // target range
-                0.225    // firerate
-                );
-
-
-    create_enemy(gst,
-                ENEMY_TYPE_LVL0,
-                ENEMY_LVL0_TEXID,
-                "res/models/lvl0_enemy.glb",
-                &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
-                &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
-                1000, // health
-                (Vector3){ 70, 1, -50 }, // initial position
-                (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
-                (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                500.0,  // target range
-                0.225     // firerate
+                200.0,  // target range
+                0.3    // firerate
                 );
 
 
@@ -430,11 +418,11 @@ void first_setup(struct state_t* gst) {
    
     add_light(gst,
             LIGHT_POINT,
-            (Vector3){-1, 3, 0 },
-            (Color) { 200, 20, 50, 255 },
+            (Vector3){0},
+            gst->player.weapon.color,
             gst->shaders[DEFAULT_SHADER]
             );
-   
+    
 
 
 }

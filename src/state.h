@@ -18,6 +18,7 @@
 #define ENEMY_LVL0_TEXID 4
 #define PLAYER_ARMS_TEXID 5
 #define CRITICALHIT_TEXID 6
+#define TREEBARK_TEXID 7
 #define MAX_TEXTURES 16
 
 
@@ -36,6 +37,7 @@
 #define BLOOM_TRESHOLD_SHADER 2
 #define PRJ_ENVHIT_PSYS_SHADER 3
 #define BASIC_WEAPON_PSYS_SHADER 4
+#define FOLIAGE_SHADER 5
 #define MAX_SHADERS 8
 // ...
  
@@ -60,6 +62,10 @@
 #define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 8
 #define MAX_FS_UNILOCS 9
 
+
+// Normal lights:
+#define SUN_NLIGHT 0
+#define PLAYER_GUN_NLIGHT 1
 
 
 #include "enemies/enemy_lvl0.h"

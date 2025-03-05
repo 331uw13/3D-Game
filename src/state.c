@@ -22,7 +22,9 @@ void state_update_shader_uniforms(struct state_t* gst) {
         SetShaderValue(gst->shaders[DEFAULT_SHADER], 
                 gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
-     
+         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
+                gst->shaders[FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
+
     }
 
 
@@ -154,6 +156,13 @@ void state_render_environment(struct state_t* gst) {
         // Terrain.
         render_terrain(gst, &gst->terrain);
 
+        // Terrain foliage (tree0)
+        DrawMeshInstanced(
+                gst->terrain.foliage.tree0_model.meshes[0],
+                gst->terrain.foliage.tree0_material,
+                gst->terrain.foliage.tree0_transforms,
+                NUM_TREE_TYPE0
+                );
 
         
         // Enemies.
@@ -206,8 +215,6 @@ void state_render_environment(struct state_t* gst) {
 
 void state_setup_all_shaders(struct state_t* gst) {
 
-    const float fog_density = 0.006;
-    
 
     // --- Setup Default Shader ---
     {
@@ -223,10 +230,8 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
    
         int ambientloc = GetShaderLocation(*shader, "ambient");
-        int fogdensityloc = GetShaderLocation(*shader, "fogDensity");
         
         SetShaderValue(*shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
-        SetShaderValue(*shader, fogdensityloc, &fog_density, SHADER_UNIFORM_FLOAT);
     }
 
 
@@ -248,7 +253,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[PRJ_ENVHIT_PSYS_SHADER];
         load_shader(
-                "res/shaders/particle_core.vs",
+                "res/shaders/instance_core.vs",
                 "res/shaders/prj_envhit_psys.fs", shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
@@ -261,7 +266,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[BASIC_WEAPON_PSYS_SHADER];
         load_shader(
-                "res/shaders/particle_core.vs",
+                "res/shaders/instance_core.vs",
                 "res/shaders/basic_weapon_psys.fs", shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
@@ -269,6 +274,20 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
  
+
+
+
+    // --- Setup FOLIAGE_SHADER ---
+    {
+        Shader* shader = &gst->shaders[FOLIAGE_SHADER];
+        load_shader(
+                "res/shaders/instance_core.vs",
+                "res/shaders/foliage.fs", shader);
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+    }
 
 
     // --- Setup Bloom Treshold Shader ---
@@ -292,7 +311,7 @@ void state_create_enemy_weapons(struct state_t* gst) {
         .damage = 10.0,
         .critical_chance = 25,
         .critical_mult = 3.0,
-        .prj_speed = 250.0,
+        .prj_speed = 240.0,
         .prj_max_lifetime = 2.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .color = (Color) { 20, 255, 150, 255 },

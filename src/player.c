@@ -204,6 +204,22 @@ void player_update(struct state_t* gst, struct player_t* p) {
         && FloatEquals(p->velocity.y, 0.0)
         && FloatEquals(p->velocity.z, 0.0));
 
+
+
+    /*
+    Vector3 gun_lightpos = (Vector3){0};
+    gun_lightpos = Vector3Transform(gun_lightpos, p->gunmodel.transform);
+
+    gun_lightpos.z -= 2.0;
+    gun_lightpos.y -= 1.0;
+
+    struct light_t* gunlight = &gst->normal_lights[PLAYER_GUN_NLIGHT];
+    gunlight->position = gun_lightpos;
+
+
+    update_light_values(gunlight, gst->shaders[DEFAULT_SHADER]);
+
+    */
 }
 
 
@@ -212,7 +228,9 @@ void player_render(struct state_t* gst, struct player_t* p) {
     if(p->noclip) {
         return;
     }
-    
+ 
+
+
 
     Matrix rotate_m = MatrixInvert(GetCameraViewMatrix(&p->cam));
     Matrix transform = MatrixTranslate(0.0, 0.0, 0.0);
@@ -247,6 +265,18 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     p->gunmodel.transform = transform;
 
+    // Update Gun Light here because otherwise it will be one frame behind.
+    {
+        Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
+
+        lpos = Vector3Transform(lpos, p->gunmodel.transform);
+        //DrawSphere(lpos, 0.2, RED);
+
+        struct light_t* gl = &gst->normal_lights[PLAYER_GUN_NLIGHT];
+        gl->strength = 0.2;
+        gl->position = lpos;
+        update_light_values(gl, gst->shaders[DEFAULT_SHADER]);
+    }   
     // Gun
     DrawMesh(
             p->gunmodel.meshes[1],
@@ -260,6 +290,7 @@ void player_render(struct state_t* gst, struct player_t* p) {
             p->arms_material,
             p->gunmodel.transform
             );
+
 }
 
 
