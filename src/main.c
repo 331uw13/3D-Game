@@ -388,127 +388,19 @@ void first_setup(struct state_t* gst) {
     SetRandomSeed(seed);
 
 
-    /*
-    // --- Create Weapons for entities ---
-    {
-
-        // Weapon for ENEMY_LVL0
-        //
-        setup_weapon(gst,
-                &gst->entity_weapons[ENTWEAPON_LVL0],
-                enemy_lvl0_weapon_psystem_projectile_pupdate,
-                enemy_lvl0_weapon_psystem_projectile_pinit,
-                (struct weapon_t)
-                {
-                    .accuracy = 6.75,
-                    .prj_speed = 100,
-                    .prj_damage = 10,
-                    .prj_max_lifetime = 3.0,
-                    .prj_size = (Vector3){ 1.0, 1.0, 1.0 },
-                    .prj_color = (Color) { 255, 50, 255,  255 }
-                }
-        );
-        gst->num_entity_weapons++; // <- NOTE: keep track of this!
-    }
-    */
-
-
-    /*
-    // --- Create Particle System  (PROJECTILE_ENVHIT_PSYSTEM) ---
-    {
-        struct psystem_t* psystem = &gst->psystems[PROJECTILE_ENVHIT_PSYSTEM];
-        create_psystem(gst,
-                psystem, 32,
-                projectile_envhit_psystem_pupdate,
-                projectile_envhit_psystem_pinit
-                );
-
-        psystem->particle_material = LoadMaterialDefault();
-        psystem->particle_material.shader = gst->shaders[PROJECTILES_ENVHIT_SHADER];
-        psystem->particle_mesh = GenMeshSphere(0.3, 16, 16);
-
-    }
-
-
-    // --- Create Particle System  (PROJECTILE_ENTITYHIT_PSYSTEM) ---
-
-    {
-        struct psystem_t* psystem = &gst->psystems[PROJECTILE_ENTITYHIT_PSYSTEM];
-        create_psystem(gst,
-                psystem, 512,
-                projectile_entityhit_psystem_pupdate,
-                projectile_entityhit_psystem_pinit
-                );
-
-        psystem->particle_material = LoadMaterialDefault();
-        psystem->particle_material.shader = gst->shaders[PROJECTILES_PSYSTEM_SHADER];
-        psystem->particle_mesh = GenMeshSphere(0.3, 8, 8);
-
-    }
-
-    // --- Create Particle System  (PROJECTILE_ELVL0_ENVHIT_PSYSTEM) ---
-
-    {
-        struct psystem_t* psystem = &gst->psystems[PROJECTILE_ELVL0_ENVHIT_PSYSTEM];
-        create_psystem(gst,
-                psystem, 32,
-                projectile_elvl0_envhit_psystem_pupdate,
-                projectile_elvl0_envhit_psystem_pinit
-                );
-
-        psystem->particle_material = LoadMaterialDefault();
-        psystem->particle_material.shader = gst->shaders[PROJECTILES_ENVHIT_SHADER];
-        psystem->particle_mesh = GenMeshSphere(0.3, 8, 8);
-
-    }
-    */
-
-
-
-
-    /*
-
-    // --- Create entities (FOR TESTING) ---
-
-    for(int i = 0; i < 20; i++) {
-
-        Vector3 pos = (Vector3){ 0 };
-
-        while(Vector3Distance(pos, gst->player.position) < 50) {
-            pos = (Vector3){ RSEEDRANDOMF(-400, 400), 0.0, RSEEDRANDOMF(-400, 400) };
-        }
-
-        create_entity(gst,
-                ENT_TYPE_LVL0,
-                ENT_TRAVELING_DISABLED,
-                "res/models/lvl0_enemy.glb",
+    create_enemy(gst,
+                ENEMY_TYPE_LVL0,
                 ENEMY_LVL0_TEXID,
-                100,
-                pos, // initial position
-                (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
-                (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                130.0,  // target range
-                0.3     // firerate
-                );
-    }
-    */
-
-
-    /*
-    create_entity(gst,
-                ENT_TYPE_LVL0,
-                ENT_TRAVELING_DISABLED,
                 "res/models/lvl0_enemy.glb",
-                ENEMY_LVL0_TEXID,
-                300,
+                &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
+                1000, // health
                 (Vector3){ 50, 1, -100 }, // initial position
                 (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
                 (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                170.0,  // target range
-                0.3     // firerate
+                500.0,  // target range
+                0.225    // firerate
                 );
-
-                */
 
 
     create_enemy(gst,
@@ -517,13 +409,14 @@ void first_setup(struct state_t* gst) {
                 "res/models/lvl0_enemy.glb",
                 &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
                 &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
-                100000, // health
-                (Vector3){ 50, 1, -100 }, // initial position
+                1000, // health
+                (Vector3){ 70, 1, -50 }, // initial position
                 (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
                 (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                230.0,  // target range
-                0.4     // firerate
+                500.0,  // target range
+                0.225     // firerate
                 );
+
 
      
     // --- Add sun ---

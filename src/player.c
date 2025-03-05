@@ -25,8 +25,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
     p->height = 3.5;
-    p->hitbox_size = (Vector3){ 1.0, 2.0, 1.0 };
-    p->hitbox_y_offset = -0.8;
+    p->hitbox_size = (Vector3){ 1.0, 2.8, 1.0 };
+    p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     
     p->walkspeed = 0.45;

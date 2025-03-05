@@ -89,7 +89,7 @@ static int terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
     // this is not perfect but will do for now i guess.
 
     Vector3 step = Vector3Scale(ent_direction, 3.0);
-    const int max_steps = 100;
+    const int max_steps = 255;
     for(int i = 0; i < max_steps; i++) {
         
         ray_position = Vector3Add(ray_position, step);
