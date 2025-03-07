@@ -76,7 +76,7 @@ void handle_userinput(struct state_t* gst) {
 
     }
     else {
-        const float noclip_speed_mult = 3;
+        const float noclip_speed_mult = 8;
         if(IsKeyDown(KEY_SPACE)) {
             CameraMoveUp(&gst->player.cam, (dt * 15.0) * noclip_speed_mult);
         }

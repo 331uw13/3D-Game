@@ -335,10 +335,10 @@ void first_setup(struct state_t* gst) {
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
     memset(gst->enemies, 0, MAX_ENEMIES * sizeof *gst->enemies);
 
-    const float terrain_scale = 10.0;
-    const u32   terrain_size = 128;
-    const float terrain_amplitude = 30.0;
-    const float terrain_pnfrequency = 3.0;
+    const float terrain_scale = 20.0;
+    const u32   terrain_size = 1024;
+    const float terrain_amplitude = 20.0;
+    const float terrain_pnfrequency = 60.0;
     const int   terrain_octaves = 3;
     const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
    

@@ -149,7 +149,30 @@ void state_render_environment(struct state_t* gst) {
                 }
             }
 
+
             DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
+        
+
+            // Visualise chunk size.
+            for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
+                struct chunk_t* chunk = &gst->terrain.chunks[i];
+
+                const float chunk_s = gst->terrain.chunk_size * gst->terrain.scaling;
+                DrawCubeWires((Vector3){
+                            chunk->position.x + chunk_s/2,
+                            chunk->position.y,
+                            chunk->position.z + chunk_s/2
+                        }, 
+                        chunk_s,
+                        chunk_s,
+                        chunk_s,
+                        (i%2) ? (RED) : PURPLE
+                        );
+            
+                DrawSphere((Vector3){
+                        chunk->center_pos.x, 50.0, chunk->center_pos.z
+                        }, 1.0, GREEN);
+            }
         }
 
 

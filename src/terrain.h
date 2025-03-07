@@ -10,11 +10,6 @@
 struct state_t;
 
 
-#define HEIGHTMAP_SIZE_X 300
-#define HEIGHTMAP_SIZE_Z 300
-#define HEIGHTMAP_SIZE_XZ (HEIGHTMAP_SIZE_X * HEIGHTMAP_SIZE_Z)
-
-
 struct heightmap_t {
     float*  data;
     size_t  total_size; // equals to (size * size)
@@ -47,6 +42,7 @@ struct foliage_t {
 struct chunk_t {
     Mesh     mesh;
     Vector3  position;
+    Vector3  center_pos;
     float    dst2player;
 };
 

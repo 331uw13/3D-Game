@@ -14,23 +14,20 @@
 #define TERRAIN_TRANSF_Z -100
 
 
-// ########  "Private" functions  ##############
 // -----------------------------------------------------------
 // NOTE: X and Z must be set accordingly with terrain X,Z positions and scaling.
 // -----------------------------------------------------------
 static size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
-    size_t index = 0;
 
-    int r_x = round(x); 
+    int r_x = round(x);
     int r_z = round(z);
 
     long int i = (r_z * terrain->heightmap.size + r_x);
 
-    i = (i < 0) ? 0 : (i > terrain->heightmap.total_size) 
-        ? terrain->heightmap.total_size : i;
-    index = (size_t)i;
+    i = (i < 0) ? 0 : (i > terrain->heightmap.total_size) ? 0 : i;
 
-    return index;
+
+    return (size_t)i;
 }
 
 
@@ -39,7 +36,6 @@ static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
     return terrain->heightmap.data[index];
 }
 
-// #############################################
 
 
 
@@ -122,9 +118,9 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     
     printf("--------- LOADING CHUNKS ---------\n\n");
 
-    const int terrain_size = terrain->heightmap.size;
+    int terrain_size = terrain->heightmap.size;
 
-    terrain->chunk_size = 32;
+    terrain->chunk_size = 16;
     terrain->num_chunks 
         = (terrain_size / terrain->chunk_size)
         * (terrain_size / terrain->chunk_size);
@@ -150,7 +146,7 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     memset(terrain->chunks, 0, terrain->num_chunks * sizeof *terrain->chunks);
 
 
-    const int chunk_triangle_count = 2*((terrain->chunk_size-1) * (terrain->chunk_size-1));
+    const int chunk_triangle_count = 2*((terrain->chunk_size) * (terrain->chunk_size));
 
     printf(" Chunk triangle count: %i\n", chunk_triangle_count);
     int chunk_x = 0;
@@ -183,31 +179,46 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
         int v_counter = 0; // Count vertices.
         int n_counter = 0; // Count normals.
 
-        for(int z = 0; z < terrain->chunk_size-1; z++) {
-            for(int x = 0; x < terrain->chunk_size-1; x++) {
-        
-                // index relative to this chunk
-                size_t chunk_index = (z * terrain->chunk_size + x);
+        chunk->position = (Vector3){ 
+            (chunk_x * (terrain->scaling)) - ((terrain_size/2) * terrain->scaling),
+            0, 
+            (chunk_z * (terrain->scaling)) - ((terrain_size/2) * terrain->scaling)
+        };
+
+        chunk->center_pos = (Vector3) {
+            chunk->position.x
+                + (terrain->scaling * terrain->chunk_size / 2),
+            0, 
+            chunk->position.z
+                + (terrain->scaling * terrain->chunk_size / 2)
+        };
+
+        for(int z = 0; z < terrain->chunk_size; z++) {
+            for(int x = 0; x < terrain->chunk_size; x++) {
+       
 
                 float X = (float)(x + chunk_x);
                 float Z = (float)(z + chunk_z);
 
-                // index in the whole terrain.
-                //size_t terr_index =  (z+chunk_z) * terrain_size + (x+chunk_x);
+                // TODO: Remove this shit and fix the heightmap size.
+                int last_x = (X+1 >= terrain_size);
+                int last_z = (Z+1 >= terrain_size);
+                X = CLAMP(X - last_x, 0, terrain_size);
+                Z = CLAMP(Z - last_z, 0, terrain_size);
 
                 // Left up corner triangle
 
-                chunk->mesh.vertices[v_counter]   = (float)X * scale.x;
+                chunk->mesh.vertices[v_counter]   = (float)x * scale.x;
                 chunk->mesh.vertices[v_counter+1] = get_heightmap_value(terrain, X, Z);
-                chunk->mesh.vertices[v_counter+2] = (float)Z * scale.z;
+                chunk->mesh.vertices[v_counter+2] = (float)z * scale.z;
                 
-                chunk->mesh.vertices[v_counter+3] = (float)X * scale.x;
+                chunk->mesh.vertices[v_counter+3] = (float)x * scale.x;
                 chunk->mesh.vertices[v_counter+4] = get_heightmap_value(terrain, X, Z+1);
-                chunk->mesh.vertices[v_counter+5] = (float)(Z+1) * scale.z;
+                chunk->mesh.vertices[v_counter+5] = (float)(z+1) * scale.z;
                 
-                chunk->mesh.vertices[v_counter+6] = (float)(X+1) * scale.x;
+                chunk->mesh.vertices[v_counter+6] = (float)(x+1) * scale.x;
                 chunk->mesh.vertices[v_counter+7] = get_heightmap_value(terrain, X+1, Z);
-                chunk->mesh.vertices[v_counter+8] = (float)Z * scale.z;
+                chunk->mesh.vertices[v_counter+8] = (float)z * scale.z;
 
 
                 // Right bottom corner triangle
@@ -220,14 +231,15 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                 chunk->mesh.vertices[v_counter+13] = chunk->mesh.vertices[v_counter+4];
                 chunk->mesh.vertices[v_counter+14] = chunk->mesh.vertices[v_counter+5];
                 
-                chunk->mesh.vertices[v_counter+15] = (float)(X+1) * scale.x;
+                chunk->mesh.vertices[v_counter+15] = (float)(x+1) * scale.x;
                 chunk->mesh.vertices[v_counter+16] = get_heightmap_value(terrain, X+1, Z+1);
-                chunk->mesh.vertices[v_counter+17] = (float)(Z+1) * scale.z;
+                chunk->mesh.vertices[v_counter+17] = (float)(z+1) * scale.z;
+
+
 
                 v_counter += 18;
 
                 
-
                 // Calulcate normals
 
                 for(int i = 0; i < 18; i += 9) {
@@ -263,44 +275,6 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                 }
 
                 n_counter += 18;
-        /*
-
-
-            for(int i = 0; i < 18; i+= 9) {
-                vA.x = mesh->vertices[n_counter + i];
-                vA.y = mesh->vertices[n_counter + i+1];
-                vA.z = mesh->vertices[n_counter + i+2];
-                
-                vB.x = mesh->vertices[n_counter + i+3];
-                vB.y = mesh->vertices[n_counter + i+4];
-                vB.z = mesh->vertices[n_counter + i+5];
-                
-                vC.x = mesh->vertices[n_counter + i+6];
-                vC.y = mesh->vertices[n_counter + i+7];
-                vC.z = mesh->vertices[n_counter + i+8];
-
-                vN = Vector3Normalize(
-                        Vector3CrossProduct(
-                            Vector3Subtract(vB, vA),
-                            Vector3Subtract(vC, vA)
-                            )
-                        );
-
-                mesh->normals[n_counter + i]   = vN.x;
-                mesh->normals[n_counter + i+1] = vN.y;
-                mesh->normals[n_counter + i+2] = vN.z;
-                
-                mesh->normals[n_counter + i+3] = vN.x;
-                mesh->normals[n_counter + i+4] = vN.y;
-                mesh->normals[n_counter + i+5] = vN.z;
-                
-                mesh->normals[n_counter + i+6] = vN.x;
-                mesh->normals[n_counter + i+7] = vN.y;
-                mesh->normals[n_counter + i+8] = vN.z;
-
-            }
-
-            */
             }
         }
         
@@ -311,7 +285,6 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
             chunk_x = 0;
             chunk_z += terrain->chunk_size;
         }
-
     }
 
     SetTraceLogLevel(LOG_ALL);
@@ -323,6 +296,8 @@ static void _unload_chunks(struct terrain_t* terrain) {
 
     if(terrain->chunks) {
 
+        SetTraceLogLevel(LOG_ERROR);
+
         for(size_t i = 0; i < terrain->num_chunks; i++) {
             UnloadMesh(terrain->chunks[i].mesh);
         }
@@ -331,6 +306,7 @@ static void _unload_chunks(struct terrain_t* terrain) {
         terrain->chunks = NULL;
     
         printf("----- UNLOADED CHUNKS -----\n");
+        SetTraceLogLevel(LOG_ALL);
     }
 }
 
@@ -345,19 +321,20 @@ void generate_terrain(
         int    octaves
 ) {
 
-    // start by generating a height map for the terrain.
-    
-    terrain->heightmap.total_size = terrain_size * terrain_size;
+    // Start by creating a height map for the terrain.
+
+    terrain->heightmap.total_size = (terrain_size) * (terrain_size);
     terrain->heightmap.data = malloc(terrain->heightmap.total_size * sizeof *terrain->heightmap.data);
     terrain->heightmap.size = terrain_size;
     terrain->chunks = NULL;
 
     terrain->highest_point = 0.0;
 
+    
     // First pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
-            size_t index = round(z) * terrain->heightmap.size + round(x);
+            size_t index = z * (terrain->heightmap.size) + x;
 
             float p_nx = ((float)x / (float)terrain->heightmap.size) * frequency;
             float p_nz = ((float)z / (float)terrain->heightmap.size) * frequency;
@@ -370,12 +347,12 @@ void generate_terrain(
     // Second pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
-            size_t index = round(z) * terrain->heightmap.size + round(x);
+            size_t index = z * terrain->heightmap.size + x;
 
-            float p_nx = ((float)x / (float)terrain->heightmap.size) * (frequency/3);
-            float p_nz = ((float)z / (float)terrain->heightmap.size) * (frequency/3);
+            float p_nx = ((float)x / (float)terrain->heightmap.size) * (frequency/6);
+            float p_nz = ((float)z / (float)terrain->heightmap.size) * (frequency/6);
 
-            float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 3);
+            float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 10);
             terrain->heightmap.data[index] += value;
         }
     }
@@ -392,154 +369,62 @@ void generate_terrain(
             }
         }
     }
+
     
-
-    // then generate triangles for the mesh.
-
-
-    Mesh* mesh = &terrain->mesh;
-
-
-    mesh->triangleCount = (terrain->heightmap.size-1) * (terrain->heightmap.size-1) * 2;
-    mesh->vertexCount = mesh->triangleCount * 3;
-
-    mesh->vertices = malloc(mesh->vertexCount * 3 * sizeof(float));
-    mesh->normals  = malloc(mesh->vertexCount * 3 * sizeof(float));
-    mesh->texcoords = malloc(mesh->vertexCount * 2 * sizeof(float));
-
-    terrain->triangle_lookup = malloc(mesh->vertexCount * sizeof *terrain->triangle_lookup);
+    size_t triangle_count = (terrain->heightmap.size-1) * (terrain->heightmap.size-1) * 2;
+    size_t vertex_count = triangle_count * 3;
     
+   
+    // Create triangle lookup table for terrain.
 
-    int v_counter = 0;  // count mesh vertices.
-    int n_counter = 0;  // count mesh normals.
-    int tc_counter = 0; // count mesh texture coordinates.
-
-    // TODO:
+    terrain->triangle_lookup = malloc(vertex_count * sizeof *terrain->triangle_lookup);
+     
     Vector3 scale = (Vector3) { terrain_scaling, 1.0, terrain_scaling };
-
-    // used for calculating normals
-    Vector3 vA = { 0 };
-    Vector3 vC = { 0 };
-    Vector3 vB = { 0 };
-    Vector3 vN = { 0 };
-
+    
     for(u32 z = 0; z < terrain->heightmap.size-1; z++) {
         for(u32 x = 0; x < terrain->heightmap.size-1; x++) {
 
-
-            // one triangle
-            mesh->vertices[v_counter]   = (float)x * scale.x;
-            mesh->vertices[v_counter+1] = get_heightmap_value(terrain, x, z);
-            mesh->vertices[v_counter+2] = (float)z * scale.z;
-
-            mesh->vertices[v_counter+3] = (float)x * scale.x;
-            mesh->vertices[v_counter+4] = get_heightmap_value(terrain, x, z+1);
-            mesh->vertices[v_counter+5] = (float)(z+1) * scale.z;
-
-            mesh->vertices[v_counter+6] = (float)(x+1) * scale.x;
-            mesh->vertices[v_counter+7] = get_heightmap_value(terrain, x+1, z);
-            mesh->vertices[v_counter+8] = (float)z * scale.z;
-
-
-            // another triangle
-            mesh->vertices[v_counter+9]  = mesh->vertices[v_counter+6];
-            mesh->vertices[v_counter+10] = mesh->vertices[v_counter+7];
-            mesh->vertices[v_counter+11] = mesh->vertices[v_counter+8];
-            
-            mesh->vertices[v_counter+12] = mesh->vertices[v_counter+3];
-            mesh->vertices[v_counter+13] = mesh->vertices[v_counter+4];
-            mesh->vertices[v_counter+14] = mesh->vertices[v_counter+5];
-
-            mesh->vertices[v_counter+15] = (float)(x+1) * scale.x;
-            mesh->vertices[v_counter+16] = get_heightmap_value(terrain, x+1, z+1);
-            mesh->vertices[v_counter+17] = (float)(z+1) * scale.z;
-
-
-            // save the triangle into triangle_lookup array.
-            //
             size_t tr_index = (z * terrain->heightmap.size) + x;
 
             terrain->triangle_lookup[tr_index] = (struct triangle2x_t) {
             
-                .a0 = (Vector3) {
-                    mesh->vertices[v_counter],
-                    mesh->vertices[v_counter+1],
-                    mesh->vertices[v_counter+2]
+                .a0 = (Vector3) { // 0, 1, 2
+                    (float)x * scale.x,
+                    get_heightmap_value(terrain, x, z),
+                    (float)z * scale.z
                 },
-                .a1 = (Vector3) {
-                    mesh->vertices[v_counter+3],
-                    mesh->vertices[v_counter+4],
-                    mesh->vertices[v_counter+5]
+                .a1 = (Vector3) { // 3, 4, 5
+                    (float)x * scale.x,
+                    get_heightmap_value(terrain, x, z+1),
+                    (float)(z+1) * scale.z
                 },
-                .a2 = (Vector3) {
-                    mesh->vertices[v_counter+6],
-                    mesh->vertices[v_counter+7],
-                    mesh->vertices[v_counter+8]
+                .a2 = (Vector3) { // 6, 7, 8
+                    (float)(x+1) * scale.x,
+                    get_heightmap_value(terrain, x+1, z),
+                    (float)z * scale.z
                 },
 
 
-                .b0 = (Vector3) {
-                    mesh->vertices[v_counter+9],
-                    mesh->vertices[v_counter+10],
-                    mesh->vertices[v_counter+11]
+                .b0 = (Vector3) { // 9, 10, 11 (copy of 'a2')
+                    (float)(x+1) * scale.x,
+                    get_heightmap_value(terrain, x+1, z),
+                    (float)z * scale.z
                 },
-                .b1 = (Vector3) {
-                    mesh->vertices[v_counter+12],
-                    mesh->vertices[v_counter+13],
-                    mesh->vertices[v_counter+14]
+                .b1 = (Vector3) { // 12, 13, 14 (copy of 'a1')
+                    (float)x * scale.x,
+                    get_heightmap_value(terrain, x, z+1),
+                    (float)(z+1) * scale.z
                 },
-                .b2 = (Vector3) {
-                    mesh->vertices[v_counter+15],
-                    mesh->vertices[v_counter+16],
-                    mesh->vertices[v_counter+17]
+                .b2 = (Vector3) { // 15, 16, 17
+                    (float)(x+1) * scale.x,
+                    get_heightmap_value(terrain, x+1, z+1),
+                    (float)(z+1) * scale.z
                 }
             };
-
-
-            v_counter += 18;
-
-
-
-            for(int i = 0; i < 18; i+= 9) {
-                vA.x = mesh->vertices[n_counter + i];
-                vA.y = mesh->vertices[n_counter + i+1];
-                vA.z = mesh->vertices[n_counter + i+2];
-                
-                vB.x = mesh->vertices[n_counter + i+3];
-                vB.y = mesh->vertices[n_counter + i+4];
-                vB.z = mesh->vertices[n_counter + i+5];
-                
-                vC.x = mesh->vertices[n_counter + i+6];
-                vC.y = mesh->vertices[n_counter + i+7];
-                vC.z = mesh->vertices[n_counter + i+8];
-
-                vN = Vector3Normalize(
-                        Vector3CrossProduct(
-                            Vector3Subtract(vB, vA),
-                            Vector3Subtract(vC, vA)
-                            )
-                        );
-
-                mesh->normals[n_counter + i]   = vN.x;
-                mesh->normals[n_counter + i+1] = vN.y;
-                mesh->normals[n_counter + i+2] = vN.z;
-                
-                mesh->normals[n_counter + i+3] = vN.x;
-                mesh->normals[n_counter + i+4] = vN.y;
-                mesh->normals[n_counter + i+5] = vN.z;
-                
-                mesh->normals[n_counter + i+6] = vN.x;
-                mesh->normals[n_counter + i+7] = vN.y;
-                mesh->normals[n_counter + i+8] = vN.z;
-
-            }
-
-            n_counter += 18;
         }
     }
 
     terrain->scaling = terrain_scaling;
-    UploadMesh(mesh, 0);
 
     float terrain_pos = -(terrain_size * terrain_scaling) / 2;
     terrain->transform = MatrixTranslate(terrain_pos, 0, terrain_pos);
@@ -598,20 +483,6 @@ void delete_terrain_foliage(struct terrain_t* terrain) {
 
 void delete_terrain(struct terrain_t* terrain) {
 
-    /*
-    if(terrain->mesh.vertices) {
-        free(terrain->mesh.vertices);
-        terrain->mesh.vertices = NULL;
-    }
-    if(terrain->mesh.normals) {
-        free(terrain->mesh.normals);
-        terrain->mesh.normals = NULL;
-    }
-    if(terrain->mesh.texcoords) {
-        free(terrain->mesh.texcoords);
-        terrain->mesh.texcoords = NULL;
-    }
-    */
     if(terrain->triangle_lookup) {
         free(terrain->triangle_lookup);
         terrain->triangle_lookup = NULL;
@@ -623,7 +494,6 @@ void delete_terrain(struct terrain_t* terrain) {
 
     _unload_chunks(terrain);
    
-    UnloadMesh(terrain->mesh);
     
     terrain->mesh_generated = 0;
     printf("\033[32m >> Deleted terrain.\033[0m\n");
@@ -631,16 +501,16 @@ void delete_terrain(struct terrain_t* terrain) {
 
 
 void render_terrain(struct state_t* gst, struct terrain_t* terrain) {
- 
-    /*
-    if(terrain->mesh_generated) {
-        DrawMesh(terrain->mesh, terrain->material, terrain->transform);
+
+    for(size_t i = 0; i < terrain->num_chunks; i++) {
+        struct chunk_t* chunk = &terrain->chunks[i];
+        chunk->dst2player = Vector3Distance(chunk->center_pos, gst->player.position);
+
+        if(chunk->dst2player < RENDER_DISTANCE) {
+            Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
+            DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
+        }
     }
-    */
-
-    Matrix translation = MatrixTranslate(0, 3, 0);
-    DrawMesh(terrain->chunks[0].mesh, terrain->material, translation);
-
 }
 
 
