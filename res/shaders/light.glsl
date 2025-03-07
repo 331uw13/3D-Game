@@ -38,6 +38,7 @@ vec3 g_lightspecular = vec3(0);
 
 
 void compute_lights(vec3 view_dir) {
+    vec3 normal = normalize(fragNormal);
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
         if(lights[i].enabled == 0) {
             continue;
@@ -57,12 +58,12 @@ void compute_lights(vec3 view_dir) {
             lightdir = -normalize(-lightpos);
         }
 
-        float NdotL = max(dot(fragNormal, lightdir), 0.0);
+        float NdotL = max(dot(normal, lightdir), 0.0);
         g_lightcolor += ((lights[i].color.rgb * NdotL)*dist) * lights[i].strength.x;
    
         float spec = 0.0;
         if(NdotL > 0.0) {
-            spec = pow(max(0.0, dot(view_dir, reflect(-lightdir, fragNormal))), 8.0);
+            spec = pow(max(0.0, dot(view_dir, reflect(-lightdir, normal))), 8.0);
         }
 
         if(lights[i].type != LIGHT_DIRECTIONAL) {
@@ -85,12 +86,12 @@ void compute_lights(vec3 view_dir) {
         dist = 1.0/dist;
 
 
-        float NdotL = max(dot(fragNormal, lightdir), 0.0);
+        float NdotL = max(dot(normal, lightdir), 0.0);
         g_lightcolor += ((prj_lights[i].color.rgb * NdotL)*dist) * prj_lights[i].strength.x;
    
         float spec = 0.0;
         if(NdotL > 0.0) {
-            spec = pow(max(0.0, dot(view_dir, reflect(-lightdir, fragNormal))), 8.0);
+            spec = pow(max(0.0, dot(view_dir, reflect(-lightdir, normal))), 8.0);
         }
 
         if(prj_lights[i].type != LIGHT_DIRECTIONAL) {

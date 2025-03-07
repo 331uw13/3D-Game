@@ -5,6 +5,7 @@ in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragPosition;
 in vec3 fragNormal;
+
 in vec3 fragViewPos;
 
 // Input uniform values
@@ -31,7 +32,7 @@ void main()
 
     // Texel color fetching from texture sampler
     vec4 texelColor = texture(texture0, fragTexCoord);
-    vec3 normal = fragNormal;
+    vec3 normal = normalize(fragNormal);
     vec3 view_dir = normalize(fragViewPos - fragPosition);
 
   

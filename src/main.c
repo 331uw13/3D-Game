@@ -239,9 +239,7 @@ void loop(struct state_t* gst) {
  
                 DrawText(weapon_text,
                         30.0, gst->scrn_h-100, 20, (Color){ 30, 100, 100, 255 });
-            }
-            
-           
+            } 
 
 
 
@@ -250,10 +248,10 @@ void loop(struct state_t* gst) {
             DrawText(TextFormat("x: %0.2f", gst->player.position.x),
                         15.0, gst->scrn_h-30, 20, BLACK);
                 
-            DrawText(TextFormat("y: %0.2f", gst->player.position.x),
+            DrawText(TextFormat("y: %0.2f", gst->player.position.y),
                         15.0+100.0, gst->scrn_h-30, 20, BLACK);
                 
-            DrawText(TextFormat("z: %0.2f", gst->player.position.x),
+            DrawText(TextFormat("z: %0.2f", gst->player.position.z),
                         15.0+100.0*2, gst->scrn_h-30.0, 20, BLACK);
  
 
@@ -296,11 +294,13 @@ void cleanup(struct state_t* gst) {
     free_player(&gst->player);
 
     delete_terrain(&gst->terrain);
+    state_delete_psystems(gst);
 
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtreshold_target);
 
     glDeleteBuffers(1, &gst->lights_ubo);
+    glDeleteBuffers(1, &gst->prj_lights_ubo);
 
     CloseWindow();
 }
@@ -308,13 +308,12 @@ void cleanup(struct state_t* gst) {
 
 void load_texture(struct state_t* gst, const char* filepath, int texid) {
     if(texid >= MAX_TEXTURES) {
-        fprintf(stderr, "ERROR: Texture id is invalid. (%i) for '%s'\n", texid, filepath);
+        fprintf(stderr, "\033[31m(ERROR) '%s': Texture id is invalid. (%i) for '%s'\033[0m\n",
+                __func__, texid, filepath);
         return;
     }
     gst->textures[texid] = LoadTexture(filepath);
     gst->num_textures++;
-
-    printf("\033[32m + Loaded (texid:%i) '%s'\033[0m \n", texid, filepath);
 }
 
 void first_setup(struct state_t* gst) {
@@ -336,10 +335,10 @@ void first_setup(struct state_t* gst) {
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
     memset(gst->enemies, 0, MAX_ENEMIES * sizeof *gst->enemies);
 
-    const float terrain_scale = 8.0;
-    const u32   terrain_size = 500;
+    const float terrain_scale = 10.0;
+    const u32   terrain_size = 128;
     const float terrain_amplitude = 30.0;
-    const float terrain_pnfrequency = 10.0;
+    const float terrain_pnfrequency = 3.0;
     const int   terrain_octaves = 3;
     const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
    
@@ -359,6 +358,7 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
     load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
     load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
+    load_texture(gst, "res/textures/leaf.jpg", TEST_TEXID);
     
     gst->lights_ubo = 0;
 
@@ -433,6 +433,15 @@ void first_setup(struct state_t* gst) {
                 );
 
 
+    // Make sure all lights are disabled.
+    for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
+        struct light_t disabled = {
+            .enabled = 0,
+            .index = i
+        };
+        set_light(gst, &disabled, gst->lights_ubo);
+    }
+
 
     struct light_t SUN = (struct light_t) {
         .type = LIGHT_DIRECTIONAL,
@@ -440,41 +449,18 @@ void first_setup(struct state_t* gst) {
         .color = (Color){ 240, 210, 200, 255 },
         .position = (Vector3){ -1, 1, -1 },
         .strength = 0.3,
-        .index = 0
+        .index = SUN_LIGHT_ID
     };
 
-    struct light_t A = (struct light_t) {
+    gst->player.gun_light = (struct light_t) {
         .type = LIGHT_POINT,
         .enabled = 1,
-        .color = (Color){ 255, 30, 30, 255 },
-        .position = (Vector3){ 10, 3, 0 },
-        .strength = 10.0,
-        .index = 1
+        .strength = 0.35,
+        .index = PLAYER_GUN_LIGHT_ID
     };
 
-
-    struct light_t B = (struct light_t) {
-        .type = LIGHT_POINT,
-        .enabled = 1,
-        .color = (Color){ 255, 30, 255, 255 },
-        .position = (Vector3){ 10, 3, 10 },
-        .strength = 1.0,
-        .index = 2
-    };
-
-    struct light_t C = (struct light_t) {
-        .type = LIGHT_POINT,
-        .enabled = 1,
-        .color = (Color){ 255, 30, 255, 255 },
-        .position = (Vector3){ -10, 3, 10 },
-        .strength = 1.0,
-        .index = 3
-    };
 
     set_light(gst,  &SUN, gst->lights_ubo);
-    set_light(gst,  &A,   gst->lights_ubo);
-    set_light(gst,  &B,   gst->lights_ubo);
-    set_light(gst,  &C,   gst->lights_ubo);
    
 }
 

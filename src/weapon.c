@@ -16,7 +16,7 @@ float get_weapon_damage(struct weapon_t* weapon, int* was_critical_hit) {
         printf("(ENEMY_WEAPON) ");
     }
     else {
-        printf("(UNKNOWN?) ");
+        printf("\033[34m(UNKNOWN?)\033[0m ");
     }
 
 

@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <raylib.h>
 
-#include "light.h"
 #include "psystem.h"
 
 

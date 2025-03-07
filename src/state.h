@@ -19,6 +19,7 @@
 #define PLAYER_ARMS_TEXID 5
 #define CRITICALHIT_TEXID 6
 #define TREEBARK_TEXID 7
+#define TEST_TEXID 8
 #define MAX_TEXTURES 16
 
 
@@ -78,6 +79,10 @@
 #define MAX_ENEMY_WEAPONS 2
 
 #define MAX_RENDER_CRITHITS 8
+
+
+#define SUN_LIGHT_ID 0
+#define PLAYER_GUN_LIGHT_ID 1
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -148,5 +153,6 @@ void state_create_enemy_weapons(struct state_t* gst);
 void state_create_psystems(struct state_t* gst);
 
 void state_add_crithit_marker(struct state_t* gst, Vector3 position);
+void state_delete_psystems(struct state_t* gst);
 
 #endif

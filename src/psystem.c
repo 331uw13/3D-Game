@@ -27,7 +27,7 @@ void delete_psystem(struct psystem_t* psys) {
     psys->update_callback = NULL;
     psys->pinit_callback = NULL;
     
-    printf(" >> Unloaded ParticleSystem\n");
+    printf(" >> Deleted ParticleSystem\n");
 }
 
 void create_psystem(

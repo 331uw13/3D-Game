@@ -44,20 +44,31 @@ struct foliage_t {
 
 };
 
+struct chunk_t {
+    Mesh     mesh;
+    Vector3  position;
+    float    dst2player;
+};
+
 struct terrain_t {
-    Mesh      mesh;
+    Mesh      mesh; // The whole terrain mesh in one.
     Material  material;
     Matrix    transform;
     int       mesh_generated;
     struct heightmap_t heightmap;
+    struct foliage_t foliage;
+
+    struct chunk_t* chunks;
+    int    chunk_size;
+    size_t num_chunks;
  
+    Mesh  render_mesh;
+
     float highest_point;
     float scaling;
 
     // triangles saved but in order to get triangle at xz location efficiently.
     struct triangle2x_t* triangle_lookup;
-
-    struct foliage_t foliage;
 };
 
 

@@ -49,7 +49,7 @@ int read_file(struct file_t* file, const char* filename) {
         goto error_and_close;
     }
 
-    printf("Read '%s'\n", filename);
+    printf("'%s' Read '%s'\n", __FILE__, filename);
 
 
     file->data = NULL;
@@ -58,7 +58,8 @@ int read_file(struct file_t* file, const char* filename) {
     memmove(file->data, ptr, sb.st_size);
 
 
-    printf("\033[90m%s\033[0m\n", file->data);
+    //printf("\033[90m%s\033[0m\n", file->data);
+
 
     file->size = sb.st_size;
     file->ok = FILEOK;

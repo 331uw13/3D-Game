@@ -3,6 +3,7 @@
 
 
 #include "weapon.h"
+#include "light.h"
 
 struct state_t;
 
@@ -12,6 +13,7 @@ struct state_t;
 
 #define PLAYER_WEAPON_FULLAUTO 0
 #define PLAYER_WEAPON_SEMIAUTO 1
+
 
 
 struct player_t {
@@ -41,6 +43,7 @@ struct player_t {
 
     Model gunmodel;
     Material arms_material;
+    struct light_t gun_light;
 
     //Vector3 gunmodel_offset;
     Matrix gunmodel_aim_offset_m;

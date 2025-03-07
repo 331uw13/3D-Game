@@ -29,7 +29,15 @@ void main()
     fragPosition = vec3(instanceTransform * vec4(vertexPosition, 1.0));
     fragTexCoord = vertexTexCoord;
     fragColor = vec4(1.0);
-    fragNormal = normalize(vec3(matNormal*vec4(vertexNormal, 1.0)));
+
+
+    vec4 transfpos = instanceTransform * vec4(vertexPosition,1.0);
+    vec4 norm = vec4(vertexNormal, 0.0);
+
+    fragNormal = vec3(instanceTransform * norm);
+
+    //fragNormal = normalize(vec3( (matNormal * vec4(vertexNormal, 1.0) )));
+    //fragNormal = vec3(instanceTransform * vec4(fragNormal, 1.0 ));
 
     fragViewPos = viewPos;
 

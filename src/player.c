@@ -24,7 +24,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.projection = CAMERA_PERSPECTIVE;
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->height = 3.5;
+    p->height = 4.5;
     p->hitbox_size = (Vector3){ 1.0, 2.8, 1.0 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
@@ -129,11 +129,14 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     p->recoil_strength = 0.5;
     p->recoil_in_progress = 1;
 
-
     p->time_from_last_shot = 0.0;
     p->accuracy_modifier += 0.45;
-    
+
     _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
+
+
+    p->gun_light.strength += 0.025;
+    p->gun_light.strength = CLAMP(p->gun_light.strength, 0.35, 1.0);
 }
 
 
@@ -171,6 +174,9 @@ void player_update(struct state_t* gst, struct player_t* p) {
     if(p->time_from_last_shot > 0.15) {
         p->accuracy_modifier -= gst->dt * 20.0;
         _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
+    
+        p->gun_light.strength -= gst->dt*0.5;
+        p->gun_light.strength = CLAMP(p->gun_light.strength, 0.35, 1.0);
     }
 
     p->gunmodel_aim_offset_m 
@@ -265,7 +271,6 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     p->gunmodel.transform = transform;
 
-    /*
     // Update Gun Light here because otherwise it will be one frame behind.
     {
         Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
@@ -273,12 +278,11 @@ void player_render(struct state_t* gst, struct player_t* p) {
         lpos = Vector3Transform(lpos, p->gunmodel.transform);
         //DrawSphere(lpos, 0.2, RED);
 
-        struct light_t* gl = &gst->normal_lights[PLAYER_GUN_NLIGHT];
-        gl->strength = 0.2;
-        gl->position = lpos;
-        update_light_values(gl, gst->shaders[DEFAULT_SHADER]);
-    } 
-    */
+        p->gun_light.position = lpos;
+        p->gun_light.color = p->weapon.color;
+        set_light(gst, &p->gun_light, gst->lights_ubo);
+    }
+
 
     // Gun
     DrawMesh(

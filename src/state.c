@@ -131,8 +131,8 @@ void state_render_environment(struct state_t* gst) {
     // Render 3D stuff into texture and post process it later.
     BeginTextureMode(gst->env_render_target);
     ClearBackground((Color){
-            (0.3) * 255, 
-            (0.15) * 255,
+            (0.2) * 255, 
+            (0.17) * 255,
             (0.15) * 255,
             255
             });
@@ -161,13 +161,26 @@ void state_render_environment(struct state_t* gst) {
         // Terrain.
         render_terrain(gst, &gst->terrain);
 
+        /*
         // Terrain foliage (tree0)
+        gst->terrain.foliage.tree0_material.maps[MATERIAL_MAP_DIFFUSE].texture
+            = gst->textures[TREEBARK_TEXID];
         DrawMeshInstanced(
                 gst->terrain.foliage.tree0_model.meshes[0],
                 gst->terrain.foliage.tree0_material,
                 gst->terrain.foliage.tree0_transforms,
                 NUM_TREE_TYPE0
                 );
+
+        gst->terrain.foliage.tree0_material.maps[MATERIAL_MAP_DIFFUSE].texture
+            = gst->textures[TEST_TEXID];
+        DrawMeshInstanced(
+                gst->terrain.foliage.tree0_model.meshes[1],
+                gst->terrain.foliage.tree0_material,
+                gst->terrain.foliage.tree0_transforms,
+                NUM_TREE_TYPE0
+                );
+                */
 
         
         // Enemies.
@@ -292,6 +305,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+   
     }
 
 
@@ -312,14 +326,14 @@ void state_create_enemy_weapons(struct state_t* gst) {
     // Player's weapon.
     gst->player.weapon = (struct weapon_t) {
         .id = PLAYER_WEAPON_ID,
-        .accuracy = 7.85,
+        .accuracy = 8.25,
         .damage = 10.0,
         .critical_chance = 25,
         .critical_mult = 3.0,
         .prj_speed = 240.0,
         .prj_max_lifetime = 2.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
-        .color = (Color) { 20, 255, 150, 255 },
+        .color = (Color) { 20, 255, 200, 255 },
         .overheat_temp = 100.0,
         .heat_increase = 2.0,
         .cooling_level = 20.0
@@ -440,6 +454,7 @@ void state_delete_psystems(struct state_t* gst) {
     delete_psystem(&gst->psystems[ENEMY_PRJ_ENVHIT_PSYS]);
     delete_psystem(&gst->psystems[ENEMY_LVL0_WEAPON_PSYS]);
     delete_psystem(&gst->psystems[ENEMY_HIT_PSYS]);
+
 }
 
 
