@@ -113,6 +113,31 @@ Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, floa
     return MatrixRotateXYZ((Vector3){ axis.x, 0.0, axis.z });
 }
 
+static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
+    
+    struct foliage_matrices_t* fm = &chunk->foliage_matrices;
+
+    const float x_min = chunk->position.x;
+    const float x_max = chunk->position.x + (terrain->chunk_size * terrain->scaling);
+    const float z_min = chunk->position.z;
+    const float z_max = chunk->position.z + (terrain->chunk_size * terrain->scaling);
+
+
+    // Tree Type0
+    fm->num_tree_type0 = TREE_TYPE0_MAX_PERCHUNK;
+    for(size_t i = 0; i < fm->num_tree_type0; i++) {
+        
+        float x = RSEEDRANDOMF(x_min, x_max);
+        float z = RSEEDRANDOMF(z_min, z_max);
+
+        RayCollision ray = raycast_terrain(terrain, x, z);
+
+        Matrix translation = MatrixTranslate(x, ray.point.y, z);
+        Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
+        fm->tree_type0[i] = MatrixMultiply(rotation, translation);
+    
+    }
+}
 
 static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain) {
     
@@ -120,14 +145,14 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
 
     int terrain_size = terrain->heightmap.size;
 
-    terrain->chunk_size = 16;
+    terrain->chunk_size = CHUNK_SIZE;
     terrain->num_chunks 
         = (terrain_size / terrain->chunk_size)
         * (terrain_size / terrain->chunk_size);
 
 
-    printf(" Terrain size: %i\n", terrain_size * terrain_size);
-    printf(" Chunk size: %i\n", terrain->chunk_size * terrain->chunk_size);
+    printf(" Terrain size x*z: %i\n", terrain_size * terrain_size);
+    printf(" Chunk size x*z: %i\n", terrain->chunk_size * terrain->chunk_size);
     printf(" Num chunks: %li\n", terrain->num_chunks);
 
     if(terrain->chunks) {
@@ -162,7 +187,7 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         *chunk = (struct chunk_t) { 0 };
-        
+    
         chunk->mesh.triangleCount = chunk_triangle_count;
         chunk->mesh.vertexCount = chunk->mesh.triangleCount * 3;
 
@@ -277,7 +302,9 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                 n_counter += 18;
             }
         }
-        
+    
+        _load_chunk_foliage(gst, terrain, chunk);
+
         UploadMesh(&chunk->mesh, 0);
 
         chunk_x += terrain->chunk_size;
@@ -291,25 +318,6 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
 
     printf("\n----------------\n");
 }
-
-static void _unload_chunks(struct terrain_t* terrain) {
-
-    if(terrain->chunks) {
-
-        SetTraceLogLevel(LOG_ERROR);
-
-        for(size_t i = 0; i < terrain->num_chunks; i++) {
-            UnloadMesh(terrain->chunks[i].mesh);
-        }
-
-        free(terrain->chunks);
-        terrain->chunks = NULL;
-    
-        printf("----- UNLOADED CHUNKS -----\n");
-        SetTraceLogLevel(LOG_ALL);
-    }
-}
-
 
 void generate_terrain(
         struct state_t* gst,
@@ -432,20 +440,38 @@ void generate_terrain(
     terrain->material.shader = gst->shaders[DEFAULT_SHADER];
 
 
+    // Load foliage models
+    {
+        struct foliage_models_t* fmodels = &terrain->foliage_models;
+
+        fmodels->tree_type0 = LoadModel("res/models/tree.glb");
+        
+        // Tree bark
+        fmodels->tree_type0.materials[0] = LoadMaterialDefault();
+        fmodels->tree_type0.materials[0].shader = gst->shaders[FOLIAGE_SHADER];
+        fmodels->tree_type0.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
+            = gst->textures[TREEBARK_TEXID];
+        
+        // Tree leafs
+        fmodels->tree_type0.materials[1] = LoadMaterialDefault();
+        fmodels->tree_type0.materials[1].shader = gst->shaders[FOLIAGE_SHADER];
+        fmodels->tree_type0.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
+            = gst->textures[TEST_TEXID];
+        // ...
+
+
+    }
+
+
     _load_terrain_chunks(gst, terrain);
 
 
     printf("\033[32m >> Generated terrain succesfully.\033[0m\n");
 
-    terrain->mesh_generated = 1;
 }
 
+/*
 void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain) {
-    if(!terrain->mesh_generated) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Terrain must be generated first.\033[0m\n",
-                __func__);
-        return;
-    }
 
     // Create tree type0
 
@@ -474,12 +500,8 @@ void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain) {
         terrain->foliage.tree0_transforms[i] = transform;
     }
 }
+*/
 
-
-void delete_terrain_foliage(struct terrain_t* terrain) {
-    UnloadModel(terrain->foliage.tree0_model);
-
-}
 
 void delete_terrain(struct terrain_t* terrain) {
 
@@ -492,11 +514,24 @@ void delete_terrain(struct terrain_t* terrain) {
         terrain->heightmap.data = NULL;
     }
 
-    _unload_chunks(terrain);
-   
+
+    if(terrain->chunks) {
+
+        SetTraceLogLevel(LOG_ERROR);
+
+        for(size_t i = 0; i < terrain->num_chunks; i++) {
+            UnloadMesh(terrain->chunks[i].mesh);
+        }
+
+        free(terrain->chunks);
+        terrain->chunks = NULL;
     
-    terrain->mesh_generated = 0;
-    printf("\033[32m >> Deleted terrain.\033[0m\n");
+        printf("----- UNLOADED CHUNKS -----\n");
+        SetTraceLogLevel(LOG_ALL);
+    }
+
+    UnloadModel(terrain->foliage_models.tree_type0);
+
 }
 
 
@@ -509,6 +544,24 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain) {
         if(chunk->dst2player < RENDER_DISTANCE) {
             Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
             DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
+
+
+            DrawMeshInstanced(
+                    terrain->foliage_models.tree_type0.meshes[0],
+                    terrain->foliage_models.tree_type0.materials[0],
+                    chunk->foliage_matrices.tree_type0,
+                    chunk->foliage_matrices.num_tree_type0
+                    );
+
+            DrawMeshInstanced(
+                    terrain->foliage_models.tree_type0.meshes[1],
+                    terrain->foliage_models.tree_type0.materials[1],
+                    chunk->foliage_matrices.tree_type0,
+                    chunk->foliage_matrices.num_tree_type0
+                    );
+
+
+
         }
     }
 }

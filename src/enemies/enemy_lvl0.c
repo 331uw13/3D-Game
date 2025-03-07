@@ -81,7 +81,7 @@ static int terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
     int result = 0;
 
     Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
-    Vector3 ray_position = ent->position;
+    Vector3 ray_position = (Vector3){ent->position.x, ent->position.y+3, ent->position.z};
 
     // Move 'ray_position' towards player
     // and cast ray from 'terrain.highest_point' at ray_position.X and Z.

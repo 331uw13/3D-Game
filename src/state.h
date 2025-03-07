@@ -8,7 +8,6 @@
 
 
 #define CAMERA_SENSETIVITY 0.00125
-#define RENDER_DISTANCE 1000
 
 // Index for textures.
 #define NONE_TEXID -1

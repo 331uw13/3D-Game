@@ -323,6 +323,15 @@ void first_setup(struct state_t* gst) {
     // REMOVE THIS:
     SetWindowPosition(1700, 100);
 
+
+    // Loading screen.
+    BeginDrawing();
+    {
+        ClearBackground((Color){ 10, 10, 10, 255 });
+        DrawText("Loading...", 100, 100, 40, WHITE);
+    }
+    EndDrawing();
+
     DisableCursor();
     SetTargetFPS(500);
     gst->num_textures = 0;
@@ -410,7 +419,6 @@ void first_setup(struct state_t* gst) {
                 terrain_octaves
                 );
 
-        generate_terrain_foliage(gst, &gst->terrain);
     }
 
     int seed = time(0);

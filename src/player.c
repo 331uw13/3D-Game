@@ -24,12 +24,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.projection = CAMERA_PERSPECTIVE;
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->height = 4.5;
+    p->height = 5.0;
     p->hitbox_size = (Vector3){ 1.0, 2.8, 1.0 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     
-    p->walkspeed = 0.45;
+    p->walkspeed = 0.532;
     p->run_mult = 1.5;
     p->walkspeed_aim_mult = 0.5;
     p->air_speed_mult = 2.0;

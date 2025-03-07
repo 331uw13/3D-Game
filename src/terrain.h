@@ -10,6 +10,13 @@
 struct state_t;
 
 
+#define RENDER_DISTANCE 1500
+#define CHUNK_SIZE 32
+
+
+#define TREE_TYPE0_MAX_PERCHUNK 30
+#define ROCK_TYPE0_MAX_PERCHUNK 5
+
 struct heightmap_t {
     float*  data;
     size_t  total_size; // equals to (size * size)
@@ -29,14 +36,17 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
 };
 
 
-#define NUM_TREE_TYPE0 5000 
+struct foliage_matrices_t {
+    Matrix tree_type0[TREE_TYPE0_MAX_PERCHUNK];
+    size_t num_tree_type0;
 
-struct foliage_t {
+    Matrix rock_type0[ROCK_TYPE0_MAX_PERCHUNK];
+    size_t num_rock_type0;
+};
 
-    Model     tree0_model;
-    Material  tree0_material;
-    Matrix    tree0_transforms[NUM_TREE_TYPE0];
-
+struct foliage_models_t {
+    Model tree_type0;
+    Model rock_type0;
 };
 
 struct chunk_t {
@@ -44,21 +54,22 @@ struct chunk_t {
     Vector3  position;
     Vector3  center_pos;
     float    dst2player;
+
+    struct foliage_matrices_t foliage_matrices;
 };
 
 struct terrain_t {
     Mesh      mesh; // The whole terrain mesh in one.
     Material  material;
     Matrix    transform;
-    int       mesh_generated;
     struct heightmap_t heightmap;
-    struct foliage_t foliage;
 
     struct chunk_t* chunks;
     int    chunk_size;
     size_t num_chunks;
+
+    struct foliage_models_t foliage_models;
  
-    Mesh  render_mesh;
 
     float highest_point;
     float scaling;
@@ -89,10 +100,10 @@ void generate_terrain(
         int    octaves
         );
 
-void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
+//void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
 
 void delete_terrain         (struct terrain_t* terrain);
-void delete_terrain_foliage (struct terrain_t* terrain);
+//void delete_terrain_foliage (struct terrain_t* terrain);
 
 //void generate_heightmap(struct terrain_t* terrain);
 //void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain);
