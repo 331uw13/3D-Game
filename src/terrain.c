@@ -135,8 +135,30 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
         fm->tree_type0[i] = MatrixMultiply(rotation, translation);
-    
     }
+
+    // Rock Type0
+    fm->num_rock_type0 = ROCK_TYPE0_MAX_PERCHUNK;
+    for(size_t i = 0; i < fm->num_rock_type0; i++) {
+        
+        float x = RSEEDRANDOMF(x_min, x_max);
+        float z = RSEEDRANDOMF(z_min, z_max);
+
+        RayCollision ray = raycast_terrain(terrain, x, z);
+
+        Matrix translation = MatrixTranslate(x, ray.point.y, z);
+        Matrix rotation = MatrixRotateXYZ(
+                (Vector3){
+                    RSEEDRANDOMF(0, 360) * DEG2RAD,
+                    RSEEDRANDOMF(0, 360) * DEG2RAD,
+                    RSEEDRANDOMF(0, 360) * DEG2RAD
+                });
+        fm->rock_type0[i] = MatrixMultiply(rotation, translation);
+    }
+
+
+
+
 }
 
 static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain) {
@@ -444,7 +466,8 @@ void generate_terrain(
     {
         struct foliage_models_t* fmodels = &terrain->foliage_models;
 
-        fmodels->tree_type0 = LoadModel("res/models/tree.glb");
+        // Tree Type 0
+        fmodels->tree_type0 = LoadModel("res/models/tree_type0.glb");
         
         // Tree bark
         fmodels->tree_type0.materials[0] = LoadMaterialDefault();
@@ -456,9 +479,17 @@ void generate_terrain(
         fmodels->tree_type0.materials[1] = LoadMaterialDefault();
         fmodels->tree_type0.materials[1].shader = gst->shaders[FOLIAGE_SHADER];
         fmodels->tree_type0.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[TEST_TEXID];
-        // ...
+            = gst->textures[LEAF_TEXID];
 
+
+
+        // Rock type 0
+        fmodels->rock_type0 = LoadModel("res/models/rock_type0.glb");
+        fmodels->rock_type0.materials[0] = LoadMaterialDefault();
+        fmodels->rock_type0.materials[0].shader = gst->shaders[FOLIAGE_SHADER];
+        fmodels->rock_type0.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
+            = gst->textures[ROCK_TEXID];
+ 
 
     }
 
@@ -531,6 +562,7 @@ void delete_terrain(struct terrain_t* terrain) {
     }
 
     UnloadModel(terrain->foliage_models.tree_type0);
+    UnloadModel(terrain->foliage_models.rock_type0);
 
 }
 
@@ -546,22 +578,28 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain) {
             DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
 
 
-            DrawMeshInstanced(
+            // Tree type0
+            DrawMeshInstanced( // Tree bark
                     terrain->foliage_models.tree_type0.meshes[0],
                     terrain->foliage_models.tree_type0.materials[0],
                     chunk->foliage_matrices.tree_type0,
                     chunk->foliage_matrices.num_tree_type0
                     );
 
-            DrawMeshInstanced(
+            DrawMeshInstanced( // Tree leafs
                     terrain->foliage_models.tree_type0.meshes[1],
                     terrain->foliage_models.tree_type0.materials[1],
                     chunk->foliage_matrices.tree_type0,
                     chunk->foliage_matrices.num_tree_type0
                     );
 
-
-
+            // Rock type0
+            DrawMeshInstanced(
+                    terrain->foliage_models.rock_type0.meshes[0],
+                    terrain->foliage_models.rock_type0.materials[0],
+                    chunk->foliage_matrices.rock_type0,
+                    chunk->foliage_matrices.num_rock_type0
+                    );
         }
     }
 }

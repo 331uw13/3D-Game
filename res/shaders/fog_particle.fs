@@ -22,6 +22,7 @@ in vec3 fragViewPos;
 void main()
 {
     vec3 col;
+    /*
     vec3 g_lightdot = vec3(0.0);
 
     vec3 texelcolor = texture(texture0, fragTexCoord).rgb * 0.7;
@@ -37,6 +38,10 @@ void main()
     v *= v;
     col += (v * 0.25) * vec3(0.0, 0.3,0.3);
 
+
+    */
+    
+    col = vec3(0.45, 0.2, 0.3);
     float dist = length(fragViewPos - fragPosition);
     col = get_fog(col, dist);
 

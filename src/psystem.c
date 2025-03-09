@@ -33,6 +33,7 @@ void delete_psystem(struct psystem_t* psys) {
 void create_psystem(
         struct state_t* gst,
         int groupid,
+        int time_setting,
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
@@ -54,6 +55,7 @@ void create_psystem(
     }
 
     psys->groupid = groupid;
+    psys->time_setting = time_setting;
     psys->enabled = 0;
     psys->max_particles = max_particles;
     psys->num_alive_parts = 0;
@@ -139,7 +141,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             continue;
         }
 
-        if(p->max_lifetime <= 0.0) {
+        if((p->max_lifetime <= 0.0) && (psys->time_setting != PSYS_CONTINUOUS)) {
             fprintf(stderr, "\033[35m(WARNING) '%s': Particle 'max_lifetime' is 0 or less\033[0m\n",
                     __func__);
         }
@@ -151,7 +153,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
 
         p->lifetime += gst->dt;
-        if(p->lifetime > p->max_lifetime) {
+        if((psys->time_setting == PSYS_ONESHOT) && (p->lifetime > p->max_lifetime)) {
             p->alive = 0;
 
             if(p->has_light) {

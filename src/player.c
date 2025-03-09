@@ -29,13 +29,13 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     
-    p->walkspeed = 0.532;
+    p->walkspeed = 20.0;
     p->run_mult = 1.5;
     p->walkspeed_aim_mult = 0.5;
-    p->air_speed_mult = 2.0;
+    p->air_speed_mult = 1.5;
 
-    p->jump_force = 0.128;
-    p->gravity = 0.3;
+    p->jump_force = 100.0;
+    p->gravity = 0.5;
     
     p->onground = 1;
     p->friction = 0.015;
@@ -61,6 +61,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
 
+    p->rotation_from_hit = (Vector3){ 0, 0, 0 };
 
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
@@ -144,7 +145,22 @@ void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon
     
     p->health -= get_weapon_damage(weapon, NULL);
 
-    //...
+    const float r = 0.035;
+    p->rotation_from_hit = (Vector3) {
+        RSEEDRANDOMF(-r, r),
+        RSEEDRANDOMF(-r*0.5, r*0.5),
+        RSEEDRANDOMF(-r, r)
+    };
+
+}
+
+
+Vector3 Vec3Lerp(float t, Vector3 a, Vector3 b) {
+    return (Vector3) {
+        lerp(t, a.x, b.x),
+        lerp(t, a.y, b.y),
+        lerp(t, a.z, b.z)
+    };
 }
 
 void player_update(struct state_t* gst, struct player_t* p) {
@@ -211,21 +227,6 @@ void player_update(struct state_t* gst, struct player_t* p) {
         && FloatEquals(p->velocity.z, 0.0));
 
 
-
-    /*
-    Vector3 gun_lightpos = (Vector3){0};
-    gun_lightpos = Vector3Transform(gun_lightpos, p->gunmodel.transform);
-
-    gun_lightpos.z -= 2.0;
-    gun_lightpos.y -= 1.0;
-
-    struct light_t* gunlight = &gst->normal_lights[PLAYER_GUN_NLIGHT];
-    gunlight->position = gun_lightpos;
-
-
-    update_light_values(gunlight, gst->shaders[DEFAULT_SHADER]);
-
-    */
 }
 
 
@@ -234,9 +235,6 @@ void player_render(struct state_t* gst, struct player_t* p) {
     if(p->noclip) {
         return;
     }
- 
-
-
 
     Matrix rotate_m = MatrixInvert(GetCameraViewMatrix(&p->cam));
     Matrix transform = MatrixTranslate(0.0, 0.0, 0.0);

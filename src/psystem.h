@@ -48,8 +48,10 @@ struct particle_t {
 #define PSYS_GROUPID_ENEMY 1
 #define PSYS_GROUPID_ENV 2
 
-// TODO: have uniform buffer and write particles color each time update was done to
-// the uniform buffer. shaders can use that with gl_InstanceID.
+// 'time_setting' for particle system
+#define PSYS_ONESHOT 0
+#define PSYS_CONTINUOUS 1
+
 
 struct psystem_t {
 
@@ -95,6 +97,7 @@ struct psystem_t {
     int shader_color_uniformloc;
     int shader_time_uniformloc;
 
+    int time_setting;
 
     int   first_render;
     int   halt;
@@ -104,10 +107,12 @@ struct psystem_t {
 
 void delete_psystem(struct psystem_t* psys);
 
+
 // IMPORTANT NOTE: do NOT set psystem.userptr before calling 'create_psystem'. set it AFTER.
 void create_psystem(
         struct state_t* gst,
         int groupid,
+        int time_setting,
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),

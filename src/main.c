@@ -291,6 +291,7 @@ void cleanup(struct state_t* gst) {
     UnloadShader(gst->shaders[PRJ_ENVHIT_PSYS_SHADER]);
     UnloadShader(gst->shaders[BASIC_WEAPON_PSYS_SHADER]);
     UnloadShader(gst->shaders[FOLIAGE_SHADER]);
+    UnloadShader(gst->shaders[FOG_PARTICLE_SHADER]);
     free_player(&gst->player);
 
     delete_terrain(&gst->terrain);
@@ -333,7 +334,7 @@ void first_setup(struct state_t* gst) {
     EndDrawing();
 
     DisableCursor();
-    SetTargetFPS(500);
+    SetTargetFPS(TARGET_FPS);
     gst->num_textures = 0;
     gst->debug = 0;
     gst->num_enemies = 0;
@@ -367,7 +368,8 @@ void first_setup(struct state_t* gst) {
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
     load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
     load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
-    load_texture(gst, "res/textures/leaf.jpg", TEST_TEXID);
+    load_texture(gst, "res/textures/leaf.jpg", LEAF_TEXID);
+    load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
     
     gst->lights_ubo = 0;
 
@@ -436,8 +438,8 @@ void first_setup(struct state_t* gst) {
                 (Vector3){ 50, 1, -100 }, // initial position
                 (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
                 (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                200.0,  // target range
-                0.3    // firerate
+                600.0,  // target range
+                0.265    // firerate
                 );
 
 

@@ -23,20 +23,21 @@ void handle_userinput(struct state_t* gst) {
     gst->player.looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
 
     
-    float camspeed = gst->player.walkspeed;
+    float velocity_speed = gst->player.walkspeed;
+    float player_speed = gst->player.walkspeed;
 
     if((IsKeyDown(KEY_LEFT_SHIFT) && !gst->player.is_aiming && gst->player.onground)) {
-        camspeed *= gst->player.run_mult;
+        player_speed *= gst->player.run_mult;
     }
 
     if(!gst->player.onground) {
-        camspeed *= gst->player.air_speed_mult;
+        player_speed *= gst->player.air_speed_mult;
     }
     
-    camspeed *= dt;
-   
-        
-    // ----- Handle player Y movement -------
+    velocity_speed *= gst->dt;
+ 
+
+    // ----- Handle player Y Movement -------
     //
 
     if(!gst->player.noclip)
@@ -52,9 +53,9 @@ void handle_userinput(struct state_t* gst) {
 
         RayCollision t_hit = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
         const float heightvalue = t_hit.point.y + gst->player.height;
-        //gst->player.position.y = t_hit.point.y + gst->player.hitbox_size.y;
 
-        gst->player.position.y += gst->player.velocity.y;
+
+        gst->player.position.y += gst->player.velocity.y * gst->dt;
         
         if((gst->player.position.y < heightvalue) || gst->player.onground) {
             gst->player.position.y = heightvalue;
@@ -63,65 +64,59 @@ void handle_userinput(struct state_t* gst) {
         }
         
         if(!gst->player.onground){
-            gst->player.velocity.y -= gst->player.gravity * gst->dt;
+            float g = (500*gst->player.gravity) * gst->dt;
+            gst->player.velocity.y -= g;
         }
+
 
         float scale_up = ( gst->player.position.y - gst->player.cam.position.y);
 
         Vector3 up = Vector3Scale(GetCameraUp(&gst->player.cam), scale_up);
         gst->player.cam.target = Vector3Add(gst->player.cam.target, up);
-
         gst->player.cam.position.y = gst->player.position.y;
-
 
     }
     else {
         const float noclip_speed_mult = 8;
         if(IsKeyDown(KEY_SPACE)) {
-            CameraMoveUp(&gst->player.cam, (dt * 15.0) * noclip_speed_mult);
+            CameraMoveUp(&gst->player.cam, (dt * 35.0) * noclip_speed_mult);
         }
         else if(IsKeyDown(KEY_LEFT_CONTROL)) {
-            CameraMoveUp(&gst->player.cam, -(dt * 18.0) * noclip_speed_mult);
+            CameraMoveUp(&gst->player.cam, -(dt * 38.0) * noclip_speed_mult);
         }
-        camspeed *= noclip_speed_mult;
+        player_speed *= noclip_speed_mult;
     }
- 
 
-    // XZ Movement.
+    // ----- Handle player X Z Movement -------
 
     if(IsKeyDown(KEY_W)) {
-        gst->player.velocity.z += camspeed;
+        gst->player.velocity.z += velocity_speed;
     }
     if(IsKeyDown(KEY_S)) {
-        gst->player.velocity.z -= camspeed;
+        gst->player.velocity.z -= velocity_speed;
     }
     if(IsKeyDown(KEY_A)) {
-        gst->player.velocity.x -= camspeed;
+        gst->player.velocity.x -= velocity_speed;
     }
     if(IsKeyDown(KEY_D)) {
-        gst->player.velocity.x += camspeed;
+        gst->player.velocity.x += velocity_speed;
     }
 
-
-
-
-    // X Z  movement.
-
-    const float vmax = 1.0;
+    const float vmax = 3.0; // velocity max.
 
     gst->player.velocity.z = CLAMP(gst->player.velocity.z, -vmax, vmax);
     gst->player.velocity.x = CLAMP(gst->player.velocity.x, -vmax, vmax);
 
-    CameraMoveForward(&gst->player.cam, gst->player.velocity.z, 1);
-    CameraMoveRight(&gst->player.cam, gst->player.velocity.x, 1);
+    CameraMoveForward (&gst->player.cam, (player_speed * gst->player.velocity.z) * gst->dt, 1);
+    CameraMoveRight   (&gst->player.cam, (player_speed * gst->player.velocity.x) * gst->dt, 1);
     
-
-    const float f = (1.0 - gst->player.friction);
+    float f = pow(1.0 - gst->player.friction, gst->dt * TARGET_FPS);
     gst->player.velocity.z *= f;
     gst->player.velocity.x *= f;
 
-
     gst->player.position = gst->player.cam.position;
+
+
 
     // ----- User interaction ---------
 
@@ -149,10 +144,21 @@ void handle_userinput(struct state_t* gst) {
         gst->player.ready_to_shoot = 0;
     }
 
+
+
     if(IsKeyPressed(KEY_T)) {
         gst->debug = !gst->debug;
         printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
     }
+
+    if(IsKeyPressed(KEY_ONE)) {
+        SetTargetFPS(25);
+    }
+    if(IsKeyPressed(KEY_TWO)) {
+        SetTargetFPS(TARGET_FPS);
+    }
+
+
 }
 
 

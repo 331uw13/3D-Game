@@ -9,6 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "particle_systems/prj_envhit_psys.h"
 #include "particle_systems/enemy_hit_psys.h"
+#include "particle_systems/fog_effect_psys.h"
 
 
 void state_update_shader_uniforms(struct state_t* gst) {
@@ -22,9 +23,11 @@ void state_update_shader_uniforms(struct state_t* gst) {
         SetShaderValue(gst->shaders[DEFAULT_SHADER], 
                 gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
-         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
+        SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
                 gst->shaders[FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
+        SetShaderValue(gst->shaders[FOG_PARTICLE_SHADER], 
+                gst->shaders[FOG_PARTICLE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
     }
 
 
@@ -41,6 +44,12 @@ void state_update_shader_uniforms(struct state_t* gst) {
                 screen_size,
                 SHADER_UNIFORM_VEC2
                 );
+    }
+
+    // Update time
+    {
+        SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
+                gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
     }
 
 }
@@ -64,6 +73,7 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS]);
+    //update_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS]);
 }
 
 #include <stdio.h>
@@ -151,28 +161,6 @@ void state_render_environment(struct state_t* gst) {
 
 
             DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
-        
-
-            // Visualise chunk size.
-            for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
-                struct chunk_t* chunk = &gst->terrain.chunks[i];
-
-                const float chunk_s = gst->terrain.chunk_size * gst->terrain.scaling;
-                DrawCubeWires((Vector3){
-                            chunk->position.x + chunk_s/2,
-                            chunk->position.y,
-                            chunk->position.z + chunk_s/2
-                        }, 
-                        chunk_s,
-                        chunk_s,
-                        chunk_s,
-                        (i%2) ? (RED) : PURPLE
-                        );
-            
-                DrawSphere((Vector3){
-                        chunk->center_pos.x, 50.0, chunk->center_pos.z
-                        }, 1.0, GREEN);
-            }
         }
 
 
@@ -183,27 +171,6 @@ void state_render_environment(struct state_t* gst) {
 
         // Terrain.
         render_terrain(gst, &gst->terrain);
-
-        /*
-        // Terrain foliage (tree0)
-        gst->terrain.foliage.tree0_material.maps[MATERIAL_MAP_DIFFUSE].texture
-            = gst->textures[TREEBARK_TEXID];
-        DrawMeshInstanced(
-                gst->terrain.foliage.tree0_model.meshes[0],
-                gst->terrain.foliage.tree0_material,
-                gst->terrain.foliage.tree0_transforms,
-                NUM_TREE_TYPE0
-                );
-
-        gst->terrain.foliage.tree0_material.maps[MATERIAL_MAP_DIFFUSE].texture
-            = gst->textures[TEST_TEXID];
-        DrawMeshInstanced(
-                gst->terrain.foliage.tree0_model.meshes[1],
-                gst->terrain.foliage.tree0_material,
-                gst->terrain.foliage.tree0_transforms,
-                NUM_TREE_TYPE0
-                );
-                */
 
         
         // Enemies.
@@ -217,7 +184,8 @@ void state_render_environment(struct state_t* gst) {
         render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
         render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
         render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
-        render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 160, 20});
+        render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 160, 20, 255});
+        //render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
     
 
         EndShaderMode();
@@ -317,7 +285,6 @@ void state_setup_all_shaders(struct state_t* gst) {
  
 
 
-
     // --- Setup FOLIAGE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOLIAGE_SHADER];
@@ -328,9 +295,21 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-   
+  
+        gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
+    // --- Setup FOG_EFFECT_PARTICLE_SHADER ---
+    {
+        Shader* shader = &gst->shaders[FOG_PARTICLE_SHADER];
+        load_shader(
+                "res/shaders/instance_core.vs",
+                "res/shaders/fog_particle.fs", shader);
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+    }
 
     // --- Setup Bloom Treshold Shader ---
     {
@@ -349,7 +328,7 @@ void state_create_enemy_weapons(struct state_t* gst) {
     // Player's weapon.
     gst->player.weapon = (struct weapon_t) {
         .id = PLAYER_WEAPON_ID,
-        .accuracy = 8.25,
+        .accuracy = 8.85,
         .damage = 10.0,
         .critical_chance = 25,
         .critical_mult = 3.0,
@@ -387,6 +366,7 @@ void state_create_psystems(struct state_t* gst) {
         create_psystem(
                 gst,
                 PSYS_GROUPID_PLAYER,
+                PSYS_ONESHOT,
                 psystem,
                 32,
                 weapon_psys_prj_update,
@@ -404,6 +384,7 @@ void state_create_psystems(struct state_t* gst) {
         create_psystem(
                 gst,
                 PSYS_GROUPID_PLAYER,
+                PSYS_ONESHOT,
                 psystem,
                 64,
                 prj_envhit_psys_update,
@@ -423,6 +404,7 @@ void state_create_psystems(struct state_t* gst) {
         create_psystem(
                 gst,
                 PSYS_GROUPID_ENEMY,
+                PSYS_ONESHOT,
                 psystem,
                 32,
                 weapon_psys_prj_update,
@@ -440,6 +422,7 @@ void state_create_psystems(struct state_t* gst) {
         create_psystem(
                 gst,
                 PSYS_GROUPID_ENEMY,
+                PSYS_ONESHOT,
                 psystem,
                 64,
                 prj_envhit_psys_update,
@@ -458,6 +441,7 @@ void state_create_psystems(struct state_t* gst) {
         create_psystem(
                 gst,
                 PSYS_GROUPID_ENV,
+                PSYS_ONESHOT,
                 psystem,
                 64,
                 enemy_hit_psys_update,
@@ -469,6 +453,27 @@ void state_create_psystems(struct state_t* gst) {
         psystem->userptr = &gst->player.weapon;
     }
 
+    // Create FOG_EFFECT_PSYS.
+    { // (environment effect)
+
+        const int num_fog_effect_parts = 700;
+        struct psystem_t* psystem = &gst->psystems[FOG_EFFECT_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_CONTINUOUS,
+                psystem,
+                num_fog_effect_parts,
+                fog_effect_psys_update,
+                fog_effect_psys_init,
+                FOG_PARTICLE_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 4, 4);
+        add_particles(gst, psystem, num_fog_effect_parts, (Vector3){0}, (Vector3){0}, NULL, NO_EXTRADATA);
+    }
+
+
 
 }
 
@@ -477,6 +482,7 @@ void state_delete_psystems(struct state_t* gst) {
     delete_psystem(&gst->psystems[ENEMY_PRJ_ENVHIT_PSYS]);
     delete_psystem(&gst->psystems[ENEMY_LVL0_WEAPON_PSYS]);
     delete_psystem(&gst->psystems[ENEMY_HIT_PSYS]);
+    delete_psystem(&gst->psystems[FOG_EFFECT_PSYS]);
 
 }
 

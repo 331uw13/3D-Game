@@ -7,6 +7,7 @@
 #include <rcamera.h> // raylib camera
 
 
+#define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
 
 // Index for textures.
@@ -19,7 +20,8 @@
 #define PLAYER_ARMS_TEXID 5
 #define CRITICALHIT_TEXID 6
 #define TREEBARK_TEXID 7
-#define TEST_TEXID 8
+#define LEAF_TEXID 8
+#define ROCK_TEXID 9
 #define MAX_TEXTURES 16
 
 
@@ -39,6 +41,7 @@
 #define PRJ_ENVHIT_PSYS_SHADER 3
 #define BASIC_WEAPON_PSYS_SHADER 4
 #define FOLIAGE_SHADER 5
+#define FOG_PARTICLE_SHADER 6
 #define MAX_SHADERS 8
 // ...
  
@@ -50,8 +53,9 @@
 #define PLAYER_PRJ_ENVHIT_PSYS 0
 #define ENEMY_PRJ_ENVHIT_PSYS 1
 #define ENEMY_LVL0_WEAPON_PSYS 2
-#define ENEMY_HIT_PSYS 3 // When enemy gets hit.
-#define MAX_PSYSTEMS 4
+#define ENEMY_HIT_PSYS 3 
+#define FOG_EFFECT_PSYS 4
+#define MAX_PSYSTEMS 5
 // ...
 
 
@@ -61,7 +65,8 @@
 #define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
 #define POSTPROCESS_PLAYER_HEALTH_FS_UNILOC 2
 #define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 8
-#define MAX_FS_UNILOCS 9
+#define FOLIAGE_SHADER_TIME_FS_UNILOC 9
+#define MAX_FS_UNILOCS 10
 
 
 // Normal lights:

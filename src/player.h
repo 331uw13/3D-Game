@@ -49,6 +49,8 @@ struct player_t {
     Matrix gunmodel_aim_offset_m;
     Matrix gunmodel_rest_offset_m;
 
+    Vector3 rotation_from_hit; // Rotate player camera when player gets hit.
+
     // TODO: re write this recoil mess.
     float  recoil_timer;
     float  recoil_strength;

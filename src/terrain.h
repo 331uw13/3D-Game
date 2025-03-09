@@ -10,12 +10,12 @@
 struct state_t;
 
 
-#define RENDER_DISTANCE 1500
-#define CHUNK_SIZE 32
+#define RENDER_DISTANCE 1800
+#define CHUNK_SIZE 64
 
 
 #define TREE_TYPE0_MAX_PERCHUNK 30
-#define ROCK_TYPE0_MAX_PERCHUNK 5
+#define ROCK_TYPE0_MAX_PERCHUNK 10
 
 struct heightmap_t {
     float*  data;
@@ -39,7 +39,7 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
 struct foliage_matrices_t {
     Matrix tree_type0[TREE_TYPE0_MAX_PERCHUNK];
     size_t num_tree_type0;
-
+    
     Matrix rock_type0[ROCK_TYPE0_MAX_PERCHUNK];
     size_t num_rock_type0;
 };
