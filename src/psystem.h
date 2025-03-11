@@ -36,9 +36,10 @@ struct particle_t {
     Matrix* transform;
 
     void* extradata;
-
+    
     struct light_t light;
     int has_light;
+
 };
 
 #define NO_EXTRADATA 0
@@ -58,10 +59,7 @@ struct psystem_t {
     int groupid;
     int enabled;
 
-    // if "true": particle system will be disabled after all particles are dead.
-    //            and 'pinit_callback' is not called after particle dies.
-    int one_shot; // <- TODO
-    
+   
     struct particle_t* particles;
     
     Matrix*     transforms;

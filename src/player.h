@@ -40,6 +40,7 @@ struct player_t {
     int      num_jumps_inair;
     int      noclip;
     int      is_aiming;
+    int      alive;
 
     Model gunmodel;
     Material arms_material;
@@ -85,14 +86,15 @@ struct player_t {
 
 
 void init_player_struct(struct state_t* gst, struct player_t* p);
-void free_player(struct player_t* p);
+void delete_player(struct player_t* p);
 
+void player_respawn(struct state_t* gst, struct player_t* p);
 void player_shoot(struct state_t* gst, struct player_t* p);
 void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon);
+void player_update_death_animation(struct state_t* gst, struct player_t* p);
 
 // updates player's variables. not movement for movement see (input.c)
 void player_update(struct state_t* gst, struct player_t* p);
-
 void player_render(struct state_t* gst, struct player_t* p);
 
 BoundingBox get_player_boundingbox(struct player_t* p);

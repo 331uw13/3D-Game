@@ -13,9 +13,8 @@ void prj_envhit_psys_update(
         struct particle_t* part
 ){
 
-    float ntime = normalize(part->lifetime*3.0, 0.0, part->max_lifetime);
-    ntime *= 2;
-    float st = lerp(ntime,  0.0, 1.0);
+    float ntime = normalize(part->lifetime*3, 0.0, part->max_lifetime);
+    float st = lerp(ntime*2, 0.0, 1.65);
 
     Matrix scale_m = MatrixScale(st, st, st);
     Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);

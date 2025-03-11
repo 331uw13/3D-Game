@@ -13,6 +13,14 @@
 
 void handle_userinput(struct state_t* gst) {
 
+    if(IsKeyPressed(KEY_F)) {
+        player_respawn(gst, &gst->player);
+    }
+
+    if(!gst->player.alive) {
+        return;
+    }
+
     Vector2 md = GetMouseDelta();
     float dt = GetFrameTime();
 
@@ -47,8 +55,6 @@ void handle_userinput(struct state_t* gst) {
             gst->player.velocity.y = gst->player.jump_force;
             gst->player.onground = 0;
         }
-
-        Vector3 pos = gst->player.position;
 
 
         RayCollision t_hit = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
@@ -152,7 +158,7 @@ void handle_userinput(struct state_t* gst) {
     }
 
     if(IsKeyPressed(KEY_ONE)) {
-        SetTargetFPS(25);
+        SetTargetFPS(35);
     }
     if(IsKeyPressed(KEY_TWO)) {
         SetTargetFPS(TARGET_FPS);

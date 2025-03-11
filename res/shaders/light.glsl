@@ -81,7 +81,7 @@ void compute_lights(vec3 view_dir) {
         float dist = 1.0;
         lightdir = normalize(lightpos - fragPosition);
             
-        float light_radius = 2.5;
+        float light_radius = 4.5;
         dist = distance(prj_lights[i].pos.xyz, fragPosition) / light_radius;
         dist = 1.0/dist;
 
@@ -91,7 +91,7 @@ void compute_lights(vec3 view_dir) {
    
         float spec = 0.0;
         if(NdotL > 0.0) {
-            spec = pow(max(0.0, dot(view_dir, reflect(-lightdir, normal))), 8.0);
+            spec = pow(max(0.0, dot(view_dir, reflect(-lightdir, normal))), 32.0);
         }
 
         if(prj_lights[i].type != LIGHT_DIRECTIONAL) {

@@ -19,6 +19,8 @@
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 
 
+#define ENEMY_NUM_BROKEN_MESH 4
+
 // This handles all basic behaviour for enemies.
 // Then calls 'enemies/enemy_lvl*.c'(depending on "enemy type") 
 // to handle the rest if needed
@@ -37,8 +39,17 @@ struct enemy_travel_t {
     int enabled; // Some enemies may not move.
 };
 
+// TODO: remove rotation from hit!
+
 struct enemy_t {
     Model model;
+
+    // When enemy dies the model "breaks"
+    Model broken_model;
+    Matrix* broken_matrices;
+    Vector3* broken_mesh_velocities; // Velocities for "broken" meshes.
+    Vector3* broken_mesh_rotations;  // Rotations for "broken" meshes.
+
     int type;
 
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
@@ -50,14 +61,19 @@ struct enemy_t {
     float target_range; // how far can the enemy "see" the player
     int   has_target;
 
+    int   alive;
     float health;
     float max_health;
+
+    int   broken_model_despawned;
+    float broken_model_despawn_maxtime;
+    float broken_model_despawn_timer;
 
     // When enemy gets hit. velocity is applied.
     Vector3 knockback_velocity;
     Vector3 hit_direction;
     
-    // Rotation is applied when hit.
+    // Rotation may be applied when hit.
     Vector3 rotation_from_hit;
 
     // How long the enemy is stunned after it was hit.
@@ -90,7 +106,6 @@ struct enemy_t {
     float firerate_timer;
     int gun_index; // switch between model's guns.
 
-
 };
 
 // Probably not going to have ALOT of enemies at once.
@@ -104,6 +119,7 @@ struct enemy_t* create_enemy(
         int enemy_type,
         int texture_id,
         const char* model_filepath,
+        const char* broken_model_filepath, // Can be NULL.
         struct psystem_t* weapon_psysptr,
         struct weapon_t* weaponptr,
         int max_health,
@@ -114,6 +130,7 @@ struct enemy_t* create_enemy(
         float firerate
 );
 
+void load_enemy_broken_model(struct enemy_t* ent, const char* broken_model_filepath);
 // just unloads the model and sets health to 0
 void delete_enemy(struct enemy_t* ent);
 
@@ -121,16 +138,25 @@ void delete_enemy(struct enemy_t* ent);
 #define ENT_UPDATE_ONLY 0
 #define ENT_RENDER_ON_UPDATE 1
 
-// These functions "redirects" the call based on enemy type
 
-void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon, 
-        Vector3 hit_position, Vector3 hit_direction);
+// These functions "redirects" the call based on enemy type
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);
 void enemy_death(struct state_t* gst, struct enemy_t* ent);
 
-BoundingBox get_enemy_boundingbox(struct enemy_t* ent);
+void enemy_hit(
+        struct state_t* gst,
+        struct enemy_t* ent,
+        struct weapon_t* weapon, 
+        Vector3 hit_position,
+        Vector3 hit_direction
+        );
+
+int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
+
+BoundingBox   get_enemy_boundingbox(struct enemy_t* ent);
+void          update_enemy_broken_matrices(struct state_t* gst, struct enemy_t* ent);
 
 
 

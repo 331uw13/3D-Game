@@ -23,7 +23,6 @@ float get_weapon_damage(struct weapon_t* weapon, int* was_critical_hit) {
     int critical_hit = (GetRandomValue(0, 100) < weapon->critical_chance);
     if(critical_hit) {
         damage *= weapon->critical_mult;
-        printf("\033[31m(CRITICAL)\033[0m ");
     }
 
     if(was_critical_hit) {
@@ -31,7 +30,11 @@ float get_weapon_damage(struct weapon_t* weapon, int* was_critical_hit) {
     }
 
 
-    printf("damage: %0.2f\n", damage);
+    printf("damage: %0.2f", damage);
+    if(critical_hit) {
+        printf(" \033[31m(Critical)\033[0m");
+    }
+    printf("\n");
 
     return damage;
 }

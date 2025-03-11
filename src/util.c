@@ -121,3 +121,9 @@ Color color_lerp(float t, Color a, Color b) {
         255
     };
 }
+
+float get_volume_dist(Vector3 player_pos, Vector3 sound_pos) {
+    float dst = CLAMP(Vector3Distance(player_pos, sound_pos), 
+            0.0, MAX_VOLUME_DIST);
+    return CLAMP(1.0 - (dst / MAX_VOLUME_DIST), 0.0, 0.6);
+}

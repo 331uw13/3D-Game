@@ -61,7 +61,13 @@ void weapon_psys_prj_update(
                 NULL,
                 NO_EXTRADATA
                 );
-        
+
+        if(gst->has_audio) {
+            SetSoundPitch(gst->sounds[PRJ_ENVHIT_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.25));
+            SetSoundVolume(gst->sounds[PRJ_ENVHIT_SOUND], get_volume_dist(gst->player.position, part->position));
+            PlaySound(gst->sounds[PRJ_ENVHIT_SOUND]);
+        }
+
         disable_particle(gst, part);
         return;
     }
@@ -127,6 +133,14 @@ void weapon_psys_prj_update(
                     1,
                     part->position,
                     (Vector3){0, 0, 0},
+                    NULL, NO_EXTRADATA
+                    );
+
+            add_particles(gst,
+                    &gst->psystems[PLAYER_HIT_PSYS],
+                    GetRandomValue(5, 10),
+                    part->position,
+                    part->velocity,
                     NULL, NO_EXTRADATA
                     );
 

@@ -49,7 +49,7 @@ int read_file(struct file_t* file, const char* filename) {
         goto error_and_close;
     }
 
-    printf("'%s' Read '%s'\n", __FILE__, filename);
+    //printf("'%s' Read '%s'\n", __FILE__, filename);
 
 
     file->data = NULL;

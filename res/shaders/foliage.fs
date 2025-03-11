@@ -24,7 +24,8 @@ void main()
     vec3 col;
     vec3 g_lightdot = vec3(0.0);
 
-    vec3 texelcolor = texture(texture0, fragTexCoord).rgb * 0.7;
+
+    vec3 texelcolor = texture(texture0, fragTexCoord * 1.85).rgb * 0.7;
     //texelcolor *= vec3(0.5, 0.7, 0.2);
 
     vec3 view_dir = normalize(fragViewPos - fragPosition);

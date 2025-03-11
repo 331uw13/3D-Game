@@ -1,4 +1,4 @@
-#include "enemy_hit_psys.h"
+#include "player_hit_psys.h"
 #include "../state.h"
 #include "../util.h"
 
@@ -7,29 +7,34 @@
 
 
 // PARTICLE UPDATE
-void enemy_hit_psys_update(
+void player_hit_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
 ){
+    // TODO: This can be optimized.
 
-    float ntime = normalize(part->lifetime, 0.0, part->max_lifetime);
-    float st = lerp(ntime,  1.0, 0.0);
+    RayCollision ray = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
+    Matrix scale_matrix = MatrixIdentity();
 
-    part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt*40));
+    if(part->position.y >= ray.point.y) {
+        part->velocity.y -= part->accel.y * gst->dt;
+        part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt*40));
+    }
+    else {
+        scale_matrix = MatrixScale(2.0, 0.5, 2.0);
+    }
 
-    Matrix scale_m = MatrixScale(st, st, st);
-    Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    
-    transform = MatrixMultiply(scale_m, transform);
+    Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
 
-    *part->transform = transform;
+
+    *part->transform = MatrixMultiply(scale_matrix, translation);
 }
 
 
 
 // PARTICLE INITIALIZATION
-void enemy_hit_psys_init(
+void player_hit_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,
@@ -49,12 +54,13 @@ void enemy_hit_psys_init(
     
     const float v_r = 0.5;
     part->velocity.x += RSEEDRANDOMF(-v_r, v_r);
-    part->velocity.y += RSEEDRANDOMF(-v_r, v_r);
+    part->velocity.y += RSEEDRANDOMF(-v_r*0.5, v_r*2);
     part->velocity.z += RSEEDRANDOMF(-v_r, v_r);
-    
+   
+    part->accel.y = 5.0;
 
     *part->transform = transform;
-    part->max_lifetime = RSEEDRANDOMF(0.485, 0.65);
+    part->max_lifetime = RSEEDRANDOMF(5.0, 8.0);
 }
 
 

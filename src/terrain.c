@@ -199,7 +199,6 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     int chunk_x = 0;
     int chunk_z = 0;
 
-    SetTraceLogLevel(LOG_WARNING);
     
     Vector3 scale = (Vector3) { terrain->scaling, 1.0, terrain->scaling };
 
@@ -221,10 +220,10 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
         Vector3 vA = { 0 };
         Vector3 vB = { 0 };
         Vector3 vC = { 0 };
-        Vector3 vD = { 0 };
 
         int v_counter = 0; // Count vertices.
         int n_counter = 0; // Count normals.
+        int tc_counter = 0; // Count texcoords.
 
         chunk->position = (Vector3){ 
             (chunk_x * (terrain->scaling)) - ((terrain_size/2) * terrain->scaling),
@@ -321,6 +320,32 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                     chunk->mesh.normals[n_counter + i+8] = vN.z;
                 }
 
+                // Texture coordinates.
+                const float m_s = (float)8 - 1;
+
+                float tx = (float)x;
+                float tz = (float)z;
+
+                chunk->mesh.texcoords[tc_counter]   = tx / m_s;
+                chunk->mesh.texcoords[tc_counter+1] = tz / m_s;
+                
+                chunk->mesh.texcoords[tc_counter+2] = tx / m_s;
+                chunk->mesh.texcoords[tc_counter+3] = (tz+1) / m_s;
+                
+                chunk->mesh.texcoords[tc_counter+4] = (tx+1) / m_s;
+                chunk->mesh.texcoords[tc_counter+5] = tz / m_s;
+                
+                chunk->mesh.texcoords[tc_counter+6] = chunk->mesh.texcoords[tc_counter + 4];
+                chunk->mesh.texcoords[tc_counter+7] = chunk->mesh.texcoords[tc_counter + 5];
+                
+                chunk->mesh.texcoords[tc_counter+8] = chunk->mesh.texcoords[tc_counter + 2];
+                chunk->mesh.texcoords[tc_counter+9] = chunk->mesh.texcoords[tc_counter + 3];
+                
+                chunk->mesh.texcoords[tc_counter+10] = (tx+1) / m_s;
+                chunk->mesh.texcoords[tc_counter+11] = (tz+1) / m_s;
+
+                tc_counter += 12;
+
                 n_counter += 18;
             }
         }
@@ -336,8 +361,6 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
         }
     }
 
-    SetTraceLogLevel(LOG_ALL);
-
     printf("\n----------------\n");
 }
 
@@ -348,7 +371,8 @@ void generate_terrain(
         float  terrain_scaling,
         float  amplitude,
         float  frequency,
-        int    octaves
+        int    octaves,
+        int    seed
 ) {
 
     // Start by creating a height map for the terrain.
@@ -359,15 +383,19 @@ void generate_terrain(
     terrain->chunks = NULL;
 
     terrain->highest_point = 0.0;
+    terrain->num_visible_chunks = 0;
 
+    // The 'randomf' function modifies the seed.
+    int seed_x = randomgen(&seed);
+    int seed_z = randomgen(&seed);
     
     // First pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * (terrain->heightmap.size) + x;
 
-            float p_nx = ((float)x / (float)terrain->heightmap.size) * frequency;
-            float p_nz = ((float)z / (float)terrain->heightmap.size) * frequency;
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * frequency;
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * frequency;
 
             float value = fbm_2D(p_nx, p_nz, octaves) * amplitude;
             terrain->heightmap.data[index] = value;
@@ -379,8 +407,8 @@ void generate_terrain(
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
 
-            float p_nx = ((float)x / (float)terrain->heightmap.size) * (frequency/6);
-            float p_nz = ((float)z / (float)terrain->heightmap.size) * (frequency/6);
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/6);
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/6);
 
             float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 10);
             terrain->heightmap.data[index] += value;
@@ -460,6 +488,7 @@ void generate_terrain(
     terrain->transform = MatrixTranslate(terrain_pos, 0, terrain_pos);
     terrain->material = LoadMaterialDefault();
     terrain->material.shader = gst->shaders[DEFAULT_SHADER];
+    terrain->material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[MOSS_TEXID];
 
 
     // Load foliage models
@@ -497,41 +526,8 @@ void generate_terrain(
     _load_terrain_chunks(gst, terrain);
 
 
-    printf("\033[32m >> Generated terrain succesfully.\033[0m\n");
-
+    printf("\033[32m -> Generated terrain succesfully.\033[0m\n");
 }
-
-/*
-void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain) {
-
-    // Create tree type0
-
-    terrain->foliage.tree0_model = LoadModel("res/models/tree.glb");
-    terrain->foliage.tree0_material = LoadMaterialDefault();
-    terrain->foliage.tree0_material.shader = gst->shaders[FOLIAGE_SHADER];
-    terrain->foliage.tree0_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[TREEBARK_TEXID];
-
-    const float tscale = terrain->heightmap.size * terrain->scaling;
-
-    for(int i = 0; i < NUM_TREE_TYPE0; i++) {
-    
-        float x = RSEEDRANDOMF(-tscale, tscale);
-        float z = RSEEDRANDOMF(-tscale, tscale);
-
-        RayCollision ray = raycast_terrain(terrain, x, z);
-        Vector3 pos = (Vector3) {
-            x, ray.point.y, z
-        };
-
-        Matrix transform = MatrixTranslate(pos.x, pos.y, pos.z);
-        Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0, 360) * DEG2RAD);
-
-        transform = MatrixMultiply(rotation, transform);
-
-        terrain->foliage.tree0_transforms[i] = transform;
-    }
-}
-*/
 
 
 void delete_terrain(struct terrain_t* terrain) {
@@ -548,8 +544,6 @@ void delete_terrain(struct terrain_t* terrain) {
 
     if(terrain->chunks) {
 
-        SetTraceLogLevel(LOG_ERROR);
-
         for(size_t i = 0; i < terrain->num_chunks; i++) {
             UnloadMesh(terrain->chunks[i].mesh);
         }
@@ -557,51 +551,62 @@ void delete_terrain(struct terrain_t* terrain) {
         free(terrain->chunks);
         terrain->chunks = NULL;
     
-        printf("----- UNLOADED CHUNKS -----\n");
-        SetTraceLogLevel(LOG_ALL);
     }
 
     UnloadModel(terrain->foliage_models.tree_type0);
     UnloadModel(terrain->foliage_models.rock_type0);
 
+    printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
 
+// TODO: This needs optimization!
+// ------------------------------
+void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_id) {
 
-void render_terrain(struct state_t* gst, struct terrain_t* terrain) {
+    terrain->num_visible_chunks = 0;
+
+    terrain->material.shader = gst->shaders[shader_id];
+   
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         chunk->dst2player = Vector3Distance(chunk->center_pos, gst->player.position);
 
-        if(chunk->dst2player < RENDER_DISTANCE) {
-            Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
-            DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
-
-
-            // Tree type0
-            DrawMeshInstanced( // Tree bark
-                    terrain->foliage_models.tree_type0.meshes[0],
-                    terrain->foliage_models.tree_type0.materials[0],
-                    chunk->foliage_matrices.tree_type0,
-                    chunk->foliage_matrices.num_tree_type0
-                    );
-
-            DrawMeshInstanced( // Tree leafs
-                    terrain->foliage_models.tree_type0.meshes[1],
-                    terrain->foliage_models.tree_type0.materials[1],
-                    chunk->foliage_matrices.tree_type0,
-                    chunk->foliage_matrices.num_tree_type0
-                    );
-
-            // Rock type0
-            DrawMeshInstanced(
-                    terrain->foliage_models.rock_type0.meshes[0],
-                    terrain->foliage_models.rock_type0.materials[0],
-                    chunk->foliage_matrices.rock_type0,
-                    chunk->foliage_matrices.num_rock_type0
-                    );
+        if(chunk->dst2player > RENDER_DISTANCE) {
+            continue;
         }
+    
+        terrain->num_visible_chunks++;
+        
+
+        Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
+        DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
+
+
+        // Tree type0
+        DrawMeshInstanced( // Tree bark
+                terrain->foliage_models.tree_type0.meshes[0],
+                terrain->foliage_models.tree_type0.materials[0],
+                chunk->foliage_matrices.tree_type0,
+                chunk->foliage_matrices.num_tree_type0
+                );
+
+        DrawMeshInstanced( // Tree leafs
+                terrain->foliage_models.tree_type0.meshes[1],
+                terrain->foliage_models.tree_type0.materials[1],
+                chunk->foliage_matrices.tree_type0,
+                chunk->foliage_matrices.num_tree_type0
+                );
+
+        // Rock type0
+        DrawMeshInstanced(
+                terrain->foliage_models.rock_type0.meshes[0],
+                terrain->foliage_models.rock_type0.materials[0],
+                chunk->foliage_matrices.rock_type0,
+                chunk->foliage_matrices.num_rock_type0
+                );
     }
+
 }
 
 

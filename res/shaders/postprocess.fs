@@ -8,17 +8,21 @@ in vec4 fragColor;
 // Input uniform values
 uniform sampler2D texture0;
 uniform sampler2D bloom_treshold_texture;
+uniform sampler2D depth_texture;
 
 uniform vec4 colDiffuse;
 uniform float time;
 uniform float health; // normalized
 uniform vec2 screen_size;
+uniform vec3 cam_target;
+uniform vec3 cam_pos;
 
 // Output fragment color
 out vec4 finalColor;
 
 #define Pi 3.14159
 #define Pi2 (Pi*2)
+#define PiR (Pi/180.0)
 
 float lerp(float t, float min, float max) {
     return (max - min) * t + min;
@@ -68,10 +72,11 @@ vec3 get_bloom() {
 
 
 
+
 void main()
 {
-
     vec3 color = texture(texture0, fragTexCoord).rgb;
+
 
     vec3 tobloom = texture(texture0, fragTexCoord).rgb;
     vec3 bloom = get_bloom();
@@ -93,7 +98,6 @@ void main()
         }     
     }
 
-
     for(int y = -r; y <= r; y++) {
         for(int x = -r; x <= r; x++) {
             vec2 p = vec2(x, y) * 0.9;
@@ -103,8 +107,12 @@ void main()
 
     color = mix(result/20.0, color, 0.5);
 
+    // ---------------------
 
 
 
     finalColor = vec4(color, 1.0);
 }
+
+
+

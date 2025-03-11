@@ -17,24 +17,24 @@ static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
 void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     p->cam = (Camera){ 0 };
-    p->cam.position = (Vector3){ 2.0, 3.0, 0.0 };
-    p->cam.target = (Vector3){ -1.0, 3.0, 1.0 };
+    p->cam.position = (Vector3){ 2.0, 0.0, 0.0 };
+    p->cam.target = (Vector3){ 0, 0, 0 };
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
     p->height = 5.0;
-    p->hitbox_size = (Vector3){ 1.0, 2.8, 1.0 };
+    p->hitbox_size = (Vector3){ 1.5, 2.8, 1.5 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     
     p->walkspeed = 20.0;
-    p->run_mult = 1.5;
+    p->run_mult = 2.3;
     p->walkspeed_aim_mult = 0.5;
     p->air_speed_mult = 1.5;
 
-    p->jump_force = 100.0;
+    p->jump_force = 130.0;
     p->gravity = 0.5;
     
     p->onground = 1;
@@ -50,8 +50,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->recoil_strength = 0.0;
     p->recoil_in_progress = 0;
 
-    p->max_health = 500.0;
+    p->max_health = 300.0;
     p->health = p->max_health;
+    p->alive = 1;
 
     p->accuracy_modifier = 0.0;
     p->accuracy_control = 3.0;
@@ -62,7 +63,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
 
     p->rotation_from_hit = (Vector3){ 0, 0, 0 };
-
+    
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
     p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUN_0_TEXID];
@@ -91,9 +92,11 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
 }
 
-void free_player(struct player_t* p) {
+void delete_player(struct player_t* p) {
     UnloadModel(p->gunmodel);
-    delete_psystem(&p->weapon_psys);
+    // ...
+    
+    printf("\033[35m -> Deleted Player\033[0m\n");
 }
 
 void player_shoot(struct state_t* gst, struct player_t* p) {
@@ -138,20 +141,38 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
 
     p->gun_light.strength += 0.025;
     p->gun_light.strength = CLAMP(p->gun_light.strength, 0.35, 1.0);
+
+
+    if(gst->has_audio) {
+        PlaySound(gst->sounds[PLAYER_GUN_SOUND]);
+    }
 }
 
 
 void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon) {
-    
+    if(!p->alive) {
+        return;
+    }
+
     p->health -= get_weapon_damage(weapon, NULL);
 
-    const float r = 0.035;
+    if(p->health <= 0.001) {
+        p->alive = 0;
+    }
+
+    const float r = 5.0;
     p->rotation_from_hit = (Vector3) {
         RSEEDRANDOMF(-r, r),
         RSEEDRANDOMF(-r*0.5, r*0.5),
         RSEEDRANDOMF(-r, r)
     };
 
+    if(gst->has_audio) {
+        SetSoundPitch(gst->sounds[PLAYER_HIT_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.35));
+        PlaySound(gst->sounds[PLAYER_HIT_SOUND]);
+    }
+
+    //printf("(PLAYER_HIT): \033[32mHealth: %0.1f\033[0m\n", p->health);
 }
 
 
@@ -162,6 +183,15 @@ Vector3 Vec3Lerp(float t, Vector3 a, Vector3 b) {
         lerp(t, a.z, b.z)
     };
 }
+
+void player_respawn(struct state_t* gst, struct player_t* p) {
+    if(p->alive) {
+        return;
+    }
+    p->health = p->max_health;
+    p->alive = 1;
+}
+
 
 void player_update(struct state_t* gst, struct player_t* p) {
 
@@ -227,6 +257,16 @@ void player_update(struct state_t* gst, struct player_t* p) {
         && FloatEquals(p->velocity.z, 0.0));
 
 
+
+    float ratio = pow(0.28, gst->dt * 5.0);
+  
+    p->rotation_from_hit.x *= ratio;
+    p->rotation_from_hit.y *= ratio;
+    p->rotation_from_hit.z *= ratio;
+
+    p->cam.target.x += p->rotation_from_hit.x * gst->dt;
+    p->cam.target.y += p->rotation_from_hit.y * gst->dt;
+    p->cam.target.x += p->rotation_from_hit.z * gst->dt;
 }
 
 
@@ -269,32 +309,35 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     p->gunmodel.transform = transform;
 
-    // Update Gun Light here because otherwise it will be one frame behind.
-    {
-        Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
 
-        lpos = Vector3Transform(lpos, p->gunmodel.transform);
-        //DrawSphere(lpos, 0.2, RED);
+    if(p->alive) {
+        // Update Gun Light here because otherwise it will be one frame behind.
+        {
+            Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
 
-        p->gun_light.position = lpos;
-        p->gun_light.color = p->weapon.color;
-        set_light(gst, &p->gun_light, gst->lights_ubo);
+            lpos = Vector3Transform(lpos, p->gunmodel.transform);
+            //DrawSphere(lpos, 0.2, RED);
+
+            p->gun_light.position = lpos;
+            p->gun_light.color = p->weapon.color;
+            set_light(gst, &p->gun_light, gst->lights_ubo);
+        }
+
+
+        // Gun
+        DrawMesh(
+                p->gunmodel.meshes[1],
+                p->gunmodel.materials[0],
+                p->gunmodel.transform
+                );
+
+        // Hands
+        DrawMesh(
+                p->gunmodel.meshes[0],
+                p->arms_material,
+                p->gunmodel.transform
+                );
     }
-
-
-    // Gun
-    DrawMesh(
-            p->gunmodel.meshes[1],
-            p->gunmodel.materials[0],
-            p->gunmodel.transform
-            );
-
-    // Hands
-    DrawMesh(
-            p->gunmodel.meshes[0],
-            p->arms_material,
-            p->gunmodel.transform
-            );
 
 }
 

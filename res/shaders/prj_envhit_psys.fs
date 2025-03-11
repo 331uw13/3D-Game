@@ -21,7 +21,7 @@ uniform float time;
 void main()
 {
     vec3 col = psystem_color.rgb;
-    float v = voronoi3d(vec3(0.0, time*5, 0.0) + fragPosition*0.35).x;
+    float v = voronoi3d(vec3(0.0, time*5, 0.0) + fragPosition*0.15).x;
   
     v *= v;
 

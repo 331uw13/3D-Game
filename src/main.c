@@ -32,6 +32,7 @@ void loop(struct state_t* gst) {
 
     gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
     gst->bloomtreshold_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+    gst->depth_texture = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
 
 
     while(!WindowShouldClose()) {
@@ -73,9 +74,14 @@ void loop(struct state_t* gst) {
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
                 rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
+                
                 rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "bloom_treshold_texture"), gst->bloomtreshold_target.texture.id);
                 
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
+                            "depth_texture"), gst->depth_texture.texture.id);
+                
+
                 DrawTextureRec(
                         gst->env_render_target.texture,
                         (Rectangle) { 
@@ -89,11 +95,6 @@ void loop(struct state_t* gst) {
             }
             EndShaderMode();
 
-
-
-            if(IsKeyPressed(KEY_F)) {
-                gst->player.health -= GetRandomValue(1, 50);
-            }
 
             // Draw player stats.
             {
@@ -243,25 +244,28 @@ void loop(struct state_t* gst) {
 
 
 
+            if(gst->debug) {
+                int next_y = 200;
+                const int y_inc = 25;
 
-
-            DrawText(TextFormat("x: %0.2f", gst->player.position.x),
-                        15.0, gst->scrn_h-30, 20, BLACK);
+                DrawText(TextFormat("X: %0.2f", gst->player.position.x),
+                            15.0, next_y, 20, GREEN);
+                DrawText(TextFormat("Y: %0.2f", gst->player.position.y),
+                            15.0+130.0, next_y, 20, GREEN);
+                DrawText(TextFormat("Z: %0.2f", gst->player.position.z),
+                            15.0+130.0*2, next_y, 20, GREEN);
+   
+                next_y += y_inc;
+                DrawText(TextFormat("NumVisibleChunks: %i", gst->terrain.num_visible_chunks),
+                        15.0, next_y, 20, PURPLE);
                 
-            DrawText(TextFormat("y: %0.2f", gst->player.position.y),
-                        15.0+100.0, gst->scrn_h-30, 20, BLACK);
-                
-            DrawText(TextFormat("z: %0.2f", gst->player.position.z),
-                        15.0+100.0*2, gst->scrn_h-30.0, 20, BLACK);
- 
+                DrawText("(Debug ON)", gst->scrn_w - 200, 10, 20, GREEN);
+            }
 
 
             DrawText(TextFormat("FPS: %i", GetFPS()),
                     gst->scrn_w - 100, gst->scrn_h-30, 20, WHITE);
 
-            if(gst->debug) {
-                DrawText("(Debug ON)", gst->scrn_w - 200, 10, 20, RED);
-            }
         }
         EndDrawing();
     }
@@ -274,48 +278,34 @@ void loop(struct state_t* gst) {
 
 void cleanup(struct state_t* gst) {
     
-    // Unload all textures
-    for(unsigned int i = 0; i < gst->num_textures; i++) {
-        UnloadTexture(gst->textures[i]);
-    }
-
-    // Unload all entity models
+    // Delete all enemies.
     for(size_t i = 0; i < gst->num_enemies; i++) {
         delete_enemy(&gst->enemies[i]);
     }
+    printf("\033[35m -> Deleted all Enemies\033[0m\n");
 
-
-    UnloadShader(gst->shaders[DEFAULT_SHADER]);
-    UnloadShader(gst->shaders[POSTPROCESS_SHADER]);
-    UnloadShader(gst->shaders[BLOOM_TRESHOLD_SHADER]); 
-    UnloadShader(gst->shaders[PRJ_ENVHIT_PSYS_SHADER]);
-    UnloadShader(gst->shaders[BASIC_WEAPON_PSYS_SHADER]);
-    UnloadShader(gst->shaders[FOLIAGE_SHADER]);
-    UnloadShader(gst->shaders[FOG_PARTICLE_SHADER]);
-    free_player(&gst->player);
 
     delete_terrain(&gst->terrain);
-    state_delete_psystems(gst);
+    delete_player(&gst->player);
+
+    state_delete_all_textures(gst);
+    state_delete_all_shaders(gst);
+    state_delete_all_psystems(gst);
+    state_delete_all_sounds(gst);
 
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtreshold_target);
+    UnloadRenderTexture(gst->depth_texture);
 
     glDeleteBuffers(1, &gst->lights_ubo);
     glDeleteBuffers(1, &gst->prj_lights_ubo);
 
+
+    printf("\033[35m -> Cleanup done...\033[0m\n");
     CloseWindow();
 }
 
 
-void load_texture(struct state_t* gst, const char* filepath, int texid) {
-    if(texid >= MAX_TEXTURES) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Texture id is invalid. (%i) for '%s'\033[0m\n",
-                __func__, texid, filepath);
-        return;
-    }
-    gst->textures[texid] = LoadTexture(filepath);
-    gst->num_textures++;
-}
 
 void first_setup(struct state_t* gst) {
 
@@ -329,12 +319,15 @@ void first_setup(struct state_t* gst) {
     BeginDrawing();
     {
         ClearBackground((Color){ 10, 10, 10, 255 });
-        DrawText("Loading...", 100, 100, 40, WHITE);
+        DrawText("Loading...", 100, 100, 40, (Color){ 180, 180, 180, 255 });
     }
     EndDrawing();
 
+    
     DisableCursor();
     SetTargetFPS(TARGET_FPS);
+    SetTraceLogLevel(LOG_ERROR);
+
     gst->num_textures = 0;
     gst->debug = 0;
     gst->num_enemies = 0;
@@ -350,7 +343,6 @@ void first_setup(struct state_t* gst) {
     const float terrain_amplitude = 20.0;
     const float terrain_pnfrequency = 60.0;
     const int   terrain_octaves = 3;
-    const Vector3 sun_position = (Vector3) { 0.0, 0.5, -0.9 };
    
     gst->num_crithit_markers = 0;
     gst->crithit_marker_maxlifetime = 1.5;
@@ -360,17 +352,7 @@ void first_setup(struct state_t* gst) {
 
     // --- Load textures ---
     
-    load_texture(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);
-    load_texture(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
-    load_texture(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
-    load_texture(gst, "res/textures/gun_0.png", GUN_0_TEXID);
-    load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
-    load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
-    load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
-    load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
-    load_texture(gst, "res/textures/leaf.jpg", LEAF_TEXID);
-    load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
-    
+  
     gst->lights_ubo = 0;
 
     const size_t lights_ubo_size = MAX_NORMAL_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
@@ -399,9 +381,11 @@ void first_setup(struct state_t* gst) {
 
 
 
+    state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
-    state_create_enemy_weapons(gst);
-    state_create_psystems(gst);
+    state_setup_all_weapons(gst);
+    state_setup_all_psystems(gst);
+    state_setup_all_sounds(gst);
 
     init_player_struct(gst, &gst->player);
 
@@ -412,13 +396,19 @@ void first_setup(struct state_t* gst) {
         init_perlin_noise();
         gst->terrain = (struct terrain_t) { 0 };
 
+        const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
+
+        printf("(INFO) '%s': Terrain seed = %i\n",
+                __func__, terrain_seed);
+
         generate_terrain(
                 gst, &gst->terrain,
                 terrain_size,
                 terrain_scale,
                 terrain_amplitude,
                 terrain_pnfrequency,
-                terrain_octaves
+                terrain_octaves,
+                terrain_seed
                 );
 
     }
@@ -428,20 +418,22 @@ void first_setup(struct state_t* gst) {
     SetRandomSeed(seed);
 
 
+    for(int i = 0; i < 14; i++) {
     create_enemy(gst,
                 ENEMY_TYPE_LVL0,
                 ENEMY_LVL0_TEXID,
                 "res/models/lvl0_enemy.glb",
+                "res/models/lvl0_enemy_broken.glb",
                 &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
                 &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
-                1000, // health
-                (Vector3){ 50, 1, -100 }, // initial position
-                (Vector3){ 3.0, 3.0, 3.0 }, // hitbox size
-                (Vector3){ 0.0, 1.5, 0.0 }, // hitbox position
-                600.0,  // target range
-                0.265    // firerate
+                100, // health
+                (Vector3){ RSEEDRANDOMF(-1000, 1000), 1, RSEEDRANDOMF(-1000, 1000) }, // initial position
+                (Vector3){ 5.0, 5.0, 5.0 }, // hitbox size
+                (Vector3){ 0.0, 3.5, 0.0 }, // hitbox position
+                500.0,  // target range
+                RSEEDRANDOMF(0.15, 0.35)    // firerate
                 );
-
+    }
 
     // Make sure all lights are disabled.
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
@@ -458,7 +450,7 @@ void first_setup(struct state_t* gst) {
         .enabled = 1,
         .color = (Color){ 240, 210, 200, 255 },
         .position = (Vector3){ -1, 1, -1 },
-        .strength = 0.3,
+        .strength = 1.0,
         .index = SUN_LIGHT_ID
     };
 

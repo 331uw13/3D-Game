@@ -26,8 +26,6 @@ void delete_psystem(struct psystem_t* psys) {
     psys->enabled = 0;
     psys->update_callback = NULL;
     psys->pinit_callback = NULL;
-    
-    printf(" >> Deleted ParticleSystem\n");
 }
 
 void create_psystem(
@@ -89,7 +87,6 @@ void create_psystem(
     }
 
     psys->shader_index = shader_index;
-
     psys->shader_color_uniformloc = GetShaderLocation(gst->shaders[shader_index], "psystem_color");
     psys->shader_time_uniformloc = GetShaderLocation(gst->shaders[shader_index], "time");
 
@@ -130,7 +127,12 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         return;
     }
 
-    int num_rendering = 0;
+    if(!psys->pinit_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': No particle initialization callback.\033[0m\n",
+                __func__);
+        return;
+    }
+
 
     for(size_t i = 0; i < psys->max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
@@ -161,12 +163,8 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             }
 
             continue;
-            // TODO -> psys->pinit_callback(gst, psys, p);
         }
-
-
     }
-
 }
 
 void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
@@ -199,8 +197,10 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
         psys->first_render = 0;
     }
 
+    if(psys->num_alive_parts == 0) {
+        return;
+    }
 
-    // TODO: optimize these uniform things.
 
     const float psystem_color[4] = {
         (float)color.r / 255.0,

@@ -32,6 +32,8 @@ float  randomf(int* seed, float min, float max);
 
 Color color_lerp(float t, Color a, Color b);
 
+float get_volume_dist(Vector3 player_pos, Vector3 sound_pos);
+
 #define RSEEDRANDOMF(min, max) randomf(&gst->rseed, min, max)
 #define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)
 

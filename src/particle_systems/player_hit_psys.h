@@ -1,5 +1,5 @@
-#ifndef ENEMY_HIT_PSYSTEM_H
-#define ENEMY_HIT_PSYSTEM_H
+#ifndef PLAYER_HIT_PSYSTEM_H
+#define PLAYER_HIT_PSYSTEM_H
 
 
 
@@ -10,8 +10,9 @@ struct state_t;
 struct particle_t;
 
 
+
 // PARTICLE UPDATE
-void enemy_hit_psys_update(
+void player_hit_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
@@ -19,7 +20,7 @@ void enemy_hit_psys_update(
 
 
 // PARTICLE INITIALIZATION
-void enemy_hit_psys_init(
+void player_hit_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,

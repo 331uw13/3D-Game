@@ -19,6 +19,8 @@ void fog_effect_psys_update(
     float t = normalize(CLAMP(part->lifetime*1.55, 0.0, 1.0), 0.0, 1.0);
     float scale = lerp(t, 0.0, 1.0);
 
+    part->position.y += sin(gst->time*5 + part->index) * 0.01;
+    part->position.z += cos(gst->time*5 + part->index) * 0.01;
     part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt));
 
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);   

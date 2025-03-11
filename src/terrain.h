@@ -68,6 +68,7 @@ struct terrain_t {
     int    chunk_size;
     size_t num_chunks;
 
+    int num_visible_chunks;
     struct foliage_models_t foliage_models;
  
 
@@ -97,18 +98,15 @@ void generate_terrain(
         float  terrain_scaling,
         float  amplitude,
         float  frequency,
-        int    octaves
+        int    octaves,
+        int    seed
         );
 
 //void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
 
 void delete_terrain         (struct terrain_t* terrain);
-//void delete_terrain_foliage (struct terrain_t* terrain);
 
-//void generate_heightmap(struct terrain_t* terrain);
-//void generate_terrain_mesh(struct state_t* gst, struct terrain_t* terrain);
-
-void render_terrain(struct state_t* gst, struct terrain_t* terrain);
+void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_id);
 
 
 
