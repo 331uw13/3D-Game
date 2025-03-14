@@ -119,6 +119,11 @@ static struct particle_t* _add_particle(struct psystem_t* psys) {
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
+    if(psys->num_alive_parts == 0) {
+       
+        return;
+    }
+
     psys->num_alive_parts = 0;
    
     if(!psys->update_callback) {
@@ -239,17 +244,29 @@ void add_particles(
         int has_extradata
         )
 {
+
     for(size_t i = 0; i < n; i++) {
         struct particle_t* p = _add_particle(psys);
 
         // callback to initialize the particle.
-        psys->pinit_callback(gst, psys, p, origin, velocity, extradata_ptr, (has_extradata && extradata_ptr));
+        psys->pinit_callback(
+                gst,
+                psys,
+                p,
+                origin,
+                velocity,
+                extradata_ptr,
+                (has_extradata && extradata_ptr)
+                );
     }
+
+    psys->num_alive_parts = n;
 }
 
 void disable_particle(struct state_t* gst, struct particle_t* p) {
     p->alive = 0;
     p->lifetime = p->max_lifetime;
+    
     if(p->has_light) {
         disable_light(gst, &p->light, gst->prj_lights_ubo);
         p->has_light = 0;

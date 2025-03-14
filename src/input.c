@@ -151,6 +151,10 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
+    if(IsKeyPressed(KEY_E)) {
+        spawn_enemy(gst, ENEMY_LVL0, 100, ENT_HOSTILE, gst->player.position);
+    }
+
 
     if(IsKeyPressed(KEY_T)) {
         gst->debug = !gst->debug;

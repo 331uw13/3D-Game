@@ -8,7 +8,7 @@
 
 
 // NOTE: these 2 values must be the same as in 'res/shaders/light.glsl'
-#define MAX_PROJECTILE_LIGHTS 64
+#define MAX_PROJECTILE_LIGHTS 128
 #define MAX_NORMAL_LIGHTS 4
 
 

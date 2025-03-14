@@ -15,6 +15,7 @@
 #include "particle_systems/fog_effect_psys.h"
 #include "particle_systems/player_hit_psys.h"
 #include "particle_systems/enemy_explosion_psys.h"
+#include "particle_systems/water_splash_psys.h"
 
 
 static void load_texture(struct state_t* gst, const char* filepath, int texid) {
@@ -47,6 +48,9 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
         SetShaderValue(gst->shaders[FOG_PARTICLE_SHADER], 
                 gst->shaders[FOG_PARTICLE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
+        
+        SetShaderValue(gst->shaders[WATER_SHADER], 
+                gst->shaders[WATER_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
     }
 
     // Update camera target and position for post processing.
@@ -85,6 +89,9 @@ void state_update_shader_uniforms(struct state_t* gst) {
         
         SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
                 gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
+        
+        SetShaderValue(gst->shaders[WATER_SHADER], 
+                gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
     }
 
 }
@@ -111,6 +118,7 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS]);
+    update_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS]);
 }
 
 #include <stdio.h>
@@ -172,19 +180,17 @@ static void _state_render_crithit_markers(struct state_t* gst) {
 
 void state_render_environment(struct state_t* gst) {
 
-
     // Render 3D stuff into texture and post process it later.
     BeginTextureMode(gst->env_render_target);
     ClearBackground((Color){
-            (0.0) * 255, 
-            (0.0) * 255,
-            (0.0) * 255,
+            (0.15) * 255, 
+            (0.25) * 255,
+            (0.3) * 255,
             255
             });
 
     BeginMode3D(gst->player.cam);
     {
-
         // Render debug info if needed.
         if(gst->debug) {
             for(size_t i = 0; i < gst->num_enemies; i++) {
@@ -223,8 +229,8 @@ void state_render_environment(struct state_t* gst) {
         render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
         render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
         render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 80, 20, 255});
-       
-
+        render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 100, 170, 200});
+      
         rlDisableDepthMask();
         render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
         rlEnableDepthMask();
@@ -240,8 +246,8 @@ void state_render_environment(struct state_t* gst) {
     EndShaderMode();
 
 
+    /*
     // Get environment depth to texture
-    
     BeginTextureMode(gst->depth_texture);
     ClearBackground((Color){255, 255, 255, 255});
     BeginMode3D(gst->player.cam);
@@ -260,8 +266,7 @@ void state_render_environment(struct state_t* gst) {
     EndMode3D();
     EndTextureMode();
     EndShaderMode();
-
-
+    */
 
     // Get bloom treshold texture.
 
@@ -288,23 +293,17 @@ void state_render_environment(struct state_t* gst) {
 
 void state_setup_all_shaders(struct state_t* gst) {
 
+    SetTraceLogLevel(LOG_ALL);
 
     // --- Setup Default Shader ---
     {
-  
         Shader* shader = &gst->shaders[DEFAULT_SHADER];
-
-
         load_shader(
                 "res/shaders/default.vs",
                 "res/shaders/default.fs", shader);
         
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-   
-        int ambientloc = GetShaderLocation(*shader, "ambient");
-        
-        SetShaderValue(*shader, ambientloc, (float[4]){ 0.5, 0.5, 0.5, 1.0}, SHADER_UNIFORM_VEC4);
     }
 
 
@@ -377,6 +376,21 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
 
+
+    // --- Setup Water Shader ---
+    {
+        Shader* shader = &gst->shaders[WATER_SHADER];
+        load_shader(
+                "res/shaders/default.vs",
+                "res/shaders/water.fs", shader);
+        
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+       
+        gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
+    }
+
+
     // --- Setup Bloom Treshold Shader ---
     {
         Shader* shader = &gst->shaders[BLOOM_TRESHOLD_SHADER];
@@ -395,6 +409,8 @@ void state_setup_all_shaders(struct state_t* gst) {
             "res/shaders/write_depth.fs"
         );
     }
+    
+    SetTraceLogLevel(LOG_NONE);
 }
 
 void state_setup_all_weapons(struct state_t* gst) {
@@ -420,7 +436,7 @@ void state_setup_all_weapons(struct state_t* gst) {
     // Enemy lvl0 weapon.
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
-        .accuracy = 9.0,
+        .accuracy = 9.5,
         .damage = 15.0,
         .critical_chance = 35,
         .critical_mult = 5.0,
@@ -443,7 +459,7 @@ void state_setup_all_psystems(struct state_t* gst) {
                 PSYS_GROUPID_PLAYER,
                 PSYS_ONESHOT,
                 psystem,
-                32,
+                64,
                 weapon_psys_prj_update,
                 weapon_psys_prj_init,
                 BASIC_WEAPON_PSYS_SHADER
@@ -479,7 +495,7 @@ void state_setup_all_psystems(struct state_t* gst) {
                 PSYS_GROUPID_ENEMY,
                 PSYS_ONESHOT,
                 psystem,
-                32,
+                64,
                 weapon_psys_prj_update,
                 weapon_psys_prj_init,
                 BASIC_WEAPON_PSYS_SHADER
@@ -565,6 +581,24 @@ void state_setup_all_psystems(struct state_t* gst) {
     }
 
 
+    // Create WATER_SPLASH_PSYS.
+    { // (when something hits water)
+        struct psystem_t* psystem = &gst->psystems[WATER_SPLASH_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_ONESHOT,
+                psystem,
+                256,
+                water_splash_psys_update,
+                water_splash_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.45, 8, 8);
+        psystem->userptr = &gst->player.weapon;
+    }
+
     // Create ENEMY_EXPLOSION_PSYS.
     { // (when enemy dies it "explodes")
         struct psystem_t* psystem = &gst->psystems[ENEMY_EXPLOSION_PSYS];
@@ -595,11 +629,13 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/leaf.jpg", LEAF_TEXID);
     load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
     load_texture(gst, "res/textures/moss2.png", MOSS_TEXID);
-   
+    load_texture(gst, "res/textures/grass.png", GRASS_TEXID);
 
+   
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[MOSS_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
+    SetTextureWrap(gst->textures[GRASS_TEXID], TEXTURE_WRAP_CLAMP);
 
 }
 
@@ -627,6 +663,17 @@ void state_setup_all_sounds(struct state_t* gst) {
     SetMasterVolume(30.0);
     gst->has_audio = 1;
 }
+
+
+
+
+void state_setup_all_enemy_models(struct state_t* gst) {
+
+    load_enemy_model(gst, ENEMY_LVL0, "res/models/enemy_lvl0.glb", ENEMY_LVL0_TEXID);
+
+
+}
+
 
 void state_delete_all_shaders(struct state_t* gst) {
     for(int i = 0; i < MAX_SHADERS; i++) {
@@ -666,6 +713,16 @@ void state_delete_all_sounds(struct state_t* gst) {
     }
     
     printf("\033[35m -> Deleted all Sounds\033[0m\n");
+}
+
+void state_delete_all_enemy_models(struct state_t* gst) {
+    for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
+        if(!IsModelValid(gst->enemy_models[i])) {
+            continue;
+        }
+        UnloadModel(gst->enemy_models[i]);
+    }
+    printf("\033[35m -> Deleted all Enemy models\033[0m\n");
 }
 
 void state_add_crithit_marker(struct state_t* gst, Vector3 position) {

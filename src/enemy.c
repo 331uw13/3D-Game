@@ -12,9 +12,8 @@
 struct enemy_t* create_enemy(
         struct state_t* gst,
         int enemy_type,
-        int texture_id,
-        const char* model_filepath,
-        const char* broken_model_filepath,
+        int mood,
+        Model* modelptr,
         struct psystem_t* weapon_psysptr,
         struct weapon_t* weaponptr,
         int max_health,
@@ -22,30 +21,65 @@ struct enemy_t* create_enemy(
         Vector3 hitbox_size,
         Vector3 hitbox_position,
         float target_range,
-        float firerate
+        float firerate,
+        void(*update_callback)(struct state_t*, struct enemy_t*),
+        void(*render_callback)(struct state_t*, struct enemy_t*),
+        void(*death_callback)(struct state_t*, struct enemy_t*),
+        void(*spawn_callback)(struct state_t*, struct enemy_t*),
+        void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/)
 ){
+
     struct enemy_t* entptr = NULL;
 
-    if((gst->num_enemies+1) >= MAX_ENEMIES) {
+    if((gst->num_enemies+1) >= MAX_ALL_ENEMIES) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Max enemies reached.\033[0m\n",
                 __func__);
         goto error;
     }
 
-    if(!FileExists(model_filepath)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Model file path not found: '%s'\033[0m\n",
-                __func__, model_filepath);
+    if(!modelptr) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Pointer to enemy model seems to be NULL\033[0m\n",
+                __func__);
         goto error;
     }
 
-    if(texture_id >= MAX_TEXTURES) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid texture id: %i for (%s)\033[0m\n",
-                __func__, texture_id, model_filepath);
+    if(!update_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing update callback\033[0m\n",
+                __func__, entptr->index);
+        goto error;
+    }
+    if(!render_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing render callback\033[0m\n",
+                __func__, entptr->index);
+        goto error;
+    }
+    if(!death_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing death callback\033[0m\n",
+                __func__, entptr->index);
+        goto error;
+    }
+    if(!spawn_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing spawn callback\033[0m\n",
+                __func__, entptr->index);
+        goto error;
+    }
+    if(!hit_callback) {
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing hit callback\033[0m\n",
+                __func__, entptr->index);
         goto error;
     }
 
     entptr = &gst->enemies[gst->num_enemies];
     entptr->type = enemy_type;
+    entptr->index = gst->num_enemies;
+
+    entptr->enabled = 1;
+    entptr->modelptr = modelptr;
+
+    entptr->update_callback = update_callback;
+    entptr->render_callback = render_callback;
+    entptr->death_callback = death_callback;
+    entptr->spawn_callback = spawn_callback;
 
     entptr->position = initial_position; 
     entptr->hitbox_size = hitbox_size;
@@ -54,8 +88,6 @@ struct enemy_t* create_enemy(
     entptr->max_health = max_health;
 
     entptr->knockback_velocity = (Vector3){0};
-    entptr->hit_direction = (Vector3){0};
-    entptr->rotation_from_hit = (Vector3){0};
     entptr->stun_timer = 0.0;
     entptr->max_stun_time = 0.0;
 
@@ -65,10 +97,9 @@ struct enemy_t* create_enemy(
     entptr->forward_angle = 0.0;
     
     entptr->target_range = target_range;
-    entptr->has_target = 0;
-    entptr->body_matrix = MatrixIdentity();
     entptr->gun_index = 0;
-    entptr->index = gst->num_enemies;
+    entptr->has_target = 0;
+    entptr->mood = mood;
 
     entptr->alive = 1;
     entptr->weaponptr = weaponptr;
@@ -84,42 +115,29 @@ struct enemy_t* create_enemy(
         .dest_reached = 1
     };
 
-
-    entptr->model = LoadModel(model_filepath);
-    entptr->model.transform 
-        = MatrixTranslate(initial_position.x, initial_position.y, initial_position.z);
-
-    entptr->model.materials[0] = LoadMaterialDefault();
-    entptr->model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
-    entptr->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
+    for(int i = 0; i < ENEMY_MAX_MATRICES; i++) {
+        entptr->matrix[i] = MatrixIdentity();
+    }
 
 
+    printf("(INFO) '%s': Enemy (Index:%li)\n",
+            __func__, entptr->index);
     gst->num_enemies++;
 
-    printf("(INFO) '%s': Enemy (Index:%li). Model filepath:\"%s\"\n",
-            __func__, entptr->index, model_filepath);
 
     entptr->firerate_timer = 0.0;
     entptr->firerate = firerate;
 
 
 
-    load_enemy_broken_model(entptr, broken_model_filepath);
+    entptr->spawn_callback(gst, entptr);
 
-    switch(entptr->type)
-    {
-        case ENEMY_TYPE_LVL0:
-            enemy_lvl0_created(gst, entptr);
-            break;
-
-        // ...
-    }
-
+    
 error:
     return entptr;
 }
 
-
+/*
 void load_enemy_broken_model(struct enemy_t* ent, const char* broken_model_filepath) {
     ent->broken_matrices = NULL;
     ent->broken_mesh_velocities = NULL;
@@ -161,13 +179,16 @@ void load_enemy_broken_model(struct enemy_t* ent, const char* broken_model_filep
     ent->broken_model_despawned = 0;
 
 }
+*/
 
 
+    /*
 void delete_enemy(struct enemy_t* ent) {
-    UnloadModel(ent->model);
+    //UnloadModel(ent->model);
     ent->health = 0;
     ent->weapon_psysptr = NULL;
     ent->weaponptr = NULL;
+        
 
     if(IsModelValid(ent->broken_model)) {
         UnloadModel(ent->broken_model);
@@ -188,43 +209,33 @@ void delete_enemy(struct enemy_t* ent) {
         }
     }
 }
-
+        */
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent) {
-    
+   
+    /*
     if(!ent->alive && !ent->broken_model_despawned) {
         // Enemy has died so update its matrix transforms for "broken" model
         update_enemy_broken_matrices(gst, ent);
     }
-
-    switch(ent->type)
-    {
-        case ENEMY_TYPE_LVL0:
-            enemy_lvl0_update(gst, ent);
-            break;
+    */
 
 
-        // ...
+    if(ent->update_callback) {
+        ent->update_callback(gst, ent);
     }
-
 }
 
 void render_enemy(struct state_t* gst, struct enemy_t* ent) {
-    switch(ent->type)
-    {
-        case ENEMY_TYPE_LVL0:
-            enemy_lvl0_render(gst, ent);
-            break;
-
-
-        // ...
+    if(Vector3Distance(ent->position, gst->player.position) > RENDER_DISTANCE) {
+        return;
     }
-
-
+    if(ent->render_callback) {
+        ent->render_callback(gst, ent);
+    }
 }
 
 
-    
 void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon, 
         Vector3 hit_position, Vector3 hit_direction) {
 
@@ -250,20 +261,15 @@ void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon
         return;
     }
 
-    switch(ent->type)
-    {
-        case ENEMY_TYPE_LVL0:
-            enemy_lvl0_hit(gst, ent, hit_position, hit_direction);
-            break;
-
-
-        // ...
+    if(ent->hit_callback) {
+        ent->hit_callback(gst, ent, hit_position, hit_direction);
     }
 
 }
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
 
+    /*
     // Update broken model matrices to last known body position, if they exist
     // And decide random velocities.
     if(IsModelValid(ent->broken_model) && ent->broken_matrices) {
@@ -280,6 +286,7 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
 
         }
     }
+    */
 
     add_particles(
             gst,
@@ -294,14 +301,8 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
     PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
 
-    switch(ent->type)
-    {
-        case ENEMY_TYPE_LVL0:
-            enemy_lvl0_death(gst, ent);
-            break;
-
-
-        // ...
+    if(ent->death_callback) {
+        ent->death_callback(gst, ent);
     }
    
 }
@@ -364,45 +365,88 @@ BoundingBox get_enemy_boundingbox(struct enemy_t* ent) {
     };
 }
 
+void spawn_enemy(
+        struct state_t* gst,
+        int enemy_type,
+        int max_health,
+        int mood,
+        Vector3 position
+){
 
-void update_enemy_broken_matrices(struct state_t* gst, struct enemy_t* ent) {
-
-    const float dampen = pow(0.5, gst->dt);
-    const float rt_time = gst->time * 3.0; // Rotation time.
-
-    for(int i = 0; i < ent->broken_model.meshCount; i++) {
-        float x = ent->broken_matrices[i].m12;
-        float y = ent->broken_matrices[i].m13;
-        float z = ent->broken_matrices[i].m14;
+    switch(enemy_type) {
     
-        Vector3* vel = &ent->broken_mesh_velocities[i];
+        case ENEMY_LVL0:
+            {
+                if(position.y <= gst->terrain.water_ylevel) {
+                    fprintf(stderr, "\033[31m(ERROR) '%s': Enemy type '%i' cannot spawn in water.\033[0m\n",
+                            __func__, enemy_type);
+                    return;
+                }
+                create_enemy(gst,
+                        enemy_type,
+                        mood,
+                        &gst->enemy_models[enemy_type],
+                        &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                        &gst->enemy_weapons[enemy_type],
+                        max_health,
+                        position,
+                        (Vector3){ 4.0, 4.0, 4.0 }, /* Hitbox size */
+                        (Vector3){ 0.0, 2.0, 0.0 }, /* Hitbox position offset */
+                        300.0, /* Target range */
+                        0.4,   /* Firerate */
+                        enemy_lvl0_update,
+                        enemy_lvl0_render,
+                        enemy_lvl0_death,
+                        enemy_lvl0_created,
+                        enemy_lvl0_hit
+                        );
+            }
+            break;
 
-        // Check collision with terrain.
-        RayCollision ray = raycast_terrain(&gst->terrain, x, z);
-
-        float d = dampen;
-
-        if(ray.point.y < y) {
-            y += vel->y * gst->dt;
-            vel->y -= (500*0.2) * gst->dt;
-
-            ent->broken_mesh_rotations[i].x = rt_time * 1.524;
-            ent->broken_mesh_rotations[i].y = rt_time * 0.165;
-            ent->broken_mesh_rotations[i].z = rt_time * 0.285;
-        }
-        else {
-            d *= 0.5;
-        }
-        
-        x += vel->x * gst->dt;
-        z += vel->z * gst->dt;
-        
-        vel->x *= d;
-        vel->z *= d; 
-
-        Matrix rotation = MatrixRotateXYZ(ent->broken_mesh_rotations[i]);
-        Matrix translation = MatrixTranslate(x, y, z);
-        ent->broken_matrices[i] = MatrixMultiply(rotation, translation);
+        default:
+            fprintf(stderr, "\033[31m(ERROR) '%s': Invalid enemy type '%i'\033[0m\n",
+                    __func__, enemy_type);
+            break;
     }
 }
+
+
+int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id) {
+    int result = 0;
+
+    if(!FileExists(model_filepath)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Model filepath not found: \"%s\"\033[0m\n",
+                __func__, model_filepath);
+        goto error;
+    }
+
+    if(enemy_type > MAX_ALL_ENEMIES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid enemy type \"%i\"\033[0m\n",
+                __func__, enemy_type);
+        goto error;
+    }
+
+    SetTraceLogLevel(LOG_ALL);
+    Model* model = &gst->enemy_models[enemy_type];
+    *model = LoadModel(model_filepath);
+
+    if(!IsModelValid(*model)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to load enemy model \"%s\"\033[0m\n",
+                __func__, model_filepath);
+        goto error;
+    }
+
+
+    // TODO: make this support more textures later.
+   
+    for(int i = 0; i < model->materialCount; i++) {
+        model->materials[i] = LoadMaterialDefault();
+        model->materials[i].shader = gst->shaders[DEFAULT_SHADER];
+        model->materials[i].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
+    }
+error:
+    SetTraceLogLevel(LOG_NONE);
+    return result;
+}
+
 

@@ -36,6 +36,21 @@ void weapon_psys_prj_update(
     set_light(gst, &part->light, gst->prj_lights_ubo);
 
 
+    // Check collision with water
+
+    if(part->position.y <= gst->terrain.water_ylevel) {
+        add_particles(
+                gst,
+                &gst->psystems[WATER_SPLASH_PSYS],
+                GetRandomValue(10, 20),
+                part->position,
+                part->velocity,
+                NULL, NO_EXTRADATA
+                );       
+        disable_particle(gst, part);
+        return;
+    }
+
 
     // Check collision with terrain
 
@@ -58,8 +73,7 @@ void weapon_psys_prj_update(
                 1,
                 part->position,
                 (Vector3){0, 0, 0},
-                NULL,
-                NO_EXTRADATA
+                NULL, NO_EXTRADATA
                 );
 
         if(gst->has_audio) {
@@ -172,8 +186,8 @@ void weapon_psys_prj_init(
             });
 
     transform = MatrixMultiply(transform, rotation_m);
-    //add_projectile_light(gst, &part->light, part->position, weapon->color, gst->shaders[DEFAULT_SHADER]);
 
+    
     part->light = (struct light_t) {
         .enabled = 1,
         .type = LIGHT_POINT,
@@ -183,13 +197,13 @@ void weapon_psys_prj_init(
         // position is updated later.
     };
 
+
     gst->num_prj_lights++;
     if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
         gst->num_prj_lights = 0;
     }
 
     part->has_light = 1;
-
     *part->transform = transform;
     part->max_lifetime = weapon->prj_max_lifetime;
 }

@@ -21,7 +21,7 @@ void set_light(
     float pos3f[4]
         = { light->position.x, light->position.y, light->position.z, 0.0 };
 
-    float s3f[4]
+    float s3f[4] // Maybe will add more settings later..
         = { light->strength, 0.0, 0.0, 0.0 };
 
     size_t offset;
@@ -33,9 +33,9 @@ void set_light(
     size = 4;
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, &light->type);
 
-    // ENABLED
+    // SETTINGS
     offset = (light->index * LIGHT_SHADER_STRUCT_SIZE) + 4;
-    size = 4;
+    size = sizeof(float) * 4;
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, &light->enabled);
 
     // COLOR
@@ -62,10 +62,11 @@ void disable_light(struct state_t* gst, struct light_t* light, unsigned int ubo)
     glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 
     light->enabled = 0;
-    // ENABLED
+   
     size_t offset = (light->index * LIGHT_SHADER_STRUCT_SIZE) + 4;
     size_t size = 4;
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, &light->enabled);
+
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }

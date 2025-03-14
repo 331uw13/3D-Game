@@ -278,13 +278,7 @@ void loop(struct state_t* gst) {
 
 void cleanup(struct state_t* gst) {
     
-    // Delete all enemies.
-    for(size_t i = 0; i < gst->num_enemies; i++) {
-        delete_enemy(&gst->enemies[i]);
-    }
-    printf("\033[35m -> Deleted all Enemies\033[0m\n");
-
-
+   
     delete_terrain(&gst->terrain);
     delete_player(&gst->player);
 
@@ -292,6 +286,7 @@ void cleanup(struct state_t* gst) {
     state_delete_all_shaders(gst);
     state_delete_all_psystems(gst);
     state_delete_all_sounds(gst);
+    state_delete_all_enemy_models(gst);
 
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtreshold_target);
@@ -327,6 +322,7 @@ void first_setup(struct state_t* gst) {
     DisableCursor();
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_ERROR);
+    rlSetClipPlanes(rlGetCullDistanceNear()+0.15, rlGetCullDistanceFar()+3000);
 
     gst->num_textures = 0;
     gst->debug = 0;
@@ -336,7 +332,7 @@ void first_setup(struct state_t* gst) {
     gst->num_enemy_weapons = 0;
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
-    memset(gst->enemies, 0, MAX_ENEMIES * sizeof *gst->enemies);
+    memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
@@ -380,12 +376,12 @@ void first_setup(struct state_t* gst) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 
-
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_weapons(gst);
     state_setup_all_psystems(gst);
     state_setup_all_sounds(gst);
+    state_setup_all_enemy_models(gst);
 
     init_player_struct(gst, &gst->player);
 
@@ -418,23 +414,6 @@ void first_setup(struct state_t* gst) {
     SetRandomSeed(seed);
 
 
-    for(int i = 0; i < 14; i++) {
-    create_enemy(gst,
-                ENEMY_TYPE_LVL0,
-                ENEMY_LVL0_TEXID,
-                "res/models/lvl0_enemy.glb",
-                "res/models/lvl0_enemy_broken.glb",
-                &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
-                &gst->enemy_weapons[ENEMY_LVL0_WEAPON],
-                100, // health
-                (Vector3){ RSEEDRANDOMF(-1000, 1000), 1, RSEEDRANDOMF(-1000, 1000) }, // initial position
-                (Vector3){ 5.0, 5.0, 5.0 }, // hitbox size
-                (Vector3){ 0.0, 3.5, 0.0 }, // hitbox position
-                500.0,  // target range
-                RSEEDRANDOMF(0.15, 0.35)    // firerate
-                );
-    }
-
     // Make sure all lights are disabled.
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
         struct light_t disabled = {
@@ -463,7 +442,6 @@ void first_setup(struct state_t* gst) {
 
 
     set_light(gst,  &SUN, gst->lights_ubo);
-   
 }
 
 int main(void) {

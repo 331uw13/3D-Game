@@ -31,7 +31,8 @@
 #define LEAF_TEXID 8
 #define ROCK_TEXID 9
 #define MOSS_TEXID 10
-#define MAX_TEXTURES 11
+#define GRASS_TEXID 11
+#define MAX_TEXTURES 12
 // ...
 
 
@@ -57,7 +58,8 @@
 #define BASIC_WEAPON_PSYS_SHADER 5
 #define FOLIAGE_SHADER 6
 #define FOG_PARTICLE_SHADER 7
-#define MAX_SHADERS 8
+#define WATER_SHADER 8
+#define MAX_SHADERS 9
 // ...
  
 
@@ -72,7 +74,8 @@
 #define FOG_EFFECT_PSYS 4
 #define PLAYER_HIT_PSYS 5
 #define ENEMY_EXPLOSION_PSYS 6
-#define MAX_PSYSTEMS 7
+#define WATER_SPLASH_PSYS 7
+#define MAX_PSYSTEMS 8
 // ...
 
 
@@ -86,6 +89,7 @@
 #define POSTPROCESS_CAMPOS_FS_UNILOC 4
 #define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 5
 #define FOLIAGE_SHADER_TIME_FS_UNILOC 6
+#define WATER_SHADER_TIME_FS_UNILOC 7
 #define MAX_FS_UNILOCS 10
 // ...
 
@@ -98,7 +102,6 @@
 
 #include "enemies/enemy_lvl0.h"
 
-#define MAX_ENEMIES 32
 
 
 #define ENEMY_LVL0_WEAPON 0
@@ -142,8 +145,10 @@ struct state_t {
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
-    struct enemy_t enemies[MAX_ENEMIES];
+    Model  enemy_models[MAX_ALL_ENEMIES];
+    struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;
+    float  enemy_spawn_timers[MAX_ALL_ENEMIES];
 
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
@@ -155,8 +160,9 @@ struct state_t {
     int debug;
 
     struct crithit_marker_t crithit_markers[MAX_RENDER_CRITHITS];
-    size_t   num_crithit_markers;
-    float    crithit_marker_maxlifetime;
+    size_t num_crithit_markers;
+    float  crithit_marker_maxlifetime;
+
 
     int has_audio;
     Sound sounds[MAX_SOUNDS];
@@ -169,9 +175,8 @@ struct state_t {
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtreshold_target;
 
-    
+    // (NOT CURRENTLY USED)
     RenderTexture2D depth_texture;
-
 };
 
 
@@ -186,12 +191,14 @@ void state_setup_all_weapons(struct state_t* gst);
 void state_setup_all_psystems(struct state_t* gst);
 void state_setup_all_textures(struct state_t* gst);
 void state_setup_all_sounds(struct state_t* gst);
+void state_setup_all_enemy_models(struct state_t* gst);
 
 // Free up memory.
 void state_delete_all_shaders(struct state_t* gst);
 void state_delete_all_psystems(struct state_t* gst);
 void state_delete_all_sounds(struct state_t* gst);
 void state_delete_all_textures(struct state_t* gst);
+void state_delete_all_enemy_models(struct state_t* gst);
 
 
 // Misc.

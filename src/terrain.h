@@ -10,11 +10,12 @@
 struct state_t;
 
 
-#define RENDER_DISTANCE 1800
+#define RENDER_DISTANCE 3000
 #define CHUNK_SIZE 64
 
+#define WATER_INITIAL_YLEVEL -80
 
-#define TREE_TYPE0_MAX_PERCHUNK 30
+#define TREE_TYPE0_MAX_PERCHUNK 40
 #define ROCK_TYPE0_MAX_PERCHUNK 10
 
 struct heightmap_t {
@@ -36,12 +37,29 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
 };
 
 
+// For each chunk.
 struct foliage_matrices_t {
     Matrix tree_type0[TREE_TYPE0_MAX_PERCHUNK];
     size_t num_tree_type0;
     
     Matrix rock_type0[ROCK_TYPE0_MAX_PERCHUNK];
     size_t num_rock_type0;
+    
+};
+
+
+
+// All foliage matrices from chunks go here each frame 
+// and they are rendered all at once.
+struct render_foliage_matrices {
+    Matrix* tree_type0;         // Matrices from all visible chunks.
+    size_t  tree_type0_size;    // How many elements was allocated for matrix array.
+    size_t  num_tree_type0;     // How many to render.
+
+    Matrix* rock_type0;
+    size_t  rock_type0_size;
+    size_t  num_rock_type0;
+    
 };
 
 struct foliage_models_t {
@@ -59,7 +77,6 @@ struct chunk_t {
 };
 
 struct terrain_t {
-    Mesh      mesh; // The whole terrain mesh in one.
     Material  material;
     Matrix    transform;
     struct heightmap_t heightmap;
@@ -67,15 +84,19 @@ struct terrain_t {
     struct chunk_t* chunks;
     int    chunk_size;
     size_t num_chunks;
+    int    num_max_visible_chunks;
+    int    num_visible_chunks;
 
-    int num_visible_chunks;
-    struct foliage_models_t foliage_models;
- 
+    struct foliage_models_t         foliage_models;
+    struct render_foliage_matrices  rfmatrices;
 
     float highest_point;
     float scaling;
 
-    // triangles saved but in order to get triangle at xz location efficiently.
+    float water_ylevel;
+    Model waterplane;
+
+    // Triangles saved but in order to get triangle at xz location efficiently.
     struct triangle2x_t* triangle_lookup;
 };
 

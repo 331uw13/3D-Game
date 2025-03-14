@@ -10,9 +10,6 @@
 
 #include "util.h"
 
-#define TERRAIN_TRANSF_X -100
-#define TERRAIN_TRANSF_Z -100
-
 
 // -----------------------------------------------------------
 // NOTE: X and Z must be set accordingly with terrain X,Z positions and scaling.
@@ -132,6 +129,10 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
 
         RayCollision ray = raycast_terrain(terrain, x, z);
 
+        if(ray.point.y < terrain->water_ylevel) {
+            continue;
+        }
+
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
         fm->tree_type0[i] = MatrixMultiply(rotation, translation);
@@ -145,6 +146,10 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
+        
+        if(ray.point.y < terrain->water_ylevel) {
+            continue;
+        }
 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation = MatrixRotateXYZ(
@@ -155,8 +160,6 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
                 });
         fm->rock_type0[i] = MatrixMultiply(rotation, translation);
     }
-
-
 
 
 }
@@ -385,6 +388,8 @@ void generate_terrain(
     terrain->highest_point = 0.0;
     terrain->num_visible_chunks = 0;
 
+    terrain->water_ylevel = WATER_INITIAL_YLEVEL;
+
     // The 'randomf' function modifies the seed.
     int seed_x = randomgen(&seed);
     int seed_z = randomgen(&seed);
@@ -419,7 +424,7 @@ void generate_terrain(
     // Get highest point.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
-            size_t index = round(z) * terrain->heightmap.size + round(x);
+            size_t index = z * terrain->heightmap.size + x;
 
             float v = terrain->heightmap.data[index];
             if(v > terrain->highest_point) {
@@ -510,8 +515,6 @@ void generate_terrain(
         fmodels->tree_type0.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
             = gst->textures[LEAF_TEXID];
 
-
-
         // Rock type 0
         fmodels->rock_type0 = LoadModel("res/models/rock_type0.glb");
         fmodels->rock_type0.materials[0] = LoadMaterialDefault();
@@ -520,17 +523,63 @@ void generate_terrain(
             = gst->textures[ROCK_TEXID];
  
 
+
     }
+
+
 
 
     _load_terrain_chunks(gst, terrain);
 
 
+    // Figure out how many chunks may be rendered at once.
+    // This is bad... but will do for now.
+
+    terrain->num_max_visible_chunks = 8; // take in count error..
+    for(size_t i = 0; i < terrain->num_chunks; i++) {
+        struct chunk_t* chunk = &terrain->chunks[i];
+
+        float dst = Vector3Length(chunk->center_pos);
+
+        if(dst <= RENDER_DISTANCE) {
+            terrain->num_max_visible_chunks++;
+        }
+    }
+
+    const float waterplane_size = (CHUNK_SIZE * (1+terrain->num_max_visible_chunks/4)) * terrain->scaling;
+    terrain->waterplane = LoadModelFromMesh(GenMeshPlane(waterplane_size, waterplane_size, 32, 32));
+    terrain->waterplane.materials[0] = LoadMaterialDefault();
+    terrain->waterplane.materials[0].shader = gst->shaders[WATER_SHADER];
+
+    // Allocate memory for all foliage matrices.
+
+    terrain->rfmatrices.tree_type0_size 
+        = (terrain->num_max_visible_chunks * TREE_TYPE0_MAX_PERCHUNK);
+    terrain->rfmatrices.tree_type0 
+        = malloc(terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
+
+
+    terrain->rfmatrices.rock_type0_size 
+        = (terrain->num_max_visible_chunks * ROCK_TYPE0_MAX_PERCHUNK);
+    terrain->rfmatrices.rock_type0 
+        = malloc(terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
+
+    
+    printf("Max visible chunks: %i\n", terrain->num_max_visible_chunks);
     printf("\033[32m -> Generated terrain succesfully.\033[0m\n");
 }
 
 
 void delete_terrain(struct terrain_t* terrain) {
+    if(terrain->chunks) {
+
+        for(size_t i = 0; i < terrain->num_chunks; i++) {
+            UnloadMesh(terrain->chunks[i].mesh);
+        }
+
+        free(terrain->chunks);
+        terrain->chunks = NULL;
+    }
 
     if(terrain->triangle_lookup) {
         free(terrain->triangle_lookup);
@@ -541,32 +590,41 @@ void delete_terrain(struct terrain_t* terrain) {
         terrain->heightmap.data = NULL;
     }
 
-
-    if(terrain->chunks) {
-
-        for(size_t i = 0; i < terrain->num_chunks; i++) {
-            UnloadMesh(terrain->chunks[i].mesh);
-        }
-
-        free(terrain->chunks);
-        terrain->chunks = NULL;
-    
+    if(terrain->rfmatrices.tree_type0) {
+        free(terrain->rfmatrices.tree_type0);
+        terrain->rfmatrices.tree_type0 = NULL;
     }
-
+    if(terrain->rfmatrices.rock_type0) {
+        free(terrain->rfmatrices.rock_type0);
+        terrain->rfmatrices.rock_type0 = NULL;
+    }
+   
+    UnloadModel(terrain->waterplane);
     UnloadModel(terrain->foliage_models.tree_type0);
     UnloadModel(terrain->foliage_models.rock_type0);
 
     printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
 
+#include <rlgl.h>
+
 // TODO: This needs optimization!
 // ------------------------------
 void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_id) {
 
     terrain->num_visible_chunks = 0;
-
     terrain->material.shader = gst->shaders[shader_id];
-   
+
+
+    memset(terrain->rfmatrices.tree_type0, 0, terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
+    terrain->rfmatrices.num_tree_type0 = 0;
+    size_t rf_tree_type0_index = 0; // Where to copy from next chunk?
+
+    memset(terrain->rfmatrices.rock_type0, 0, terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
+    terrain->rfmatrices.num_rock_type0 = 0;
+    size_t rf_rock_type0_index = 0;
+
+    terrain->water_ylevel += sin(gst->time)*0.000585;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -577,35 +635,70 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_i
         }
     
         terrain->num_visible_chunks++;
-        
+
+
+        if(rf_tree_type0_index < terrain->rfmatrices.tree_type0_size) {
+            memmove(&terrain->rfmatrices.tree_type0[rf_tree_type0_index],
+                    chunk->foliage_matrices.tree_type0,
+                    chunk->foliage_matrices.num_tree_type0 * sizeof(Matrix));
+
+            terrain->rfmatrices.num_tree_type0 += chunk->foliage_matrices.num_tree_type0;
+            rf_tree_type0_index += chunk->foliage_matrices.num_tree_type0;
+        }
+
+
+        if(rf_rock_type0_index < terrain->rfmatrices.rock_type0_size) {
+            memmove(&terrain->rfmatrices.rock_type0[rf_rock_type0_index],
+                    chunk->foliage_matrices.rock_type0,
+                    chunk->foliage_matrices.num_rock_type0 * sizeof(Matrix));
+
+            terrain->rfmatrices.num_rock_type0 += chunk->foliage_matrices.num_rock_type0;
+            rf_rock_type0_index += chunk->foliage_matrices.num_rock_type0;
+        }
 
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
-
-
-        // Tree type0
-        DrawMeshInstanced( // Tree bark
-                terrain->foliage_models.tree_type0.meshes[0],
-                terrain->foliage_models.tree_type0.materials[0],
-                chunk->foliage_matrices.tree_type0,
-                chunk->foliage_matrices.num_tree_type0
-                );
-
-        DrawMeshInstanced( // Tree leafs
-                terrain->foliage_models.tree_type0.meshes[1],
-                terrain->foliage_models.tree_type0.materials[1],
-                chunk->foliage_matrices.tree_type0,
-                chunk->foliage_matrices.num_tree_type0
-                );
-
-        // Rock type0
-        DrawMeshInstanced(
-                terrain->foliage_models.rock_type0.meshes[0],
-                terrain->foliage_models.rock_type0.materials[0],
-                chunk->foliage_matrices.rock_type0,
-                chunk->foliage_matrices.num_rock_type0
-                );
     }
+
+
+    // Water.
+    {
+
+        rlDisableBackfaceCulling();
+        DrawModel(terrain->waterplane, 
+                (Vector3){gst->player.position.x, terrain->water_ylevel, gst->player.position.z},
+                1.0,
+                (Color){ 255, 255, 255, 255 });
+        
+        rlEnableBackfaceCulling();
+    }
+   
+
+    // 'tree_type0'
+    DrawMeshInstanced( // Tree bark
+            terrain->foliage_models.tree_type0.meshes[0],
+            terrain->foliage_models.tree_type0.materials[0],
+            terrain->rfmatrices.tree_type0,
+            terrain->rfmatrices.num_tree_type0
+            );
+    DrawMeshInstanced( // Tree leafs
+            terrain->foliage_models.tree_type0.meshes[1],
+            terrain->foliage_models.tree_type0.materials[1],
+            terrain->rfmatrices.tree_type0,
+            terrain->rfmatrices.num_tree_type0
+            );
+
+
+    // 'rock_type0'
+    DrawMeshInstanced(
+            terrain->foliage_models.rock_type0.meshes[0],
+            terrain->foliage_models.rock_type0.materials[0],
+            terrain->rfmatrices.rock_type0,
+            terrain->rfmatrices.num_rock_type0
+            );
+
+
+
 
 }
 

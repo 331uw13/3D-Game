@@ -109,6 +109,9 @@ void main()
 
     // ---------------------
 
+    if(cam_pos.y < -80.0) {
+        color += vec3(0.0, 0.3, 0.3);
+    }
 
 
     finalColor = vec4(color, 1.0);

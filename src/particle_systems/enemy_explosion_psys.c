@@ -14,7 +14,6 @@ void enemy_explosion_psys_update(
 ){
     // TODO: This can be optimized.
 
-    RayCollision ray = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     
     float t = lerp(normalize(part->lifetime, 0.0, part->max_lifetime), 3.0, 0.0);
@@ -27,7 +26,8 @@ void enemy_explosion_psys_update(
     *part->transform = MatrixMultiply(scale_matrix, translation);
 }
 
-
+// TODO: * sphere expanding from explosion point
+//       * smoke
 
 // PARTICLE INITIALIZATION
 void enemy_explosion_psys_init(
