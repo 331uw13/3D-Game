@@ -88,7 +88,32 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
 
 
+    {
+        Vector3 forward = (Vector3){ 0.0, 0.0, 0.0 };
+        forward.x = ent->matrix[ENEMY_LVL0_BODY_MI].m8;
+        forward.y = ent->matrix[ENEMY_LVL0_BODY_MI].m9;
+        forward.z = ent->matrix[ENEMY_LVL0_BODY_MI].m10;
 
+        forward = Vector3CrossProduct(forward, (Vector3){ 0.0, 1.0, 0.0 });
+
+        Vector3 P1 = (Vector3) {
+            ent->position.x,
+                0,
+            ent->position.z
+        };
+
+        Vector3 P2 = (Vector3) {
+            gst->player.position.x,
+                0,
+            gst->player.position.z
+        };
+        Vector3 D = Vector3Normalize(Vector3Subtract(P1, P2));
+
+        float dot = Vector3DotProduct(D, forward);
+
+        printf("dotprod:%f\n", dot);
+
+    }
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
             {

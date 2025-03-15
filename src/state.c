@@ -205,10 +205,20 @@ void state_render_environment(struct state_t* gst) {
                 
                 }
 
+                /*
                 // Forward direction.
                 {
-                    Vector3 fw_dir = (Vector3){ 1.0, 0.0, 0.0 };
 
+                    Vector3 fw_dir = (Vector3){ 0.0, 0.0, 0.0 };
+
+                    fw_dir.x = ent->matrix[ENEMY_LVL0_BODY_MI].m8;
+                    fw_dir.y = ent->matrix[ENEMY_LVL0_BODY_MI].m9;
+                    fw_dir.z = ent->matrix[ENEMY_LVL0_BODY_MI].m10;
+
+                    fw_dir = Vector3CrossProduct(fw_dir, (Vector3){0,1,0});
+
+                 
+                    //fw_dir = Vector3Negate(fw_dir);
                     Vector3 p2 = Vector3Add(ent->position, Vector3Scale(fw_dir, 10.0));
                     
                     const float height = 20.0;
@@ -235,7 +245,9 @@ void state_render_environment(struct state_t* gst) {
                             RED
                             );
 
+                
                 }
+                */
             }
 
             DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
