@@ -96,15 +96,15 @@ RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z) {
     return mesh_hit_info;
 }
 
-Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, float* hit_y) {
+Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, RayCollision* ray_out) {
     
     RayCollision t_hit = raycast_terrain(terrain, x, z);
 
     Vector3 up = (Vector3){ 0.0, 1.0, 0.0};
     Vector3 axis = Vector3CrossProduct(up, t_hit.normal);
 
-    if(hit_y) {
-        *hit_y = t_hit.point.y;
+    if(ray_out) {
+        *ray_out = t_hit;
     }
 
     return MatrixRotateXYZ((Vector3){ axis.x, 0.0, axis.z });

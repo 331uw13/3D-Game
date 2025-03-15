@@ -9,42 +9,73 @@
 #include <stdlib.h>
 
 
+static void set_body_transform(struct enemy_t* ent, Vector3 tnormal) {
+    
+    const float norm_off = 8.0; // How much the surface normal offsets the body position?
+    const float body_yoff = 10.0; // How much to offset the body Y position?
+   
+    // Translate to wanted position.
+    ent->matrix[ENEMY_LVL0_BODY_MI]
+            = MatrixTranslate(
+                    tnormal.x * norm_off,
+                    body_yoff,
+                    tnormal.z * norm_off
+                    );
+
+    // Rotate angles.
+
+    ent->matrix[ENEMY_LVL0_BODY_MI] 
+        = MatrixMultiply(MatrixRotateY(ent->rotation.y), ent->matrix[ENEMY_LVL0_BODY_MI]);
+
+    ent->matrix[ENEMY_LVL0_BODY_MI]
+        = MatrixMultiply(MatrixRotateZ(ent->rotation.z), ent->matrix[ENEMY_LVL0_BODY_MI]);
+}
+
 void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
     if(!ent->alive) {
         return;
     }
 
 
-    float terrain_y = 0.0;
-    Matrix legs_rotation = get_rotation_to_surface(&gst->terrain, ent->position.x, ent->position.z, &terrain_y);    
-    Matrix translation = MatrixTranslate(ent->position.x, terrain_y, ent->position.z);
 
+
+    RayCollision tray;
+    Matrix legs_rotation = get_rotation_to_surface(&gst->terrain, ent->position.x, ent->position.z, &tray);    
+    Matrix translation = MatrixTranslate(ent->position.x, tray.point.y, ent->position.z);
 
 
     ent->matrix[ENEMY_LVL0_LEG_MI] = MatrixMultiply(legs_rotation, translation);
-    ent->matrix[ENEMY_LVL0_BODY_MI] = translation;
     ent->matrix[ENEMY_LVL0_JOINT_MI] = ent->matrix[ENEMY_LVL0_LEG_MI];
-    ent->position.y = terrain_y;
+    ent->matrix[ENEMY_LVL0_BODY_MI] = translation;
+    
+    ent->position.y = tray.point.y;
 
+
+    // TODO: get distance to player for enemy struct.
 
     //float dst2player = Vector3Distance(ent->position, gst->player.position);
     int has_target_now = enemy_can_see_player(gst, ent);
 
 
 
+    if(ent->state != ENT_STATE_CHANGING_ANGLE) {
+        set_body_transform(ent, tray.normal);
+    }
+
+
     if(has_target_now && !ent->has_target) {
         printf(" Enemy(%li) -> Target Found!\n", ent->index);
-        ent->state = ENT_STATE_HAS_TARGET;
-        /*
+        ent->state = ENT_STATE_CHANGING_ANGLE;
+    
+        // Get (current) quaternion.
+        ent->Q_prev = QuaternionFromMatrix(ent->matrix[ENEMY_LVL0_BODY_MI]);
+
+        // Get the (target) quaternion.
+        ent->rotation = get_rotation_yz(ent->position, gst->player.position);
+        set_body_transform(ent, tray.normal);
+        ent->Q_target = QuaternionFromMatrix(ent->matrix[ENEMY_LVL0_BODY_MI]);
+
         ent->angle_change = 0.0;
-        Matrix prev_angle_m = MatrixRotateY(ent->forward_angle);
-
-        ent->Q1 = QuaternionFromMatrix(prev_angle_m);
-        ent->forward_angle = angle_xz(gst->player.position, ent->position);
-
-        Matrix rm = MatrixRotateY(ent->forward_angle);
-        ent->Q0 = QuaternionFromMatrix(rm);
-        */
     }
     else
     if(!has_target_now && ent->has_target) {
@@ -57,167 +88,48 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
 
 
+
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
             {
-                ent->forward_angle = angle_xz(gst->player.position, ent->position);
-                ent->matrix[ENEMY_LVL0_BODY_MI] = MatrixRotateY(ent->forward_angle);
-
-                Vector3 P1 = gst->player.position;
-                Vector3 P2 = ent->position;
-
-                Vector3 d = Vector3Subtract(P1, P2);
-                float angle = acos(d.y / Vector3Length(d));
-
-
-                // TODO: get the normal at top.
-
-                RayCollision ray = raycast_terrain(&gst->terrain, ent->position.x, ent->position.z);
-                ray.point = Vector3Add(ray.point, ray.normal);
-
-
-                // Translate to origin.
-                ent->matrix[ENEMY_LVL0_BODY_MI] = MatrixTranslate(
-                        ray.normal.x*10,
-                        10.0,
-                        ray.normal.z*10
-                        );
-                
-                // Rotate 'X,Z'
-                ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixMultiply(MatrixRotateY(ent->forward_angle), ent->matrix[ENEMY_LVL0_BODY_MI]);
-
-                // Rotate 'Y'
-                ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixMultiply(MatrixRotateZ(angle - 90.0*DEG2RAD), ent->matrix[ENEMY_LVL0_BODY_MI]);
-              
-
-                // Translate back
-
-            }
-            break;
-
-        case ENT_STATE_SEARCHING_TARGET:
-            {
-                ent->forward_angle += gst->dt;
-                ent->matrix[ENEMY_LVL0_BODY_MI] = MatrixRotateY(ent->forward_angle);
-            }
-            break;
-    }
-
-                ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixMultiply(ent->matrix[ENEMY_LVL0_BODY_MI], translation);
-
-
-
-  
-    /*
-    ent->matrix[ENEMY_LVL0_BODY_MI] 
-        = MatrixMultiply(ent->matrix[ENEMY_LVL0_BODY_MI], translation);
-
-        */
-    
-    /*
-    if(ent->firerate_timer < ent->firerate) {
-        ent->firerate_timer += gst->dt;
-    }
-
-    switch(ent->state) {
-
-        case ENT_STATE_WASHIT:
-            {
-                ent->stun_timer += gst->dt;
+                ent->rotation = get_rotation_yz(ent->position, gst->player.position);
 
                 
-                ent->position.x += ent->knockback_velocity.x * gst->dt;
-                ent->position.z += ent->knockback_velocity.z * gst->dt;
 
-                ent->knockback_velocity.x *= 0.99;
-                ent->knockback_velocity.z *= 0.99;
-
-
-                if(ent->stun_timer >= ent->max_stun_time) {
-                    ent->state = ENT_STATE_SEARCHING_TARGET;
-                    ent->has_target = 0;
-                }
-                
-                Matrix rm = MatrixRotateY(ent->forward_angle);
-                rm = MatrixMultiply(rm, ent->matrix[ENEMY_LVL0_BODY_MI]);
-                ent->matrix[ENEMY_LVL0_BODY_MI] = rm;
-            }
-            break;
-        case ENT_STATE_SEARCHING_TARGET:
-            {
-                ent->forward_angle += gst->dt;
-                Matrix rm = MatrixRotateY(ent->forward_angle);
-                rm = MatrixMultiply(rm, ent->matrix[ENEMY_LVL0_BODY_MI]);
-                ent->matrix[ENEMY_LVL0_BODY_MI] = rm;
             }
             break;
 
         case ENT_STATE_CHANGING_ANGLE:
             {
-                Quaternion Q = QuaternionSlerp(ent->Q1, ent->Q0, ent->angle_change);
+                Quaternion Q = QuaternionSlerp(ent->Q_prev, ent->Q_target, ent->angle_change);
+
                 ent->angle_change += gst->dt * 5.0;
 
-                if(ent->angle_change > 1.0) {
+                if(ent->angle_change >= 1.0) {
                     ent->state = ENT_STATE_HAS_TARGET;
                 }
 
-                Matrix qm = QuaternionToMatrix(Q);
-                ent->matrix[ENEMY_LVL0_BODY_MI] = MatrixMultiply(qm, ent->matrix[ENEMY_LVL0_BODY_MI]);
+                ent->matrix[ENEMY_LVL0_BODY_MI]
+                    = MatrixTranslate(tray.normal.x*8.0, 10.0, tray.normal.z*8.0);
+                
+                ent->matrix[ENEMY_LVL0_BODY_MI] 
+                    = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);
+
             }
             break;
 
-        case ENT_STATE_HAS_TARGET:
+        case ENT_STATE_SEARCHING_TARGET:
             {
-                ent->forward_angle = angle_xz(gst->player.position, ent->position);
-                Matrix rm = MatrixRotateY(ent->forward_angle);
-                rm = MatrixMultiply(rm, ent->matrix[ENEMY_LVL0_BODY_MI]);
-                ent->matrix[ENEMY_LVL0_BODY_MI] = rm;
-    
-                Vector3 prj_position = ent->position;
-
-
-                float angle = ent->forward_angle;
-                const float ang_rad = 1.5;
-
-
-                if(!gst->player.noclip && gst->player.alive) {
-                    prj_position.x += 0.2;
-                    prj_position.z -= 0.4;
-
-                    if(ent->gun_index) {
-                        prj_position.x += ang_rad*sin(angle)*2;
-                        prj_position.z += ang_rad*cos(angle)*2;
-                    }
-                    else {
-                        prj_position.x -= ang_rad*sin(angle)*2;
-                        prj_position.z -= ang_rad*cos(angle)*2;
-                    }
-                   
-                    prj_position.y += 3.5;
-                    Vector3 prj_direction = Vector3Normalize(Vector3Subtract(gst->player.position, prj_position));
-
-
-                    if(ent->firerate_timer >= ent->firerate) {
-                        
-                        add_projectile(gst, ent->weapon_psysptr, ent->weaponptr,
-                                prj_position, prj_direction, NO_ACCURACY_MOD);
-                        
-                        ent->firerate_timer = 0.0;
-                        ent->gun_index = !ent->gun_index;
-
-                        SetSoundVolume(gst->sounds[ENEMY_GUN_SOUND],
-                                get_volume_dist(gst->player.position, ent->position));
-                        
-                        PlaySound(gst->sounds[ENEMY_GUN_SOUND]);
-                    }
-                }
+                
             }
             break;
+
     }
-*/
+
+  
+    ent->matrix[ENEMY_LVL0_BODY_MI]
+        = MatrixMultiply(ent->matrix[ENEMY_LVL0_BODY_MI], translation);
+
 }
 
 void enemy_lvl0_render(struct state_t* gst, struct enemy_t* ent) {

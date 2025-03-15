@@ -191,19 +191,56 @@ void state_render_environment(struct state_t* gst) {
 
     BeginMode3D(gst->player.cam);
     {
-        // Render debug info if needed.
+        // Render debug info if needed. --------
         if(gst->debug) {
             for(size_t i = 0; i < gst->num_enemies; i++) {
                 struct enemy_t* ent = &gst->enemies[i];
-      
-                if(gst->debug) {          
+                if(!ent->alive) {
+                    continue;
+                }
+                
+                // Hitboxes
+                {
                     DrawBoundingBox(get_enemy_boundingbox(ent), RED);
+                
+                }
+
+                // Forward direction.
+                {
+                    Vector3 fw_dir = (Vector3){ 1.0, 0.0, 0.0 };
+
+                    Vector3 p2 = Vector3Add(ent->position, Vector3Scale(fw_dir, 10.0));
+                    
+                    const float height = 20.0;
+                    DrawLine3D(
+                            (Vector3) {
+                                ent->position.x,
+                                ent->position.y + height,
+                                ent->position.z
+                            },
+                            (Vector3) {
+                                p2.x,
+                                p2.y + height,
+                                p2.z
+                            },
+                            GREEN);
+
+                    DrawSphere(
+                            (Vector3) {
+                                p2.x,
+                                p2.y + height,
+                                p2.z
+                            },
+                            0.3,
+                            RED
+                            );
+
                 }
             }
 
-
             DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
+        // ------------
 
 
         BeginShaderMode(gst->shaders[DEFAULT_SHADER]);

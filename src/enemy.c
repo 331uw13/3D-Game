@@ -8,6 +8,41 @@
 #include "enemies/enemy_lvl0.h"
 
 
+static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
+    int result = 0;
+
+    Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
+    Vector3 ray_position = (Vector3){
+        ent->position.x,
+        ent->position.y + 3,
+        ent->position.z
+    };
+
+    // Move 'ray_position' towards player
+    // and cast ray from 'terrain.highest_point' at ray_position.X and Z.
+    // to see if the hit Y position is bigger than ray Y position, if so terrain was hit.
+    // this is not perfect but will do for now i guess.
+
+    Vector3 step = Vector3Scale(ent_direction, 3.0);
+    const int max_steps = 255;
+    for(int i = 0; i < max_steps; i++) {
+        
+        ray_position = Vector3Add(ray_position, step);
+
+        RayCollision t_hit = raycast_terrain(&gst->terrain, ray_position.x, ray_position.z);
+        if(t_hit.point.y >= ray_position.y) {
+            result = 1;
+            break;
+        }
+        
+        if(Vector3Distance(ray_position, gst->player.position) < 4.0) {
+            break;
+        }
+    }
+
+    return result;
+}
+
 
 struct enemy_t* create_enemy(
         struct state_t* gst,
@@ -91,10 +126,10 @@ struct enemy_t* create_enemy(
     entptr->stun_timer = 0.0;
     entptr->max_stun_time = 0.0;
 
-    entptr->Q0 = QuaternionIdentity();
-    entptr->Q1 = QuaternionIdentity();
+    entptr->Q_prev   = QuaternionIdentity();
+    entptr->Q_target = QuaternionIdentity();
     entptr->angle_change = 0.0;
-    entptr->forward_angle = 0.0;
+    entptr->rotation = (Vector3){ 0.0, 0.0, 0.0 };
     
     entptr->target_range = target_range;
     entptr->gun_index = 0;
@@ -137,97 +172,22 @@ error:
     return entptr;
 }
 
-/*
-void load_enemy_broken_model(struct enemy_t* ent, const char* broken_model_filepath) {
-    ent->broken_matrices = NULL;
-    ent->broken_mesh_velocities = NULL;
-    ent->broken_model = (Model) { 0 };
-
-    if(!broken_model_filepath) {
-        printf("\033[36m(WARNING) '%s': No \"broken\" model filepath\033[0m\n",
-                __func__);
-        return;
-    }
-
-    if(!FileExists(broken_model_filepath)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': '%s' Not found.\033[0m\n",
-                __func__, broken_model_filepath);
-        return;
-    }
-
-
-    ent->broken_model = LoadModel(broken_model_filepath);
-    
-    // Allocate memory for model's mesh matrices.
-    ent->broken_matrices = malloc(ent->broken_model.meshCount * sizeof *ent->broken_matrices);
-
-    // Allocate memory for velocities.
-    ent->broken_mesh_velocities = malloc(ent->broken_model.meshCount * sizeof *ent->broken_mesh_velocities);
-  
-    // Allocate memory for rotations.
-    ent->broken_mesh_rotations = malloc(ent->broken_model.meshCount * sizeof *ent->broken_mesh_rotations);
-
-    for(int i = 0; i < ent->broken_model.meshCount; i++) {
-        ent->broken_matrices[i] = MatrixIdentity();
-        ent->broken_mesh_velocities[i] = (Vector3) { 0.0, 0.0, 0.0 };
-        ent->broken_mesh_rotations[i] = (Vector3) { 0.0, 0.0, 0.0 };
-    }
-
-
-    ent->broken_model_despawn_timer = 0.0;
-    ent->broken_model_despawn_maxtime = 10.0;
-    ent->broken_model_despawned = 0;
-
-}
-*/
-
-
-    /*
-void delete_enemy(struct enemy_t* ent) {
-    //UnloadModel(ent->model);
-    ent->health = 0;
-    ent->weapon_psysptr = NULL;
-    ent->weaponptr = NULL;
-        
-
-    if(IsModelValid(ent->broken_model)) {
-        UnloadModel(ent->broken_model);
-
-        if(ent->broken_matrices) {
-            free(ent->broken_matrices);
-            ent->broken_matrices = NULL;
-        }
-
-        if(ent->broken_mesh_velocities) {
-            free(ent->broken_mesh_velocities);
-            ent->broken_mesh_velocities = NULL;
-        }
-
-        if(ent->broken_mesh_rotations) {
-            free(ent->broken_mesh_rotations);
-            ent->broken_mesh_rotations = NULL;
-        }
-    }
-}
-        */
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent) {
-   
-    /*
-    if(!ent->alive && !ent->broken_model_despawned) {
-        // Enemy has died so update its matrix transforms for "broken" model
-        update_enemy_broken_matrices(gst, ent);
+    if(!ent->enabled) {
+        return;
     }
-    */
-
-
     if(ent->update_callback) {
+        ent->dist_to_player = Vector3Distance(gst->player.position, ent->position);
         ent->update_callback(gst, ent);
     }
 }
 
 void render_enemy(struct state_t* gst, struct enemy_t* ent) {
-    if(Vector3Distance(ent->position, gst->player.position) > RENDER_DISTANCE) {
+    if(!ent->enabled) {
+        return;
+    }
+    if(ent->dist_to_player > RENDER_DISTANCE) {
         return;
     }
     if(ent->render_callback) {
@@ -268,26 +228,6 @@ void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon
 }
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
-
-    /*
-    // Update broken model matrices to last known body position, if they exist
-    // And decide random velocities.
-    if(IsModelValid(ent->broken_model) && ent->broken_matrices) {
-        for(int i = 0; i < ent->broken_model.meshCount; i++) {
-            ent->broken_matrices[i] = ent->body_matrix;
-            ent->broken_matrices[i].m13 += 1.0;
-
-            const float r = 80.0;
-            ent->broken_mesh_velocities[i] = (Vector3) {
-                RSEEDRANDOMF(-r, r),
-                RSEEDRANDOMF(r, r*1.5),
-                RSEEDRANDOMF(-r, r),
-            };
-
-        }
-    }
-    */
-
     add_particles(
             gst,
             &gst->psystems[ENEMY_EXPLOSION_PSYS],
@@ -304,66 +244,8 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     if(ent->death_callback) {
         ent->death_callback(gst, ent);
     }
-   
 }
 
-
-static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
-    int result = 0;
-
-    Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
-    Vector3 ray_position = (Vector3){
-        ent->position.x,
-        ent->position.y + 3,
-        ent->position.z
-    };
-
-    // Move 'ray_position' towards player
-    // and cast ray from 'terrain.highest_point' at ray_position.X and Z.
-    // to see if the hit Y position is bigger than ray Y position, if so terrain was hit.
-    // this is not perfect but will do for now i guess.
-
-    Vector3 step = Vector3Scale(ent_direction, 3.0);
-    const int max_steps = 255;
-    for(int i = 0; i < max_steps; i++) {
-        
-        ray_position = Vector3Add(ray_position, step);
-
-        RayCollision t_hit = raycast_terrain(&gst->terrain, ray_position.x, ray_position.z);
-        if(t_hit.point.y >= ray_position.y) {
-            result = 1;
-            break;
-        }
-        
-        if(Vector3Distance(ray_position, gst->player.position) < 4.0) {
-            break;
-        }
-    }
-
-    return result;
-}
-
-int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent) {
-    const float dst2player = Vector3Distance(gst->player.position, ent->position);
-    return (!_is_terrain_blocking_view(gst, ent) && (dst2player <= ent->target_range));
-}
-
-BoundingBox get_enemy_boundingbox(struct enemy_t* ent) {
-    return (BoundingBox) {
-        (Vector3) {
-            // Minimum box corner
-            (ent->position.x + ent->hitbox_position.x) - ent->hitbox_size.x/2,
-            (ent->position.y + ent->hitbox_position.y) - ent->hitbox_size.y/2,
-            (ent->position.z + ent->hitbox_position.z) - ent->hitbox_size.z/2
-        },
-        (Vector3) {
-            // Maximum box corner
-            (ent->position.x + ent->hitbox_position.x) + ent->hitbox_size.x/2,
-            (ent->position.y + ent->hitbox_position.y) + ent->hitbox_size.y/2,
-            (ent->position.z + ent->hitbox_position.z) + ent->hitbox_size.z/2
-        }
-    };
-}
 
 void spawn_enemy(
         struct state_t* gst,
@@ -392,7 +274,7 @@ void spawn_enemy(
                         position,
                         (Vector3){ 4.0, 4.0, 4.0 }, /* Hitbox size */
                         (Vector3){ 0.0, 2.0, 0.0 }, /* Hitbox position offset */
-                        300.0, /* Target range */
+                        150.0, /* Target range */
                         0.4,   /* Firerate */
                         enemy_lvl0_update,
                         enemy_lvl0_render,
@@ -450,3 +332,23 @@ error:
 }
 
 
+int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent) {
+    return (!_is_terrain_blocking_view(gst, ent) && (ent->dist_to_player <= ent->target_range));
+}
+
+BoundingBox get_enemy_boundingbox(struct enemy_t* ent) {
+    return (BoundingBox) {
+        (Vector3) {
+            // Minimum box corner
+            (ent->position.x + ent->hitbox_position.x) - ent->hitbox_size.x/2,
+            (ent->position.y + ent->hitbox_position.y) - ent->hitbox_size.y/2,
+            (ent->position.z + ent->hitbox_position.z) - ent->hitbox_size.z/2
+        },
+        (Vector3) {
+            // Maximum box corner
+            (ent->position.x + ent->hitbox_position.x) + ent->hitbox_size.x/2,
+            (ent->position.y + ent->hitbox_position.y) + ent->hitbox_size.y/2,
+            (ent->position.z + ent->hitbox_position.z) + ent->hitbox_size.z/2
+        }
+    };
+}

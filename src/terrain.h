@@ -105,12 +105,7 @@ struct terrain_t {
 // it uses triangle lookup table.
 RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z);
 
-Matrix get_rotation_to_surface(
-        struct terrain_t* terrain,
-        float x, float z,
-        float* hit_y // report back the surface y position ray hit?
-        );
-
+Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, RayCollision* ray_out);
 
 void generate_terrain(
         struct state_t* gst,

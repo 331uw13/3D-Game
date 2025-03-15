@@ -69,6 +69,17 @@ void add_movement_vec3(Vector3* v1, Vector3 dir, float f) {
     v1->z += dir.z * f;
 }
 
+Vector3 get_rotation_yz(Vector3 p1, Vector3 p2) {
+    Vector3 d = Vector3Subtract(p2, p1);
+    float dlen = Vector3Length(d);
+    
+    return (Vector3) {
+        0.0, // Ignore X (roll)
+        -(atan2(d.z, d.x)+M_PI),
+        acos(d.y / dlen) - 1.570795
+    };
+}
+
 float angle_xz(Vector3 a, Vector3 b) {
     Vector3 diff = Vector3Subtract(a, b);
     return -(atan2(diff.z, diff.x) + M_PI);

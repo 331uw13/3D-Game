@@ -81,6 +81,8 @@ struct enemy_t {
     Vector3 hitbox_size; // TODO: multiple hitboxes.
     Vector3 hitbox_position; // hitbox position from 'enemy position'.
 
+    float dist_to_player; // Distance to player.
+
     // Each enemy has different matrices for different "body parts".
     // The indices are defined in heir own header file.
     Matrix matrix[ENEMY_MAX_MATRICES];
@@ -92,13 +94,7 @@ struct enemy_t {
     float health;
     float max_health;
 
-    /*
-    int   broken_model_despawned;
-    float broken_model_despawn_maxtime;
-    float broken_model_despawn_timer;
-    */
-
-    // When enemy gets hit. velocity is applied.
+    // When enemy gets hit. velocity may be applied.
     Vector3 knockback_velocity;
     
     // How long the enemy is stunned after it was hit.
@@ -106,11 +102,11 @@ struct enemy_t {
     float max_stun_time; 
     
     // Used for rotating enemy.
-    Quaternion Q0;
-    Quaternion Q1;
-    float      angle_change; // how much angle is changed to another. 0.0 to 1.0
-    float      forward_angle;
-
+    Quaternion Q_prev;
+    Quaternion Q_target;
+    float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'. 0.0 to 1.0
+    Vector3    rotation;      // Matrix rotation.
+   
     // For any kind of movement enemy has.
     struct enemy_travel_t travel;
 
@@ -174,23 +170,11 @@ void spawn_enemy(
         Vector3 position
 );
 
-/*
-void spawn_enemy(struct state_t* gst, int enemy_type);
-void spawn_enemies(struct state_t* gst, int enemy_type, int count, int max_count);
-*/
-
-//void load_enemy_broken_model(struct enemy_t* ent, const char* broken_model_filepath);
-
-// TODO: rename to 'disable_enemy'
-//void delete_enemy(struct enemy_t* ent);
-
-
 // These functions "redirects" the call based on enemy type
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);
 void enemy_death(struct state_t* gst, struct enemy_t* ent);
-
 void enemy_hit(
         struct state_t* gst,
         struct enemy_t* ent,
@@ -199,12 +183,12 @@ void enemy_hit(
         Vector3 hit_direction
 );
 
-int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
 
+// Can the enemy see player?  (Currently not taking in count the enemy FOV.)
+int   enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
+
+int   load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
 BoundingBox   get_enemy_boundingbox(struct enemy_t* ent);
-void          update_enemy_broken_matrices(struct state_t* gst, struct enemy_t* ent);
-
-int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
 
 
 #endif
