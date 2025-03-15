@@ -5,7 +5,6 @@
 #include <stddef.h>
 
 #include "typedefs.h"
-#include "hitbox.h"
 
 #define ENT_STATE_IDLE 0
 #define ENT_STATE_SEARCHING_TARGET 1
@@ -52,7 +51,14 @@ struct enemy_travel_t {
     int enabled; // Some enemies may not move.
 };
 
-// TODO: remove rotation from hit!
+
+struct hitbox_t {
+    Vector3 size;
+    Vector3 offset;
+    float damage_mult;
+    int id;
+};
+
 
 struct enemy_t {
     Model* modelptr;
@@ -183,7 +189,8 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent);
 void enemy_hit(
         struct state_t* gst,
         struct enemy_t* ent,
-        struct weapon_t* weapon, 
+        struct weapon_t* weapon,
+        float damage_mult,
         Vector3 hit_position,
         Vector3 hit_direction
 );
@@ -196,6 +203,11 @@ int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
 //  It is used to calculate the cross product.
 //  see 'enemies/enemy_lvl0.c' for example.
 int player_in_enemy_fov(struct state_t* gst, struct enemy_t* ent, Matrix* body_matrix);
+
+// Returns pointer to the hitbox that was collided with 'boundingbox'
+// or NULL if no collision.
+struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy_t* ent);
+
 
 
 

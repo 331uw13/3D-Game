@@ -64,7 +64,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
 
 
-    if(infov && (has_target_now && !ent->has_target)) {
+    if((ent->mood == ENT_HOSTILE) && infov && (has_target_now && !ent->has_target)) {
         printf("Enemy(%li) -> Target Found!\n", ent->index);
         ent->state = ENT_STATE_CHANGING_ANGLE;
     
@@ -89,16 +89,55 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
         ent->rnd_angle_change = 0.0;
         ent->has_target = 0;
     }
+    /*
+
+ 199 // Draw a circle in 3D world space
+ 200 void DrawCircle3D(Vector3 center, float radius, Vector3 rotationAxis, float rotationAngle, Color color)
+ 201 {
+ 202     rlPushMatrix();
+ 203         rlTranslatef(center.x, center.y, center.z);
+ 204         rlRotatef(rotationAngle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
+ 205
+ 206         rlBegin(RL_LINES);
+ 207             for (int i = 0; i < 360; i += 10)
+ 208             {
+ 209                 rlColor4ub(color.r, color.g, color.b, color.a);
+ 210
+ 211                 rlVertex3f(sinf(DEG2RAD*i)*radius, cosf(DEG2RAD*i)*radius, 0.0f);
+ 212                 rlVertex3f(sinf(DEG2RAD*(i + 10))*radius, cosf(DEG2RAD*(i + 10))*radius, 0.0f);
+ 213             }
+ 214         rlEnd();
+ 215     rlPopMatrix();
+ 216 }
+    
+    // Vector3 Vector3RotateByAxisAngle(Vector3 v, Vector3 axis, float angle)
     
 
-
+     */
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
             {
                 ent->rotation = get_rotation_yz(ent->position, gst->player.position);
 
+
+                if(ent->firerate_timer >= ent->firerate) {
+
+                    Vector3 prj_pos = (Vector3) {
+                        ent->position.x + cos(-ent->rotation.y + M_PI/2) * 10.0,
+                        ent->position.y+10.0,
+                        ent->position.z + sin(-ent->rotation.y + M_PI/2) * 10.0
+                    };
+
+                    Vector3 prj_dir = Vector3Normalize(Vector3Subtract(gst->player.position, prj_pos));
                 
 
+                    add_projectile(gst, 
+                            &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                            &gst->enemy_weapons[ENEMY_LVL0_WEAPON], 
+                            prj_pos, prj_dir, 0);
+
+                    ent->firerate_timer = 0.0;
+                }
             }
             break;
 
@@ -132,7 +171,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                     ent->rotation = (Vector3){ 
                         0, // Ignore X (roll)
                         RSEEDRANDOMF(-M_PI, M_PI),
-                        RSEEDRANDOMF(-0.3, 0.3)
+                        RSEEDRANDOMF(-0.3, 0.2)
                     };
 
                     set_body_transform(ent, ray.normal);
@@ -213,8 +252,8 @@ void enemy_lvl0_created(struct state_t* gst, struct enemy_t* ent) {
     RayCollision ray = raycast_terrain(&gst->terrain, ent->position.x, ent->position.z);
 
     for(size_t i = 0; i < ent->num_hitboxes; i++) {
-        ent->hitboxes[i].offset.x += ray.normal.x*5;
-        ent->hitboxes[i].offset.z += ray.normal.z*5;
+        ent->hitboxes[i].offset.x += ray.normal.x*8;
+        ent->hitboxes[i].offset.z += ray.normal.z*8;
     }
 
 }

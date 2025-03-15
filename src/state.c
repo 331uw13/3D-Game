@@ -473,8 +473,8 @@ void state_setup_all_weapons(struct state_t* gst) {
         .id = PLAYER_WEAPON_ID,
         .accuracy = 9.85,
         .damage = 10.0,
-        .critical_chance = 25,
-        .critical_mult = 3.0,
+        .critical_chance = 10,
+        .critical_mult = 1.85,
         .prj_speed = 350.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
@@ -491,10 +491,10 @@ void state_setup_all_weapons(struct state_t* gst) {
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
         .accuracy = 9.5,
-        .damage = 15.0,
-        .critical_chance = 35,
+        .damage = 1.0,
+        .critical_chance = 7,
         .critical_mult = 5.0,
-        .prj_speed = 500.0,
+        .prj_speed = 50.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .color = ENEMY_WEAPON_COLOR,
@@ -519,7 +519,7 @@ void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.5, 16, 16);
+        psystem->particle_mesh = GenMeshSphere(1.25, 16, 16);
         psystem->userptr = &gst->player.weapon;
     }
 
@@ -555,7 +555,7 @@ void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.75, 16, 16);
+        psystem->particle_mesh = GenMeshSphere(1.5, 16, 16);
         psystem->userptr = &gst->enemy_weapons[ENEMY_LVL0_WEAPON];
     }
 

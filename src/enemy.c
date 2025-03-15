@@ -14,7 +14,7 @@ static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
     Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
     Vector3 ray_position = (Vector3){
         ent->position.x,
-        ent->position.y + 3,
+        ent->position.y + 3.0,
         ent->position.z
     };
 
@@ -219,6 +219,7 @@ void update_enemy(struct state_t* gst, struct enemy_t* ent) {
     }
     if(ent->update_callback) {
         ent->dist_to_player = Vector3Distance(gst->player.position, ent->position);
+        ent->firerate_timer += gst->dt;
         ent->update_callback(gst, ent);
     }
 }
@@ -236,11 +237,19 @@ void render_enemy(struct state_t* gst, struct enemy_t* ent) {
 }
 
 
-void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon, 
-        Vector3 hit_position, Vector3 hit_direction) {
+void enemy_hit(
+        struct state_t* gst,
+        struct enemy_t* ent,
+        struct weapon_t* weapon, 
+        float damage_mult,
+        Vector3 hit_position,
+        Vector3 hit_direction
+){
 
     int was_critical_hit = 0;
-    ent->health -= get_weapon_damage(weapon, &was_critical_hit);
+    float damage = get_weapon_damage(weapon, &was_critical_hit) * damage_mult;
+    ent->health -= damage;
+
 
     if(was_critical_hit) {
         state_add_crithit_marker(gst, hit_position);
@@ -265,6 +274,7 @@ void enemy_hit(struct state_t* gst, struct enemy_t* ent, struct weapon_t* weapon
         ent->hit_callback(gst, ent, hit_position, hit_direction);
     }
 
+    printf("'%s': %0.2f | Health: %0.2f\n", __func__, damage, ent->health);
 }
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
@@ -301,7 +311,8 @@ void enemy_add_hitbox(
     ent->hitboxes[ent->num_hitboxes] = (struct hitbox_t) {
         .size = hitbox_size,
         .offset = hitbox_offset,
-        .damage_mult = damage_multiplier
+        .damage_mult = damage_multiplier,
+        .id = ent->num_hitboxes
     };
 
     ent->num_hitboxes++;
@@ -333,8 +344,8 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         max_health,
                         position,
-                        150.0, /* Target Range */
-                        180.0,  /* Target FOV */
+                        350.0, /* Target Range */
+                        160.0, /* Target FOV */
                         0.4,   /* Firerate */
                         enemy_lvl0_update,
                         enemy_lvl0_render,
@@ -350,14 +361,14 @@ void spawn_enemy(
                 enemy_add_hitbox(ent,
                         (Vector3){ 13.0, 8.0, 13.0 },
                         (Vector3){ 0.0, 12.0, 0.0 },
-                        1.0
+                        1.758
                         );
 
                 // Legs hitbox.
                 enemy_add_hitbox(ent,
                         (Vector3){ 10.0, 5.0, 10.0 },
                         (Vector3){ 0.0, 3.0, 0.0 },
-                        1.0
+                        0.5
                         );
 
                 ent->spawn_callback(gst, ent);
@@ -407,4 +418,32 @@ error:
     return result;
 }
 
+struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy_t* ent) {
+    struct hitbox_t* result = NULL;
+
+    for(size_t i = 0; i < ent->num_hitboxes; i++) {
+        BoundingBox hitbox = (BoundingBox) {
+            (Vector3) {
+                // Minimum box corner
+                (ent->position.x + ent->hitboxes[i].offset.x) - ent->hitboxes[i].size.x/2,
+                (ent->position.y + ent->hitboxes[i].offset.y) - ent->hitboxes[i].size.y/2,
+                (ent->position.z + ent->hitboxes[i].offset.z) - ent->hitboxes[i].size.z/2,
+            },
+            (Vector3) {
+                // Maximum box corner
+                (ent->position.x + ent->hitboxes[i].offset.x) + ent->hitboxes[i].size.x/2,
+                (ent->position.y + ent->hitboxes[i].offset.y) + ent->hitboxes[i].size.y/2,
+                (ent->position.z + ent->hitboxes[i].offset.z) + ent->hitboxes[i].size.z/2,
+            }
+        };
+
+        if(CheckCollisionBoxes(*boundingbox, hitbox)) {
+            result = &ent->hitboxes[i];
+            break;
+        }
+    }
+
+
+    return result;
+}
 

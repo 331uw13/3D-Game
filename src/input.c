@@ -152,7 +152,7 @@ void handle_userinput(struct state_t* gst) {
 
 
     if(IsKeyPressed(KEY_E)) {
-        spawn_enemy(gst, ENEMY_LVL0, 100, ENT_HOSTILE, gst->player.position);
+        spawn_enemy(gst, ENEMY_LVL0, 200, ENT_HOSTILE, gst->player.position);
     }
 
 

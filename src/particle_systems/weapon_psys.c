@@ -76,11 +76,13 @@ void weapon_psys_prj_update(
                 NULL, NO_EXTRADATA
                 );
 
+        /*
         if(gst->has_audio) {
             SetSoundPitch(gst->sounds[PRJ_ENVHIT_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.25));
             SetSoundVolume(gst->sounds[PRJ_ENVHIT_SOUND], get_volume_dist(gst->player.position, part->position));
             PlaySound(gst->sounds[PRJ_ENVHIT_SOUND]);
         }
+        */
 
         disable_particle(gst, part);
         return;
@@ -112,14 +114,11 @@ void weapon_psys_prj_update(
                 continue;
             }
 
-            if(check_collision_hitboxes(&part_boundingbox, enemy->hitboxes, enemy->num_hitboxes)) {
-                printf("Hit!\n");
-                disable_particle(gst, part);
-            }
+            struct hitbox_t* hit = check_collision_hitboxes(&part_boundingbox, enemy);
+            if(hit) {
+                enemy_hit(gst, enemy, weapon, hit->damage_mult, part->position, part->velocity);
 
-            /*
-            if(CheckCollisionBoxes(part_boundingbox, get_enemy_boundingbox(enemy))) {
-                enemy_hit(gst, enemy, weapon, part->position, part->velocity);
+                disable_particle(gst, part);
 
                 add_particles(gst,
                         &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS],
@@ -137,9 +136,8 @@ void weapon_psys_prj_update(
                         NULL, NO_EXTRADATA
                         );
 
-                disable_particle(gst, part);
+
             }
-            */
         }
     }
     else

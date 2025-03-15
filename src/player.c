@@ -126,9 +126,9 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
     // Move the projectile initial position little bit ahead.
-    prj_position.x += p->looking_at.x * 2.35;
-    prj_position.y += p->looking_at.y * 2.35;
-    prj_position.z += p->looking_at.z * 2.35;
+    prj_position.x += p->looking_at.x * 5.0;
+    prj_position.y += p->looking_at.y * 5.0;
+    prj_position.z += p->looking_at.z * 5.0;
 
     add_projectile(gst, &p->weapon_psys, &p->weapon, 
             prj_position, p->looking_at, p->accuracy_modifier);

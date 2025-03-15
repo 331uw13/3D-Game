@@ -24,10 +24,10 @@ uniform float time;
 
 void main()
 {
-    float v = voronoi3d(fragPosition*2.0).x;
+    float v = voronoi3d(fragPosition*0.65).x;
     vec3 col = psystem_color.rgb;
 
     v *= v;
 
-    finalColor = vec4(col, v);
+    finalColor = vec4(col*1.25, v);
 }

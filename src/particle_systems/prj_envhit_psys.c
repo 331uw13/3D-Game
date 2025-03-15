@@ -14,7 +14,7 @@ void prj_envhit_psys_update(
 ){
 
     float ntime = normalize(part->lifetime*3, 0.0, part->max_lifetime);
-    float st = lerp(ntime*2, 0.0, 1.65);
+    float st = lerp(ntime*2, 0.0, 2.65);
 
     Matrix scale_m = MatrixScale(st, st, st);
     Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
