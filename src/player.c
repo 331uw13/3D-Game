@@ -60,6 +60,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->firerate = 0.05;
     p->firerate_timer = 0.0;
 
+
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
 
     p->rotation_from_hit = (Vector3){ 0, 0, 0 };
@@ -68,6 +69,11 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
     p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUN_0_TEXID];
 
+    p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
+    p->gunfx_model.materials[0] = LoadMaterialDefault();
+    p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
+    p->gunfx_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUNFX_TEXID];
+    p->gunfx_timer = 1.0;
 
     p->arms_material = LoadMaterialDefault();
     p->arms_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_ARMS_TEXID];
@@ -94,6 +100,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
 void delete_player(struct player_t* p) {
     UnloadModel(p->gunmodel);
+    UnloadModel(p->gunfx_model);
     // ...
     
     printf("\033[35m -> Deleted Player\033[0m\n");
@@ -146,6 +153,8 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     if(gst->has_audio) {
         PlaySound(gst->sounds[PLAYER_GUN_SOUND]);
     }
+
+    p->gunfx_timer = 0.0;
 }
 
 
@@ -314,7 +323,6 @@ void player_render(struct state_t* gst, struct player_t* p) {
         // Update Gun Light here because otherwise it will be one frame behind.
         {
             Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
-
             lpos = Vector3Transform(lpos, p->gunmodel.transform);
             //DrawSphere(lpos, 0.2, RED);
 
@@ -339,6 +347,26 @@ void player_render(struct state_t* gst, struct player_t* p) {
                 );
     }
 
+    // Gun FX
+    if(p->gunfx_timer < 1.0) {
+        p->gunfx_model.transform = p->gunmodel.transform;
+        
+        p->gunfx_model.transform 
+            = MatrixMultiply(MatrixTranslate(0.28, -0.125, -3.5), p->gunfx_model.transform);
+        p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
+
+        float st = lerp(p->gunfx_timer, 3.5, 0.0);
+        p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
+
+        DrawMesh(
+                p->gunfx_model.meshes[0],
+                p->gunfx_model.materials[0],
+                p->gunfx_model.transform
+                );
+
+        p->gunfx_timer += gst->dt*13.0;
+
+    }
 }
 
 

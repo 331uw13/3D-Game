@@ -8,7 +8,7 @@
 #define LIGHT_DIRECTIONAL   0
 #define LIGHT_POINT         1
 
-#define AMBIENT vec3(0.1, 0.15, 0.3)
+#define AMBIENT vec3(0.125, 0.155, 0.35)
 
 
 struct Light {

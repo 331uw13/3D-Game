@@ -37,34 +37,35 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
     }
 
 
+    RayCollision ray;
+    Matrix legs_rotation = get_rotation_to_surface(&gst->terrain, ent->position.x, ent->position.z, &ray);    
+    Matrix translation = MatrixTranslate(ent->position.x, ray.point.y, ent->position.z);
 
 
-    RayCollision tray;
-    Matrix legs_rotation = get_rotation_to_surface(&gst->terrain, ent->position.x, ent->position.z, &tray);    
-    Matrix translation = MatrixTranslate(ent->position.x, tray.point.y, ent->position.z);
 
 
     ent->matrix[ENEMY_LVL0_LEG_MI] = MatrixMultiply(legs_rotation, translation);
     ent->matrix[ENEMY_LVL0_JOINT_MI] = ent->matrix[ENEMY_LVL0_LEG_MI];
     ent->matrix[ENEMY_LVL0_BODY_MI] = translation;
     
-    ent->position.y = tray.point.y;
+    ent->position.y = ray.point.y;
 
 
-    // TODO: get distance to player for enemy struct.
+    if(ent->state != ENT_STATE_CHANGING_ANGLE) {
+        set_body_transform(ent, ray.normal);
+    }
+    
+    int infov = player_in_enemy_fov(gst, ent, &ent->matrix[ENEMY_LVL0_BODY_MI]);
+    // ^- Remember to set the body transformation matrix first
+   
 
-    //float dst2player = Vector3Distance(ent->position, gst->player.position);
     int has_target_now = enemy_can_see_player(gst, ent);
 
 
 
-    if(ent->state != ENT_STATE_CHANGING_ANGLE) {
-        set_body_transform(ent, tray.normal);
-    }
 
-
-    if(has_target_now && !ent->has_target) {
-        printf(" Enemy(%li) -> Target Found!\n", ent->index);
+    if(infov && (has_target_now && !ent->has_target)) {
+        printf("Enemy(%li) -> Target Found!\n", ent->index);
         ent->state = ENT_STATE_CHANGING_ANGLE;
     
         // Get (current) quaternion.
@@ -72,48 +73,25 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
         // Get the (target) quaternion.
         ent->rotation = get_rotation_yz(ent->position, gst->player.position);
-        set_body_transform(ent, tray.normal);
+        set_body_transform(ent, ray.normal);
         ent->Q_target = QuaternionFromMatrix(ent->matrix[ENEMY_LVL0_BODY_MI]);
 
         ent->angle_change = 0.0;
+        ent->has_target = 1;
     }
     else
     if(!has_target_now && ent->has_target) {
-        printf(" Enemy(%li) -> Target Lost.\n", ent->index);
+        printf("Enemy(%li) -> Target Lost.\n", ent->index);
         ent->state = ENT_STATE_SEARCHING_TARGET;
-    
+        
+        ent->Q_rnd_target = QuaternionFromMatrix(ent->matrix[ENEMY_LVL0_BODY_MI]);
+
+        ent->rnd_angle_change = 0.0;
+        ent->has_target = 0;
     }
     
-    ent->has_target = has_target_now;
 
 
-
-    {
-        Vector3 forward = (Vector3){ 0.0, 0.0, 0.0 };
-        forward.x = ent->matrix[ENEMY_LVL0_BODY_MI].m8;
-        forward.y = ent->matrix[ENEMY_LVL0_BODY_MI].m9;
-        forward.z = ent->matrix[ENEMY_LVL0_BODY_MI].m10;
-
-        forward = Vector3CrossProduct(forward, (Vector3){ 0.0, 1.0, 0.0 });
-
-        Vector3 P1 = (Vector3) {
-            ent->position.x,
-                0,
-            ent->position.z
-        };
-
-        Vector3 P2 = (Vector3) {
-            gst->player.position.x,
-                0,
-            gst->player.position.z
-        };
-        Vector3 D = Vector3Normalize(Vector3Subtract(P1, P2));
-
-        float dot = Vector3DotProduct(D, forward);
-
-        printf("dotprod:%f\n", dot);
-
-    }
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
             {
@@ -126,26 +104,55 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
         case ENT_STATE_CHANGING_ANGLE:
             {
-                Quaternion Q = QuaternionSlerp(ent->Q_prev, ent->Q_target, ent->angle_change);
+                const float duration = 0.2;
+                Quaternion Q = QuaternionSlerp(ent->Q_prev, ent->Q_target, ent->angle_change / duration);
 
-                ent->angle_change += gst->dt * 5.0;
+                ent->angle_change += gst->dt;
 
-                if(ent->angle_change >= 1.0) {
+                if(ent->angle_change >= duration) {
                     ent->state = ENT_STATE_HAS_TARGET;
                 }
 
                 ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixTranslate(tray.normal.x*8.0, 10.0, tray.normal.z*8.0);
+                    = MatrixTranslate(ray.normal.x*8.0, 10.0, ray.normal.z*8.0);
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI] 
                     = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);
-
             }
             break;
 
         case ENT_STATE_SEARCHING_TARGET:
             {
+                if(ent->rnd_angle_change <= 0.00) {
+                    // Decide random point to rotate towards.
+
+                    ent->Q_rnd_prev = ent->Q_rnd_target;
+
+
+                    ent->rotation = (Vector3){ 
+                        0, // Ignore X (roll)
+                        RSEEDRANDOMF(-M_PI, M_PI),
+                        RSEEDRANDOMF(-0.3, 0.3)
+                    };
+
+                    set_body_transform(ent, ray.normal);
+                    ent->Q_rnd_target = QuaternionFromMatrix(ent->matrix[ENEMY_LVL0_BODY_MI]);
+                }
+
+                const float duration = 2.0;
+                Quaternion Q 
+                    = QuaternionSlerp(ent->Q_rnd_prev, ent->Q_rnd_target, ent->rnd_angle_change / duration);
+
+                ent->rnd_angle_change += gst->dt;
+                if(ent->rnd_angle_change >= duration) {
+                    ent->rnd_angle_change = 0.0;
+                }
                 
+                ent->matrix[ENEMY_LVL0_BODY_MI]
+                    = MatrixTranslate(ray.normal.x*8.0, 10.0, ray.normal.z*8.0);
+                
+                ent->matrix[ENEMY_LVL0_BODY_MI] 
+                    = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);
             }
             break;
 
@@ -200,6 +207,15 @@ void enemy_lvl0_death(struct state_t* gst, struct enemy_t* ent) {
 
 void enemy_lvl0_created(struct state_t* gst, struct enemy_t* ent) {
     ent->state = ENT_STATE_SEARCHING_TARGET;
+
+    // Update the hitbox offsets, they may have changed with terrain surface normal.
+
+    RayCollision ray = raycast_terrain(&gst->terrain, ent->position.x, ent->position.z);
+
+    for(size_t i = 0; i < ent->num_hitboxes; i++) {
+        ent->hitboxes[i].offset.x += ray.normal.x*5;
+        ent->hitboxes[i].offset.z += ray.normal.z*5;
+    }
 
 }
 

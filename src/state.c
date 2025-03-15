@@ -30,6 +30,9 @@ static void load_texture(struct state_t* gst, const char* filepath, int texid) {
 
 void state_update_shader_uniforms(struct state_t* gst) {
 
+    // --------------------------
+    // TODO: OPTIMIZE THIS LATER
+    // --------------------------
 
     // Update Player view position.
     //
@@ -94,6 +97,21 @@ void state_update_shader_uniforms(struct state_t* gst) {
                 gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
     }
 
+
+    {
+
+        float color4f[4] = {
+            (float)gst->player.weapon.color.r / 255.0,
+            (float)gst->player.weapon.color.g / 255.0,
+            (float)gst->player.weapon.color.b / 255.0,
+            (float)gst->player.weapon.color.a / 255.0
+        };
+
+        SetShaderValue(gst->shaders[GUNFX_SHADER], 
+                gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC], color4f, SHADER_UNIFORM_VEC4);
+
+    
+    }
 }
 
 
@@ -201,67 +219,35 @@ void state_render_environment(struct state_t* gst) {
                 
                 // Hitboxes
                 {
-                    DrawBoundingBox(get_enemy_boundingbox(ent), RED);
-                
+                    for(size_t i = 0; i < ent->num_hitboxes; i++) {
+                        DrawCubeWiresV(
+                                Vector3Add(ent->position, ent->hitboxes[i].offset),
+                                ent->hitboxes[i].size,
+                                RED
+                                );
+                    }
                 }
 
-                /*
-                // Forward direction.
+                // Target range.
                 {
-
-                    Vector3 fw_dir = (Vector3){ 0.0, 0.0, 0.0 };
-
-                    fw_dir.x = ent->matrix[ENEMY_LVL0_BODY_MI].m8;
-                    fw_dir.y = ent->matrix[ENEMY_LVL0_BODY_MI].m9;
-                    fw_dir.z = ent->matrix[ENEMY_LVL0_BODY_MI].m10;
-
-                    fw_dir = Vector3CrossProduct(fw_dir, (Vector3){0,1,0});
-
-                 
-                    //fw_dir = Vector3Negate(fw_dir);
-                    Vector3 p2 = Vector3Add(ent->position, Vector3Scale(fw_dir, 10.0));
+                    DrawCircle3D(ent->position, ent->target_range, 
+                            (Vector3){1.0, 0.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
                     
-                    const float height = 20.0;
-                    DrawLine3D(
-                            (Vector3) {
-                                ent->position.x,
-                                ent->position.y + height,
-                                ent->position.z
-                            },
-                            (Vector3) {
-                                p2.x,
-                                p2.y + height,
-                                p2.z
-                            },
-                            GREEN);
-
-                    DrawSphere(
-                            (Vector3) {
-                                p2.x,
-                                p2.y + height,
-                                p2.z
-                            },
-                            0.3,
-                            RED
-                            );
-
-                
+                    DrawCircle3D(ent->position, ent->target_range, 
+                            (Vector3){0.0, 0.0, 0.0}, 0.0, (Color){ 30, 150, 255, 200 });
+                    
+                    DrawCircle3D(ent->position, ent->target_range, 
+                            (Vector3){0.0, 1.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
                 }
-                */
+
             }
 
-            DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
+            //DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
         // ------------
 
 
         BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
-
-
-        DrawCube((Vector3){ 20.0, 3.0, -10.0 }, 3.0, 3.0, 3.0, (Color){ 30, 30, 30, 255});
-
-        // Terrain.
-        render_terrain(gst, &gst->terrain, DEFAULT_SHADER);
 
         
         // Enemies.
@@ -270,7 +256,8 @@ void state_render_environment(struct state_t* gst) {
             render_enemy(gst, ent);
         }
 
-        player_render(gst, &gst->player);
+        render_terrain(gst, &gst->terrain, DEFAULT_SHADER);
+        
         render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
         render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
         render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
@@ -279,6 +266,8 @@ void state_render_environment(struct state_t* gst) {
         render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
         render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 80, 20, 255});
         render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 100, 170, 200});
+        
+        player_render(gst, &gst->player);
       
         rlDisableDepthMask();
         render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
@@ -458,7 +447,21 @@ void state_setup_all_shaders(struct state_t* gst) {
             "res/shaders/write_depth.fs"
         );
     }
-    
+
+
+    // --- Setup Gun FX Shader ---
+    {
+        Shader* shader = &gst->shaders[GUNFX_SHADER];
+        *shader = LoadShader(
+            0, /* use raylibs default vertex shader */ 
+            "res/shaders/gun_fx.fs"
+        );
+        
+        gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "gun_color");
+    }
+
+
+
     SetTraceLogLevel(LOG_NONE);
 }
 
@@ -472,10 +475,12 @@ void state_setup_all_weapons(struct state_t* gst) {
         .damage = 10.0,
         .critical_chance = 25,
         .critical_mult = 3.0,
-        .prj_speed = 240.0,
+        .prj_speed = 350.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .color = (Color) { 20, 255, 200, 255 },
+        
+        // TODO -----
         .overheat_temp = 100.0,
         .heat_increase = 2.0,
         .cooling_level = 20.0
@@ -679,6 +684,7 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
     load_texture(gst, "res/textures/moss2.png", MOSS_TEXID);
     load_texture(gst, "res/textures/grass.png", GRASS_TEXID);
+    load_texture(gst, "res/textures/gun_fx.png", GUNFX_TEXID);
 
    
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);

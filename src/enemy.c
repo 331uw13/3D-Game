@@ -44,6 +44,44 @@ static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
 }
 
 
+int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id) {
+    int result = 0;
+
+    if(!FileExists(model_filepath)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Model filepath not found: \"%s\"\033[0m\n",
+                __func__, model_filepath);
+        goto error;
+    }
+
+    if(enemy_type > MAX_ALL_ENEMIES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid enemy type \"%i\"\033[0m\n",
+                __func__, enemy_type);
+        goto error;
+    }
+
+    SetTraceLogLevel(LOG_ALL);
+    Model* model = &gst->enemy_models[enemy_type];
+    *model = LoadModel(model_filepath);
+
+    if(!IsModelValid(*model)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to load enemy model \"%s\"\033[0m\n",
+                __func__, model_filepath);
+        goto error;
+    }
+
+
+    // TODO: make this support more textures later.
+   
+    for(int i = 0; i < model->materialCount; i++) {
+        model->materials[i] = LoadMaterialDefault();
+        model->materials[i].shader = gst->shaders[DEFAULT_SHADER];
+        model->materials[i].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
+    }
+error:
+    SetTraceLogLevel(LOG_NONE);
+    return result;
+}
+
 struct enemy_t* create_enemy(
         struct state_t* gst,
         int enemy_type,
@@ -53,9 +91,8 @@ struct enemy_t* create_enemy(
         struct weapon_t* weaponptr,
         int max_health,
         Vector3 initial_position,
-        Vector3 hitbox_size,
-        Vector3 hitbox_position,
         float target_range,
+        float target_fov,
         float firerate,
         void(*update_callback)(struct state_t*, struct enemy_t*),
         void(*render_callback)(struct state_t*, struct enemy_t*),
@@ -108,6 +145,7 @@ struct enemy_t* create_enemy(
     entptr->type = enemy_type;
     entptr->index = gst->num_enemies;
 
+    entptr->num_hitboxes = 0;
     entptr->enabled = 1;
     entptr->modelptr = modelptr;
 
@@ -117,8 +155,6 @@ struct enemy_t* create_enemy(
     entptr->spawn_callback = spawn_callback;
 
     entptr->position = initial_position; 
-    entptr->hitbox_size = hitbox_size;
-    entptr->hitbox_position = hitbox_position;
     entptr->health = max_health;
     entptr->max_health = max_health;
 
@@ -130,8 +166,13 @@ struct enemy_t* create_enemy(
     entptr->Q_target = QuaternionIdentity();
     entptr->angle_change = 0.0;
     entptr->rotation = (Vector3){ 0.0, 0.0, 0.0 };
-    
+   
+    entptr->Q_rnd_prev = QuaternionIdentity();
+    entptr->Q_rnd_target = QuaternionIdentity();
+    entptr->rnd_angle_change = 0.0;
+
     entptr->target_range = target_range;
+    entptr->target_fov = CLAMP(target_fov, 0, 180.0);
     entptr->gun_index = 0;
     entptr->has_target = 0;
     entptr->mood = mood;
@@ -165,7 +206,6 @@ struct enemy_t* create_enemy(
 
 
 
-    entptr->spawn_callback(gst, entptr);
 
     
 error:
@@ -246,6 +286,26 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     }
 }
 
+void enemy_add_hitbox(
+        struct enemy_t* ent, 
+        Vector3 hitbox_size,
+        Vector3 hitbox_offset,
+        float damage_multiplier
+){
+    if(ent->num_hitboxes+1 >= ENEMY_MAX_HITBOXES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Trying to add too many hitboxes\033[0m\n",
+                __func__);
+        return;
+    }
+
+    ent->hitboxes[ent->num_hitboxes] = (struct hitbox_t) {
+        .size = hitbox_size,
+        .offset = hitbox_offset,
+        .damage_mult = damage_multiplier
+    };
+
+    ent->num_hitboxes++;
+}
 
 void spawn_enemy(
         struct state_t* gst,
@@ -264,7 +324,8 @@ void spawn_enemy(
                             __func__, enemy_type);
                     return;
                 }
-                create_enemy(gst,
+
+                struct enemy_t* ent = create_enemy(gst,
                         enemy_type,
                         mood,
                         &gst->enemy_models[enemy_type],
@@ -272,9 +333,8 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         max_health,
                         position,
-                        (Vector3){ 4.0, 4.0, 4.0 }, /* Hitbox size */
-                        (Vector3){ 0.0, 2.0, 0.0 }, /* Hitbox position offset */
-                        150.0, /* Target range */
+                        150.0, /* Target Range */
+                        180.0,  /* Target FOV */
                         0.4,   /* Firerate */
                         enemy_lvl0_update,
                         enemy_lvl0_render,
@@ -282,6 +342,25 @@ void spawn_enemy(
                         enemy_lvl0_created,
                         enemy_lvl0_hit
                         );
+                if(!ent) {
+                    return;
+                }
+
+                // Head hitbox.
+                enemy_add_hitbox(ent,
+                        (Vector3){ 13.0, 8.0, 13.0 },
+                        (Vector3){ 0.0, 12.0, 0.0 },
+                        1.0
+                        );
+
+                // Legs hitbox.
+                enemy_add_hitbox(ent,
+                        (Vector3){ 10.0, 5.0, 10.0 },
+                        (Vector3){ 0.0, 3.0, 0.0 },
+                        1.0
+                        );
+
+                ent->spawn_callback(gst, ent);
             }
             break;
 
@@ -293,62 +372,39 @@ void spawn_enemy(
 }
 
 
-int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id) {
-    int result = 0;
-
-    if(!FileExists(model_filepath)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Model filepath not found: \"%s\"\033[0m\n",
-                __func__, model_filepath);
-        goto error;
-    }
-
-    if(enemy_type > MAX_ALL_ENEMIES) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid enemy type \"%i\"\033[0m\n",
-                __func__, enemy_type);
-        goto error;
-    }
-
-    SetTraceLogLevel(LOG_ALL);
-    Model* model = &gst->enemy_models[enemy_type];
-    *model = LoadModel(model_filepath);
-
-    if(!IsModelValid(*model)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to load enemy model \"%s\"\033[0m\n",
-                __func__, model_filepath);
-        goto error;
-    }
-
-
-    // TODO: make this support more textures later.
-   
-    for(int i = 0; i < model->materialCount; i++) {
-        model->materials[i] = LoadMaterialDefault();
-        model->materials[i].shader = gst->shaders[DEFAULT_SHADER];
-        model->materials[i].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
-    }
-error:
-    SetTraceLogLevel(LOG_NONE);
-    return result;
-}
-
 
 int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent) {
     return (!_is_terrain_blocking_view(gst, ent) && (ent->dist_to_player <= ent->target_range));
 }
 
-BoundingBox get_enemy_boundingbox(struct enemy_t* ent) {
-    return (BoundingBox) {
-        (Vector3) {
-            // Minimum box corner
-            (ent->position.x + ent->hitbox_position.x) - ent->hitbox_size.x/2,
-            (ent->position.y + ent->hitbox_position.y) - ent->hitbox_size.y/2,
-            (ent->position.z + ent->hitbox_position.z) - ent->hitbox_size.z/2
-        },
-        (Vector3) {
-            // Maximum box corner
-            (ent->position.x + ent->hitbox_position.x) + ent->hitbox_size.x/2,
-            (ent->position.y + ent->hitbox_position.y) + ent->hitbox_size.y/2,
-            (ent->position.z + ent->hitbox_position.z) + ent->hitbox_size.z/2
-        }
+int player_in_enemy_fov(struct state_t* gst, struct enemy_t* ent, Matrix* body_matrix) {
+    int result = 0;
+    if(!body_matrix) {
+        goto error;
+    }
+
+    Vector3 up     = (Vector3) { 0.0, 1.0, 0.0 };
+    Vector3 right  = (Vector3) { body_matrix->m8, body_matrix->m9, body_matrix->m10 };
+
+    Vector3 forward = Vector3CrossProduct(up, right);
+
+
+    Vector3 P1 = (Vector3) {
+        ent->position.x, 0, ent->position.z
     };
+
+    Vector3 P2 = (Vector3) {
+        gst->player.position.x, 0, gst->player.position.z
+    };
+
+    Vector3 D = Vector3Normalize(Vector3Subtract(P1, P2));
+    float dot = Vector3DotProduct(D, forward);
+
+    float fov = ceil(map(dot, 1.0, -1.0, 0.0, 180.0));
+    result = (fov <= ent->target_fov);
+
+error:
+    return result;
 }
+
+

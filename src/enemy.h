@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #include "typedefs.h"
+#include "hitbox.h"
 
 #define ENT_STATE_IDLE 0
 #define ENT_STATE_SEARCHING_TARGET 1
@@ -21,26 +22,16 @@
 
 
 
-// Spawn settings.
-/*
-#define SPAWN_RADIUS 2000
-
-#define MAX_ENEMY_LVL0  50
-#define ENEMY_TYPE_SPAWNTIME 5 // How long to wait until more can be spawned? (in seconds)
-*/
-
-
 // Enemy types.
-
 #define ENEMY_LVL0 0
 #define MAX_ALL_ENEMIES 32 // Total max enemies.
-// ...
 
 
-// Misc.
+
+
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 #define ENEMY_MAX_MATRICES 4
-
+#define ENEMY_MAX_HITBOXES 4
 
 
 
@@ -78,8 +69,8 @@ struct enemy_t {
 
 
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
-    Vector3 hitbox_size; // TODO: multiple hitboxes.
-    Vector3 hitbox_position; // hitbox position from 'enemy position'.
+    struct hitbox_t hitboxes[ENEMY_MAX_HITBOXES];
+    size_t          num_hitboxes;
 
     float dist_to_player; // Distance to player.
 
@@ -89,6 +80,7 @@ struct enemy_t {
 
 
     float target_range; // how far can the enemy "see" the player
+    float target_fov;   // (10 - 360)
 
     int   alive;
     float health;
@@ -106,7 +98,13 @@ struct enemy_t {
     Quaternion Q_target;
     float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'. 0.0 to 1.0
     Vector3    rotation;      // Matrix rotation.
-   
+
+    // For random angles.
+    // Enemy may be "searching" for target and changing rotation.
+    Quaternion Q_rnd_prev;
+    Quaternion Q_rnd_target;
+    float      rnd_angle_change;
+
     // For any kind of movement enemy has.
     struct enemy_travel_t travel;
 
@@ -140,6 +138,9 @@ struct enemy_t {
 };
 
 
+int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
+
+
 struct enemy_t* create_enemy(
         struct state_t* gst,
         int enemy_type,
@@ -149,9 +150,8 @@ struct enemy_t* create_enemy(
         struct weapon_t* weaponptr,
         int max_health,
         Vector3 initial_position,
-        Vector3 hitbox_size,
-        Vector3 hitbox_position,
         float target_range,
+        float target_fov,
         float firerate,
         void(*update_callback)(struct state_t*, struct enemy_t*),
         void(*render_callback)(struct state_t*, struct enemy_t*),
@@ -160,6 +160,12 @@ struct enemy_t* create_enemy(
         void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/)
 );
 
+void enemy_add_hitbox(
+        struct enemy_t* ent, 
+        Vector3 hitbox_size,
+        Vector3 hitbox_offset,
+        float damage_multiplier
+);
 
 // Simpler function to use than 'create_enemy'
 void spawn_enemy(
@@ -170,7 +176,6 @@ void spawn_enemy(
         Vector3 position
 );
 
-// These functions "redirects" the call based on enemy type
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);
@@ -184,11 +189,14 @@ void enemy_hit(
 );
 
 
-// Can the enemy see player?  (Currently not taking in count the enemy FOV.)
-int   enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
+// Check target range and is terrain blocking view
+int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
 
-int   load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
-BoundingBox   get_enemy_boundingbox(struct enemy_t* ent);
+// IMPORTANT NOTE: The body matrix must be set correctly before calling this function.
+//  It is used to calculate the cross product.
+//  see 'enemies/enemy_lvl0.c' for example.
+int player_in_enemy_fov(struct state_t* gst, struct enemy_t* ent, Matrix* body_matrix);
+
 
 
 #endif

@@ -74,6 +74,10 @@ struct player_t {
                             //  higher number means better accuracy control
     float time_from_last_shot;
 
+    // FOR TESTING
+    float gunfx_timer;
+    Model gunfx_model;
+
     // Some weapon related variables may be stored else where.
     // For example the firerate because enemies use pointers to "global weapons"
     // and not their own weapon like the player has.

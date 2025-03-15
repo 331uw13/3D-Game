@@ -660,19 +660,7 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_i
         DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
     }
 
-
-    // Water.
-    {
-
-        rlDisableBackfaceCulling();
-        DrawModel(terrain->waterplane, 
-                (Vector3){gst->player.position.x, terrain->water_ylevel, gst->player.position.z},
-                1.0,
-                (Color){ 255, 255, 255, 255 });
-        
-        rlEnableBackfaceCulling();
-    }
-   
+  
 
     // 'tree_type0'
     DrawMeshInstanced( // Tree bark
@@ -698,6 +686,18 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_i
             );
 
 
+    // Water.
+    {
+
+        rlDisableBackfaceCulling();
+        DrawModel(terrain->waterplane, 
+                (Vector3){gst->player.position.x, terrain->water_ylevel, gst->player.position.z},
+                1.0,
+                (Color){ 255, 255, 255, 255 });
+        
+        rlEnableBackfaceCulling();
+    }
+ 
 
 
 }

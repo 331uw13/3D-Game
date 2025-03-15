@@ -112,6 +112,12 @@ void weapon_psys_prj_update(
                 continue;
             }
 
+            if(check_collision_hitboxes(&part_boundingbox, enemy->hitboxes, enemy->num_hitboxes)) {
+                printf("Hit!\n");
+                disable_particle(gst, part);
+            }
+
+            /*
             if(CheckCollisionBoxes(part_boundingbox, get_enemy_boundingbox(enemy))) {
                 enemy_hit(gst, enemy, weapon, part->position, part->velocity);
 
@@ -133,6 +139,7 @@ void weapon_psys_prj_update(
 
                 disable_particle(gst, part);
             }
+            */
         }
     }
     else
