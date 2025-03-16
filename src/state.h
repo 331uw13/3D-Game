@@ -18,6 +18,7 @@
 #define CAMERA_SENSETIVITY 0.00125
 #define MAX_VOLUME_DIST 520 // How far away can player hear sounds.?
 
+
 // Index for 'textures'.
 #define NONE_TEXID -1 // TODO: remove this <-
 #define GRID4x4_TEXID 0
@@ -110,6 +111,8 @@
 #define ENEMY_LVL0_WEAPON 0
 #define ENEMY_LVL1_WEAPON 1
 #define MAX_ENEMY_WEAPONS 2
+#define MAX_ENEMY_MODELS 1
+
 
 #define MAX_RENDER_CRITHITS 8
 
@@ -148,10 +151,11 @@ struct state_t {
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
-    Model  enemy_models[MAX_ALL_ENEMIES];
+    Model  enemy_models[MAX_ENEMY_MODELS];
     struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;
     float  enemy_spawn_timers[MAX_ALL_ENEMIES];
+
 
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;

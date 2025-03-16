@@ -108,9 +108,9 @@ void weapon_psys_prj_update(
         // Check collision with enemies.
         
         struct enemy_t* enemy = NULL;
-        for(size_t i = 0; i < gst->num_enemies; i++) {
+        for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
             enemy = &gst->enemies[i];
-            if(enemy->health <= 0.001) {
+            if(!enemy->alive) {
                 continue;
             }
 

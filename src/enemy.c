@@ -59,6 +59,13 @@ int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_file
         goto error;
     }
 
+    if(enemy_type >= MAX_ENEMY_MODELS) {
+        fprintf(stderr, 
+                "\033[31m(ERROR) '%s': 'enemy_models' array doesnt have enough space for all models.\033[0m\n",
+                __func__);
+        goto error;
+    }
+
     SetTraceLogLevel(LOG_ALL);
     Model* model = &gst->enemy_models[enemy_type];
     *model = LoadModel(model_filepath);
@@ -101,12 +108,26 @@ struct enemy_t* create_enemy(
         void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/)
 ){
 
-    struct enemy_t* entptr = NULL;
 
-    if((gst->num_enemies+1) >= MAX_ALL_ENEMIES) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Max enemies reached.\033[0m\n",
-                __func__);
-        goto error;
+    struct enemy_t* entptr = NULL;
+    size_t entptr_index = gst->num_enemies;
+
+    if(gst->num_enemies+1 >= MAX_ALL_ENEMIES) {
+        
+        // Try to search for available position.
+        size_t i = 0;
+        for(; i < MAX_ALL_ENEMIES; i++) {
+            if(!gst->enemies[i].alive) {
+                entptr_index = i;
+                break;
+            }
+        }
+
+        if(i == MAX_ALL_ENEMIES) {
+            fprintf(stderr, "\033[31m(ERROR) '%s': Max enemies reached.\033[0m\n",
+                    __func__);
+            goto error;
+        }
     }
 
     if(!modelptr) {
@@ -141,9 +162,9 @@ struct enemy_t* create_enemy(
         goto error;
     }
 
-    entptr = &gst->enemies[gst->num_enemies];
+    entptr = &gst->enemies[entptr_index];
     entptr->type = enemy_type;
-    entptr->index = gst->num_enemies;
+    entptr->index = entptr_index;
 
     entptr->num_hitboxes = 0;
     entptr->enabled = 1;
@@ -198,16 +219,17 @@ struct enemy_t* create_enemy(
 
     printf("(INFO) '%s': Enemy (Index:%li)\n",
             __func__, entptr->index);
-    gst->num_enemies++;
+  
 
-
+    entptr->accuracy_modifier = 0.0;
     entptr->firerate_timer = 0.0;
     entptr->firerate = firerate;
 
+    gst->num_enemies++;
+    if(gst->num_enemies >= MAX_ALL_ENEMIES) {
+        gst->num_enemies = MAX_ALL_ENEMIES;
+    } 
 
-
-
-    
 error:
     return entptr;
 }
@@ -345,8 +367,8 @@ void spawn_enemy(
                         max_health,
                         position,
                         350.0, /* Target Range */
-                        160.0, /* Target FOV */
-                        0.4,   /* Firerate */
+                        180.0, /* Target FOV */
+                        0.2,   /* Firerate */
                         enemy_lvl0_update,
                         enemy_lvl0_render,
                         enemy_lvl0_death,
@@ -382,6 +404,16 @@ void spawn_enemy(
     }
 }
 
+void delete_enemy(struct state_t* gst, size_t enemy_index) {
+    if(enemy_index >= gst->num_enemies) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid index to remove enemy from.\033[0m\n",
+                __func__);
+        return;
+    }
+
+ 
+
+}
 
 
 int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent) {

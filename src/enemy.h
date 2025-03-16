@@ -23,7 +23,7 @@
 
 // Enemy types.
 #define ENEMY_LVL0 0
-#define MAX_ALL_ENEMIES 32 // Total max enemies.
+#define MAX_ALL_ENEMIES 64 // Total max enemies.
 
 
 
@@ -31,7 +31,6 @@
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 #define ENEMY_MAX_MATRICES 4
 #define ENEMY_MAX_HITBOXES 4
-
 
 
 // This handles all basic behaviour for enemies.
@@ -124,6 +123,7 @@ struct enemy_t {
 
     struct weapon_t*   weaponptr;
     struct psystem_t*  weapon_psysptr;
+    float accuracy_modifier;
     float firerate;
     float firerate_timer;
     int gun_index; // Switch between model's guns.
@@ -143,7 +143,8 @@ struct enemy_t {
 
 };
 
-
+// IMPORTANT NOTE: remember to adjust 'MAX_ENEMY_MODELS' in 'state.h'
+// when adding more models!
 int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
 
 
@@ -182,6 +183,7 @@ void spawn_enemy(
         Vector3 position
 );
 
+void delete_enemy(struct state_t* gst, size_t enemy_index);
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);

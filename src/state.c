@@ -253,8 +253,13 @@ void state_render_environment(struct state_t* gst) {
         // Enemies.
         for(size_t i = 0; i < gst->num_enemies; i++) {
             struct enemy_t* ent = &gst->enemies[i];
+            if(!ent->alive) {
+                continue;
+            }
+
             render_enemy(gst, ent);
         }
+
 
         render_terrain(gst, &gst->terrain, DEFAULT_SHADER);
         
@@ -475,7 +480,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .damage = 10.0,
         .critical_chance = 10,
         .critical_mult = 1.85,
-        .prj_speed = 350.0,
+        .prj_speed = 450.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .color = (Color) { 20, 255, 200, 255 },
@@ -490,13 +495,13 @@ void state_setup_all_weapons(struct state_t* gst) {
     // Enemy lvl0 weapon.
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
-        .accuracy = 9.5,
+        .accuracy = 9.25,
         .damage = 1.0,
         .critical_chance = 7,
         .critical_mult = 5.0,
-        .prj_speed = 50.0,
+        .prj_speed = 485.0,
         .prj_max_lifetime = 5.0,
-        .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
+        .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
         .color = ENEMY_WEAPON_COLOR,
         .overheat_temp = -1,
     };
@@ -549,7 +554,7 @@ void state_setup_all_psystems(struct state_t* gst) {
                 PSYS_GROUPID_ENEMY,
                 PSYS_ONESHOT,
                 psystem,
-                64,
+                512,
                 weapon_psys_prj_update,
                 weapon_psys_prj_init,
                 BASIC_WEAPON_PSYS_SHADER
@@ -691,7 +696,6 @@ void state_setup_all_textures(struct state_t* gst) {
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[MOSS_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[GRASS_TEXID], TEXTURE_WRAP_CLAMP);
-
 }
 
 
@@ -771,12 +775,14 @@ void state_delete_all_sounds(struct state_t* gst) {
 }
 
 void state_delete_all_enemy_models(struct state_t* gst) {
-    for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
-        if(!IsModelValid(gst->enemy_models[i])) {
-            continue;
+
+    for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
+        if(IsModelValid(gst->enemy_models[i])) {
+            UnloadModel(gst->enemy_models[i]);
         }
-        UnloadModel(gst->enemy_models[i]);
     }
+
+
     printf("\033[35m -> Deleted all Enemy models\033[0m\n");
 }
 

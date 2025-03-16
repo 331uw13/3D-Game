@@ -1,7 +1,7 @@
 
 
 // NOTE: these 2 values must same as in 'src/light.h'
-#define MAX_PROJECTILE_LIGHTS  128
+#define MAX_PROJECTILE_LIGHTS  (128)
 #define MAX_NORMAL_LIGHTS      4
 
 

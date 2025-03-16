@@ -124,8 +124,7 @@ void handle_userinput(struct state_t* gst) {
 
 
 
-    // ----- User interaction ---------
-
+    // ----- User intergst->player.position
     int shoot = 
           (gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
         ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -152,8 +151,27 @@ void handle_userinput(struct state_t* gst) {
 
 
     if(IsKeyPressed(KEY_E)) {
-        spawn_enemy(gst, ENEMY_LVL0, 200, ENT_HOSTILE, gst->player.position);
+        spawn_enemy(gst, ENEMY_LVL0, 200, ENT_HOSTILE, 
+                (Vector3){
+                    gst->player.position.x + RSEEDRANDOMF(-10, 10),
+                    0,
+                    gst->player.position.z + RSEEDRANDOMF(-10, 10)
+                });
+
     }
+    /*
+    if(IsKeyPressed(KEY_E)) {
+        const float rad = 100.0;
+        for(int i = 0; i < 64; i++) {
+            Vector3 pos = (Vector3) {
+                gst->player.position.x + RSEEDRANDOMF(-rad, rad),
+                0,
+                gst->player.position.z + RSEEDRANDOMF(-rad, rad),
+            };
+            spawn_enemy(gst, ENEMY_LVL0, 200, ENT_HOSTILE, pos);
+        }
+    }
+    */
 
 
     if(IsKeyPressed(KEY_T)) {

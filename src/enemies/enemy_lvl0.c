@@ -62,6 +62,14 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
     int has_target_now = enemy_can_see_player(gst, ent);
 
 
+    if(ent->dist_to_player < (ent->target_range / 2.0)) {
+        ent->firerate = 0.075;
+        ent->accuracy_modifier = 2.0;
+    }
+    else {
+        ent->firerate = 0.2;
+        ent->accuracy_modifier = 0.0;
+    }
 
 
     if((ent->mood == ENT_HOSTILE) && infov && (has_target_now && !ent->has_target)) {
@@ -89,31 +97,8 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
         ent->rnd_angle_change = 0.0;
         ent->has_target = 0;
     }
-    /*
 
- 199 // Draw a circle in 3D world space
- 200 void DrawCircle3D(Vector3 center, float radius, Vector3 rotationAxis, float rotationAngle, Color color)
- 201 {
- 202     rlPushMatrix();
- 203         rlTranslatef(center.x, center.y, center.z);
- 204         rlRotatef(rotationAngle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
- 205
- 206         rlBegin(RL_LINES);
- 207             for (int i = 0; i < 360; i += 10)
- 208             {
- 209                 rlColor4ub(color.r, color.g, color.b, color.a);
- 210
- 211                 rlVertex3f(sinf(DEG2RAD*i)*radius, cosf(DEG2RAD*i)*radius, 0.0f);
- 212                 rlVertex3f(sinf(DEG2RAD*(i + 10))*radius, cosf(DEG2RAD*(i + 10))*radius, 0.0f);
- 213             }
- 214         rlEnd();
- 215     rlPopMatrix();
- 216 }
-    
-    // Vector3 Vector3RotateByAxisAngle(Vector3 v, Vector3 axis, float angle)
-    
 
-     */
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
             {
@@ -122,21 +107,75 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
                 if(ent->firerate_timer >= ent->firerate) {
 
+
+
+                    float prj_xoff = cos(-ent->rotation.y + M_PI/2) * 10.0;
+                    float prj_zoff = sin(-ent->rotation.y + M_PI/2) * 10.0;
+
+                    if(!ent->gun_index) {
+                        prj_xoff = -prj_xoff;
+                        prj_zoff = -prj_zoff;
+                    }
+                    
+
                     Vector3 prj_pos = (Vector3) {
-                        ent->position.x + cos(-ent->rotation.y + M_PI/2) * 10.0,
-                        ent->position.y+10.0,
-                        ent->position.z + sin(-ent->rotation.y + M_PI/2) * 10.0
+                        ent->position.x + prj_xoff + ray.normal.x * 8,
+                        ent->position.y + 10.0,
+                        ent->position.z + prj_zoff + ray.normal.z * 8
                     };
 
-                    Vector3 prj_dir = Vector3Normalize(Vector3Subtract(gst->player.position, prj_pos));
+
+                    float player_speed = gst->player.walkspeed;
+                    Vector3 pvel = (Vector3) {
+                        (player_speed * gst->player.velocity.x*2) * gst->dt,
+                        (player_speed * gst->player.velocity.y) * gst->dt,
+                        (player_speed * gst->player.velocity.z*2) * gst->dt
+                    };
+
+
+                    // Time of projectile travel
+                    float d = ent->dist_to_player / (480.0 * gst->dt);
+
+                    printf("%f\n", d);
+
+                    /*
+                    Vector3 player_future_pos = (Vector3) {
+                        //(gst->player.position.x + pvel.x) * d,
+                        // gst->player.position.y,
+                        //(gst->player.position.z + pvel.z) * d
+                    };
+                    */
+
+                    d *= 0.5;
                 
+                    Vector3 future_pos = gst->player.position;
+
+                    if(gst->player.position.z > ent->position.z) {
+                    future_pos.x = (gst->player.position.x + pvel.x * d);
+                    future_pos.z = (gst->player.position.z + pvel.z * d);
+
+                    }
+                    else {
+                    future_pos.x = (gst->player.position.x - pvel.x * d);
+                    future_pos.z = (gst->player.position.z - pvel.z * d);
+                    }
+                    Vector3 prj_dir = Vector3Normalize(Vector3Subtract(future_pos, prj_pos));
+
+
 
                     add_projectile(gst, 
                             &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
                             &gst->enemy_weapons[ENEMY_LVL0_WEAPON], 
-                            prj_pos, prj_dir, 0);
+                            prj_pos, prj_dir, ent->accuracy_modifier);
 
                     ent->firerate_timer = 0.0;
+                    ent->gun_index = !ent->gun_index;
+                
+                    
+                    if(gst->has_audio) {
+                        SetSoundVolume(gst->sounds[ENEMY_GUN_SOUND], get_volume_dist(gst->player.position, ent->position));
+                        PlaySound(gst->sounds[ENEMY_GUN_SOUND]);
+                    }
                 }
             }
             break;

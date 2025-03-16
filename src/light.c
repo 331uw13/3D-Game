@@ -10,6 +10,10 @@ void set_light(
         unsigned int ubo
 ){
 
+    if(light->index >= MAX_PROJECTILE_LIGHTS) {
+        return;
+    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, ubo);
     float color4f[4] = { 
         (float)light->color.r/255.0,
@@ -59,6 +63,10 @@ void set_light(
 }
 
 void disable_light(struct state_t* gst, struct light_t* light, unsigned int ubo) {
+    if(light->index >= MAX_PROJECTILE_LIGHTS) {
+        return;
+    }
+    
     glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 
     light->enabled = 0;
