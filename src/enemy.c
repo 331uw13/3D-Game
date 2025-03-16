@@ -366,7 +366,7 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         max_health,
                         position,
-                        350.0, /* Target Range */
+                        720.0, /* Target Range */
                         180.0, /* Target FOV */
                         0.2,   /* Firerate */
                         enemy_lvl0_update,

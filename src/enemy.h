@@ -101,7 +101,7 @@ struct enemy_t {
     // Used for rotating enemy.
     Quaternion Q_prev;
     Quaternion Q_target;
-    float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'. 0.0 to 1.0
+    float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'.
     Vector3    rotation;      // Matrix rotation.
 
     // For random angles.

@@ -33,6 +33,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->run_mult = 2.3;
     p->walkspeed_aim_mult = 0.5;
     p->air_speed_mult = 1.5;
+    p->speed = 0.0;
 
     p->jump_force = 130.0;
     p->gravity = 0.5;
@@ -169,7 +170,7 @@ void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon
         p->alive = 0;
     }
 
-    const float r = 5.0;
+    const float r = 2.0;
     p->rotation_from_hit = (Vector3) {
         RSEEDRANDOMF(-r, r),
         RSEEDRANDOMF(-r*0.5, r*0.5),
@@ -276,6 +277,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
     p->cam.target.x += p->rotation_from_hit.x * gst->dt;
     p->cam.target.y += p->rotation_from_hit.y * gst->dt;
     p->cam.target.x += p->rotation_from_hit.z * gst->dt;
+
 }
 
 
@@ -355,7 +357,7 @@ void player_render(struct state_t* gst, struct player_t* p) {
             = MatrixMultiply(MatrixTranslate(0.28, -0.125, -3.5), p->gunfx_model.transform);
         p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
 
-        float st = lerp(p->gunfx_timer, 3.5, 0.0);
+        float st = lerp(p->gunfx_timer, 2.0, 0.0);
         p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
 
         DrawMesh(

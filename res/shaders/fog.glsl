@@ -1,5 +1,5 @@
 
-#define FOG_DENSITY 0.0008
+#define FOG_DENSITY 0.00082
 #define FOG_COLOR_FAR vec3(0.15, 0.25, 0.3)
 #define FOG_COLOR_NEAR vec3(0.1, 0.1, 0.1)
 

@@ -1,5 +1,5 @@
-#ifndef WATER_SPLASH_PSYSTEM_H
-#define WATER_SPLASH_PSYSTEM_H
+#ifndef ENEMY_GUN_FX_PSYSTEM_H
+#define ENEMY_GUN_FX_PSYSTEM_H
 
 
 
@@ -10,9 +10,8 @@ struct state_t;
 struct particle_t;
 
 
-
 // PARTICLE UPDATE
-void water_splash_psys_update(
+void enemy_gunfx_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
@@ -20,7 +19,7 @@ void water_splash_psys_update(
 
 
 // PARTICLE INITIALIZATION
-void water_splash_psys_init(
+void enemy_gunfx_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,

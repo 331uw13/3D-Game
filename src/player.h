@@ -22,6 +22,7 @@ struct player_t {
     float cam_yaw;
     float cam_pitch;
     Vector3  position;
+    Vector3  prev_position; // Previous frame position.
     Vector3  hitbox_size;
     float    hitbox_y_offset;
     float    height;
@@ -32,6 +33,7 @@ struct player_t {
     float    walkspeed_aim_mult; // multiply walk speed while aiming
     float    run_mult;
     float    air_speed_mult;
+    float    speed; // "Read only". Updated from 'input.c'
     float    friction;
     float    jump_force;
     float    gravity;

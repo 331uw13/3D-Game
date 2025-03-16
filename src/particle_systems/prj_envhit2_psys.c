@@ -1,4 +1,4 @@
-#include "water_splash_psys.h"
+#include "prj_envhit2_psys.h"
 #include "../state.h"
 #include "../util.h"
 
@@ -7,27 +7,32 @@
 
 
 // PARTICLE UPDATE
-void water_splash_psys_update(
+void prj_envhit_part2_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
 ){
 
+    const float scale_duration = 1.0;
+    if(part->scale < scale_duration) {
+        part->scale += gst->dt;
+    }
+
+    float st = lerp(part->scale / scale_duration, 3.0, 0.0);
+
     part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt));
 
-    float st = lerp(normalize(part->lifetime, 0.0, part->max_lifetime), 2.0, 0.0);
+
     Matrix scale_matrix = MatrixScale(st, st, st);
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     
-    part->velocity.y -= (500*0.08) * gst->dt;
-
     *part->transform = MatrixMultiply(scale_matrix, translation);
 }
 
 
 
 // PARTICLE INITIALIZATION
-void water_splash_psys_init(
+void prj_envhit_part2_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,
@@ -36,19 +41,18 @@ void water_splash_psys_init(
         void* extradata, int has_extradata
 ){
 
-    origin.x += 2.0*sin(part->index);
-    origin.z += 2.0*cos(part->index);
+    part->scale = 0.0;
     part->position = origin;
-    
-    const float v_r = 10.0;
+   
+    const float r = 10.0;
     part->velocity = (Vector3) {
-        velocity.x*v_r*2 + RSEEDRANDOMF(-v_r, v_r),
-        velocity.y*v_r + RSEEDRANDOMF(v_r, v_r*2),
-        velocity.z*v_r*2 + RSEEDRANDOMF(-v_r, v_r)
+        RSEEDRANDOMF(-r, r),
+        RSEEDRANDOMF(-r, r),
+        RSEEDRANDOMF(-r, r)
     };
 
     *part->transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    part->max_lifetime = RSEEDRANDOMF(0.3, 1.0);
+    part->max_lifetime = 1.0;
 }
 
 

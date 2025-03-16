@@ -1,5 +1,5 @@
-#ifndef WATER_SPLASH_PSYSTEM_H
-#define WATER_SPLASH_PSYSTEM_H
+#ifndef PRJ_ENVHIT_PART2_PSYSTEM_H
+#define PRJ_ENVHIT_PART2_PSYSTEM_H
 
 
 
@@ -12,7 +12,7 @@ struct particle_t;
 
 
 // PARTICLE UPDATE
-void water_splash_psys_update(
+void prj_envhit_part2_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
@@ -20,7 +20,7 @@ void water_splash_psys_update(
 
 
 // PARTICLE INITIALIZATION
-void water_splash_psys_init(
+void prj_envhit_part2_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,

@@ -107,6 +107,7 @@ static struct particle_t* _add_particle(struct psystem_t* psys) {
     p->alive = 1;
     p->lifetime = 0.0;
     p->has_light = 0;
+    p->last_update = 0;
 
     psys->nextpart_index++;
     if(psys->nextpart_index >= psys->max_particles) {
@@ -151,6 +152,10 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         if((p->max_lifetime <= 0.0) && (psys->time_setting != PSYS_CONTINUOUS)) {
             fprintf(stderr, "\033[35m(WARNING) '%s': Particle 'max_lifetime' is 0 or less\033[0m\n",
                     __func__);
+        }
+
+        if((p->lifetime+gst->dt) >= p->max_lifetime) {
+            p->last_update = 1;
         }
 
         psys->num_alive_parts++;

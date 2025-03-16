@@ -60,11 +60,12 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
    
 
     int has_target_now = enemy_can_see_player(gst, ent);
+    int player_in_halfway = (ent->dist_to_player < (ent->target_range / 2.0));
 
 
-    if(ent->dist_to_player < (ent->target_range / 2.0)) {
+    if(player_in_halfway) {
         ent->firerate = 0.075;
-        ent->accuracy_modifier = 2.0;
+        ent->accuracy_modifier = 1.25;
     }
     else {
         ent->firerate = 0.2;
@@ -104,13 +105,10 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
             {
                 ent->rotation = get_rotation_yz(ent->position, gst->player.position);
 
+                if(ent->firerate_timer >= ent->firerate && gst->player.alive) {
 
-                if(ent->firerate_timer >= ent->firerate) {
-
-
-
-                    float prj_xoff = cos(-ent->rotation.y + M_PI/2) * 10.0;
-                    float prj_zoff = sin(-ent->rotation.y + M_PI/2) * 10.0;
+                    float prj_xoff = cos(-ent->rotation.y + M_PI/2) * 8.0;
+                    float prj_zoff = sin(-ent->rotation.y + M_PI/2) * 8.0;
 
                     if(!ent->gun_index) {
                         prj_xoff = -prj_xoff;
@@ -120,48 +118,39 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
                     Vector3 prj_pos = (Vector3) {
                         ent->position.x + prj_xoff + ray.normal.x * 8,
-                        ent->position.y + 10.0,
+                        ent->position.y + 9.0,
                         ent->position.z + prj_zoff + ray.normal.z * 8
                     };
 
+                    Vector3 player_pos = gst->player.position;
 
-                    float player_speed = gst->player.walkspeed;
-                    Vector3 pvel = (Vector3) {
-                        (player_speed * gst->player.velocity.x*2) * gst->dt,
-                        (player_speed * gst->player.velocity.y) * gst->dt,
-                        (player_speed * gst->player.velocity.z*2) * gst->dt
-                    };
+                    if(player_in_halfway && (GetRandomValue(0, 1))) {
+                        // Try to predict players movement.
 
+                        Vector3 player_vel = 
+                            Vector3Subtract(gst->player.position, gst->player.prev_position);
 
-                    // Time of projectile travel
-                    float d = ent->dist_to_player / (480.0 * gst->dt);
+                        // Projectile travel time to target.
+                        float prj_time = ent->dist_to_player / (gst->enemy_weapons[ENEMY_LVL0].prj_speed * gst->dt); 
 
-                    printf("%f\n", d);
+                        if((player_vel.y > 0.0) && GetRandomValue(0, 1)) {
+                            player_vel.y = -player_vel.y;
+                        }
+                        else {
+                            player_vel.y *= 0.85;
+                        }
 
-                    /*
-                    Vector3 player_future_pos = (Vector3) {
-                        //(gst->player.position.x + pvel.x) * d,
-                        // gst->player.position.y,
-                        //(gst->player.position.z + pvel.z) * d
-                    };
-                    */
-
-                    d *= 0.5;
-                
-                    Vector3 future_pos = gst->player.position;
-
-                    if(gst->player.position.z > ent->position.z) {
-                    future_pos.x = (gst->player.position.x + pvel.x * d);
-                    future_pos.z = (gst->player.position.z + pvel.z * d);
-
+                        player_pos.x = player_pos.x + (player_vel.x * prj_time);
+                        player_pos.y = player_pos.y + (player_vel.y * prj_time);
+                        player_pos.z = player_pos.z + (player_vel.z * prj_time);
                     }
-                    else {
-                    future_pos.x = (gst->player.position.x - pvel.x * d);
-                    future_pos.z = (gst->player.position.z - pvel.z * d);
-                    }
-                    Vector3 prj_dir = Vector3Normalize(Vector3Subtract(future_pos, prj_pos));
+                    Vector3 prj_dir = Vector3Normalize(Vector3Subtract(player_pos, prj_pos));
 
-
+                    // Move the projectile little bit forward.
+                    const float ft = 10.0;
+                    prj_pos.x += prj_dir.x * ft;
+                    prj_pos.y += prj_dir.y * ft;
+                    prj_pos.z += prj_dir.z * ft;
 
                     add_projectile(gst, 
                             &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
@@ -170,7 +159,16 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
                     ent->firerate_timer = 0.0;
                     ent->gun_index = !ent->gun_index;
-                
+
+
+                    // Add gunfx
+                    add_particles(gst,
+                            &gst->psystems[ENEMY_GUNFX_PSYS],
+                            1,
+                            prj_pos,
+                            (Vector3){0},
+                            ent, HAS_EXTRADATA
+                            );
                     
                     if(gst->has_audio) {
                         SetSoundVolume(gst->sounds[ENEMY_GUN_SOUND], get_volume_dist(gst->player.position, ent->position));

@@ -16,7 +16,7 @@
 
 #define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
-#define MAX_VOLUME_DIST 520 // How far away can player hear sounds.?
+#define MAX_VOLUME_DIST 720 // How far away can player hear sounds.?
 
 
 // Index for 'textures'.
@@ -62,7 +62,8 @@
 #define FOG_PARTICLE_SHADER 7
 #define WATER_SHADER 8
 #define GUNFX_SHADER 9
-#define MAX_SHADERS 10
+#define ENEMY_GUNFX_SHADER 10
+#define MAX_SHADERS 11
 // ...
  
 
@@ -78,7 +79,10 @@
 #define PLAYER_HIT_PSYS 5
 #define ENEMY_EXPLOSION_PSYS 6
 #define WATER_SPLASH_PSYS 7
-#define MAX_PSYSTEMS 8
+#define ENEMY_GUNFX_PSYS 8
+#define ENEMY_PRJ_ENVHIT_PART2_PSYS 9   // For extra effect.
+#define PLAYER_PRJ_ENVHIT_PART2_PSYS 10 // For extra effect.
+#define MAX_PSYSTEMS 11
 // ...
 
 
@@ -94,6 +98,7 @@
 #define FOLIAGE_SHADER_TIME_FS_UNILOC 6
 #define WATER_SHADER_TIME_FS_UNILOC 7
 #define GUNFX_SHADER_COLOR_FS_UNILOC 8
+#define ENEMY_GUNFX_SHADER_COLOR_FS_UNILOC 9
 #define MAX_FS_UNILOCS 10
 // ...
 

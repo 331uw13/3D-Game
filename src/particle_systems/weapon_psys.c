@@ -61,6 +61,7 @@ void weapon_psys_prj_update(
         struct psystem_t* psystem = NULL;
         if(weapon->id == PLAYER_WEAPON_ID) {
             psystem = &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS];
+
         }
         else
         if(weapon->id == ENEMY_WEAPON_ID) {
@@ -76,6 +77,7 @@ void weapon_psys_prj_update(
                 NULL, NO_EXTRADATA
                 );
 
+    
         /*
         if(gst->has_audio) {
             SetSoundPitch(gst->sounds[PRJ_ENVHIT_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.25));

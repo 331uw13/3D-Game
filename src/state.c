@@ -16,6 +16,8 @@
 #include "particle_systems/player_hit_psys.h"
 #include "particle_systems/enemy_explosion_psys.h"
 #include "particle_systems/water_splash_psys.h"
+#include "particle_systems/enemy_gunfx_psys.h"
+#include "particle_systems/prj_envhit2_psys.h"
 
 
 static void load_texture(struct state_t* gst, const char* filepath, int texid) {
@@ -128,6 +130,7 @@ void state_update_frame(struct state_t* gst) {
     }
 
 
+    // (updated only if needed)
     update_psystem(gst, &gst->player.weapon_psys);
     update_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS]);
@@ -137,6 +140,9 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS]);
     update_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS]);
+    update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
+    update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS]);
+    update_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS]);
 }
 
 #include <stdio.h>
@@ -262,16 +268,28 @@ void state_render_environment(struct state_t* gst) {
 
 
         render_terrain(gst, &gst->terrain, DEFAULT_SHADER);
-        
-        render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
-        render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
-        render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
-        render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
-        render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
-        render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
-        render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 80, 20, 255});
-        render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 100, 170, 200});
-        
+
+
+        // Particle systems. (rendered only if needed)
+        {
+            // Player
+            render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
+            render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
+            render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
+            
+            // Enemies
+            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], ENEMY_WEAPON_COLOR);
+            render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
+
+            // Environment
+            render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
+            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 80, 20, 255});
+            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 100, 170, 200});
+            render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
+            render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
+            render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS], ENEMY_WEAPON_COLOR);
+        }
+
         player_render(gst, &gst->player);
       
         rlDisableDepthMask();
@@ -465,6 +483,29 @@ void state_setup_all_shaders(struct state_t* gst) {
         gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "gun_color");
     }
 
+    // --- Setup Enemy Gun FX Shader ---
+    {
+        Shader* shader = &gst->shaders[ENEMY_GUNFX_SHADER];
+        *shader = LoadShader(
+            "res/shaders/instance_core.vs",
+            "res/shaders/gun_fx.fs"
+        );
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+        gst->fs_unilocs[ENEMY_GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "gun_color");
+
+        float color4f[4] = {
+            (float)ENEMY_WEAPON_COLOR.r / 255.0,
+            (float)ENEMY_WEAPON_COLOR.g / 255.0,
+            (float)ENEMY_WEAPON_COLOR.b / 255.0,
+            (float)ENEMY_WEAPON_COLOR.a / 255.0
+        };
+
+        SetShaderValue(gst->shaders[ENEMY_GUNFX_SHADER], 
+                gst->fs_unilocs[ENEMY_GUNFX_SHADER_COLOR_FS_UNILOC], color4f, SHADER_UNIFORM_VEC4);
+    }
 
 
     SetTraceLogLevel(LOG_NONE);
@@ -496,8 +537,8 @@ void state_setup_all_weapons(struct state_t* gst) {
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
         .accuracy = 9.25,
-        .damage = 1.0,
-        .critical_chance = 7,
+        .damage = 8.0,
+        .critical_chance = 15,
         .critical_mult = 5.0,
         .prj_speed = 485.0,
         .prj_max_lifetime = 5.0,
@@ -582,6 +623,39 @@ void state_setup_all_psystems(struct state_t* gst) {
         psystem->userptr = &gst->player.weapon;
     }
 
+    // Create PLAYER_PRJ_ENVHIT_PART2_PSYS. (Extra Effect)
+    { // (when projectile hits environment)
+        struct psystem_t* psystem = &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_PLAYER,
+                PSYS_ONESHOT,
+                psystem,
+                64,
+                prj_envhit_part2_psys_update,
+                prj_envhit_part2_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 16, 16);
+    }
+
+    // Create ENEMY_PRJ_ENVHIT_PART2_PSYS. (Extra Effect)
+    { // (when projectile hits environment)
+        struct psystem_t* psystem = &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENEMY,
+                PSYS_ONESHOT,
+                psystem,
+                64,
+                prj_envhit_part2_psys_update,
+                prj_envhit_part2_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(0.5, 16, 16);
+    }
 
     // Create ENEMY_HIT_PSYS.
     { // (when enemy gets hit)
@@ -673,6 +747,26 @@ void state_setup_all_psystems(struct state_t* gst) {
                 );
 
         psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
+    }
+
+    // Create ENEMY_GUNFX_PSYS.
+    { // (gun fx)
+        struct psystem_t* psystem = &gst->psystems[ENEMY_GUNFX_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_ONESHOT,
+                psystem,
+                64,
+                enemy_gunfx_psys_update,
+                enemy_gunfx_psys_init,
+                ENEMY_GUNFX_SHADER
+                );
+
+        //psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
+        psystem->particle_mesh = GenMeshPlane(1.0, 1.0, 1, 1);
+        psystem->particle_material.maps[MATERIAL_MAP_DIFFUSE].texture 
+            = gst->textures[GUNFX_TEXID];
     }
 }
 

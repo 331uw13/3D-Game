@@ -10,9 +10,6 @@ struct state_t;
 struct particle_t;
 
 
-// When projectiles hit environment.
-
-
 
 // PARTICLE UPDATE
 void prj_envhit_psys_update(

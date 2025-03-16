@@ -9,6 +9,7 @@
 #include "util.h"
 
 
+// TODO: clean this up.
 
 
 void handle_userinput(struct state_t* gst) {
@@ -44,6 +45,9 @@ void handle_userinput(struct state_t* gst) {
     
     velocity_speed *= gst->dt;
  
+    gst->player.prev_position = gst->player.position;
+    
+    
 
     // ----- Handle player Y Movement -------
     //
@@ -122,6 +126,7 @@ void handle_userinput(struct state_t* gst) {
 
     gst->player.position = gst->player.cam.position;
 
+    gst->player.speed = player_speed;
 
 
     // ----- User intergst->player.position

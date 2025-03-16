@@ -39,6 +39,7 @@ struct particle_t {
     
     struct light_t light;
     int has_light;
+    int last_update;
 
 };
 
@@ -72,26 +73,27 @@ struct psystem_t {
 
     size_t nextpart_index;
 
-    // called to update each particle.
+    // Called to update each particle.
     void(*update_callback)(
             struct state_t*,
             struct psystem_t*,
-            struct particle_t* // current particle
+            struct particle_t* // Current particle
             );
     
-    // called by 'add_particles' for each particle after adding them to the array.
+    // Called by 'add_particles' for each particle after adding them to the array.
     void(*pinit_callback)(
          struct state_t*,
          struct psystem_t*,
-         struct particle_t*, // current particle
-         Vector3,  // particle initial position
-         Vector3, // velocity to new particle
-         void*,   // extra data pointer
-         int      // has extra data?
+         struct particle_t*, // Current particle
+         Vector3,  // Particle initial position
+         Vector3, // Velocity to new particle
+         void*,   // Extra data pointer
+         int      // Has extra data?
          );
 
     int shader_index; // Index in 'gst->shaders' array.
-    // ...uniformlocs are set to negative value if not used.
+    
+    // uniformlocs are set to negative value if not used.
     int shader_color_uniformloc;
     int shader_time_uniformloc;
 
@@ -100,6 +102,7 @@ struct psystem_t {
     int   first_render;
     int   halt;
     void* userptr;
+
 };
 
 
@@ -125,12 +128,13 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color);
 void add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
-        size_t n, /* particles to be added */
+        size_t n, /* Particles to be added */
         Vector3 origin,
         Vector3 velocity,
         void* extradata_ptr,
         int has_extradata
         );
+
 void disable_particle(struct state_t* gst, struct particle_t* p);
 
 

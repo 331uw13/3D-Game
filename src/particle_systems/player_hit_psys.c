@@ -48,7 +48,6 @@ void player_hit_psys_init(
     part->position.x += RSEEDRANDOMF(-p_r, p_r);
     part->position.y += RSEEDRANDOMF(-p_r, p_r);
     part->position.z += RSEEDRANDOMF(-p_r, p_r);
-    Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
    
     part->velocity = Vector3Normalize(Vector3Negate(velocity));
     
@@ -59,7 +58,7 @@ void player_hit_psys_init(
    
     part->accel.y = 5.0;
 
-    *part->transform = transform;
+    *part->transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     part->max_lifetime = RSEEDRANDOMF(5.0, 8.0);
 }
 
