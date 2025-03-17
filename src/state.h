@@ -11,12 +11,14 @@
 #include "psystem.h"
 #include "terrain.h"
 #include "enemy.h"
-
+#include "item.h"
 
 
 #define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
 #define MAX_VOLUME_DIST 720 // How far away can player hear sounds.?
+
+#define GRAVITY_CONST 500
 
 
 // Index for 'textures'.
@@ -34,7 +36,9 @@
 #define MOSS_TEXID 10
 #define GRASS_TEXID 11
 #define GUNFX_TEXID 12
-#define MAX_TEXTURES 13
+#define APPLE_INV_TEXID 13
+#define APPLE_TEXID 14
+#define MAX_TEXTURES 15
 // ...
 
 
@@ -116,14 +120,18 @@
 #define ENEMY_LVL0_WEAPON 0
 #define ENEMY_LVL1_WEAPON 1
 #define MAX_ENEMY_WEAPONS 2
+
+
+#define MAX_ALL_ENEMIES 64 // Total max enemies.
 #define MAX_ENEMY_MODELS 1
+
 
 
 #define MAX_RENDER_CRITHITS 8
 
-
 #define SUN_LIGHT_ID 0
 #define PLAYER_GUN_LIGHT_ID 1
+
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -153,17 +161,24 @@ struct state_t {
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
 
+    
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
+
 
     Model  enemy_models[MAX_ENEMY_MODELS];
     struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;
     float  enemy_spawn_timers[MAX_ALL_ENEMIES];
 
-
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
+
+
+    struct item_t items[MAX_ALL_ITEMS];
+    Model         item_models[MAX_ITEM_MODELS];
+    size_t        num_items;
+
 
     int scrn_w; // Screen width
     int scrn_h; // Screen height
@@ -204,6 +219,7 @@ void state_setup_all_psystems(struct state_t* gst);
 void state_setup_all_textures(struct state_t* gst);
 void state_setup_all_sounds(struct state_t* gst);
 void state_setup_all_enemy_models(struct state_t* gst);
+void state_setup_all_item_models(struct state_t* gst);
 
 // Free up memory.
 void state_delete_all_shaders(struct state_t* gst);
@@ -211,6 +227,7 @@ void state_delete_all_psystems(struct state_t* gst);
 void state_delete_all_sounds(struct state_t* gst);
 void state_delete_all_textures(struct state_t* gst);
 void state_delete_all_enemy_models(struct state_t* gst);
+void state_delete_all_item_models(struct state_t* gst);
 
 
 // Misc.

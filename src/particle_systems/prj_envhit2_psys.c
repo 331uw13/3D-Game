@@ -13,7 +13,7 @@ void prj_envhit_part2_psys_update(
         struct particle_t* part
 ){
 
-    const float scale_duration = 1.0;
+    const float scale_duration = part->max_lifetime;
     if(part->scale < scale_duration) {
         part->scale += gst->dt;
     }
@@ -44,15 +44,15 @@ void prj_envhit_part2_psys_init(
     part->scale = 0.0;
     part->position = origin;
    
-    const float r = 10.0;
+    const float r = 20.0;
     part->velocity = (Vector3) {
         RSEEDRANDOMF(-r, r),
-        RSEEDRANDOMF(-r, r),
+        RSEEDRANDOMF(5.0, r),
         RSEEDRANDOMF(-r, r)
     };
 
     *part->transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    part->max_lifetime = 1.0;
+    part->max_lifetime = 0.5;
 }
 
 

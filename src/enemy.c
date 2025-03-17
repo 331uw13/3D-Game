@@ -53,7 +53,7 @@ int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_file
         goto error;
     }
 
-    if(enemy_type > MAX_ALL_ENEMIES) {
+    if(enemy_type >= MAX_ALL_ENEMIES) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Invalid enemy type \"%i\"\033[0m\n",
                 __func__, enemy_type);
         goto error;
@@ -309,6 +309,8 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
             NULL, NO_EXTRADATA
             );
 
+
+    
     SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, ent->position));
     SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
     PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
@@ -316,6 +318,27 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     if(ent->death_callback) {
         ent->death_callback(gst, ent);
     }
+
+
+    // Add external force from explosion.
+
+    const float effect_dist = 13.5;
+    const float force = 20.0;
+
+    Vector3 dir = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
+    dir.y = 1.0;
+    float dist = ent->dist_to_player / effect_dist;
+    dist = force * normalize(effect_dist - dist, 0.0, effect_dist);
+
+    printf("%0.2f\n", dist);
+
+    if(dist > 1.0) {
+        dir = Vector3Scale(dir, dist);
+        player_apply_force(gst, &gst->player, dir);
+    }
+
+
+
 }
 
 void enemy_add_hitbox(

@@ -23,7 +23,6 @@
 
 // Enemy types.
 #define ENEMY_LVL0 0
-#define MAX_ALL_ENEMIES 64 // Total max enemies.
 
 
 

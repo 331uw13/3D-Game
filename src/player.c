@@ -28,18 +28,23 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->hitbox_size = (Vector3){ 1.5, 2.8, 1.5 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
+    p->ext_force_vel = (Vector3){ 0.0, 0.0, 0.0 };
+    p->ext_force_acc = (Vector3){ 0.0, 0.0, 0.0 };
     
+    // -- Movement stats -----
     p->walkspeed = 20.0;
     p->run_mult = 2.3;
-    p->walkspeed_aim_mult = 0.5;
+    //p->walkspeed_aim_mult = 0.5;
     p->air_speed_mult = 1.5;
-    p->speed = 0.0;
-
     p->jump_force = 130.0;
     p->gravity = 0.5;
-    
+    p->ground_friction = 0.015;
+    p->air_friction = 0.001;
+    // ------------------------
+
+    p->item_in_crosshair = NULL;
+    p->speed = 0.0;
     p->onground = 1;
-    p->friction = 0.015;
     p->num_jumps_inair = 0;
     p->max_jumps = 2;
 
@@ -60,6 +65,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->time_from_last_shot = 0.0;
     p->firerate = 0.05;
     p->firerate_timer = 0.0;
+
+    p->inventory.open = 0;
 
 
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
@@ -95,6 +102,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     {
         p->gunmodel_aim_offset_m 
             = MatrixTranslate(0.3, 0.3, -0.6);
+    }
+
+
+    p->inventory.item_drag = NULL;
+    for(size_t i = 0; i < INV_SIZE; i++) {
+        p->inventory.items[i] = NULL;
     }
 
 }
@@ -185,6 +198,23 @@ void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon
     //printf("(PLAYER_HIT): \033[32mHealth: %0.1f\033[0m\n", p->health);
 }
 
+void player_heal(struct state_t* gst, struct player_t* p, float heal) {
+    // TODO: effect.
+
+    p->health += heal;
+    p->health = CLAMP(p->health, 0.0, p->max_health);
+
+}
+
+void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force) {
+    p->ext_force_acc.x += force.x;
+    p->ext_force_acc.z += force.z;
+    p->ext_force_acc.y = 0;  // Gravity is handled differently.
+    p->ext_force_vel.y = 0;
+
+    p->velocity.y = force.y * 5.0;
+
+}
 
 Vector3 Vec3Lerp(float t, Vector3 a, Vector3 b) {
     return (Vector3) {
@@ -204,6 +234,15 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
 
 
 void player_update(struct state_t* gst, struct player_t* p) {
+   
+    // Player may shoot projectile.
+    if(!p->inventory.open
+       && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
+        ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+        : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) {
+        player_shoot(gst, &gst->player);
+    }
+
 
     if(p->is_aiming) {
         p->gun_draw_timer += p->gun_draw_speed * gst->dt;
@@ -371,7 +410,148 @@ void player_render(struct state_t* gst, struct player_t* p) {
     }
 }
 
+void player_update_movement(struct state_t* gst, struct player_t* p) {
+    p->prev_position = p->position;
 
+
+
+
+    p->ext_force_vel = Vector3Add(p->ext_force_vel, p->ext_force_acc);
+    p->cam.position = Vector3Add(p->cam.position, Vector3Scale(p->ext_force_vel, gst->dt));
+    p->cam.target   = Vector3Add(p->cam.target, Vector3Scale(p->ext_force_vel, gst->dt));
+    
+    float ext_force_damp = pow(0.98, gst->dt * TARGET_FPS);
+    p->ext_force_acc = Vector3Scale(p->ext_force_acc, ext_force_damp);
+    p->ext_force_vel = Vector3Scale(p->ext_force_vel, ext_force_damp);
+
+
+    if(p->velocity.y > 0.1) {
+        p->onground = 0;
+    }
+
+
+    // Handle X,Z Movement.
+
+    p->speed = p->walkspeed;
+    
+    if(IsKeyDown(KEY_LEFT_SHIFT)
+    && p->onground
+    && !p->inventory.open) {
+        p->speed *= p->run_mult;
+    }
+
+    if(!p->onground) {
+        p->speed *= p->air_speed_mult;
+    }
+
+    if(p->inventory.open) {
+        p->speed *= 0.5;
+    }
+
+    if(p->noclip) {
+        p->speed *= 5.0;
+        p->onground = 0;
+    }
+
+    
+    if(IsKeyDown(KEY_W)) {
+        p->velocity.z += p->speed * gst->dt;
+    }
+    if(IsKeyDown(KEY_S)) {
+        p->velocity.z -= p->speed * gst->dt;
+    }
+    if(IsKeyDown(KEY_D)) {
+        p->velocity.x += p->speed * gst->dt;
+    }
+    if(IsKeyDown(KEY_A)) {
+        p->velocity.x -= p->speed * gst->dt;
+    }
+
+    const float vmax = 3.0; // Max velocity.
+
+    p->velocity.x = CLAMP(p->velocity.x, -vmax, vmax);
+    p->velocity.z = CLAMP(p->velocity.z, -vmax, vmax);
+
+    CameraMoveForward (&p->cam, (p->speed * p->velocity.z) * gst->dt, 1);
+    CameraMoveRight   (&p->cam, (p->speed * p->velocity.x) * gst->dt, 1);
+
+    // Friction.
+    float friction = p->onground ? p->ground_friction : p->air_friction;
+    float f = pow(1.0 - friction, gst->dt * TARGET_FPS);
+    p->velocity.x *= f;
+    p->velocity.z *= f;
+
+    p->position = p->cam.position;
+
+
+
+
+
+
+    // Handle Y Movement.
+
+
+
+    if(!p->noclip) {
+        if(IsKeyPressed(KEY_SPACE) && p->onground && !p->inventory.open) {
+            p->velocity.y = p->jump_force;
+            p->onground = 0;
+        }
+
+
+        RayCollision ray = raycast_terrain(&gst->terrain, p->position.x, p->position.z);
+        const float heightvalue = ray.point.y + p->height;
+
+        p->position.y += p->velocity.y * gst->dt;
+        
+
+        if((p->position.y < heightvalue) || p->onground) {
+            p->position.y = heightvalue;
+            p->velocity.y = 0;
+            p->onground = 1;
+        }
+            
+        if(!p->onground){
+            float g = (GRAVITY_CONST*p->gravity) * gst->dt;
+            p->velocity.y -= g;
+        }
+    }
+    else {
+        if(IsKeyDown(KEY_SPACE)) {
+            p->position.y += 2*p->speed * gst->dt;
+        }
+        else 
+        if(IsKeyDown(KEY_LEFT_CONTROL)) {
+            p->position.y -= 2*p->speed * gst->dt;
+        }
+    }
+
+
+    // Fix camera target. it may be wrong if Y position changed.
+
+    float scale_up = ( p->position.y - p->cam.position.y);
+
+    Vector3 up = Vector3Scale(GetCameraUp(&p->cam), scale_up);
+    p->cam.target = Vector3Add(p->cam.target, up);
+    p->cam.position.y = p->position.y;
+
+
+
+}
+
+void player_update_camera(struct state_t* gst, struct player_t* p) {
+    if(p->inventory.open) {
+        return;
+    }
+
+    const Vector2 md = GetMouseDelta();
+    
+    p->cam_yaw = (-md.x * CAMERA_SENSETIVITY);
+    p->looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
+        
+    CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY), 0);
+    CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY), 1, 0, 0);
+}
 
 BoundingBox get_player_boundingbox(struct player_t* p) {
     return (BoundingBox) {

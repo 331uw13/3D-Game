@@ -13,131 +13,18 @@
 
 
 void handle_userinput(struct state_t* gst) {
+    
+    if(gst->player.alive) {
+        player_update_camera(gst, &gst->player);
+        player_update_movement(gst, &gst->player);
+    }
+
 
     if(IsKeyPressed(KEY_F)) {
         player_respawn(gst, &gst->player);
     }
 
-    if(!gst->player.alive) {
-        return;
-    }
 
-    Vector2 md = GetMouseDelta();
-    float dt = GetFrameTime();
-
-    CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY), 0);
-    CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY), 1, 0, 0);
-
-    gst->player.cam_yaw = (-md.x * CAMERA_SENSETIVITY) * dt;
-    gst->player.looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
-
-    
-    float velocity_speed = gst->player.walkspeed;
-    float player_speed = gst->player.walkspeed;
-
-    if((IsKeyDown(KEY_LEFT_SHIFT) && !gst->player.is_aiming && gst->player.onground)) {
-        player_speed *= gst->player.run_mult;
-    }
-
-    if(!gst->player.onground) {
-        player_speed *= gst->player.air_speed_mult;
-    }
-    
-    velocity_speed *= gst->dt;
- 
-    gst->player.prev_position = gst->player.position;
-    
-    
-
-    // ----- Handle player Y Movement -------
-    //
-
-    if(!gst->player.noclip)
-    {
-
-        if(IsKeyPressed(KEY_SPACE) && gst->player.onground) {
-            gst->player.velocity.y = gst->player.jump_force;
-            gst->player.onground = 0;
-        }
-
-
-        RayCollision t_hit = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
-        const float heightvalue = t_hit.point.y + gst->player.height;
-
-
-        gst->player.position.y += gst->player.velocity.y * gst->dt;
-        
-        if((gst->player.position.y < heightvalue) || gst->player.onground) {
-            gst->player.position.y = heightvalue;
-            gst->player.velocity.y = 0;
-            gst->player.onground = 1;
-        }
-        
-        if(!gst->player.onground){
-            float g = (500*gst->player.gravity) * gst->dt;
-            gst->player.velocity.y -= g;
-        }
-
-
-        float scale_up = ( gst->player.position.y - gst->player.cam.position.y);
-
-        Vector3 up = Vector3Scale(GetCameraUp(&gst->player.cam), scale_up);
-        gst->player.cam.target = Vector3Add(gst->player.cam.target, up);
-        gst->player.cam.position.y = gst->player.position.y;
-
-    }
-    else {
-        const float noclip_speed_mult = 8;
-        if(IsKeyDown(KEY_SPACE)) {
-            CameraMoveUp(&gst->player.cam, (dt * 35.0) * noclip_speed_mult);
-        }
-        else if(IsKeyDown(KEY_LEFT_CONTROL)) {
-            CameraMoveUp(&gst->player.cam, -(dt * 38.0) * noclip_speed_mult);
-        }
-        player_speed *= noclip_speed_mult;
-    }
-
-    // ----- Handle player X Z Movement -------
-
-    if(IsKeyDown(KEY_W)) {
-        gst->player.velocity.z += velocity_speed;
-    }
-    if(IsKeyDown(KEY_S)) {
-        gst->player.velocity.z -= velocity_speed;
-    }
-    if(IsKeyDown(KEY_A)) {
-        gst->player.velocity.x -= velocity_speed;
-    }
-    if(IsKeyDown(KEY_D)) {
-        gst->player.velocity.x += velocity_speed;
-    }
-
-    const float vmax = 3.0; // velocity max.
-
-    gst->player.velocity.z = CLAMP(gst->player.velocity.z, -vmax, vmax);
-    gst->player.velocity.x = CLAMP(gst->player.velocity.x, -vmax, vmax);
-
-    CameraMoveForward (&gst->player.cam, (player_speed * gst->player.velocity.z) * gst->dt, 1);
-    CameraMoveRight   (&gst->player.cam, (player_speed * gst->player.velocity.x) * gst->dt, 1);
-    
-    float f = pow(1.0 - gst->player.friction, gst->dt * TARGET_FPS);
-    gst->player.velocity.z *= f;
-    gst->player.velocity.x *= f;
-
-    gst->player.position = gst->player.cam.position;
-
-    gst->player.speed = player_speed;
-
-
-    // ----- User intergst->player.position
-    int shoot = 
-          (gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
-        ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-        : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
-
-    if(shoot) {
-        player_shoot(gst, &gst->player);
-    }
 
     if(IsKeyPressed(KEY_G)) {
         gst->player.noclip = !gst->player.noclip;
@@ -147,7 +34,7 @@ void handle_userinput(struct state_t* gst) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
-    int aimkeydown = IsKeyDown(KEY_LEFT_CONTROL);
+    int aimkeydown = IsKeyDown(KEY_LEFT_CONTROL) && !gst->player.inventory.open;
     gst->player.is_aiming = aimkeydown;
 
     if(!aimkeydown) {
@@ -155,8 +42,12 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(IsKeyPressed(KEY_E)) {
-        spawn_enemy(gst, ENEMY_LVL0, 200, ENT_HOSTILE, 
+    if(IsKeyPressed(KEY_C)) {
+        spawn_item(gst, ITEM_APPLE, APPLE_INV_TEXID, ITEM_COMMON, gst->player.position);
+    }
+
+    if(IsKeyPressed(KEY_FIVE)) {
+        spawn_enemy(gst, ENEMY_LVL0, 50, ENT_HOSTILE, 
                 (Vector3){
                     gst->player.position.x + RSEEDRANDOMF(-10, 10),
                     0,
@@ -164,31 +55,24 @@ void handle_userinput(struct state_t* gst) {
                 });
 
     }
-    /*
-    if(IsKeyPressed(KEY_E)) {
-        const float rad = 100.0;
-        for(int i = 0; i < 64; i++) {
-            Vector3 pos = (Vector3) {
-                gst->player.position.x + RSEEDRANDOMF(-rad, rad),
-                0,
-                gst->player.position.z + RSEEDRANDOMF(-rad, rad),
-            };
-            spawn_enemy(gst, ENEMY_LVL0, 200, ENT_HOSTILE, pos);
-        }
-    }
-    */
-
+   
 
     if(IsKeyPressed(KEY_T)) {
         gst->debug = !gst->debug;
         printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
     }
 
+    if(IsKeyPressed(KEY_TAB)) {
+        toggle_inventory(gst, &gst->player);
+    }
+
     if(IsKeyPressed(KEY_ONE)) {
         SetTargetFPS(35);
+        printf("Target FPS 35 (for debug) press <2> to undo.\n");
     }
     if(IsKeyPressed(KEY_TWO)) {
         SetTargetFPS(TARGET_FPS);
+        printf("Target FPS %i\n", TARGET_FPS);
     }
 
 

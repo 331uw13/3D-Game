@@ -4,6 +4,8 @@
 
 #include "weapon.h"
 #include "light.h"
+#include "inventory.h"
+#include "item.h"
 
 struct state_t;
 
@@ -34,7 +36,8 @@ struct player_t {
     float    run_mult;
     float    air_speed_mult;
     float    speed; // "Read only". Updated from 'input.c'
-    float    friction;
+    float    ground_friction;
+    float    air_friction;
     float    jump_force;
     float    gravity;
     int      onground;
@@ -43,6 +46,14 @@ struct player_t {
     int      noclip;
     int      is_aiming;
     int      alive;
+    
+    // External force. for example explosions..
+    Vector3  ext_force_vel;
+    Vector3  ext_force_acc;
+
+    struct item_t* item_in_crosshair;
+
+    struct inventory_t inventory;
 
     Model gunmodel;
     Material arms_material;
@@ -97,11 +108,15 @@ void delete_player(struct player_t* p);
 void player_respawn(struct state_t* gst, struct player_t* p);
 void player_shoot(struct state_t* gst, struct player_t* p);
 void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon);
+void player_heal(struct state_t* gst, struct player_t* p, float heal);
+void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force);
 void player_update_death_animation(struct state_t* gst, struct player_t* p);
 
 // updates player's variables. not movement for movement see (input.c)
 void player_update(struct state_t* gst, struct player_t* p);
 void player_render(struct state_t* gst, struct player_t* p);
+void player_update_movement(struct state_t* gst, struct player_t* p);
+void player_update_camera(struct state_t* gst, struct player_t* p);
 
 BoundingBox get_player_boundingbox(struct player_t* p);
 

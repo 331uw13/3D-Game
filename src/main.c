@@ -4,6 +4,7 @@
 #include <raymath.h>
 #include <time.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "state.h"
 #include "input.h"
@@ -201,6 +202,8 @@ void loop(struct state_t* gst) {
             }
 
 
+            render_inventory(gst, &gst->player);
+
             // Draw Crosshair if player is aiming.
             if(gst->player.is_aiming) {
                 int center_x = GetScreenWidth() / 2;
@@ -220,6 +223,38 @@ void loop(struct state_t* gst) {
 
 
             // Some info for player:
+
+
+            if(gst->player.item_in_crosshair && !gst->player.inventory.open) {
+                struct item_t* item = gst->player.item_in_crosshair;
+
+                Vector2 item_name_pos = (Vector2) {
+                    gst->scrn_w/2 - item->name_width / 2 - 200,
+                    gst->scrn_h/2 + 100,
+                };
+
+                DrawText(item->name, item_name_pos.x, item_name_pos.y, 20, WHITE);
+                DrawText("< Press (F) to pickup >\0", 
+                        item_name_pos.x, item_name_pos.y+30, 20,
+                        (Color){ 100, 100, 100, 255 });
+
+                if(IsKeyPressed(KEY_F)) {
+                    item->enabled = !inv_add_item(gst, &gst->player, item);
+                }
+                else
+                if(item->consumable) {
+                    DrawText("< Press (E) to eat >\0", 
+                            item_name_pos.x, item_name_pos.y+60, 20,
+                            (Color){ 60, 60, 60, 255 });
+                    
+                    if(IsKeyPressed(KEY_E)) {
+                        item->enabled = 0;
+                    
+                        player_heal(gst, &gst->player, APPLE_HEALTH_INCREASE);
+                    }
+                }
+                
+            }
 
 
             /*
@@ -287,6 +322,7 @@ void cleanup(struct state_t* gst) {
     state_delete_all_psystems(gst);
     state_delete_all_sounds(gst);
     state_delete_all_enemy_models(gst);
+    state_delete_all_item_models(gst);
 
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtreshold_target);
@@ -308,7 +344,7 @@ void first_setup(struct state_t* gst) {
 
     // REMOVE THIS:
     SetWindowPosition(1700, 100);
-
+    //SetExitKey(-1);
 
     // Loading screen.
     BeginDrawing();
@@ -382,6 +418,7 @@ void first_setup(struct state_t* gst) {
     state_setup_all_psystems(gst);
     state_setup_all_sounds(gst);
     state_setup_all_enemy_models(gst);
+    state_setup_all_item_models(gst);
 
     init_player_struct(gst, &gst->player);
 
@@ -446,13 +483,23 @@ void first_setup(struct state_t* gst) {
 
 int main(void) {
 
-    struct state_t gst;
+    struct state_t* gst = NULL;
+    gst = malloc(sizeof *gst);
 
-    first_setup(&gst);
-    loop(&gst);
-    cleanup(&gst);
+    if(!gst) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to allocate memory for game state.\033[0m\n",
+                __func__);
+        return 1;
+    }
+
+    first_setup(gst);
+    loop(gst);
+    cleanup(gst);
+
+    free(gst);
 
 
     printf("Exit 0.\n");
     return 0;
 }
+

@@ -143,6 +143,10 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS]);
+
+    update_inventory(gst, &gst->player);
+
+    update_items(gst);
 }
 
 #include <stdio.h>
@@ -291,7 +295,8 @@ void state_render_environment(struct state_t* gst) {
         }
 
         player_render(gst, &gst->player);
-      
+        render_items(gst);
+
         rlDisableDepthMask();
         render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
         rlEnableDepthMask();
@@ -784,6 +789,8 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/moss2.png", MOSS_TEXID);
     load_texture(gst, "res/textures/grass.png", GRASS_TEXID);
     load_texture(gst, "res/textures/gun_fx.png", GUNFX_TEXID);
+    load_texture(gst, "res/textures/apple_inv.png", APPLE_INV_TEXID);
+    load_texture(gst, "res/textures/apple.png", APPLE_TEXID);
 
    
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
@@ -822,8 +829,23 @@ void state_setup_all_sounds(struct state_t* gst) {
 
 void state_setup_all_enemy_models(struct state_t* gst) {
 
+    for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
+        gst->enemies[i].alive = 0;
+    }
+
     load_enemy_model(gst, ENEMY_LVL0, "res/models/enemy_lvl0.glb", ENEMY_LVL0_TEXID);
 
+    // ...
+}
+
+void state_setup_all_item_models(struct state_t* gst) {
+    for(size_t i = 0; i < MAX_ALL_ITEMS; i++) {
+        gst->items[i].enabled = 0;
+    }
+    
+    load_item_model(gst, ITEM_APPLE, "res/models/apple.glb", APPLE_TEXID);
+    
+    // ...
 
 }
 
@@ -879,6 +901,19 @@ void state_delete_all_enemy_models(struct state_t* gst) {
 
     printf("\033[35m -> Deleted all Enemy models\033[0m\n");
 }
+
+void state_delete_all_item_models(struct state_t* gst) {
+
+    for(int i = 0; i < MAX_ITEM_MODELS; i++) {
+        if(IsModelValid(gst->item_models[i])) {
+            UnloadModel(gst->item_models[i]);
+        }
+    }
+
+
+    printf("\033[35m -> Deleted all Item models\033[0m\n");
+}
+
 
 void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
     struct crithit_marker_t* marker = &gst->crithit_markers[gst->num_crithit_markers];
