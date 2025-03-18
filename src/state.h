@@ -142,6 +142,20 @@ struct crithit_marker_t {
 };
 
 
+// Enemy spawn settings for each type.
+struct spawn_system_t {
+    int   max_in_spawn_radius [MAX_ENEMY_TYPES];  // How many can spawn in spawn radius?
+    int   max_in_world        [MAX_ENEMY_TYPES];  // How many can be spawned in world total?
+    float spawn_radius        [MAX_ENEMY_TYPES];  // Spawn radius around player position.
+    
+    float spawn_timers_max    [MAX_ENEMY_TYPES];  // How long to wait until more can be tried to spawn?
+    float spawn_timers        [MAX_ENEMY_TYPES];  // Time elapsed.
+    
+    int num_spawns_min [MAX_ENEMY_TYPES]; // Min number of enemies to spawn
+    int num_spawns_max [MAX_ENEMY_TYPES]; // Max number of enemies to spawn
+};
+
+
 // Game state "gst".
 struct state_t {
     float time;
@@ -165,11 +179,12 @@ struct state_t {
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
-
+    struct spawn_system_t spawnsys;
     Model  enemy_models[MAX_ENEMY_MODELS];
     struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;
-    float  enemy_spawn_timers[MAX_ALL_ENEMIES];
+   
+
 
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
@@ -179,6 +194,7 @@ struct state_t {
     Model         item_models[MAX_ITEM_MODELS];
     size_t        num_items;
 
+    float         natural_item_spawn_timers[MAX_ITEM_TYPES];
 
     int scrn_w; // Screen width
     int scrn_h; // Screen height

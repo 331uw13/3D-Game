@@ -24,7 +24,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.projection = CAMERA_PERSPECTIVE;
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->height = 5.0;
+    p->height = 6.5;
     p->hitbox_size = (Vector3){ 1.5, 2.8, 1.5 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
@@ -49,7 +49,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->max_jumps = 2;
 
     p->gun_draw_timer = 0.0;
-    p->gun_draw_speed = 6.3;
+    p->gun_draw_speed = 8.3;
 
     p->recoil_timer = 0.0;
     p->recoil = 0.0;
@@ -61,11 +61,11 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->alive = 1;
 
     p->accuracy_modifier = 0.0;
-    p->accuracy_control = 3.0;
+    p->accuracy_control = 0.0;
     p->time_from_last_shot = 0.0;
-    p->firerate = 0.05;
+    p->firerate = 0.1;
     p->firerate_timer = 0.0;
-
+    p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->inventory.open = 0;
 
 
@@ -171,13 +171,15 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     p->gunfx_timer = 0.0;
 }
 
-
-void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon) {
+void player_damage(struct state_t* gst, struct player_t* p, float damage) {
     if(!p->alive) {
         return;
     }
+    if(damage < 0.0) {
+        return;
+    }
 
-    p->health -= get_weapon_damage(weapon, NULL);
+    p->health -= damage;
 
     if(p->health <= 0.001) {
         p->alive = 0;
@@ -193,10 +195,20 @@ void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon
     if(gst->has_audio) {
         SetSoundPitch(gst->sounds[PLAYER_HIT_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.35));
         PlaySound(gst->sounds[PLAYER_HIT_SOUND]);
-    }
+    }   
 
-    //printf("(PLAYER_HIT): \033[32mHealth: %0.1f\033[0m\n", p->health);
+
+    int num_particles = map(damage, 0.0, p->max_health, 15, 50);
+
+    add_particles(gst,
+            &gst->psystems[PLAYER_HIT_PSYS],
+            num_particles,
+            p->position,
+            Vector3Normalize(Vector3Subtract(p->cam.target, p->cam.position)),
+            NULL, NO_EXTRADATA
+            );
 }
+
 
 void player_heal(struct state_t* gst, struct player_t* p, float heal) {
     // TODO: effect.
@@ -244,6 +256,11 @@ void player_update(struct state_t* gst, struct player_t* p) {
     }
 
 
+    if(!p->is_aiming) {
+        p->ready_to_shoot = 0;
+        p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
+    }
+
     if(p->is_aiming) {
         p->gun_draw_timer += p->gun_draw_speed * gst->dt;
         if(p->gun_draw_timer > 1.0) {
@@ -251,7 +268,8 @@ void player_update(struct state_t* gst, struct player_t* p) {
             p->ready_to_shoot = 1;
         }
     }
-    else if(p->gun_draw_timer > 0) {
+    else
+    if(p->gun_draw_timer > 0) {
         p->gun_draw_timer -= p->gun_draw_speed * gst->dt;
     }
 
@@ -414,8 +432,6 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     p->prev_position = p->position;
 
 
-
-
     p->ext_force_vel = Vector3Add(p->ext_force_vel, p->ext_force_acc);
     p->cam.position = Vector3Add(p->cam.position, Vector3Scale(p->ext_force_vel, gst->dt));
     p->cam.target   = Vector3Add(p->cam.target, Vector3Scale(p->ext_force_vel, gst->dt));
@@ -436,7 +452,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     
     if(IsKeyDown(KEY_LEFT_SHIFT)
     && p->onground
-    && !p->inventory.open) {
+    && !p->inventory.open
+    && !p->is_aiming) {
         p->speed *= p->run_mult;
     }
 

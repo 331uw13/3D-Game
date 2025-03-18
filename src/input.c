@@ -8,7 +8,6 @@
 #include "state.h"
 #include "util.h"
 
-
 // TODO: clean this up.
 
 
@@ -34,24 +33,41 @@ void handle_userinput(struct state_t* gst) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
-    int aimkeydown = IsKeyDown(KEY_LEFT_CONTROL) && !gst->player.inventory.open;
-    gst->player.is_aiming = aimkeydown;
 
-    if(!aimkeydown) {
-        gst->player.ready_to_shoot = 0;
+    if(IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
+        gst->player.aim_button_hold_timer += gst->dt;
+        if(gst->player.aim_button_hold_timer >= 0.485) {
+            gst->player.disable_aim_mode = DISABLE_AIM_WHEN_RELEASED;
+        }
+    }
+    else {
+        gst->player.aim_button_hold_timer = 0.0;
+        
     }
 
+    if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
+    && !gst->player.inventory.open
+    && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
+        gst->player.is_aiming =! gst->player.is_aiming;
+    }
+    else
+    if(!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)
+    && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_RELEASED)) {
+        gst->player.is_aiming = 0;
+    }
+
+    
 
     if(IsKeyPressed(KEY_C)) {
         spawn_item(gst, ITEM_APPLE, APPLE_INV_TEXID, ITEM_COMMON, gst->player.position);
     }
 
     if(IsKeyPressed(KEY_FIVE)) {
-        spawn_enemy(gst, ENEMY_LVL0, 50, ENT_HOSTILE, 
+        spawn_enemy(gst, ENEMY_LVL0, ENT_HOSTILE, 
                 (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-10, 10),
+                    gst->player.position.x + RSEEDRANDOMF(-100, 100),
                     0,
-                    gst->player.position.z + RSEEDRANDOMF(-10, 10)
+                    gst->player.position.z + RSEEDRANDOMF(-100, 100)
                 });
 
     }

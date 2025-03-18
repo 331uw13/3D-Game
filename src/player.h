@@ -17,6 +17,9 @@ struct state_t;
 #define PLAYER_WEAPON_SEMIAUTO 1
 
 
+#define DISABLE_AIM_WHEN_RELEASED 0
+#define DISABLE_AIM_WHEN_MOUSERIGHT 1
+
 
 struct player_t {
 
@@ -46,7 +49,10 @@ struct player_t {
     int      noclip;
     int      is_aiming;
     int      alive;
-    
+
+    int   disable_aim_mode;
+    float aim_button_hold_timer;
+
     // External force. for example explosions..
     Vector3  ext_force_vel;
     Vector3  ext_force_acc;
@@ -107,7 +113,7 @@ void delete_player(struct player_t* p);
 
 void player_respawn(struct state_t* gst, struct player_t* p);
 void player_shoot(struct state_t* gst, struct player_t* p);
-void player_hit(struct state_t* gst, struct player_t* p, struct weapon_t* weapon);
+void player_damage(struct state_t* gst, struct player_t* p, float damage);
 void player_heal(struct state_t* gst, struct player_t* p, float heal);
 void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force);
 void player_update_death_animation(struct state_t* gst, struct player_t* p);

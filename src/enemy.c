@@ -11,12 +11,13 @@
 static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
     int result = 0;
 
-    Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
     Vector3 ray_position = (Vector3){
         ent->position.x,
-        ent->position.y + 3.0,
+        ent->position.y + 8.0,
         ent->position.z
     };
+    
+    Vector3 ent_direction = Vector3Normalize(Vector3Subtract(gst->player.position, ray_position));
 
     // Move 'ray_position' towards player
     // and cast ray from 'terrain.highest_point' at ray_position.X and Z.
@@ -224,6 +225,7 @@ struct enemy_t* create_enemy(
     entptr->accuracy_modifier = 0.0;
     entptr->firerate_timer = 0.0;
     entptr->firerate = firerate;
+    entptr->despawn_timer = 0.0;
 
     gst->num_enemies++;
     if(gst->num_enemies >= MAX_ALL_ENEMIES) {
@@ -239,6 +241,18 @@ void update_enemy(struct state_t* gst, struct enemy_t* ent) {
     if(!ent->enabled) {
         return;
     }
+
+    if(ent->dist_to_player >= ENEMY_DESPAWN_RADIUS) {
+        ent->despawn_timer += gst->dt;
+        if(ent->despawn_timer >= ENEMY_DESPAWN_TIME) {
+            ent->alive = 0;
+            ent->enabled = 0;
+        }
+    }
+    else {
+        ent->despawn_timer = 0.0;
+    }
+
     if(ent->update_callback) {
         ent->dist_to_player = Vector3Distance(gst->player.position, ent->position);
         ent->firerate_timer += gst->dt;
@@ -323,22 +337,23 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     // Add external force from explosion.
 
     const float effect_dist = 13.5;
-    const float force = 20.0;
+    const float damage_dist = effect_dist / 1.5;
 
     Vector3 dir = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
     dir.y = 1.0;
     float dist = ent->dist_to_player / effect_dist;
-    dist = force * normalize(effect_dist - dist, 0.0, effect_dist);
+    dist = normalize(effect_dist - dist, 0.0, effect_dist);
 
-    printf("%0.2f\n", dist);
+    float damage = ent->dist_to_player / damage_dist;
+    damage = normalize(damage_dist - damage, 0.0, damage_dist);
 
-    if(dist > 1.0) {
-        dir = Vector3Scale(dir, dist);
+    
+    if(dist > 0.0) {
+        dir = Vector3Scale(dir, dist * ENEMY_DEATH_EXPLOSION_FORCE);
         player_apply_force(gst, &gst->player, dir);
+
+        player_damage(gst, &gst->player, damage * ENEMY_DEATH_EXPLOSION_DAMAGE);
     }
-
-
-
 }
 
 void enemy_add_hitbox(
@@ -366,7 +381,6 @@ void enemy_add_hitbox(
 void spawn_enemy(
         struct state_t* gst,
         int enemy_type,
-        int max_health,
         int mood,
         Vector3 position
 ){
@@ -387,7 +401,7 @@ void spawn_enemy(
                         &gst->enemy_models[enemy_type],
                         &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
                         &gst->enemy_weapons[enemy_type],
-                        max_health,
+                        ENEMY_LVL0_MAX_HEALTH,
                         position,
                         720.0, /* Target Range */
                         180.0, /* Target FOV */
@@ -501,4 +515,124 @@ struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy
 
     return result;
 }
+
+int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int* num_in_world) {
+    int num = 0;
+
+    for(size_t i = 0; i < gst->num_enemies; i++) {
+        if(!gst->enemies[i].alive || !gst->enemies[i].enabled) {
+            continue;
+        }
+        if(gst->enemies[i].type != enemy_type) {
+            continue;
+        }
+
+        if(gst->enemies[i].dist_to_player < radius) {
+            num++;
+        }
+
+        if(num_in_world) {
+            *num_in_world += 1;
+        }
+    }
+
+    return num;
+}
+
+static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
+    Vector3 pos = (Vector3) { 0, 0, 0 };
+    const int max_attemps = 100;
+    int attemps = 0;
+
+    while(attemps < max_attemps) {
+        pos = (Vector3) {
+            gst->player.position.x + RSEEDRANDOMF(-spawn_radius, spawn_radius),
+                0,
+            gst->player.position.z + RSEEDRANDOMF(-spawn_radius, spawn_radius)
+        };
+
+        RayCollision ray = raycast_terrain(&gst->terrain, pos.x, pos.z);
+        int in_water = (ray.point.y <= gst->terrain.water_ylevel);
+
+        if(!in_water && Vector3Distance(pos, gst->player.position) > ENEMY_SPAWN_SAFE_RADIUS) {
+            break;
+        }
+
+        attemps++;
+    }
+
+    if(attemps >= max_attemps) {
+        pos.x = gst->player.position.x + ENEMY_SPAWN_SAFE_RADIUS;
+        pos.z = gst->player.position.z + ENEMY_SPAWN_SAFE_RADIUS;
+    }
+
+    return pos;
+}
+
+void spawn_enemies(
+        struct state_t* gst,
+        int enemy_type,
+        size_t n,
+        float spawn_radius
+){
+
+    int num_enemies_in_world = 0;
+    int num_enemies = num_enemies_in_radius(gst, enemy_type, spawn_radius, &num_enemies_in_world);
+
+    printf("Enemy type '%i' in world: %i\n", enemy_type, num_enemies_in_world);
+
+    if(num_enemies_in_world >= gst->spawnsys.max_in_world[enemy_type]) {
+        printf("'%s': Too many '%i' in world\n",
+                __func__, enemy_type);
+        return;
+    }
+
+    if(num_enemies >= gst->spawnsys.max_in_spawn_radius[enemy_type]) {
+        printf("'%s': Too many '%i' in spawn radius\n",
+                __func__, enemy_type);
+        return;
+    }
+
+    for(size_t i = 0; i < n; i++) {
+        spawn_enemy(gst, enemy_type, ENT_HOSTILE, get_good_spawn_pos(gst, spawn_radius));
+    }
+
+}
+
+void update_enemy_spawn_system(struct state_t* gst) {
+
+    for(int enemy_type = 0; 
+            enemy_type < MAX_ENEMY_TYPES;
+            enemy_type++
+    ){
+        
+        gst->spawnsys.spawn_timers[enemy_type] += gst->dt;
+        if(gst->spawnsys.spawn_timers[enemy_type] >= gst->spawnsys.spawn_timers_max[enemy_type]) {
+            gst->spawnsys.spawn_timers[enemy_type] = 0.0;
+
+            int n = GetRandomValue(
+                    gst->spawnsys.num_spawns_min[enemy_type],
+                    gst->spawnsys.num_spawns_max[enemy_type]);
+            n = CLAMP(n, 0, gst->spawnsys.max_in_spawn_radius[enemy_type]);
+
+            spawn_enemies(gst, enemy_type, n, gst->spawnsys.spawn_radius[enemy_type]);
+        }
+
+    }
+
+}
+
+void setup_default_enemy_spawn_settings(struct state_t* gst) {
+    
+    // ENEMY_LVL0 Defaults.
+    gst->spawnsys.max_in_spawn_radius[ENEMY_LVL0] = 6;
+    gst->spawnsys.max_in_world[ENEMY_LVL0] = 12;
+    gst->spawnsys.spawn_radius[ENEMY_LVL0] = 800.0;
+    gst->spawnsys.spawn_timers_max[ENEMY_LVL0] = 30.0;
+    gst->spawnsys.spawn_timers[ENEMY_LVL0] = 28.0; // Skip little bit ahead.
+    gst->spawnsys.num_spawns_min[ENEMY_LVL0] = 3;
+    gst->spawnsys.num_spawns_max[ENEMY_LVL0] = 6;
+
+}
+
 

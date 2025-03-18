@@ -74,7 +74,6 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
 
     if((ent->mood == ENT_HOSTILE) && infov && (has_target_now && !ent->has_target)) {
-        printf("Enemy(%li) -> Target Found!\n", ent->index);
         ent->state = ENT_STATE_CHANGING_ANGLE;
     
         // Get (current) quaternion.
@@ -90,7 +89,6 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
     }
     else
     if(!has_target_now && ent->has_target) {
-        printf("Enemy(%li) -> Target Lost.\n", ent->index);
         ent->state = ENT_STATE_SEARCHING_TARGET;
         
         ent->Q_rnd_target = QuaternionFromMatrix(ent->matrix[ENEMY_LVL0_BODY_MI]);

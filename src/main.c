@@ -420,6 +420,9 @@ void first_setup(struct state_t* gst) {
     state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
 
+    setup_natural_item_spawn_settings(gst);
+    setup_default_enemy_spawn_settings(gst);
+
     init_player_struct(gst, &gst->player);
 
 

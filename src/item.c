@@ -3,6 +3,7 @@
 
 #include "state.h"
 #include "item.h"
+#include "util.h"
 #include <raymath.h>
 
 
@@ -13,6 +14,7 @@ static const char* ITEM_NAMES[] = {
 
 static const int CONSUMABLE_ITEMS[] = {
     ITEM_APPLE,
+    // ...
 };
 
 static const Color ITEM_RARITY_COLORS[] = {
@@ -20,7 +22,24 @@ static const Color ITEM_RARITY_COLORS[] = {
     (Color) { 30, 150, 30, 255 },  // Rare
     (Color) { 30, 200, 200, 255 }, // Special
     (Color) { 240, 200, 30, 255 }, // Legendary
-    (Color) { 0, 0, 0, 255 },        // Mythical (has rainbow effect)
+    (Color) { 0, 0, 0, 255 },      // Mythical (has rainbow effect)
+};
+
+
+
+static const int MAX_ITEMS_IN_WORLD[] = {
+    15 /* ITEM_APPLE */    
+    // ...
+};
+
+static const int ITEMS_SPAWN_CHANCE[] = { // 0% - 100%
+    80 /* ITEM APPLE */
+    // ...
+};
+
+static const float MAX_NATURAL_ITEMS_SPAWN_TIME[] = {
+    5.0 /* ITEM APPLE */
+    // ...
 };
 
 
@@ -64,6 +83,19 @@ error:
 
 void spawn_item(struct state_t* gst, u32 item_type, int inv_texid, int item_rarity, Vector3 position) {
     
+    int num_this_type = 0;
+
+    for(size_t i = 0; i < MAX_ALL_ITEMS; i++) {
+        if(gst->items[i].enabled && (gst->items[i].type == item_type)) {
+            num_this_type++;
+        }
+    }
+
+    if(num_this_type >= MAX_ITEMS_IN_WORLD[item_type]) {
+        //printf("'%s': Too many item '%i' in world\n", __func__, item_type);
+        return;
+    }
+
     size_t item_index = gst->num_items;
     if(item_index >= MAX_ALL_ITEMS) {
         size_t i = 0;
@@ -107,7 +139,7 @@ void spawn_item(struct state_t* gst, u32 item_type, int inv_texid, int item_rari
         }
     }
 
-
+    printf("'%s' Item %i\n", __func__, item_type);
 
     item->name_width = MeasureText(item->name, 20);
 
@@ -199,6 +231,53 @@ void render_items(struct state_t* gst) {
 }
 
 
+static Vector3 get_good_item_spawn_pos(struct state_t* gst) {
+    Vector3 pos = (Vector3) { 0, 0, 0 };
+
+    const int max_attemps = 100;
+    int attemps = 0;
+
+    while(attemps < max_attemps) {
+        pos = (Vector3) {
+            gst->player.position.x + RSEEDRANDOMF(-NATURAL_ITEM_SPAWN_RADIUS, NATURAL_ITEM_SPAWN_RADIUS),
+            0,
+            gst->player.position.x + RSEEDRANDOMF(-NATURAL_ITEM_SPAWN_RADIUS, NATURAL_ITEM_SPAWN_RADIUS)
+        };
+
+        RayCollision ray = raycast_terrain(&gst->terrain, pos.x, pos.z);
+        int in_water = (ray.point.y < gst->terrain.water_ylevel);
+
+        pos.y = ray.point.y + 5.0;
+
+        if(!in_water && (Vector3Distance(pos, gst->player.position) > 50.0)) {
+            break;
+        }
+        attemps++;
+    }
+
+    // TODO: handle if not good position found.
+
+    return pos;
+}
+
+void update_natural_item_spawns(struct state_t* gst) {
+    
+    for(int item_type = 0; item_type < NUM_NATURAL_ITEMS; item_type++) {
+        gst->natural_item_spawn_timers[item_type] += gst->dt;
+        if(gst->natural_item_spawn_timers[item_type] >= MAX_NATURAL_ITEMS_SPAWN_TIME[item_type]) {
+            gst->natural_item_spawn_timers[item_type] = 0.0;
+
+            if(GetRandomValue(0, 100) < ITEMS_SPAWN_CHANCE[item_type]) {
+                spawn_item(gst, item_type, APPLE_INV_TEXID, ITEM_COMMON, get_good_item_spawn_pos(gst));
+            }
+        }
+    }
+
+}
+
+void setup_natural_item_spawn_settings(struct state_t* gst) {
+    gst->natural_item_spawn_timers[ITEM_APPLE] = 0.0;
+}
 
 
 

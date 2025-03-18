@@ -129,6 +129,8 @@ void state_update_frame(struct state_t* gst) {
         update_enemy(gst, &gst->enemies[i]);
     }
 
+    update_enemy_spawn_system(gst);
+    update_natural_item_spawns(gst);
 
     // (updated only if needed)
     update_psystem(gst, &gst->player.weapon_psys);
@@ -522,7 +524,7 @@ void state_setup_all_weapons(struct state_t* gst) {
     // Player's weapon.
     gst->player.weapon = (struct weapon_t) {
         .id = PLAYER_WEAPON_ID,
-        .accuracy = 9.85,
+        .accuracy = 7.85,
         .damage = 10.0,
         .critical_chance = 10,
         .critical_mult = 1.85,
@@ -542,7 +544,7 @@ void state_setup_all_weapons(struct state_t* gst) {
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
         .accuracy = 9.25,
-        .damage = 8.0,
+        .damage = 15.0,
         .critical_chance = 15,
         .critical_mult = 5.0,
         .prj_speed = 485.0,

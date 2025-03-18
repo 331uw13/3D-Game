@@ -19,21 +19,30 @@
 #define ENT_FRIENDLY 0
 #define ENT_HOSTILE 1
 
-
-
 // Enemy types.
 #define ENEMY_LVL0 0
+#define MAX_ENEMY_TYPES 1
 
 
+#define ENEMY_DESPAWN_RADIUS 2500.0
+#define ENEMY_DESPAWN_TIME 120 // (in seconds)
+
+
+#define ENEMY_LVL0_MAX_HEALTH 200
 
 
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 #define ENEMY_MAX_MATRICES 4
 #define ENEMY_MAX_HITBOXES 4
 
+#define ENEMY_DEATH_EXPLOSION_FORCE 15.0
+#define ENEMY_DEATH_EXPLOSION_DAMAGE 100.0
+
+#define ENEMY_SPAWN_SAFE_RADIUS 300.0 // Enemies cant spawn too close to the player.
+
 
 // This handles all basic behaviour for enemies.
-// Then calls 'enemies/enemy_lvl*.c' (depending on "enemy type") to handle the rest.
+// Then calls 'enemies/enemy_lvl*.c ...' (depending on "enemy type") to handle the rest.
 
 #include "weapon.h"
 
@@ -89,6 +98,8 @@ struct enemy_t {
     int   alive;
     float health;
     float max_health;
+
+    float despawn_timer;
 
     // When enemy gets hit. velocity may be applied.
     Vector3 knockback_velocity;
@@ -177,7 +188,6 @@ void enemy_add_hitbox(
 void spawn_enemy(
         struct state_t* gst,
         int enemy_type,
-        int max_health,
         int mood,
         Vector3 position
 );
@@ -196,6 +206,14 @@ void enemy_hit(
         Vector3 hit_direction
 );
 
+int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, 
+        int* num_in_world/* report back how many in total? (can be NULL)*/);
+
+// Spawns 'n' number of hostile enemies around player with radius of 'spawn_radius'
+void spawn_enemies(struct state_t* gst, int enemy_type, size_t n, float spawn_radius); 
+void update_enemy_spawn_system(struct state_t* gst);
+
+void setup_default_enemy_spawn_settings(struct state_t* gst);
 
 // Check target range and is terrain blocking view
 int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);

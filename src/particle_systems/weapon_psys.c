@@ -147,7 +147,9 @@ void weapon_psys_prj_update(
         // Check collision with player.
 
         if(CheckCollisionBoxes(part_boundingbox, get_player_boundingbox(&gst->player))) {
-            player_hit(gst, &gst->player, weapon);
+            //player_hit(gst, &gst->player, weapon);
+
+            player_damage(gst, &gst->player, get_weapon_damage(weapon, NULL));
 
             add_particles(gst,
                     &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS],
@@ -157,6 +159,7 @@ void weapon_psys_prj_update(
                     NULL, NO_EXTRADATA
                     );
 
+            /*
             add_particles(gst,
                     &gst->psystems[PLAYER_HIT_PSYS],
                     GetRandomValue(5, 10),
@@ -164,6 +167,7 @@ void weapon_psys_prj_update(
                     part->velocity,
                     NULL, NO_EXTRADATA
                     );
+                    */
 
             disable_particle(gst, part);
         }
