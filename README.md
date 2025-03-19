@@ -3,6 +3,11 @@
 
 ---------------------
 
+> [!WARNING]
+> The game is not ready and may run poorly because it is not yet optimized well.
+
+---------------------
+
 * Kill enemy robots to gain xp and upgrade your powerups! (Powerups not yet implemented!!)
 
 * Enemies may drop metal pieces which can be used to fix armor.
