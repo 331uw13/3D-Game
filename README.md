@@ -4,7 +4,9 @@
 ---------------------
 
 > [!WARNING]
-> The game is not ready and may run poorly because it is not yet optimized well.
+> The game is not ready and may run poorly on some computers because it is not yet optimized well.
+>
+> Try changing the render settings in __src/terrain.h__ if you experience performance issues
 
 ---------------------
 
