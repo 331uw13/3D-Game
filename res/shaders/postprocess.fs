@@ -41,6 +41,8 @@ vec3 bloom_treshold(vec3 fcolor, vec3 treshold) {
     return result;
 }
 
+#include "res/shaders/voronoi.glsl"
+
 #define BLOOM_SAMPLES 30.0
 #define BLOOM_POS_M 0.5
 #define BLOOM_ADD_M 0.6
@@ -75,6 +77,10 @@ vec3 get_bloom() {
 
 void main()
 {
+
+    //finalColor = vec4(depthv, depthv, depthv, 1.0);
+    //return;
+
     vec3 color = texture(texture0, fragTexCoord).rgb;
 
 
@@ -89,8 +95,8 @@ void main()
     vec2 size = screen_size * 0.62;
     vec2 sf = 1.0/(size * 2.0);
     float blur_add = 0.6;
-    const int r = 3;
-    
+    int r = 3;
+ 
     for(int x = -r; x <= r; x++) {
         for(int y = -r; y <= r; y++) {
             vec2 p = vec2(x, y) * 0.9;
@@ -108,11 +114,6 @@ void main()
     color = mix(result/20.0, color, 0.5);
 
     // ---------------------
-
-    if(cam_pos.y < -80.0) {
-        color += vec3(0.0, 0.3, 0.3);
-    }
-
 
     finalColor = vec4(color, 1.0);
 }

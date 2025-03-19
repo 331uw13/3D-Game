@@ -38,7 +38,8 @@ void main()
     vec4 texelColor = vec4(0.0, 0.8, 1.0, 1.0);
 
     float v = voronoi3d(fragPosition.xyz*0.005 + vec3(sin(time)*0.1, time*0.35, cos(time)*0.1)).x;
-    texelColor.rgb += v;
+    float v2 = voronoi3d(fragPosition.xyz*0.0065 + vec3(sin(time)*0.5, time*0.25, cos(time)*0.183)).y;
+    texelColor.rgb += v + v2*0.5;
 
 
     vec3 normal = normalize(fragNormal);

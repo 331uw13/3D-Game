@@ -14,7 +14,7 @@ out vec4 finalColor;
 
 void main() {
     float near = 0.01;
-    float far = 1000.0;
+    float far = 100.0;
     float ndc = gl_FragCoord.z * 2.0 - 1.0;
     
     float linearDepth = (2.0 * near * far) / (far + near - ndc * (far - near));
