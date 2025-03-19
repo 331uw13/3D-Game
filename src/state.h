@@ -12,14 +12,17 @@
 #include "terrain.h"
 #include "enemy.h"
 #include "item.h"
+#include "gui.h"
 
+#define DEF_SCRN_W 1500
+#define DEF_SCRN_H 800
 
 #define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
 #define MAX_VOLUME_DIST 720 // How far away can player hear sounds.?
 
 #define GRAVITY_CONST 500
-
+#define FONT_SPACING 1.0
 
 // Index for 'textures'.
 #define NONE_TEXID -1 // TODO: remove this <-
@@ -38,7 +41,9 @@
 #define GUNFX_TEXID 12
 #define APPLE_INV_TEXID 13
 #define APPLE_TEXID 14
-#define MAX_TEXTURES 15
+#define METALPIECE_INV_TEXID 15
+#define METALPIECE_TEXID 16
+#define MAX_TEXTURES 17
 // ...
 
 
@@ -82,11 +87,12 @@
 #define FOG_EFFECT_PSYS 4
 #define PLAYER_HIT_PSYS 5
 #define ENEMY_EXPLOSION_PSYS 6
-#define WATER_SPLASH_PSYS 7
-#define ENEMY_GUNFX_PSYS 8
-#define ENEMY_PRJ_ENVHIT_PART2_PSYS 9   // For extra effect.
-#define PLAYER_PRJ_ENVHIT_PART2_PSYS 10 // For extra effect.
-#define MAX_PSYSTEMS 11
+#define ENEMY_EXPLOSION_PART2_PSYS 7 // For extra effect.
+#define WATER_SPLASH_PSYS 8
+#define ENEMY_GUNFX_PSYS 9
+#define ENEMY_PRJ_ENVHIT_PART2_PSYS 10   // For extra effect.
+#define PLAYER_PRJ_ENVHIT_PART2_PSYS 11 // For extra effect.
+#define MAX_PSYSTEMS 12
 // ...
 
 
@@ -161,6 +167,7 @@ struct state_t {
     float time;
     float dt; // Previous frame time.
     struct player_t player;
+    Font font;
 
 
     unsigned int lights_ubo;
@@ -207,6 +214,10 @@ struct state_t {
     float  crithit_marker_maxlifetime;
 
 
+    int xp_value_add;
+    float xp_update_timer;
+
+
     int has_audio;
     Sound sounds[MAX_SOUNDS];
 
@@ -220,6 +231,10 @@ struct state_t {
 
     // (NOT CURRENTLY USED)
     RenderTexture2D depth_texture;
+
+
+    int running;
+    int menu_open;
 };
 
 

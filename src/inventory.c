@@ -2,7 +2,7 @@
 #include <math.h>
 
 
-#include "gui/gui.h"
+#include "gui.h"
 #include "inventory.h"
 #include "state.h"
 #include "util.h"
@@ -34,7 +34,7 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
     };
     
     const Vector2 inv_pos = (Vector2) {
-        gst->scrn_w/2 - inv_size.x/2,
+        gst->scrn_w/2 - inv_size.x/2 + 200,
         gst->scrn_h/2 - inv_size.y/2,
     };
 
@@ -42,17 +42,28 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
         inv_pos.x-10, inv_pos.y-10,
         inv_size.x+20, inv_size.y+20
     }; 
+    
+    Vector2 descbox_size = (Vector2) { 300, inv_size.y };
+    Vector2 descbox_pos = (Vector2) { inv_pos.x - 350, inv_pos.y };
+
  
     DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 10, 10, 80 });
+    DrawRectangleV(
+            (Vector2){ descbox_pos.x-30, descbox_pos.y-30 },
+            (Vector2){
+                    descbox_size.x+inv_size.x+120,
+                    inv_size.y+60
 
+                }, (Color){ 20, 20, 20, 100 });
+    
     DrawRectangleV(inv_pos, inv_size, (Color){ 40, 40, 40, 200 });
 
     Color line_color = (Color) { 60, 60, 60, 200 };
 
     for(int y = 1; y < INV_ROWS; y++) {
         DrawLine(
-                inv_pos.x,              y * cell_size.y + inv_pos.y,
-                inv_pos.x + inv_size.x, y * cell_size.y + inv_pos.y,
+                inv_pos.x,              y * (cell_size.y+1) + inv_pos.y,
+                inv_pos.x + inv_size.x, y * (1+cell_size.y) + inv_pos.y,
                 line_color
                 );
     }
@@ -77,8 +88,9 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
     
             int mouse_on = mouse_on_rect(cell_pos, cell_size);
 
-            //printf("%p\n", item);
-            
+            if(mouse_on && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                player->inventory.selected_item_index = index;
+            }
 
             if(item) {
                 // Draw item texture on its place if its not the one being dragged.
@@ -98,6 +110,7 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
                         );
             
                 if(drag) {
+                    // The item is being dragged. draw its inventory texture on mouse position.
                     DrawTexturePro(
                             item->inv_tex,
                             (Rectangle) { // src
@@ -112,28 +125,40 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
                             );
                 }
                
-                Color rarity_color = item->rarity_color;
 
+                // Draw rarity color rect
+                Color rarity_color = item->rarity_color;
                 if(item->rarity == ITEM_MYTHICAL) {
                     rainbow_palette(sin(gst->time), &rarity_color.r, &rarity_color.g, &rarity_color.b);
                 }
-
                 DrawRectangleLines(cell_pos.x, cell_pos.y, cell_size.x, cell_size.y, rarity_color);
-
+            
+                // Indicate selected item.
+                if(item->index == player->inventory.selected_item_index) {
+                    int blink = 100 + (sin(gst->time*8.0)*0.5+0.5) * 100;
+                    DrawRectangleLines(cell_pos.x+4, cell_pos.y+4, cell_size.x-8, cell_size.y-8,
+                            (Color){ blink, blink, blink, 180 });
+                }
             }
 
-            if(mouse_on && mouse_rdown) {
-                if(!player->inventory.item_drag) {
-                    player->inventory.item_drag = item;
-                    player->inventory.item_drag_from_index = index;
-                }
+
+
+            if(mouse_on && mouse_rdown && !player->inventory.item_drag) {
+                // Item drag begin.
+                player->inventory.item_drag = item;
+                player->inventory.item_drag_from_index = index;
+                player->inventory.selected_item_index = -1;
             }
 
             if(mouse_on && !mouse_rdown && player->inventory.item_drag) {
+                // Item drag end.
                 if(!player->inventory.items[index]) {
                     player->inventory.items[index] = player->inventory.item_drag;
                     player->inventory.items[player->inventory.item_drag_from_index] = NULL;
+                    player->inventory.items[index]->index = index;
                 }
+
+                player->inventory.selected_item_index = -1;
                 player->inventory.item_drag = NULL;
             }
 
@@ -142,6 +167,60 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
                 DrawRectangleLines(cell_pos.x, cell_pos.y, cell_size.x, cell_size.y, (Color){ 130, 130, 130, 255 });
             }
         }
+    }
+
+
+    // Draw selected item description and action buttons.
+ 
+    DrawRectangleV(descbox_pos, descbox_size, (Color){ 20, 20, 20, 200 });
+
+   
+    if((player->inventory.selected_item_index < 0) 
+    || (player->inventory.selected_item_index >= INV_SIZE)) {
+        return;
+    }
+
+    struct item_t* selected_item = player->inventory.items[player->inventory.selected_item_index];
+    if(selected_item) {
+        Vector2 name_pos = (Vector2) { descbox_pos.x+10, descbox_pos.y+10 };
+        DrawTextEx(gst->font, selected_item->name, name_pos, 
+                20.0, FONT_SPACING, (Color){ 200, 200, 200, 255 });
+
+
+        float btn_x = descbox_pos.x+50.0;
+        float btn_y = descbox_pos.y+50.0;
+        const float btn_y_inc = 40.0;
+
+        if(selected_item->can_fix_armor) {
+            if(gui_button(gst, "Fix armor", 15.0, (Vector2){ btn_x, btn_y })) {
+                player->armor += selected_item->armor_fix_value;
+                player->armor = CLAMP(player->armor, 0, player->max_armor);
+                player->inventory.items[selected_item->index] = NULL;
+                player->inventory.selected_item_index = -1;
+            }
+            btn_y += btn_y_inc;
+        }
+        else 
+        if(selected_item->consumable) {
+            if(gui_button(gst, "Eat", 15.0, (Vector2){ btn_x, btn_y })) {
+                player_heal(gst, &gst->player, selected_item->health_boost_when_eaten);
+                player->inventory.items[selected_item->index] = NULL;
+                player->inventory.selected_item_index = -1;
+            }
+            btn_y += btn_y_inc;
+        }
+
+        if(gui_button(gst, "Drop", 15.0, (Vector2){ btn_x, btn_y })) {
+            spawn_item(gst, selected_item->type, 
+                    (Vector3) {
+                        gst->player.cam.position.x,
+                        gst->player.cam.position.y-3.0,
+                        gst->player.cam.position.z
+                    });
+            player->inventory.items[selected_item->index] = NULL;
+            player->inventory.selected_item_index = -1;
+        }
+
     }
 
 
@@ -166,6 +245,7 @@ int inv_add_item(struct state_t* gst, struct player_t* player, struct item_t* it
     for(size_t i = 0; i < INV_SIZE; i++) {
         if(player->inventory.items[i] == NULL) {
             player->inventory.items[i] = item;
+            player->inventory.items[i]->index = i;
             added = 1;
             break;
         }

@@ -99,6 +99,7 @@ struct enemy_t* create_enemy(
         struct weapon_t* weaponptr,
         int max_health,
         Vector3 initial_position,
+        int xp_gain,
         float target_range,
         float target_fov,
         float firerate,
@@ -175,7 +176,8 @@ struct enemy_t* create_enemy(
     entptr->render_callback = render_callback;
     entptr->death_callback = death_callback;
     entptr->spawn_callback = spawn_callback;
-
+    
+    entptr->xp_gain = xp_gain;
     entptr->position = initial_position; 
     entptr->health = max_health;
     entptr->max_health = max_health;
@@ -277,15 +279,16 @@ void enemy_hit(
         struct state_t* gst,
         struct enemy_t* ent,
         struct weapon_t* weapon, 
-        float damage_mult,
+        struct hitbox_t* hitbox,
         Vector3 hit_position,
         Vector3 hit_direction
 ){
 
     int was_critical_hit = 0;
-    float damage = get_weapon_damage(weapon, &was_critical_hit) * damage_mult;
+    float damage = get_weapon_damage(weapon, &was_critical_hit) * hitbox->damage_mult;
     ent->health -= damage;
 
+    hitbox->hits++;
 
     if(was_critical_hit) {
         state_add_crithit_marker(gst, hit_position);
@@ -310,21 +313,29 @@ void enemy_hit(
         ent->hit_callback(gst, ent, hit_position, hit_direction);
     }
 
-    printf("'%s': %0.2f | Health: %0.2f\n", __func__, damage, ent->health);
+    printf("HITBOX:%i, hits:%i\n", hitbox->tag, hitbox->hits);
+    //printf("'%s': %0.2f | Health: %0.2f\n", __func__, damage, ent->health);
 }
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
-    add_particles(
-            gst,
+    
+    add_particles(gst, // Red particles.
             &gst->psystems[ENEMY_EXPLOSION_PSYS],
-            GetRandomValue(16, 32),
+            GetRandomValue(40, 80),
             ent->position,
             (Vector3){0},
             NULL, NO_EXTRADATA
             );
 
-
+    add_particles(gst, // Expanding sphere.
+            &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS],
+            10,
+            ent->position,
+            (Vector3){0},
+            NULL, NO_EXTRADATA
+            );
     
+
     SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, ent->position));
     SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
     PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
@@ -334,10 +345,10 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     }
 
 
-    // Add external force from explosion.
+    // Add external force from explosion is player is nearby.
 
     const float effect_dist = 13.5;
-    const float damage_dist = effect_dist / 1.5;
+    const float damage_dist = effect_dist / 1.35;
 
     Vector3 dir = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
     dir.y = 1.0;
@@ -354,13 +365,33 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
 
         player_damage(gst, &gst->player, damage * ENEMY_DEATH_EXPLOSION_DAMAGE);
     }
+
+
+    int xp_gain_bonus = 0;
+
+    for(size_t i = 0; i < ent->num_hitboxes; i++) {
+        if(ent->hitboxes[i].tag != HITBOX_HEAD) {
+            continue;
+        }
+
+        xp_gain_bonus += ent->hitboxes[i].hits;
+    }
+
+    gst->player.kills++;
+
+    xp_gain_bonus = CLAMP(xp_gain_bonus, 0, ENEMY_XP_GAIN_MAX_BONUS);
+    printf("xp-gain: %i\n", ent->xp_gain + xp_gain_bonus);
+    
+    player_add_xp(gst, ent->xp_gain + xp_gain_bonus);
+    enemy_drop_random_item(gst, ent);
 }
 
 void enemy_add_hitbox(
         struct enemy_t* ent, 
         Vector3 hitbox_size,
         Vector3 hitbox_offset,
-        float damage_multiplier
+        float damage_multiplier,
+        int hitbox_tag
 ){
     if(ent->num_hitboxes+1 >= ENEMY_MAX_HITBOXES) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Trying to add too many hitboxes\033[0m\n",
@@ -372,7 +403,8 @@ void enemy_add_hitbox(
         .size = hitbox_size,
         .offset = hitbox_offset,
         .damage_mult = damage_multiplier,
-        .id = ent->num_hitboxes
+        .tag = hitbox_tag,
+        .hits = 0
     };
 
     ent->num_hitboxes++;
@@ -403,6 +435,7 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         ENEMY_LVL0_MAX_HEALTH,
                         position,
+                        12,    /* XP Gain */
                         720.0, /* Target Range */
                         180.0, /* Target FOV */
                         0.2,   /* Firerate */
@@ -420,14 +453,16 @@ void spawn_enemy(
                 enemy_add_hitbox(ent,
                         (Vector3){ 13.0, 8.0, 13.0 },
                         (Vector3){ 0.0, 12.0, 0.0 },
-                        1.758
+                        1.758,
+                        HITBOX_HEAD
                         );
 
                 // Legs hitbox.
                 enemy_add_hitbox(ent,
                         (Vector3){ 10.0, 5.0, 10.0 },
                         (Vector3){ 0.0, 3.0, 0.0 },
-                        0.5
+                        0.5,
+                        HITBOX_LEGS
                         );
 
                 ent->spawn_callback(gst, ent);
@@ -439,17 +474,6 @@ void spawn_enemy(
                     __func__, enemy_type);
             break;
     }
-}
-
-void delete_enemy(struct state_t* gst, size_t enemy_index) {
-    if(enemy_index >= gst->num_enemies) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid index to remove enemy from.\033[0m\n",
-                __func__);
-        return;
-    }
-
- 
-
 }
 
 
@@ -514,6 +538,21 @@ struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy
 
 
     return result;
+}
+
+void enemy_drop_random_item(struct state_t* gst, struct enemy_t* ent) {
+
+    int item_type = ITEM_METALPIECE;
+
+    if(GetRandomValue(ITEM_DROP_CHANCE_MIN, ITEM_DROP_CHANCE_MAX)
+            > get_item_drop_chance(item_type)) {
+        return;
+    }
+
+    spawn_item(gst, ITEM_METALPIECE, 
+            (Vector3) {
+                ent->position.x, ent->position.y+5.0, ent->position.z
+            });
 }
 
 int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int* num_in_world) {
@@ -628,7 +667,7 @@ void setup_default_enemy_spawn_settings(struct state_t* gst) {
     gst->spawnsys.max_in_spawn_radius[ENEMY_LVL0] = 6;
     gst->spawnsys.max_in_world[ENEMY_LVL0] = 12;
     gst->spawnsys.spawn_radius[ENEMY_LVL0] = 800.0;
-    gst->spawnsys.spawn_timers_max[ENEMY_LVL0] = 30.0;
+    gst->spawnsys.spawn_timers_max[ENEMY_LVL0] = 23.0;
     gst->spawnsys.spawn_timers[ENEMY_LVL0] = 28.0; // Skip little bit ahead.
     gst->spawnsys.num_spawns_min[ENEMY_LVL0] = 3;
     gst->spawnsys.num_spawns_max[ENEMY_LVL0] = 6;

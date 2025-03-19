@@ -13,8 +13,6 @@
 
 #include <rlgl.h>
 
-#define SCRN_W 1200
-#define SCRN_H 800
 
 
 
@@ -36,7 +34,7 @@ void loop(struct state_t* gst) {
     gst->depth_texture = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
 
 
-    while(!WindowShouldClose()) {
+    while(!WindowShouldClose() && gst->running) {
 
         gst->dt = GetFrameTime();
         gst->time = GetTime();
@@ -97,111 +95,6 @@ void loop(struct state_t* gst) {
             EndShaderMode();
 
 
-            // Draw player stats.
-            {
-                const int bar_width = 150;
-                const int bar_height = 10;
-            
-                int bar_next_y = 10;
-                int bar_inc = 15;
-
-                // Health
-                {
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            bar_width,
-                            bar_height + 5,
-                            (Color){ 20, 20, 20, 255 }
-                            );
-
-
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            map(gst->player.health, 0.0, gst->player.max_health, 0, bar_width),
-                            bar_height + 5,
-                            color_lerp(
-                                normalize(gst->player.health, 0.0, gst->player.max_health),
-                                PLAYER_HEALTH_COLOR_LOW,
-                                PLAYER_HEALTH_COLOR_HIGH
-                                )
-                            );
-
-
-                }
-                bar_next_y += bar_inc+5;
-
-                // Fire rate timer.
-                {
-                    const float timervalue = gst->player.firerate_timer;
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            bar_width,
-                            bar_height,
-                            (Color){ 20, 20, 20, 255 }
-                            );
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            map(timervalue, 0.0, gst->player.firerate, 0, bar_width),
-                            bar_height,
-                            (Color){ 10, 180, 255, 255 }
-                            );
-                }
-                bar_next_y += bar_inc;
-
-                // Weapon temperature.
-                {
-                    const float tempvalue = gst->player.weapon.temp;
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            bar_width,
-                            bar_height,
-                            (Color){ 20, 20, 20, 255 }
-                            );
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            map(tempvalue, 0.0, gst->player.weapon.overheat_temp, 0, bar_width),
-                            bar_height,
-                            (Color){ 255, 58, 30, 255 }
-                            );
-                }
-                bar_next_y += bar_inc;
-
-                // Weapon Accuracy
-                {
-                    float accvalue 
-                        = gst->player.weapon.accuracy - gst->player.accuracy_modifier;
-                    
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            bar_width,
-                            bar_height,
-                            (Color){ 20, 20, 20, 255 }
-                            );
-
-                    DrawRectangle(
-                            10,
-                            bar_next_y,
-                            map(accvalue, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX, 0, bar_width),
-                            bar_height,
-                            (Color){ 255, 200, 30, 255 }
-                            );
-                }
-            }
-
-
             render_inventory(gst, &gst->player);
 
             // Draw Crosshair if player is aiming.
@@ -221,10 +114,21 @@ void loop(struct state_t* gst) {
                 DrawPixel(center_x, center_y+2, GRAY);
             }
 
+            if(gst->menu_open) {
+                gui_render_menu_screen(gst);
+            }
 
+            render_player_stats(gst, &gst->player);
+
+            
             // Some info for player:
 
-
+                /*
+                // Experience level
+                DrawText(TextFormat("XP: %i", gst->player.xp), 50, gst->scrn_h-50, 
+                        30, (Color){ 30, 255, 30, 255 });
+                        */
+            
             if(gst->player.item_in_crosshair && !gst->player.inventory.open) {
                 struct item_t* item = gst->player.item_in_crosshair;
 
@@ -241,33 +145,13 @@ void loop(struct state_t* gst) {
                 if(IsKeyPressed(KEY_F)) {
                     item->enabled = !inv_add_item(gst, &gst->player, item);
                 }
-                else
-                if(item->consumable) {
-                    DrawText("< Press (E) to eat >\0", 
-                            item_name_pos.x, item_name_pos.y+60, 20,
-                            (Color){ 60, 60, 60, 255 });
-                    
-                    if(IsKeyPressed(KEY_E)) {
-                        item->enabled = 0;
-                    
-                        player_heal(gst, &gst->player, APPLE_HEALTH_INCREASE);
-                    }
-                }
                 
             }
 
 
+
+
             /*
-            // TODO: do this with texture...
-            if(gst->player.weapon.temp >= (gst->player.weapon.overheat_temp*0.7)) {
-                DrawText("(WARNING: OVERHEATING...)", 29.0, gst->scrn_h-149, 20,
-                        (Color){ 50, 30, 30, 255 });
-                DrawText("(WARNING: OVERHEATING...)", 30.0, gst->scrn_h-150, 20,
-                        (Color){ (sin(gst->time*10.0)*0.5+0.5)*125+120, 30, 30, 255 });    
-            }
-            */
-
-
             {
                 const char* weapon_text = TextFormat("(x) [%s]", (gst->player.weapon_firetype) ? "SemiAuto" : "FullAuto");
                 DrawText(weapon_text,
@@ -276,6 +160,7 @@ void loop(struct state_t* gst) {
                 DrawText(weapon_text,
                         30.0, gst->scrn_h-100, 20, (Color){ 30, 100, 100, 255 });
             } 
+            */
 
 
 
@@ -300,6 +185,7 @@ void loop(struct state_t* gst) {
 
             DrawText(TextFormat("FPS: %i", GetFPS()),
                     gst->scrn_w - 100, gst->scrn_h-30, 20, WHITE);
+
 
         }
         EndDrawing();
@@ -331,6 +217,7 @@ void cleanup(struct state_t* gst) {
     glDeleteBuffers(1, &gst->lights_ubo);
     glDeleteBuffers(1, &gst->prj_lights_ubo);
 
+    UnloadFont(gst->font);
 
     printf("\033[35m -> Cleanup done...\033[0m\n");
     CloseWindow();
@@ -340,11 +227,16 @@ void cleanup(struct state_t* gst) {
 
 void first_setup(struct state_t* gst) {
 
-    InitWindow(SCRN_W, SCRN_H, "331uw13's 3D-Game");
+    InitWindow(DEF_SCRN_W, DEF_SCRN_H, "331uw13's 3D-Game");
 
-    // REMOVE THIS:
-    SetWindowPosition(1700, 100);
-    //SetExitKey(-1);
+    // TODO: REMOVE THIS:
+    {
+        int mon = GetCurrentMonitor();
+        SetWindowPosition(DEF_SCRN_W-10, 30);
+
+    }
+
+    SetExitKey(-1);
 
     // Loading screen.
     BeginDrawing();
@@ -353,6 +245,8 @@ void first_setup(struct state_t* gst) {
         DrawText("Loading...", 100, 100, 40, (Color){ 180, 180, 180, 255 });
     }
     EndDrawing();
+
+    gst->font = LoadFont("res/Topaz-8.ttf");
 
     
     DisableCursor();
@@ -366,6 +260,8 @@ void first_setup(struct state_t* gst) {
     gst->num_prj_lights = 0;
     gst->dt = 0.016;
     gst->num_enemy_weapons = 0;
+    gst->menu_open = 0;
+    gst->running = 1;
 
     memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
@@ -423,16 +319,13 @@ void first_setup(struct state_t* gst) {
     setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
 
-    init_player_struct(gst, &gst->player);
-
-
-
     // --- Setup Terrain ----
     {
         init_perlin_noise();
         gst->terrain = (struct terrain_t) { 0 };
 
-        const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
+        const int terrain_seed = GetRandomValue(0, 9999999);
+        //const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
 
         printf("(INFO) '%s': Terrain seed = %i\n",
                 __func__, terrain_seed);
@@ -449,6 +342,8 @@ void first_setup(struct state_t* gst) {
 
     }
 
+    init_player_struct(gst, &gst->player);
+    
     int seed = time(0);
     gst->rseed = seed;
     SetRandomSeed(seed);

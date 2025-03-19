@@ -8,7 +8,7 @@
 
 
 #define MAX_ALL_ITEMS 32
-#define MAX_ITEM_MODELS 1
+#define MAX_ITEM_MODELS 2
 
 #define MAX_ITEM_NAME_SIZE 32
 #define ITEM_MAX_LIFETIME 60.0 // (in seconds)
@@ -21,11 +21,10 @@
 #define ITEM_APPLE 0
 #define NUM_NATURAL_ITEMS 1
 
-#define MAX_ITEM_TYPES 1
+// Other items: (dropped by enemies or can be crafted)
+#define ITEM_METALPIECE 1 // Dropped by enemies.
+#define MAX_ITEM_TYPES 2
 // ...
-
-
-#define APPLE_HEALTH_INCREASE 25
 
 
 #define ITEM_COMMON 0
@@ -33,6 +32,9 @@
 #define ITEM_SPECIAL 2
 #define ITEM_LEGENDARY 3
 #define ITEM_MYTHICAL 4
+
+#define ITEM_DROP_CHANCE_MIN 0
+#define ITEM_DROP_CHANCE_MAX 1000
 
 
 struct state_t;
@@ -43,7 +45,12 @@ struct item_t {
 
     int     rarity;
     int     type;
+
     int     consumable; // Can it be eaten?
+    float   health_boost_when_eaten;
+
+    int    can_fix_armor;
+    float  armor_fix_value; // How much the armor may be fixed if the item can do it.
 
     Model*  modelptr;
     Vector3 position;
@@ -57,6 +64,9 @@ struct item_t {
         
     char* name; // Null terminated.
     int   name_width; // Width for rendering.
+
+
+    // TODO: Description
 };
 
 
@@ -68,13 +78,16 @@ int load_item_model(
         );
 
 
-void spawn_item(struct state_t* gst, u32 item_type, int inv_texid, int item_rarity, Vector3 position);
+void spawn_item(struct state_t* gst, u32 item_type, Vector3 position);
 
 void update_items(struct state_t* gst);
 void render_items(struct state_t* gst);
 
 void update_natural_item_spawns(struct state_t* gst);
 void setup_natural_item_spawn_settings(struct state_t* gst);
+
+// Returns value from 0 to 1000
+int get_item_drop_chance(u32 item_type);
 
 
 #endif

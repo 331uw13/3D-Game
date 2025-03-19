@@ -116,10 +116,9 @@ void weapon_psys_prj_update(
                 continue;
             }
 
-            struct hitbox_t* hit = check_collision_hitboxes(&part_boundingbox, enemy);
-            if(hit) {
-                enemy_hit(gst, enemy, weapon, hit->damage_mult, part->position, part->velocity);
-
+            struct hitbox_t* hitbox = check_collision_hitboxes(&part_boundingbox, enemy);
+            if(hitbox) {
+                enemy_hit(gst, enemy, weapon, hitbox, part->position, part->velocity);
                 disable_particle(gst, part);
 
                 add_particles(gst,
@@ -137,8 +136,6 @@ void weapon_psys_prj_update(
                         part->velocity,
                         NULL, NO_EXTRADATA
                         );
-
-
             }
         }
     }

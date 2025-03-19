@@ -9,12 +9,18 @@
 
 static const char* ITEM_NAMES[] = {
     "Apple\0",
+    "Metal\0",
     "<Unknown>\0"
 };
 
-static const int CONSUMABLE_ITEMS[] = {
-    ITEM_APPLE,
-    // ...
+static const int ITEM_INV_TEXIDS[] = {
+    APPLE_INV_TEXID,
+    METALPIECE_INV_TEXID
+};
+
+static const int ITEM_RARITIES[] = {
+    ITEM_COMMON, /* ITEM_APPLE */
+    ITEM_RARE    /* ITEM_METALPIECE */
 };
 
 static const Color ITEM_RARITY_COLORS[] = {
@@ -25,22 +31,32 @@ static const Color ITEM_RARITY_COLORS[] = {
     (Color) { 0, 0, 0, 255 },      // Mythical (has rainbow effect)
 };
 
+// Values are from 0 to 1000:
+static const int ITEM_RARITY_DROP_CHANCE[] = {
+    800, /* ITEM_COMMON */
+    230, /* ITEM_RARE */
+    100, /* ITEM_SPECIAL */
+    35,  /* ITEM_LEGENDARY */
+    3    /* ITEM_MYTHICAL */
+};
 
-
+// Settings for natural items. -------
 static const int MAX_ITEMS_IN_WORLD[] = {
     15 /* ITEM_APPLE */    
     // ...
 };
 
 static const int ITEMS_SPAWN_CHANCE[] = { // 0% - 100%
-    80 /* ITEM APPLE */
+    60 /* ITEM APPLE */
     // ...
 };
 
 static const float MAX_NATURAL_ITEMS_SPAWN_TIME[] = {
-    5.0 /* ITEM APPLE */
+    8.0 /* ITEM APPLE */
     // ...
 };
+// ------------------------------------
+
 
 
 int load_item_model(struct state_t* gst, u32 item_type, const char* model_filepath, int texid) {
@@ -74,14 +90,13 @@ int load_item_model(struct state_t* gst, u32 item_type, const char* model_filepa
     model->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texid];
 
 
-
 error:
     SetTraceLogLevel(LOG_NONE);
     return result;
 }
 
 
-void spawn_item(struct state_t* gst, u32 item_type, int inv_texid, int item_rarity, Vector3 position) {
+void spawn_item(struct state_t* gst, u32 item_type, Vector3 position) {
     
     int num_this_type = 0;
 
@@ -124,20 +139,34 @@ void spawn_item(struct state_t* gst, u32 item_type, int inv_texid, int item_rari
     item->dist_to_player = 0.0;
     item->name = ITEM_NAMES[item_type];
     item->index = item_index;
-    item->inv_tex = gst->textures[inv_texid];
+    item->inv_tex = gst->textures[ITEM_INV_TEXIDS[item_type]];
     item->pickedup = 0;
-    item->rarity = item_rarity;
-    item->rarity_color = ITEM_RARITY_COLORS[item_rarity];
+    item->rarity = ITEM_RARITIES[item_type];
+    item->rarity_color = ITEM_RARITY_COLORS[item->rarity];
 
+    item->can_fix_armor = 0;
+    item->armor_fix_value = 0.0;
     item->consumable = 0;
+    item->health_boost_when_eaten = 0.0;
 
-    const size_t num_consumables = sizeof(CONSUMABLE_ITEMS) / sizeof *CONSUMABLE_ITEMS;
-    for(int i = 0; i < num_consumables; i++) {
-        if(item_type == CONSUMABLE_ITEMS[i]) {
-            item->consumable = 1;
+    switch(item_type) {
+
+        case ITEM_APPLE:
+            {
+                item->consumable = 1;
+                item->health_boost_when_eaten = 25.0;
+            }
             break;
-        }
+
+        case ITEM_METALPIECE:
+            {
+                item->can_fix_armor = 1;
+                item->armor_fix_value = 2.0;
+            }
+            break;
+
     }
+
 
     printf("'%s' Item %i\n", __func__, item_type);
 
@@ -219,14 +248,14 @@ void render_items(struct state_t* gst) {
         if(item->dist_to_player > RENDER_DISTANCE) {
             continue;
         }
-       
 
-
+        for(int i = 0; i < item->modelptr->meshCount; i++) {
         DrawMesh(
-                item->modelptr->meshes[0],
-                item->modelptr->materials[0],
-                item->transform
-                );
+               item->modelptr->meshes[i],
+               item->modelptr->materials[0],
+               item->transform
+               );      
+        }
     }
 }
 
@@ -268,7 +297,7 @@ void update_natural_item_spawns(struct state_t* gst) {
             gst->natural_item_spawn_timers[item_type] = 0.0;
 
             if(GetRandomValue(0, 100) < ITEMS_SPAWN_CHANCE[item_type]) {
-                spawn_item(gst, item_type, APPLE_INV_TEXID, ITEM_COMMON, get_good_item_spawn_pos(gst));
+                spawn_item(gst, item_type, get_good_item_spawn_pos(gst));
             }
         }
     }
@@ -279,5 +308,18 @@ void setup_natural_item_spawn_settings(struct state_t* gst) {
     gst->natural_item_spawn_timers[ITEM_APPLE] = 0.0;
 }
 
+int get_item_drop_chance(u32 item_type) {
+    int chance = 0;
 
+    if(item_type >= MAX_ITEM_TYPES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid item type '%i'\033[0m\n",
+                __func__, item_type);
+        goto error;
+    }
+
+    chance = ITEM_RARITY_DROP_CHANCE[item_type];
+
+error:
+    return chance;
+}
 

@@ -24,7 +24,6 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-
     if(IsKeyPressed(KEY_G)) {
         gst->player.noclip = !gst->player.noclip;
     }
@@ -33,10 +32,16 @@ void handle_userinput(struct state_t* gst) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
+    if(IsKeyPressed(KEY_C)) {
+        spawn_item(gst, ITEM_METALPIECE, gst->player.cam.position);
+    }
+    if(IsKeyPressed(KEY_V)) {
+        spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
+    }
 
     if(IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
         gst->player.aim_button_hold_timer += gst->dt;
-        if(gst->player.aim_button_hold_timer >= 0.485) {
+        if(gst->player.aim_button_hold_timer >= 0.485/* <- Treshold */) {
             gst->player.disable_aim_mode = DISABLE_AIM_WHEN_RELEASED;
         }
     }
@@ -45,33 +50,28 @@ void handle_userinput(struct state_t* gst) {
         
     }
 
-    if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
-    && !gst->player.inventory.open
-    && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
-        gst->player.is_aiming =! gst->player.is_aiming;
-    }
-    else
-    if(!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)
-    && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_RELEASED)) {
-        gst->player.is_aiming = 0;
-    }
-
-    
-
-    if(IsKeyPressed(KEY_C)) {
-        spawn_item(gst, ITEM_APPLE, APPLE_INV_TEXID, ITEM_COMMON, gst->player.position);
+    if(gst->player.alive) {
+        if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
+        && !gst->player.inventory.open
+        && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
+            gst->player.is_aiming =! gst->player.is_aiming;
+        }
+        else
+        if(!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)
+        && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_RELEASED)) {
+            gst->player.is_aiming = 0;
+        }
     }
 
-    if(IsKeyPressed(KEY_FIVE)) {
-        spawn_enemy(gst, ENEMY_LVL0, ENT_HOSTILE, 
-                (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-100, 100),
-                    0,
-                    gst->player.position.z + RSEEDRANDOMF(-100, 100)
-                });
 
+    if(IsKeyPressed(KEY_ESCAPE)) {
+        if((gst->menu_open = !gst->menu_open)) {
+            EnableCursor();
+        }
+        else {
+            DisableCursor();
+        }
     }
-   
 
     if(IsKeyPressed(KEY_T)) {
         gst->debug = !gst->debug;

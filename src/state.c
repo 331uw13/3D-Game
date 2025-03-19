@@ -15,6 +15,7 @@
 #include "particle_systems/fog_effect_psys.h"
 #include "particle_systems/player_hit_psys.h"
 #include "particle_systems/enemy_explosion_psys.h"
+#include "particle_systems/enemy_explosion2_psys.h"
 #include "particle_systems/water_splash_psys.h"
 #include "particle_systems/enemy_gunfx_psys.h"
 #include "particle_systems/prj_envhit2_psys.h"
@@ -121,6 +122,10 @@ void state_update_shader_uniforms(struct state_t* gst) {
 void state_update_frame(struct state_t* gst) {
     
     handle_userinput(gst);
+    
+    if(gst->menu_open) {
+        return;
+    }
     player_update(gst, &gst->player);
 
 
@@ -141,14 +146,29 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS]);
+    update_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS]);
     update_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS]);
 
     update_inventory(gst, &gst->player);
-
     update_items(gst);
+
+    // Update xp level.
+    if(gst->xp_value_add > 0) {
+        gst->xp_update_timer += gst->dt;
+
+        if(gst->xp_update_timer >= 0.035) {
+            gst->xp_update_timer = 0.0;
+
+            gst->player.xp++;
+            gst->xp_value_add--;
+
+        }
+
+    }
+
 }
 
 #include <stdio.h>
@@ -289,8 +309,9 @@ void state_render_environment(struct state_t* gst) {
 
             // Environment
             render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 80, 20, 255});
-            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 100, 170, 200});
+            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
+            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS], (Color){ 255, 140, 40, 160});
+            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
             render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
             render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
             render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS], ENEMY_WEAPON_COLOR);
@@ -378,10 +399,15 @@ void state_setup_all_shaders(struct state_t* gst) {
     // --- Setup Post Processing Shader ---
     {
         Shader* shader = &gst->shaders[POSTPROCESS_SHADER];
+        load_shader(
+                "res/shaders/default.vs",
+                "res/shaders/postprocess.fs", shader);
+        /*
         *shader = LoadShader(
-            0, /* use raylibs default vertex shader */ 
+            0, 
             "res/shaders/postprocess.fs"
         );
+        */
 
         gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
         gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC] = GetShaderLocation(*shader, "screen_size");
@@ -547,7 +573,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .damage = 15.0,
         .critical_chance = 15,
         .critical_mult = 5.0,
-        .prj_speed = 485.0,
+        .prj_speed = 530.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
         .color = ENEMY_WEAPON_COLOR,
@@ -756,6 +782,24 @@ void state_setup_all_psystems(struct state_t* gst) {
         psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
     }
 
+    // Create ENEMY_EXPLOSION_PART2_PSYS.
+    { // (when enemy dies it "explodes")
+        struct psystem_t* psystem = &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_ONESHOT,
+                psystem,
+                16,
+                enemy_explosion_part2_psys_update,
+                enemy_explosion_part2_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(1.0, 32, 32);
+    }
+
+
     // Create ENEMY_GUNFX_PSYS.
     { // (gun fx)
         struct psystem_t* psystem = &gst->psystems[ENEMY_GUNFX_PSYS];
@@ -778,6 +822,9 @@ void state_setup_all_psystems(struct state_t* gst) {
 }
 
 void state_setup_all_textures(struct state_t* gst) {
+
+    SetTraceLogLevel(LOG_ALL);
+
     load_texture(gst, "res/textures/grid_4x4.png", GRID4x4_TEXID);
     load_texture(gst, "res/textures/grid_6x6.png", GRID6x6_TEXID);
     load_texture(gst, "res/textures/grid_9x9.png", GRID9x9_TEXID);
@@ -793,6 +840,10 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/gun_fx.png", GUNFX_TEXID);
     load_texture(gst, "res/textures/apple_inv.png", APPLE_INV_TEXID);
     load_texture(gst, "res/textures/apple.png", APPLE_TEXID);
+    load_texture(gst, "res/textures/blue_metal.png", METALPIECE_TEXID);
+    load_texture(gst, "res/textures/metalpiece_inv.png", METALPIECE_INV_TEXID);
+    
+    SetTraceLogLevel(LOG_NONE);
 
    
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
@@ -846,6 +897,7 @@ void state_setup_all_item_models(struct state_t* gst) {
     }
     
     load_item_model(gst, ITEM_APPLE, "res/models/apple.glb", APPLE_TEXID);
+    load_item_model(gst, ITEM_METALPIECE, "res/models/metal_piece.glb", METALPIECE_TEXID);
     
     // ...
 
@@ -899,7 +951,6 @@ void state_delete_all_enemy_models(struct state_t* gst) {
             UnloadModel(gst->enemy_models[i]);
         }
     }
-
 
     printf("\033[35m -> Deleted all Enemy models\033[0m\n");
 }

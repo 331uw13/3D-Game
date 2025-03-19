@@ -15,13 +15,29 @@ static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
 }
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
+ 
+    // -- Movement stats -----
+    
+    p->walkspeed = 20.0;
+    p->run_speed_mult = 2.3;
+    p->air_speed_mult = 1.5;
+    p->jump_force = 130.0;
+    p->gravity = 0.5;
+    p->ground_friction = 0.015;
+    p->air_friction = 0.001;
+    
+    // ------------------------
+
 
     p->cam = (Camera){ 0 };
-    p->cam.position = (Vector3){ 2.0, 0.0, 0.0 };
+    p->cam.position = gst->terrain.valid_player_spawnpoint;
     p->cam.target = (Vector3){ 0, 0, 0 };
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
+
+    printf("Spawn point: %0.2f, %0.2f, %0.2f\n", 
+            p->cam.position.x, p->cam.position.y, p->cam.position.z);
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
     p->height = 6.5;
@@ -30,18 +46,14 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
     p->ext_force_vel = (Vector3){ 0.0, 0.0, 0.0 };
     p->ext_force_acc = (Vector3){ 0.0, 0.0, 0.0 };
-    
-    // -- Movement stats -----
-    p->walkspeed = 20.0;
-    p->run_mult = 2.3;
-    //p->walkspeed_aim_mult = 0.5;
-    p->air_speed_mult = 1.5;
-    p->jump_force = 130.0;
-    p->gravity = 0.5;
-    p->ground_friction = 0.015;
-    p->air_friction = 0.001;
-    // ------------------------
+   
+    p->max_armor = MAX_DEFAULT_ARMOR;
+    p->armor_damage_dampen = DEFAULT_ARMOR_DAMAGE_DAMPEN;
+    p->armor = p->max_armor;
 
+    p->enable_fov_effect = 1;
+    p->kills = 0;
+    p->fovy_change = 0.0;
     p->item_in_crosshair = NULL;
     p->speed = 0.0;
     p->onground = 1;
@@ -179,10 +191,17 @@ void player_damage(struct state_t* gst, struct player_t* p, float damage) {
         return;
     }
 
+    if(p->armor > 0) {
+        p->armor--;
+        damage *= (1.0 - p->armor_damage_dampen);
+    }
+
     p->health -= damage;
 
     if(p->health <= 0.001) {
+        p->health = 0;
         p->alive = 0;
+        EnableCursor();
     }
 
     const float r = 2.0;
@@ -218,6 +237,11 @@ void player_heal(struct state_t* gst, struct player_t* p, float heal) {
 
 }
 
+void player_add_xp(struct state_t* gst, int xp) {
+    gst->xp_value_add += xp;
+    gst->xp_update_timer = 0.0;
+}
+
 void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force) {
     p->ext_force_acc.x += force.x;
     p->ext_force_acc.z += force.z;
@@ -242,13 +266,21 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     }
     p->health = p->max_health;
     p->alive = 1;
+    p->is_aiming = 0;
+    p->ready_to_shoot = 0;
+    p->cam.position = gst->terrain.valid_player_spawnpoint;
+    p->xp = 0;
+    p->kills = 0;
+    DisableCursor();
 }
 
+static float test = 0.0;
 
 void player_update(struct state_t* gst, struct player_t* p) {
    
     // Player may shoot projectile.
     if(!p->inventory.open
+       && p->alive
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
         ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) {
@@ -334,6 +366,24 @@ void player_update(struct state_t* gst, struct player_t* p) {
     p->cam.target.x += p->rotation_from_hit.x * gst->dt;
     p->cam.target.y += p->rotation_from_hit.y * gst->dt;
     p->cam.target.x += p->rotation_from_hit.z * gst->dt;
+
+
+
+    // FOV Effect. Change FOV smoothly based on player velocity.
+    if(p->enable_fov_effect) {
+        float vlen = Vector3Length((Vector3){ p->velocity.x, 0.0, p->velocity.z });
+        vlen = CLAMP(vlen, 0, 5.0);
+        
+        if(vlen > 1.5) {
+            p->fovy_change += gst->dt * 2.5;
+        }
+        else {
+            p->fovy_change -= gst->dt * 1.2;
+        }
+
+        p->fovy_change = CLAMP(p->fovy_change, 0.0, 1.0);
+        p->cam.fovy = map(p->fovy_change, 0.0, 1.0, 60.0, 66.0) + sin(gst->time)*0.85;
+    }
 
 }
 
@@ -428,7 +478,12 @@ void player_render(struct state_t* gst, struct player_t* p) {
     }
 }
 
+
 void player_update_movement(struct state_t* gst, struct player_t* p) {
+    if(gst->menu_open) {
+        return;
+    }
+    
     p->prev_position = p->position;
 
 
@@ -436,7 +491,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     p->cam.position = Vector3Add(p->cam.position, Vector3Scale(p->ext_force_vel, gst->dt));
     p->cam.target   = Vector3Add(p->cam.target, Vector3Scale(p->ext_force_vel, gst->dt));
     
-    float ext_force_damp = pow(0.98, gst->dt * TARGET_FPS);
+    const float ext_force_damp = pow(0.98, gst->dt * TARGET_FPS);
     p->ext_force_acc = Vector3Scale(p->ext_force_acc, ext_force_damp);
     p->ext_force_vel = Vector3Scale(p->ext_force_vel, ext_force_damp);
 
@@ -454,7 +509,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     && p->onground
     && !p->inventory.open
     && !p->is_aiming) {
-        p->speed *= p->run_mult;
+        p->speed *= p->run_speed_mult;
+
     }
 
     if(!p->onground) {
@@ -502,12 +558,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
 
 
-
-
-
     // Handle Y Movement.
-
-
 
     if(!p->noclip) {
         if(IsKeyPressed(KEY_SPACE) && p->onground && !p->inventory.open) {
@@ -560,6 +611,9 @@ void player_update_camera(struct state_t* gst, struct player_t* p) {
     if(p->inventory.open) {
         return;
     }
+    if(gst->menu_open) {
+        return;
+    }
 
     const Vector2 md = GetMouseDelta();
     
@@ -569,6 +623,221 @@ void player_update_camera(struct state_t* gst, struct player_t* p) {
     CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY), 0);
     CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY), 1, 0, 0);
 }
+
+#define NO_YINCREMENT 0
+#define ADD_YINCREMENT 1
+
+static void draw_stats_bar(
+        struct state_t* gst,
+        float  x,
+        float* y, // Change y for next bar.
+        const char* text,
+        float bar_width,
+        int y_increment_setting,
+        float value, 
+        float value_max,
+        Color color
+){
+
+    const float font_size = 15.0;
+    const float bar_height = 20.0;
+
+
+    const Color bg_color = (Color){ 30, 30, 30, 180 };
+    const Color ln_color = (Color){ 100, 100, 100, 255 };
+
+    DrawRectangle(x-2, *y-2, bar_width+4, bar_height+4, bg_color);
+    DrawRectangleLines(x-2, *y-2, bar_width+5, bar_height+5, ln_color);
+
+    float value_to_width = map(value, 0.0, value_max, 0, bar_width);
+    DrawRectangle(x, *y, value_to_width, bar_height, color);
+
+    DrawTextEx(gst->font, text, (Vector2){x+10, *y+5 }, font_size, 
+            FONT_SPACING, (Color){ 70, 80, 80, 250 });
+
+    if(y_increment_setting) {
+        *y += bar_height + 10.0;
+    }
+}
+
+void render_player_stats(struct state_t* gst, struct player_t* p) {
+  
+    if(!p->alive) {
+        gui_render_respawn_screen(gst);
+    }
+
+
+    float stats_x = 20.0;
+    float stats_y = 20.0;
+
+    draw_stats_bar(gst,
+            stats_x, &stats_y, "Health", 200, NO_YINCREMENT,
+            p->health, p->max_health, 
+            color_lerp(normalize(p->health, 0.0, p->max_health),
+                    PLAYER_HEALTH_COLOR_LOW, PLAYER_HEALTH_COLOR_HIGH));
+
+    draw_stats_bar(gst,
+            stats_x+220, &stats_y, "Armor", 100, ADD_YINCREMENT,
+            p->armor, p->max_armor,
+            (Color){ 30, 230, 250, 255 });
+
+
+
+
+
+    // * Experience level text.
+    // * Full/Semi auto text
+    {
+        const float off = 5.0;
+        const Vector2 xp_text_pos = (Vector2) { 50.0, gst->scrn_h - 50.0 };
+        const char* xp_text = TextFormat("XP: %i", p->xp);
+        float font_size = 20.0;
+        Vector2 measured = MeasureTextEx(gst->font, xp_text, font_size, FONT_SPACING);
+        
+        
+        // XP
+        DrawRectangleRounded(
+                (Rectangle){
+                    xp_text_pos.x-off, xp_text_pos.y-off,
+                    measured.x+off*2, measured.y+off
+                },
+                0.5, 8,
+                (Color){ 20, 20, 20, 200 }
+                );
+        DrawTextEx(
+                gst->font,
+                xp_text,
+                xp_text_pos,
+                font_size,
+                FONT_SPACING,
+                (Color){ 20, 200, 20, 255 }
+                );
+
+        
+        // Full/Semi auto
+
+        font_size = 15;
+        const char* mode_text = (p->weapon_firetype == PLAYER_WEAPON_FULLAUTO) 
+            ? "(x) Fullauto" : "(x) Semiauto";
+        measured = MeasureTextEx(gst->font, mode_text, font_size, FONT_SPACING);
+        const Vector2 mode_text_pos = (Vector2) { xp_text_pos.x, xp_text_pos.y - measured.y-15 };
+
+        DrawRectangleRounded(
+                (Rectangle){
+                    mode_text_pos.x-off, mode_text_pos.y-off,
+                    measured.x+off*2, measured.y+off
+                },
+                0.5, 8,
+                (Color){ 20, 20, 20, 200 }
+                );
+
+        DrawTextEx(
+                gst->font,
+                mode_text,
+                mode_text_pos,
+                font_size,
+                FONT_SPACING,
+                (Color){ 20, 150, 20, 255 }
+                );
+
+
+
+
+    }
+
+       /*
+    // Health
+    {
+        DrawRectangle(stat_x, stat_next_y,
+                bar_width, bar_height+5, stat_bg);
+
+        DrawRectangle(
+                stat_x,
+                stat_next_y,
+                map(gst->player.health, 0.0, gst->player.max_health, 0, bar_width),
+                bar_height + 5,
+                color_lerp(
+                    normalize(gst->player.health, 0.0, gst->player.max_health),
+                    PLAYER_HEALTH_COLOR_LOW,
+                    PLAYER_HEALTH_COLOR_HIGH
+                    )
+                );
+    }
+   
+    // Armor
+    {
+
+
+        DrawRectangle(stat_x + bar_width + 20.0, stat_next_y,
+                bar_width, bar_height+5, stat_bg);
+
+        DrawRectangle(
+                stat_x + bar_width + 20.0,
+                stat_next_y,
+                map(gst->player.armor, 0.0, gst->player.max_armor, 0, bar_width),
+                bar_height + 5,
+                (Color){ 30, 200, 200, 255 }
+                );
+
+    }
+
+    stat_next_y += stat_yinc+5;
+
+    
+    
+    // Fire rate timer.
+    {
+        const float timervalue = gst->player.firerate_timer;
+
+        DrawRectangle(stat_x, stat_next_y,
+                bar_width, bar_height, stat_bg);
+
+        DrawRectangle(
+                stat_x,
+                stat_next_y,
+                map(timervalue, 0.0, gst->player.firerate, 0, bar_width),
+                bar_height,
+                (Color){ 10, 180, 255, 255 }
+                );
+    }
+    stat_next_y += stat_yinc;
+
+    // Weapon temperature.
+    {
+        const float tempvalue = gst->player.weapon.temp;
+
+        DrawRectangle(stat_x, stat_next_y,
+                bar_width, bar_height, stat_bg);
+
+        DrawRectangle(
+                stat_x,
+                stat_next_y,
+                map(tempvalue, 0.0, gst->player.weapon.overheat_temp, 0, bar_width),
+                bar_height,
+                (Color){ 255, 58, 30, 255 }
+                );
+    }
+    stat_next_y += stat_yinc;
+
+    // Weapon Accuracy
+    {
+        float accvalue 
+            = gst->player.weapon.accuracy - gst->player.accuracy_modifier;
+        
+        DrawRectangle(stat_x, stat_next_y, 
+                bar_width, bar_height, stat_bg);
+
+        DrawRectangle(
+                stat_x,
+                stat_next_y,
+                map(accvalue, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX, 0, bar_width),
+                bar_height,
+                (Color){ 255, 200, 30, 255 }
+                );
+    }
+    */
+}
+
 
 BoundingBox get_player_boundingbox(struct player_t* p) {
     return (BoundingBox) {

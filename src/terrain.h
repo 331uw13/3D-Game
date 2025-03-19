@@ -98,6 +98,8 @@ struct terrain_t {
 
     // Triangles saved but in order to get triangle at xz location efficiently.
     struct triangle2x_t* triangle_lookup;
+
+    Vector3 valid_player_spawnpoint;
 };
 
 

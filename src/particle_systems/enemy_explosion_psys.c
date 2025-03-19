@@ -16,7 +16,7 @@ void enemy_explosion_psys_update(
 
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     
-    float t = lerp(normalize(part->lifetime, 0.0, part->max_lifetime), 3.0, 0.0);
+    float t = lerp(normalize(part->lifetime, 0.0, part->max_lifetime), 6.5, 0.0);
     Matrix scale_matrix = MatrixScale(t, t, t);
 
 
@@ -52,13 +52,13 @@ void enemy_explosion_psys_init(
    
     part->velocity = Vector3Normalize(Vector3Negate(velocity));
     
-    const float v_r = 20.0;
+    const float v_r = 45.0;
     part->velocity.x += RSEEDRANDOMF(-v_r, v_r);
-    part->velocity.y += RSEEDRANDOMF(v_r, v_r*6.0);
+    part->velocity.y += RSEEDRANDOMF(v_r, v_r*4.0);
     part->velocity.z += RSEEDRANDOMF(-v_r, v_r);
 
 
-    part->accel.y = 0.1;
+    part->accel.y = 0.2;
 
     *part->transform = transform;
     part->max_lifetime = RSEEDRANDOMF(1.0, 3.0);

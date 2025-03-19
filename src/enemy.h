@@ -28,7 +28,7 @@
 #define ENEMY_DESPAWN_TIME 120 // (in seconds)
 
 
-#define ENEMY_LVL0_MAX_HEALTH 200
+#define ENEMY_LVL0_MAX_HEALTH 100
 
 
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
@@ -38,8 +38,15 @@
 #define ENEMY_DEATH_EXPLOSION_FORCE 15.0
 #define ENEMY_DEATH_EXPLOSION_DAMAGE 100.0
 
-#define ENEMY_SPAWN_SAFE_RADIUS 300.0 // Enemies cant spawn too close to the player.
+// Enemies cant spawn too close to the player.
+#define ENEMY_SPAWN_SAFE_RADIUS 300.0 
 
+// Hitbox tag
+#define HITBOX_LEGS 0
+#define HITBOX_BODY 1
+#define HITBOX_HEAD 2
+
+#define ENEMY_XP_GAIN_MAX_BONUS 10
 
 // This handles all basic behaviour for enemies.
 // Then calls 'enemies/enemy_lvl*.c ...' (depending on "enemy type") to handle the rest.
@@ -62,8 +69,9 @@ struct enemy_travel_t {
 struct hitbox_t {
     Vector3 size;
     Vector3 offset;
-    float damage_mult;
-    int id;
+    float   damage_mult;
+    int     hits;
+    int     tag; // Which part does this hitbox belong to?
 };
 
 
@@ -71,29 +79,20 @@ struct enemy_t {
     Model* modelptr;
     int type;
     int enabled;
-
-    /*
-    // When enemy dies the model "breaks"
-    Model broken_model;
-    Matrix* broken_matrices;
-    Vector3* broken_mesh_velocities; // Velocities for "broken" meshes.
-    Vector3* broken_mesh_rotations;  // Rotations for "broken" meshes.
-    */
-
-
+   
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
     struct hitbox_t hitboxes[ENEMY_MAX_HITBOXES];
     size_t          num_hitboxes;
 
-    float dist_to_player; // Distance to player.
+    float dist_to_player; // Distance to player is updated every frame when enemy gets updated.
 
     // Each enemy has different matrices for different "body parts".
     // The indices are defined in heir own header file.
     Matrix matrix[ENEMY_MAX_MATRICES];
 
 
-    float target_range; // how far can the enemy "see" the player
-    float target_fov;   // (10 - 360)
+    float target_range; // How far can the enemy "see" the player
+    float target_fov;   // (0.0 - 180.0)
 
     int   alive;
     float health;
@@ -107,7 +106,9 @@ struct enemy_t {
     // How long the enemy is stunned after it was hit.
     float stun_timer;
     float max_stun_time; 
-    
+
+    int xp_gain; // How much xp the player gains when killing this enemy?
+
     // Used for rotating enemy.
     Quaternion Q_prev;
     Quaternion Q_target;
@@ -143,7 +144,6 @@ struct enemy_t {
 
     size_t index; // Index in gst->enemies array.
     
-    // Callbacks
 
     void(*update_callback)(struct state_t*, struct enemy_t*);
     void(*render_callback)(struct state_t*, struct enemy_t*);
@@ -163,13 +163,14 @@ struct enemy_t* create_enemy(
         int enemy_type,
         int mood,
         Model* model,
-        struct psystem_t* weapon_psysptr,
-        struct weapon_t* weaponptr,
-        int max_health,
+        struct psystem_t*  weapon_psysptr,
+        struct weapon_t*   weaponptr,
+        int     max_health,
         Vector3 initial_position,
-        float target_range,
-        float target_fov,
-        float firerate,
+        int    xp_gain,
+        float  target_range,
+        float  target_fov,
+        float  firerate,
         void(*update_callback)(struct state_t*, struct enemy_t*),
         void(*render_callback)(struct state_t*, struct enemy_t*),
         void(*death_callback)(struct state_t*, struct enemy_t*),
@@ -177,11 +178,13 @@ struct enemy_t* create_enemy(
         void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/)
 );
 
+
 void enemy_add_hitbox(
         struct enemy_t* ent, 
         Vector3 hitbox_size,
         Vector3 hitbox_offset,
-        float damage_multiplier
+        float damage_multiplier,
+        int hitbox_tag
 );
 
 // Simpler function to use than 'create_enemy'
@@ -192,8 +195,6 @@ void spawn_enemy(
         Vector3 position
 );
 
-void delete_enemy(struct state_t* gst, size_t enemy_index);
-
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);
 void enemy_death(struct state_t* gst, struct enemy_t* ent);
@@ -201,10 +202,12 @@ void enemy_hit(
         struct state_t* gst,
         struct enemy_t* ent,
         struct weapon_t* weapon,
-        float damage_mult,
+        struct hitbox_t* hitbox,
         Vector3 hit_position,
         Vector3 hit_direction
 );
+
+void enemy_drop_random_item(struct state_t* gst, struct enemy_t* ent);
 
 int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, 
         int* num_in_world/* report back how many in total? (can be NULL)*/);

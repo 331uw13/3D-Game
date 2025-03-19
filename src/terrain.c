@@ -564,7 +564,39 @@ void generate_terrain(
     terrain->rfmatrices.rock_type0 
         = malloc(terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
 
-    
+
+
+    // Get valid spawnpoint for player.
+    {
+        int attemps = 0;
+        int max_attemps = 100;
+        const float spawn_rad = (terrain_size * terrain_scaling) / 4.0;
+        while(1) {
+            terrain->valid_player_spawnpoint = (Vector3) {
+                RSEEDRANDOMF(-spawn_rad, spawn_rad),
+                0,
+                RSEEDRANDOMF(-spawn_rad, spawn_rad)
+            };
+
+            RayCollision ray = raycast_terrain(terrain,
+                    terrain->valid_player_spawnpoint.x,
+                    terrain->valid_player_spawnpoint.z
+                    );
+
+            if(ray.point.y > terrain->water_ylevel) { 
+                break;
+            }
+
+            attemps++;
+            if(attemps >= max_attemps) {
+                fprintf(stderr, "\033[31m(ERROR) '%s': Cant find valid spawn point.\033[0m\n",
+                        __func__);
+                break;
+            }
+        }
+    }
+
+
     printf("Max visible chunks: %i\n", terrain->num_max_visible_chunks);
     printf("\033[32m -> Generated terrain succesfully.\033[0m\n");
 }

@@ -19,7 +19,7 @@ struct inventory_t {
     struct item_t* items[INV_SIZE];
     struct item_t* item_drag;
     int            item_drag_from_index;
-    int            selected_index;
+    int            selected_item_index; // Set to negative value if nothing selected.
     // ...
 
 };
