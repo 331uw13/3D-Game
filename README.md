@@ -11,4 +11,12 @@
 
 ![image](3dgame-screenshot.png)
 
-
+### Compiling the game.
+> [!NOTE]
+> Raylib must be installed on your system. Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux
+```bash
+git clone https://github.com/331uw13/3D-Game.git
+cd 3D-Game
+chmod +x build.sh
+./build.sh
+```
