@@ -52,6 +52,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->armor_damage_dampen = DEFAULT_ARMOR_DAMAGE_DAMPEN;
     p->armor = p->max_armor;
 
+    p->in_water = 0;
     p->dash_timer = 0.0;
     p->enable_fov_effect = 1;
     p->kills = 0;
@@ -82,24 +83,36 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->inventory.open = 0;
 
+    p->aim_idle_timer = 0.0;
 
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
 
     p->rotation_from_hit = (Vector3){ 0, 0, 0 };
     
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
+
+    // Material for gun:
     p->gunmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
-    p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUN_0_TEXID];
+    p->gunmodel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[METAL2_TEXID];
+
+    // Material for arms + "fingers":
+    p->arms_material = LoadMaterialDefault();
+    p->arms_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_SKIN_TEXID];
+    p->arms_material.shader = gst->shaders[DEFAULT_SHADER];
+ 
+    // Material for hands:
+    p->hands_material = LoadMaterialDefault();
+    p->hands_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_HANDS_TEXID];
+    p->hands_material.shader = gst->shaders[DEFAULT_SHADER];
+       
+
+
 
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
     p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
     p->gunfx_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUNFX_TEXID];
     p->gunfx_timer = 1.0;
-
-    p->arms_material = LoadMaterialDefault();
-    p->arms_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_ARMS_TEXID];
-    p->arms_material.shader = gst->shaders[DEFAULT_SHADER];
 
     // calculate matrices for when player is aiming and not aiming.
     
@@ -147,7 +160,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         return;
     }
 
-
+    p->aim_idle_timer = 0.0;
     p->firerate_timer = 0.0;
 
     Vector3 prj_position = (Vector3){0};
@@ -187,6 +200,9 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
 
 void player_damage(struct state_t* gst, struct player_t* p, float damage) {
     if(!p->alive) {
+        return;
+    }
+    if(p->noclip) {
         return;
     }
     if(damage < 0.0) {
@@ -289,6 +305,9 @@ void player_update(struct state_t* gst, struct player_t* p) {
         player_shoot(gst, &gst->player);
     }
 
+    if((p->aim_idle_timer > 2.75) && p->is_aiming) {
+        p->is_aiming = 0;
+    }
 
     if(!p->is_aiming) {
         p->ready_to_shoot = 0;
@@ -296,6 +315,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
     }
 
     if(p->is_aiming) {
+        p->aim_idle_timer += gst->dt;
         p->gun_draw_timer += p->gun_draw_speed * gst->dt;
         if(p->gun_draw_timer > 1.0) {
             p->gun_draw_timer = 1.0;
@@ -373,6 +393,17 @@ void player_update(struct state_t* gst, struct player_t* p) {
     p->cam.target.x += p->rotation_from_hit.z * gst->dt;
 
 
+    if((p->cam.position.y < gst->terrain.water_ylevel) && !p->in_water) {
+        p->in_water = 1;
+        gst->fog_density = 6.5;
+        update_fog_settings(gst);
+    }
+    else
+    if((p->cam.position.y > gst->terrain.water_ylevel) && p->in_water) {
+        p->in_water = 0;
+        gst->fog_density = 1.0;
+        update_fog_settings(gst);
+    }
 
     // FOV Effect. Change FOV smoothly based on player velocity.
     if(p->enable_fov_effect) {
@@ -448,15 +479,22 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
         // Gun
         DrawMesh(
-                p->gunmodel.meshes[1],
+                p->gunmodel.meshes[2],
                 p->gunmodel.materials[0],
+                p->gunmodel.transform
+                );
+
+        // Arms + "Fingers"
+        DrawMesh(
+                p->gunmodel.meshes[0],
+                p->arms_material,
                 p->gunmodel.transform
                 );
 
         // Hands
         DrawMesh(
-                p->gunmodel.meshes[0],
-                p->arms_material,
+                p->gunmodel.meshes[1],
+                p->hands_material,
                 p->gunmodel.transform
                 );
     }
@@ -509,22 +547,33 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     // Handle X,Z Movement.
 
     p->speed = p->walkspeed;
-    
+   
+    // Can player run?
     if(IsKeyDown(KEY_LEFT_SHIFT)
     && p->onground
     && !p->inventory.open
-    && !p->is_aiming) {
+    && !p->is_aiming
+    && !p->in_water
+    ){
         p->speed *= p->run_speed_mult;
     }
 
+    // Air speed multiplier.
     if(!p->onground && !p->noclip) {
         p->speed *= p->air_speed_mult;
     }
 
+    // Decrease speed if inventory is open
     if(p->inventory.open) {
         p->speed *= 0.5;
     }
 
+    // Decrease speed if player is in water.
+    if(p->in_water) {
+        p->speed *= 0.85;
+    }
+
+    // For noclip.
     if(p->noclip) {
         p->speed *= 5.0;
         p->onground = 0;
@@ -575,17 +624,19 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
     if(!p->noclip) {
 
-        // "Dash"
+        // Can the player use dash ability?
         if(!p->onground 
             && IsKeyPressed(KEY_SPACE)
-            && (p->dash_timer >= p->dash_timer_max)) {
+            && (p->dash_timer >= p->dash_timer_max)
+            && !p->in_water) {
             p->dash_velocity.x = p->velocity.x * p->dash_speed;
             p->dash_velocity.z = p->velocity.z * p->dash_speed;
             p->dash_timer = 0.0;
         }
 
-        if(IsKeyPressed(KEY_SPACE) && p->onground && !p->inventory.open) {
-            p->velocity.y = p->jump_force;
+        // Can the player jump?
+        if(IsKeyPressed(KEY_SPACE) && ((p->onground && !p->inventory.open) || p->in_water)) {
+            p->velocity.y = (!p->in_water) ? p->jump_force : (p->jump_force*0.5);
             p->onground = 0;
         }
 
@@ -602,8 +653,9 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
             p->onground = 1;
         }
             
-        if(!p->onground){
-            float g = (GRAVITY_CONST*p->gravity) * gst->dt;
+        // Apply gravity if player is not on the ground.
+        if(!p->onground) {
+            float g = (GRAVITY_CONST * (!p->in_water ? p->gravity : 0.1)) * gst->dt;
             p->velocity.y -= g;
         }
 

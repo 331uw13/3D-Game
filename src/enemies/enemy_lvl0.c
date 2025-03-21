@@ -50,13 +50,11 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
     
     ent->position.y = ray.point.y;
 
+    // TODO: Rewrite this. it is too complicated for no reason...
 
     if(ent->state != ENT_STATE_CHANGING_ANGLE) {
         set_body_transform(ent, ray.normal);
     }
-    
-    int infov = player_in_enemy_fov(gst, ent, &ent->matrix[ENEMY_LVL0_BODY_MI]);
-    // ^- Remember to set the body transformation matrix first
    
 
     int has_target_now = enemy_can_see_player(gst, ent);
@@ -73,7 +71,8 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
     }
 
 
-    if((ent->mood == ENT_HOSTILE) && infov && (has_target_now && !ent->has_target)) {
+    // Enemy lvl0 ignores FOV because it is 180.0 degrees.
+    if((ent->mood == ENT_HOSTILE) && (has_target_now && !ent->has_target)) {
         ent->state = ENT_STATE_CHANGING_ANGLE;
     
         // Get (current) quaternion.

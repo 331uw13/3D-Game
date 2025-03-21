@@ -46,17 +46,9 @@ void handle_userinput(struct state_t* gst) {
                     0,
                     gst->player.position.z + RSEEDRANDOMF(-40.0, 40.0)
                 });
-
-        spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, 
-                (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-40.0, 40.0),
-                    0,
-                    gst->player.position.z + RSEEDRANDOMF(-40.0, 40.0)
-                });
-
     }
 
-
+    
     if(IsKeyPressed(KEY_Y)) {
         gst->player.cam.position = (Vector3){ 0, 100, 0 };
         printf("Teleported to (0, 100, 0)\n");
@@ -77,6 +69,7 @@ void handle_userinput(struct state_t* gst) {
         && !gst->player.inventory.open
         && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
             gst->player.is_aiming =! gst->player.is_aiming;
+            gst->player.aim_idle_timer = 0.0;
         }
         else
         if(!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)

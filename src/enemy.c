@@ -208,6 +208,9 @@ struct enemy_t* create_enemy(
     entptr->weaponptr = weaponptr;
     entptr->weapon_psysptr = weapon_psysptr;
 
+    entptr->time_from_target_found = 0.0;
+    entptr->time_from_target_lost = 0.0;
+
     entptr->travel = (struct enemy_travel_t) {
         .start = (Vector3){0},
         .dest  = (Vector3){0},
@@ -439,8 +442,8 @@ void spawn_enemy(
                         ENEMY_LVL0_MAX_HEALTH,
                         position,
                         12,    /* XP Gain */
-                        720.0, /* Target Range */
-                        180.0, /* Target FOV */
+                        780.0, /* Target Range */
+                        0,     /* Fov is ignored because its the full range. */
                         0.2,   /* Firerate */
                         enemy_lvl0_update,
                         enemy_lvl0_render,
@@ -489,8 +492,8 @@ void spawn_enemy(
                         ENEMY_LVL1_MAX_HEALTH,
                         position,
                         25,    /* XP Gain */
-                        720.0, /* Target Range */
-                        180.0, /* Target FOV */
+                        300.0, /* Target Range */
+                        90.0,  /* Target FOV */
                         0.2,   /* Firerate */
                         enemy_lvl1_update,
                         enemy_lvl1_render,
@@ -528,10 +531,6 @@ int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent) {
 }
 
 int player_in_enemy_fov(struct state_t* gst, struct enemy_t* ent, Matrix* body_matrix) {
-    int result = 0;
-    if(!body_matrix) {
-        goto error;
-    }
 
     Vector3 up     = (Vector3) { 0.0, 1.0, 0.0 };
     Vector3 right  = (Vector3) { body_matrix->m8, body_matrix->m9, body_matrix->m10 };
@@ -549,13 +548,45 @@ int player_in_enemy_fov(struct state_t* gst, struct enemy_t* ent, Matrix* body_m
 
     Vector3 D = Vector3Normalize(Vector3Subtract(P1, P2));
     float dot = Vector3DotProduct(D, forward);
+    float fov = map(dot, -1.0, 1.0, 0.0, 180.0);
 
-    float fov = ceil(map(dot, 1.0, -1.0, 0.0, 180.0));
-    result = (fov <= ent->target_fov);
-
-error:
-    return result;
+    return (fov < ent->target_fov);
 }
+
+int enemy_has_target(
+        struct state_t* gst, struct enemy_t* ent, Matrix* ent_body_matrix,
+        void(*target_found) (struct state_t*, struct enemy_t*),
+        void(*target_lost)   (struct state_t*, struct enemy_t*)
+){
+    int in_fov = player_in_enemy_fov(gst, ent, ent_body_matrix);
+    int has_target_now = in_fov && enemy_can_see_player(gst, ent);
+
+    if((ent->mood == ENT_HOSTILE) && has_target_now && !ent->has_target) {
+        if(ent->time_from_target_lost > 0.5) {
+            ent->has_target = 1;
+            ent->time_from_target_found = 0.0;
+            target_found(gst, ent);
+        }
+    }
+    else
+    if(((!has_target_now || !in_fov) && ent->has_target)) {
+        if(ent->time_from_target_found > 0.5) {
+            ent->has_target = 0;
+            ent->time_from_target_lost = 0.0;
+            target_lost(gst, ent);
+        }
+    }
+
+    if(ent->has_target) {
+        ent->time_from_target_found += gst->dt;
+    }
+    else {
+        ent->time_from_target_lost += gst->dt;
+    }
+
+    return ent->has_target;
+}
+
 
 struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy_t* ent) {
     struct hitbox_t* result = NULL;

@@ -145,7 +145,10 @@ struct enemy_t {
     int has_target;
 
     size_t index; // Index in gst->enemies array.
-    
+
+    float time_from_target_found;
+    float time_from_target_lost;
+
 
     void(*update_callback)(struct state_t*, struct enemy_t*);
     void(*render_callback)(struct state_t*, struct enemy_t*);
@@ -225,8 +228,17 @@ int enemy_can_see_player(struct state_t* gst, struct enemy_t* ent);
 
 // IMPORTANT NOTE: The body matrix must be set correctly before calling this function.
 //  It is used to calculate the cross product.
-//  see 'enemies/enemy_lvl0.c' for example.
+//  see 'enemies/enemy_lvl1.c' for example.
 int player_in_enemy_fov(struct state_t* gst, struct enemy_t* ent, Matrix* body_matrix);
+
+// Check if player is in enemy's fov and the terrain is not blocking the view to player.
+// Also if the enemy gets hit this function ignores the enemy fov.
+// Function pointers can be NULL.
+int enemy_has_target(
+        struct state_t* gst, struct enemy_t* ent, Matrix* ent_body_matrix,
+        void(*target_found) (struct state_t*, struct enemy_t*),
+        void(*target_lost)   (struct state_t*, struct enemy_t*)
+        );
 
 // Returns pointer to the hitbox that was collided with 'boundingbox'
 // or NULL if no collision.

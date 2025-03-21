@@ -17,6 +17,7 @@ struct state_t;
 
 #define TREE_TYPE0_MAX_PERCHUNK 40
 #define ROCK_TYPE0_MAX_PERCHUNK 10
+#define CRYSTALS_MAX_PERCHUNK 1
 
 struct heightmap_t {
     float*  data;
@@ -45,6 +46,8 @@ struct foliage_matrices_t {
     Matrix rock_type0[ROCK_TYPE0_MAX_PERCHUNK];
     size_t num_rock_type0;
     
+    Matrix crystals[CRYSTALS_MAX_PERCHUNK];
+    size_t num_crystals;
 };
 
 
@@ -60,11 +63,16 @@ struct render_foliage_matrices {
     size_t  rock_type0_size;
     size_t  num_rock_type0;
     
+    Matrix* crystals;
+    size_t  crystals_size;
+    size_t  num_crystals;
+    
 };
 
 struct foliage_models_t {
     Model tree_type0;
     Model rock_type0;
+    Model crystal;
 };
 
 struct chunk_t {

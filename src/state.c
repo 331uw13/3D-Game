@@ -64,6 +64,9 @@ void state_update_shader_uniforms(struct state_t* gst) {
         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
                 gst->shaders[FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
+        SetShaderValue(gst->shaders[CRYSTAL_FOLIAGE_SHADER], 
+                gst->shaders[CRYSTAL_FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
+        
         SetShaderValue(gst->shaders[FOG_PARTICLE_SHADER], 
                 gst->shaders[FOG_PARTICLE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
         
@@ -104,6 +107,9 @@ void state_update_shader_uniforms(struct state_t* gst) {
     {
         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
                 gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
+        
+        SetShaderValue(gst->shaders[CRYSTAL_FOLIAGE_SHADER], 
+                gst->fs_unilocs[CRYSTAL_FOLIAGE_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
         
         SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
                 gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
@@ -271,6 +277,19 @@ void state_setup_all_shaders(struct state_t* gst) {
         gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
+    // --- Setup CRYSTAL_FOLIAGE_SHADER ---
+    {
+        Shader* shader = &gst->shaders[CRYSTAL_FOLIAGE_SHADER];
+        load_shader(
+                "res/shaders/instance_core.vs",
+                "res/shaders/crystal.fs", shader);
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+  
+        gst->fs_unilocs[CRYSTAL_FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
+    }
     // --- Setup FOG_EFFECT_PARTICLE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOG_PARTICLE_SHADER];
@@ -371,61 +390,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
-    // --- Setup SSAO_WRITE_NORM_SHADER shader ---
-    {
-        Shader* shader = &gst->shaders[SSAO_WRITE_NORM_SHADER];
-        *shader = LoadShader(
-            "res/shaders/default.vs", 
-            "res/shaders/ssao_write_norm.fs"
-        );
-    }
-
-    // --- Setup SSAO_WRITE_POS_SHADER shader ---
-    {
-        Shader* shader = &gst->shaders[SSAO_WRITE_POS_SHADER];
-        *shader = LoadShader(
-            "res/shaders/default.vs", 
-            "res/shaders/ssao_write_pos.fs"
-        );
-    }
-
-    // (For instanced rendering)
-    // --- Setup SSAO_WRITE_NORM_SHADER shader ---
-    {
-        Shader* shader = &gst->shaders[SSAO_WRITE_NORM_I_SHADER];
-        *shader = LoadShader(
-            "res/shaders/instance_core.vs", 
-            "res/shaders/ssao_write_norm.fs"
-        );
-
-        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-        
-    }
-
-    // (For instanced rendering)
-    // --- Setup SSAO_WRITE_POS_SHADER shader ---
-    {
-        Shader* shader = &gst->shaders[SSAO_WRITE_POS_I_SHADER];
-        *shader = LoadShader(
-            "res/shaders/instance_core.vs", 
-            "res/shaders/ssao_write_pos.fs"
-        );
-
-        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-        
-    }
-    // --- Setup SSAO_SHADER shader ---
-    {
-        Shader* shader = &gst->shaders[SSAO_SHADER];
-        *shader = LoadShader(
-            "res/shaders/default.vs", 
-            "res/shaders/ssao.fs"
-        );
-    }
+    
 
 
     SetTraceLogLevel(LOG_NONE);
@@ -742,6 +707,9 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/apple.png", APPLE_TEXID);
     load_texture(gst, "res/textures/blue_metal.png", METALPIECE_TEXID);
     load_texture(gst, "res/textures/metalpiece_inv.png", METALPIECE_INV_TEXID);
+    load_texture(gst, "res/textures/cloth.png", PLAYER_HANDS_TEXID);
+    load_texture(gst, "res/textures/player_skin.png", PLAYER_SKIN_TEXID);
+    load_texture(gst, "res/textures/gun_metal.png", METAL2_TEXID);
     
     SetTraceLogLevel(LOG_NONE);
 

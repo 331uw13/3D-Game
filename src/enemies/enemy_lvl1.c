@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 
-#define HOVER_YLEVEL 100.0
+#define HOVER_YLEVEL 30.0
 #define NEW_RND_DEST_RADIUS 150
 
 
@@ -29,6 +29,19 @@ static void pick_new_random_travel_dest(struct state_t* gst, struct enemy_t* ent
 }
 
 
+static void enemy_target_found(struct state_t* gst, struct enemy_t* ent) {
+    printf("Target Found\n");
+    
+    ent->state = ENT_STATE_HAS_TARGET;
+}
+
+static void enemy_target_lost(struct state_t* gst, struct enemy_t* ent) {
+    printf("Target Lost\n");
+    
+    ent->state = ENT_STATE_SEARCHING_TARGET;
+}
+
+
 void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
     if(!ent->alive) {
         return;
@@ -44,16 +57,20 @@ void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
 
     ent->matrix[ENEMY_LVL1_BODY_MI] = QuaternionToMatrix(ent->Q_now);
 
+    enemy_has_target(gst, ent, &ent->matrix[ENEMY_LVL1_BODY_MI], enemy_target_found, enemy_target_lost);
+
 
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
             {
+
 
             }
             break;
 
         case ENT_STATE_CHANGING_ANGLE:
             {
+            
             }
             break;
 
@@ -69,7 +86,6 @@ void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
                 if(Vector3Distance(
                             (Vector3){ ent->position.x, 0, ent->position.z },
                             ent->travel.dest) <= 3.0) {
-                    printf("dest_reached\n");
                     ent->travel.dest_reached = 1;
                 }
 

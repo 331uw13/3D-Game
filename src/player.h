@@ -57,6 +57,8 @@ struct player_t {
     float    dash_speed;
     Vector3  dash_velocity;
 
+    int      in_water;
+
     int      noclip;
     int      is_aiming;
     int      alive;
@@ -69,7 +71,10 @@ struct player_t {
     Vector3  ext_force_vel;
     Vector3  ext_force_acc;
 
-    
+   
+    // If the player has been aiming but not fired any shots: disable aiming.
+    float aim_idle_timer;
+
     // Player can update powerups with XP. 
     // Updated when player kills an enemy.
     int xp; 
@@ -93,6 +98,8 @@ struct player_t {
 
     Model gunmodel;
     Material arms_material;
+    Material hands_material;
+
     struct light_t gun_light;
 
     //Vector3 gunmodel_offset;
