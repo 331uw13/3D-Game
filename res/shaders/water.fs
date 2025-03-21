@@ -60,6 +60,6 @@ void main()
     float dist = length(fragViewPos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist);
 
-    finalColor.w = 0.43;
+    finalColor.w = 0.53;
 
 }
