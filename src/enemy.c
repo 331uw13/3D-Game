@@ -6,6 +6,7 @@
 #include "util.h"
 
 #include "enemies/enemy_lvl0.h"
+#include "enemies/enemy_lvl1.h"
 
 
 static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
@@ -85,6 +86,8 @@ int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_file
         model->materials[i].shader = gst->shaders[DEFAULT_SHADER];
         model->materials[i].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
     }
+
+
 error:
     SetTraceLogLevel(LOG_NONE);
     return result;
@@ -459,8 +462,8 @@ void spawn_enemy(
 
                 // Legs hitbox.
                 enemy_add_hitbox(ent,
-                        (Vector3){ 10.0, 5.0, 10.0 },
-                        (Vector3){ 0.0, 3.0, 0.0 },
+                        (Vector3){ 10.0, 5.0, 10.0 }, // Size
+                        (Vector3){ 0.0, 3.0, 0.0 },   // Offset
                         0.5,
                         HITBOX_LEGS
                         );
@@ -468,6 +471,49 @@ void spawn_enemy(
                 ent->spawn_callback(gst, ent);
             }
             break;
+
+        case ENEMY_LVL1:
+            {
+                if(position.y <= gst->terrain.water_ylevel) {
+                    fprintf(stderr, "\033[31m(ERROR) '%s': Enemy type '%i' cannot spawn in water.\033[0m\n",
+                            __func__, enemy_type);
+                    return;
+                }
+
+                struct enemy_t* ent = create_enemy(gst,
+                        enemy_type,
+                        mood,
+                        &gst->enemy_models[enemy_type],
+                        &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                        &gst->enemy_weapons[enemy_type],
+                        ENEMY_LVL1_MAX_HEALTH,
+                        position,
+                        25,    /* XP Gain */
+                        720.0, /* Target Range */
+                        180.0, /* Target FOV */
+                        0.2,   /* Firerate */
+                        enemy_lvl1_update,
+                        enemy_lvl1_render,
+                        enemy_lvl1_death,
+                        enemy_lvl1_created,
+                        enemy_lvl1_hit
+                        );
+                if(!ent) {
+                    return;
+                }
+
+                // Head hitbox.
+                enemy_add_hitbox(ent,
+                        (Vector3){ 13.0, 8.0, 13.0 }, // Size
+                        (Vector3){ 0.0, 0.0, 0.0 },  // Offset
+                        1.758,
+                        HITBOX_HEAD
+                        );
+
+                ent->spawn_callback(gst, ent);
+            }
+            break;
+
 
         default:
             fprintf(stderr, "\033[31m(ERROR) '%s': Invalid enemy type '%i'\033[0m\n",
@@ -662,15 +708,29 @@ void update_enemy_spawn_system(struct state_t* gst) {
 }
 
 void setup_default_enemy_spawn_settings(struct state_t* gst) {
-    
+    int type;
+
     // ENEMY_LVL0 Defaults.
-    gst->spawnsys.max_in_spawn_radius[ENEMY_LVL0] = 6;
-    gst->spawnsys.max_in_world[ENEMY_LVL0] = 12;
-    gst->spawnsys.spawn_radius[ENEMY_LVL0] = 800.0;
-    gst->spawnsys.spawn_timers_max[ENEMY_LVL0] = 23.0;
-    gst->spawnsys.spawn_timers[ENEMY_LVL0] = 28.0; // Skip little bit ahead.
-    gst->spawnsys.num_spawns_min[ENEMY_LVL0] = 3;
-    gst->spawnsys.num_spawns_max[ENEMY_LVL0] = 6;
+    type = ENEMY_LVL0;
+    gst->spawnsys.max_in_spawn_radius[type] = 6;
+    gst->spawnsys.max_in_world[type] = 12;
+    gst->spawnsys.spawn_radius[type] = 800.0;
+    gst->spawnsys.spawn_timers_max[type] = 25.0;
+    gst->spawnsys.spawn_timers[type] = 20.0; // Skip little bit ahead.
+    gst->spawnsys.num_spawns_min[type] = 3;
+    gst->spawnsys.num_spawns_max[type] = 6;
+
+
+    // ENEMY_LVL1 Defaults.
+    type = ENEMY_LVL1;
+    gst->spawnsys.max_in_spawn_radius[type] = 3;
+    gst->spawnsys.max_in_world[type] = 8;
+    gst->spawnsys.spawn_radius[type] = 1200.0;
+    gst->spawnsys.spawn_timers_max[type] = 40.0;
+    gst->spawnsys.spawn_timers[type] = 30.0;
+    gst->spawnsys.num_spawns_min[type] = 3;
+    gst->spawnsys.num_spawns_max[type] = 6;
+
 
 }
 

@@ -19,13 +19,14 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     // -- Movement stats -----
     
     p->walkspeed = 20.0;
-    p->run_speed_mult = 2.3;
+    p->run_speed_mult = 1.85;
     p->air_speed_mult = 1.5;
     p->jump_force = 130.0;
     p->gravity = 0.5;
     p->ground_friction = 0.015;
     p->air_friction = 0.001;
-    
+    p->dash_speed = 400.0;
+    p->dash_timer_max = 4.5;
     // ------------------------
 
 
@@ -51,6 +52,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->armor_damage_dampen = DEFAULT_ARMOR_DAMAGE_DAMPEN;
     p->armor = p->max_armor;
 
+    p->dash_timer = 0.0;
     p->enable_fov_effect = 1;
     p->kills = 0;
     p->fovy_change = 0.0;
@@ -312,7 +314,10 @@ void player_update(struct state_t* gst, struct player_t* p) {
 
     p->firerate_timer = CLAMP(p->firerate_timer, 0.0, p->firerate);
     p->time_from_last_shot += gst->dt;
-   
+
+    if(p->dash_timer < p->dash_timer_max) {
+        p->dash_timer += gst->dt;
+    }
 
     // Move accuracy modifier back to normal value.
     // TODO: "player->weapon_control" variable for this time?
@@ -510,10 +515,9 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     && !p->inventory.open
     && !p->is_aiming) {
         p->speed *= p->run_speed_mult;
-
     }
 
-    if(!p->onground) {
+    if(!p->onground && !p->noclip) {
         p->speed *= p->air_speed_mult;
     }
 
@@ -545,22 +549,41 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     p->velocity.x = CLAMP(p->velocity.x, -vmax, vmax);
     p->velocity.z = CLAMP(p->velocity.z, -vmax, vmax);
 
+    // Normal movement
     CameraMoveForward (&p->cam, (p->speed * p->velocity.z) * gst->dt, 1);
     CameraMoveRight   (&p->cam, (p->speed * p->velocity.x) * gst->dt, 1);
 
+    // Dash movement
+    CameraMoveForward (&p->cam, (p->dash_velocity.z) * gst->dt, 1);
+    CameraMoveRight   (&p->cam, (p->dash_velocity.x) * gst->dt, 1);
+
     // Friction.
-    float friction = p->onground ? p->ground_friction : p->air_friction;
+    float friction = (p->onground || p->noclip) ? p->ground_friction : p->air_friction;
     float f = pow(1.0 - friction, gst->dt * TARGET_FPS);
     p->velocity.x *= f;
     p->velocity.z *= f;
 
     p->position = p->cam.position;
 
+    float dash_friction = pow(0.97, gst->dt * TARGET_FPS);
+    p->dash_velocity.x *= dash_friction;
+    p->dash_velocity.z *= dash_friction;
+
 
 
     // Handle Y Movement.
 
     if(!p->noclip) {
+
+        // "Dash"
+        if(!p->onground 
+            && IsKeyPressed(KEY_SPACE)
+            && (p->dash_timer >= p->dash_timer_max)) {
+            p->dash_velocity.x = p->velocity.x * p->dash_speed;
+            p->dash_velocity.z = p->velocity.z * p->dash_speed;
+            p->dash_timer = 0.0;
+        }
+
         if(IsKeyPressed(KEY_SPACE) && p->onground && !p->inventory.open) {
             p->velocity.y = p->jump_force;
             p->onground = 0;
@@ -583,6 +606,10 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
             float g = (GRAVITY_CONST*p->gravity) * gst->dt;
             p->velocity.y -= g;
         }
+
+
+
+
     }
     else {
         if(IsKeyDown(KEY_SPACE)) {
@@ -642,7 +669,6 @@ static void draw_stats_bar(
     const float font_size = 15.0;
     const float bar_height = 20.0;
 
-
     const Color bg_color = (Color){ 30, 30, 30, 180 };
     const Color ln_color = (Color){ 100, 100, 100, 255 };
 
@@ -677,9 +703,28 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
                     PLAYER_HEALTH_COLOR_LOW, PLAYER_HEALTH_COLOR_HIGH));
 
     draw_stats_bar(gst,
-            stats_x+220, &stats_y, "Armor", 100, ADD_YINCREMENT,
+            stats_x+220, &stats_y, "Armor", 130, ADD_YINCREMENT,
             p->armor, p->max_armor,
-            (Color){ 30, 230, 250, 255 });
+            (Color){ 30, 230, 230, 180 });
+
+    draw_stats_bar(gst,
+            stats_x, &stats_y, "Firerate", 200, NO_YINCREMENT,
+            p->firerate_timer, p->firerate,
+            (Color){ 230, 180, 50, 180 });
+
+    draw_stats_bar(gst,
+            stats_x+220, &stats_y, "Dash Ability", 200, ADD_YINCREMENT,
+            p->dash_timer, p->dash_timer_max,
+            (p->dash_timer >= p->dash_timer_max) 
+            ? (Color){ 125 + 125*(0.5+0.5*sin(gst->time*3.0)), 90, 140, 255} 
+            : (Color){ 230, 80, 130, 180 });
+
+    draw_stats_bar(gst,
+            stats_x, &stats_y, "Accuracy", 200, ADD_YINCREMENT,
+            p->weapon.accuracy - p->accuracy_modifier,
+            p->weapon.accuracy,
+            (Color){ 30, 230, 250, 180 });
+
 
 
 
@@ -744,98 +789,6 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
 
 
     }
-
-       /*
-    // Health
-    {
-        DrawRectangle(stat_x, stat_next_y,
-                bar_width, bar_height+5, stat_bg);
-
-        DrawRectangle(
-                stat_x,
-                stat_next_y,
-                map(gst->player.health, 0.0, gst->player.max_health, 0, bar_width),
-                bar_height + 5,
-                color_lerp(
-                    normalize(gst->player.health, 0.0, gst->player.max_health),
-                    PLAYER_HEALTH_COLOR_LOW,
-                    PLAYER_HEALTH_COLOR_HIGH
-                    )
-                );
-    }
-   
-    // Armor
-    {
-
-
-        DrawRectangle(stat_x + bar_width + 20.0, stat_next_y,
-                bar_width, bar_height+5, stat_bg);
-
-        DrawRectangle(
-                stat_x + bar_width + 20.0,
-                stat_next_y,
-                map(gst->player.armor, 0.0, gst->player.max_armor, 0, bar_width),
-                bar_height + 5,
-                (Color){ 30, 200, 200, 255 }
-                );
-
-    }
-
-    stat_next_y += stat_yinc+5;
-
-    
-    
-    // Fire rate timer.
-    {
-        const float timervalue = gst->player.firerate_timer;
-
-        DrawRectangle(stat_x, stat_next_y,
-                bar_width, bar_height, stat_bg);
-
-        DrawRectangle(
-                stat_x,
-                stat_next_y,
-                map(timervalue, 0.0, gst->player.firerate, 0, bar_width),
-                bar_height,
-                (Color){ 10, 180, 255, 255 }
-                );
-    }
-    stat_next_y += stat_yinc;
-
-    // Weapon temperature.
-    {
-        const float tempvalue = gst->player.weapon.temp;
-
-        DrawRectangle(stat_x, stat_next_y,
-                bar_width, bar_height, stat_bg);
-
-        DrawRectangle(
-                stat_x,
-                stat_next_y,
-                map(tempvalue, 0.0, gst->player.weapon.overheat_temp, 0, bar_width),
-                bar_height,
-                (Color){ 255, 58, 30, 255 }
-                );
-    }
-    stat_next_y += stat_yinc;
-
-    // Weapon Accuracy
-    {
-        float accvalue 
-            = gst->player.weapon.accuracy - gst->player.accuracy_modifier;
-        
-        DrawRectangle(stat_x, stat_next_y, 
-                bar_width, bar_height, stat_bg);
-
-        DrawRectangle(
-                stat_x,
-                stat_next_y,
-                map(accvalue, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX, 0, bar_width),
-                bar_height,
-                (Color){ 255, 200, 30, 255 }
-                );
-    }
-    */
 }
 
 

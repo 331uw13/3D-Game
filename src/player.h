@@ -51,6 +51,12 @@ struct player_t {
     int      onground;
     /*TODO*/int max_jumps;
     /*TODO*/int num_jumps_inair;
+
+    float    dash_timer;
+    float    dash_timer_max; // How long to wait until player can use dash?
+    float    dash_speed;
+    Vector3  dash_velocity;
+
     int      noclip;
     int      is_aiming;
     int      alive;

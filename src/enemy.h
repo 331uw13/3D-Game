@@ -21,7 +21,8 @@
 
 // Enemy types.
 #define ENEMY_LVL0 0
-#define MAX_ENEMY_TYPES 1
+#define ENEMY_LVL1 1
+#define MAX_ENEMY_TYPES 2
 
 
 #define ENEMY_DESPAWN_RADIUS 2500.0
@@ -29,7 +30,7 @@
 
 
 #define ENEMY_LVL0_MAX_HEALTH 100
-
+#define ENEMY_LVL1_MAX_HEALTH 180
 
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 #define ENEMY_MAX_MATRICES 4
@@ -61,8 +62,8 @@ struct enemy_travel_t {
     Vector3 dest;  // Destination position.
     float travelled; // Used for linear interpolation.
 
+    float time_to_dest;
     int dest_reached;
-    int enabled; // Some enemies may not move.
 };
 
 
@@ -110,6 +111,7 @@ struct enemy_t {
     int xp_gain; // How much xp the player gains when killing this enemy?
 
     // Used for rotating enemy.
+    Quaternion Q_now;
     Quaternion Q_prev;
     Quaternion Q_target;
     float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'.

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "state.h"
 #include "input.h"
@@ -6,7 +7,6 @@
 
 #include <raymath.h>
 #include <rlgl.h>
-
 
 
 #include "particle_systems/weapon_psys.h"
@@ -20,6 +20,18 @@
 #include "particle_systems/enemy_gunfx_psys.h"
 #include "particle_systems/prj_envhit2_psys.h"
 
+
+
+void state_setup_render_targets(struct state_t* gst) {
+
+    gst->scrn_w = GetScreenWidth();
+    gst->scrn_h = GetScreenHeight();
+
+    gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+    gst->bloomtreshold_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+    gst->depth_texture = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+    
+}
 
 static void load_texture(struct state_t* gst, const char* filepath, int texid) {
     if(texid >= MAX_TEXTURES) {
@@ -100,7 +112,13 @@ void state_update_shader_uniforms(struct state_t* gst) {
                 gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
     }
 
-
+    // Water level
+    SetShaderValue(gst->shaders[DEFAULT_SHADER], 
+            GetShaderLocation(gst->shaders[DEFAULT_SHADER], "water_level"), &gst->terrain.water_ylevel, SHADER_UNIFORM_FLOAT);
+    
+    SetShaderValue(gst->shaders[DEFAULT_SHADER], 
+            GetShaderLocation(gst->shaders[DEFAULT_SHADER], "time"), &gst->time, SHADER_UNIFORM_FLOAT);
+    
     {
 
         float color4f[4] = {
@@ -134,7 +152,7 @@ void state_update_frame(struct state_t* gst) {
         update_enemy(gst, &gst->enemies[i]);
     }
 
-    update_enemy_spawn_system(gst);
+    //update_enemy_spawn_system(gst);
     update_natural_item_spawns(gst);
 
     // (updated only if needed)
@@ -169,216 +187,11 @@ void state_update_frame(struct state_t* gst) {
 
     }
 
-}
-
-#include <stdio.h>
-#include <stdlib.h>
-
-static int compare(const void* p1, const void* p2) {
-    const struct crithit_marker_t* a = (const struct crithit_marker_t*)p1;
-    const struct crithit_marker_t* b = (const struct crithit_marker_t*)p2;
-    
-    // if a->dst >= b->dst. a goes before b.
-    return (a->dst >= b->dst) ? -1 : 1;
-}
-
-static void _state_render_crithit_markers(struct state_t* gst) {
-    struct crithit_marker_t* marker = NULL;
-
-    struct crithit_marker_t sorted[MAX_RENDER_CRITHITS] = { 0 };
-    int num_visible = 0;
-
-    for(size_t i = 0; i < MAX_RENDER_CRITHITS; i++) {
-        marker = &gst->crithit_markers[i];
-        if(!marker->visible) {
-            continue;
-        }
-
-        marker->dst = Vector3Distance(gst->player.position, marker->position);
-
-        marker->lifetime += gst->dt;
-        if(marker->lifetime >= gst->crithit_marker_maxlifetime) {
-            marker->visible = 0;
-            continue;
-        }
-        sorted[num_visible] = *marker;
-        num_visible++;
-    }
-
-    if(num_visible == 0) {
-        return;
-    }
-
-    // Sort by distance to fix alpha blending.
-    qsort(sorted, num_visible, sizeof *sorted, compare);
-
-    for(size_t i = 0; i < num_visible; i++) {
-        struct crithit_marker_t* m = &sorted[i];
-
-        // Interpolate scale and color alpha.
-
-        float t = normalize(m->lifetime, 0, gst->crithit_marker_maxlifetime);
-        float scale = lerp(t, 4.0, 0.0);
-        float alpha = lerp(t, 255, 0.0);
-   
-
-        DrawBillboard(gst->player.cam, 
-                gst->textures[CRITICALHIT_TEXID], m->position, scale, 
-                (Color){ 180+ sin(gst->time*30)*50, 50, 25, alpha });
-    }
-}
-
-void state_render_environment(struct state_t* gst) {
-
-    // Render 3D stuff into texture and post process it later.
-    BeginTextureMode(gst->env_render_target);
-    ClearBackground((Color){
-            (0.15) * 255, 
-            (0.25) * 255,
-            (0.3) * 255,
-            255
-            });
-
-    BeginMode3D(gst->player.cam);
-    {
-        // Render debug info if needed. --------
-        if(gst->debug) {
-            for(size_t i = 0; i < gst->num_enemies; i++) {
-                struct enemy_t* ent = &gst->enemies[i];
-                if(!ent->alive) {
-                    continue;
-                }
-                
-                // Hitboxes
-                {
-                    for(size_t i = 0; i < ent->num_hitboxes; i++) {
-                        DrawCubeWiresV(
-                                Vector3Add(ent->position, ent->hitboxes[i].offset),
-                                ent->hitboxes[i].size,
-                                RED
-                                );
-                    }
-                }
-
-                // Target range.
-                {
-                    DrawCircle3D(ent->position, ent->target_range, 
-                            (Vector3){1.0, 0.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
-                    
-                    DrawCircle3D(ent->position, ent->target_range, 
-                            (Vector3){0.0, 0.0, 0.0}, 0.0, (Color){ 30, 150, 255, 200 });
-                    
-                    DrawCircle3D(ent->position, ent->target_range, 
-                            (Vector3){0.0, 1.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
-                }
-
-            }
-
-            //DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
-        }
-        // ------------
-
-
-        BeginShaderMode(gst->shaders[DEFAULT_SHADER]);
-
-        
-        // Enemies.
-        for(size_t i = 0; i < gst->num_enemies; i++) {
-            struct enemy_t* ent = &gst->enemies[i];
-            if(!ent->alive) {
-                continue;
-            }
-
-            render_enemy(gst, ent);
-        }
-
-
-        render_terrain(gst, &gst->terrain, DEFAULT_SHADER);
-
-
-        // Particle systems. (rendered only if needed)
-        {
-            // Player
-            render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
-            render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
-            render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
-            
-            // Enemies
-            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], ENEMY_WEAPON_COLOR);
-            render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
-
-            // Environment
-            render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS], (Color){ 255, 140, 40, 160});
-            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
-            render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
-            render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
-            render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS], ENEMY_WEAPON_COLOR);
-        }
-
-        player_render(gst, &gst->player);
-        render_items(gst);
-
-        rlDisableDepthMask();
-        render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
-        rlEnableDepthMask();
-    
-
-        EndShaderMode();
-        
-        _state_render_crithit_markers(gst);
-
-    }
-    EndMode3D();
-    EndTextureMode();
-    EndShaderMode();
-
-
-    /*
-    // Get environment depth to texture
-    BeginTextureMode(gst->depth_texture);
-    ClearBackground((Color){255, 255, 255, 255});
-    BeginMode3D(gst->player.cam);
-    {
-        BeginShaderMode(gst->shaders[WDEPTH_SHADER]);
-
-
-        player_render(gst, &gst->player);
-        DrawCube((Vector3){ 20.0, 3.0, -10.0 }, 3.0, 3.0, 3.0, (Color){ 30, 30, 30, 255});
-
-        // Terrain.
-        render_terrain(gst, &gst->terrain, WDEPTH_SHADER);
-
-        EndShaderMode();
-    }
-    EndMode3D();
-    EndTextureMode();
-    EndShaderMode();
-    */
-
-    // Get bloom treshold texture.
-
-    BeginTextureMode(gst->bloomtreshold_target);
-    ClearBackground((Color){ 0,0,0, 255 });
-    BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
-    {
-        DrawTextureRec(
-                    gst->env_render_target.texture,
-                    (Rectangle) { 
-                        0.0, 0.0, 
-                        (float)gst->env_render_target.texture.width,
-                        -(float)gst->env_render_target.texture.height
-                    },
-                    (Vector2){ 0.0, 0.0 },
-                    WHITE
-                    );
-    }
-    EndShaderMode();
-    EndTextureMode();
-
    
 }
+
+
+
 
 void state_setup_all_shaders(struct state_t* gst) {
 
@@ -495,23 +308,40 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
-    // --- Setup Depth value Shader ---
+    // --- Setup depth value shader ---
     {
         Shader* shader = &gst->shaders[WDEPTH_SHADER];
         *shader = LoadShader(
-            0, /* use raylibs default vertex shader */ 
+            "res/shaders/write_depth.vs", 
             "res/shaders/write_depth.fs"
         );
+
     }
+
+    // --- Setup depth value shader for instanced drawing ---
+    {
+        Shader* shader = &gst->shaders[WDEPTH_INSTANCE_SHADER];
+        *shader = LoadShader(
+            "res/shaders/write_instance_depth.vs", 
+            "res/shaders/write_depth.fs"
+        );
+
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+        
+    }
+
 
 
     // --- Setup Gun FX Shader ---
     {
         Shader* shader = &gst->shaders[GUNFX_SHADER];
         *shader = LoadShader(
-            0, /* use raylibs default vertex shader */ 
+            "res/shaders/default.vs", /* use raylibs default vertex shader */ 
             "res/shaders/gun_fx.fs"
         );
+
         
         gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "gun_color");
     }
@@ -541,6 +371,63 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
+    // --- Setup SSAO_WRITE_NORM_SHADER shader ---
+    {
+        Shader* shader = &gst->shaders[SSAO_WRITE_NORM_SHADER];
+        *shader = LoadShader(
+            "res/shaders/default.vs", 
+            "res/shaders/ssao_write_norm.fs"
+        );
+    }
+
+    // --- Setup SSAO_WRITE_POS_SHADER shader ---
+    {
+        Shader* shader = &gst->shaders[SSAO_WRITE_POS_SHADER];
+        *shader = LoadShader(
+            "res/shaders/default.vs", 
+            "res/shaders/ssao_write_pos.fs"
+        );
+    }
+
+    // (For instanced rendering)
+    // --- Setup SSAO_WRITE_NORM_SHADER shader ---
+    {
+        Shader* shader = &gst->shaders[SSAO_WRITE_NORM_I_SHADER];
+        *shader = LoadShader(
+            "res/shaders/instance_core.vs", 
+            "res/shaders/ssao_write_norm.fs"
+        );
+
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+        
+    }
+
+    // (For instanced rendering)
+    // --- Setup SSAO_WRITE_POS_SHADER shader ---
+    {
+        Shader* shader = &gst->shaders[SSAO_WRITE_POS_I_SHADER];
+        *shader = LoadShader(
+            "res/shaders/instance_core.vs", 
+            "res/shaders/ssao_write_pos.fs"
+        );
+
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+        
+    }
+    // --- Setup SSAO_SHADER shader ---
+    {
+        Shader* shader = &gst->shaders[SSAO_SHADER];
+        *shader = LoadShader(
+            "res/shaders/default.vs", 
+            "res/shaders/ssao.fs"
+        );
+    }
+
+
     SetTraceLogLevel(LOG_NONE);
 }
 
@@ -554,7 +441,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .damage = 10.0,
         .critical_chance = 10,
         .critical_mult = 1.85,
-        .prj_speed = 450.0,
+        .prj_speed = 530.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .color = (Color) { 20, 255, 200, 255 },
@@ -580,6 +467,19 @@ void state_setup_all_weapons(struct state_t* gst) {
         .overheat_temp = -1,
     };
 
+    // Enemy lvl1 weapon.
+    gst->enemy_weapons[ENEMY_LVL1_WEAPON] = (struct weapon_t) {
+        .id = ENEMY_WEAPON_ID,
+        .accuracy = 9.835,
+        .damage = 25.0,
+        .critical_chance = 5,
+        .critical_mult = 7.0,
+        .prj_speed = 530.0,
+        .prj_max_lifetime = 5.0,
+        .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
+        .color = ENEMY_WEAPON_COLOR,
+        .overheat_temp = -1,
+    };
 }
 
 void state_setup_all_psystems(struct state_t* gst) {
@@ -887,6 +787,7 @@ void state_setup_all_enemy_models(struct state_t* gst) {
     }
 
     load_enemy_model(gst, ENEMY_LVL0, "res/models/enemy_lvl0.glb", ENEMY_LVL0_TEXID);
+    load_enemy_model(gst, ENEMY_LVL1, "res/models/enemy_lvl1.glb", GRID9x9_TEXID);
 
     // ...
 }
@@ -984,6 +885,64 @@ void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
     if(gst->num_crithit_markers >= MAX_RENDER_CRITHITS) {
         gst->num_crithit_markers = 0;
     }
+}
+
+void update_fog_settings(struct state_t* gst) {
+    glBindBuffer(GL_UNIFORM_BUFFER, gst->fog_ubo);
+
+    gst->render_bg_color = (Color) {
+        gst->fog_color_far.r * 0.6,
+        gst->fog_color_far.g * 0.6,
+        gst->fog_color_far.b * 0.6,
+        255
+    };
+
+
+    int max_far = 100;
+    gst->fog_color_far.r = CLAMP(gst->fog_color_far.r, 0, max_far);
+    gst->fog_color_far.g = CLAMP(gst->fog_color_far.g, 0, max_far);
+    gst->fog_color_far.b = CLAMP(gst->fog_color_far.b, 0, max_far);
+
+    float near_color[4] = {
+        (float)gst->fog_color_near.r / 255.0,
+        (float)gst->fog_color_near.g / 255.0,
+        (float)gst->fog_color_near.b / 255.0,
+        1.0
+    };
+
+    float far_color[4] = {
+        (float)gst->fog_color_far.r / 255.0,
+        (float)gst->fog_color_far.g / 255.0,
+        (float)gst->fog_color_far.b / 255.0,
+        1.0
+    };
+
+    size_t offset;
+    size_t size;
+    size = sizeof(float)*4;
+
+    // DENSITY
+   
+    float density[4] = {
+        // Convert fog density to more friendly scale.
+        // Otherwise it is very exponental with very very samll numbers.
+        map(log(CLAMP(gst->fog_density, FOG_MIN, FOG_MAX)), FOG_MIN, FOG_MAX, 0.0015, 0.02),
+        0.0,
+        0.0,  // Maybe adding more settings later.
+        0.0
+    };
+    offset = 0;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, density);
+
+    // NEAR COLOR
+    offset = 16;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, near_color);
+
+    // FAR COLOR
+    offset = 16*2;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, far_color);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 

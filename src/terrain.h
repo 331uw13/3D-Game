@@ -13,7 +13,7 @@ struct state_t;
 #define RENDER_DISTANCE 3000
 #define CHUNK_SIZE 64
 
-#define WATER_INITIAL_YLEVEL -80
+#define WATER_INITIAL_YLEVEL -80 // NOTE: This must be same as in 'res/shaders/default.fs'
 
 #define TREE_TYPE0_MAX_PERCHUNK 40
 #define ROCK_TYPE0_MAX_PERCHUNK 10
@@ -122,9 +122,14 @@ void generate_terrain(
 
 //void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
 
-void delete_terrain         (struct terrain_t* terrain);
+void delete_terrain(struct terrain_t* terrain);
 
-void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_id);
+void render_terrain(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        int terrain_shader_index,
+        int foliage_shader_index
+        );
 
 
 

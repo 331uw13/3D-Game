@@ -642,10 +642,16 @@ void delete_terrain(struct terrain_t* terrain) {
 
 // TODO: This needs optimization!
 // ------------------------------
-void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_id) {
+
+void render_terrain(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        int terrain_shader_index,
+        int foliage_shader_index
+){
 
     terrain->num_visible_chunks = 0;
-    terrain->material.shader = gst->shaders[shader_id];
+    terrain->material.shader = gst->shaders[terrain_shader_index];
 
 
     memset(terrain->rfmatrices.tree_type0, 0, terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
@@ -692,7 +698,11 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_i
         DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
     }
 
-  
+   
+    terrain->foliage_models.tree_type0.materials[0].shader = gst->shaders[foliage_shader_index];
+    terrain->foliage_models.tree_type0.materials[1].shader = gst->shaders[foliage_shader_index];
+    terrain->foliage_models.rock_type0.materials[0].shader = gst->shaders[foliage_shader_index];
+
 
     // 'tree_type0'
     DrawMeshInstanced( // Tree bark
@@ -718,8 +728,10 @@ void render_terrain(struct state_t* gst, struct terrain_t* terrain, int shader_i
             );
 
 
+    // TODO: dont render water on depth texture.
     // Water.
     {
+
 
         rlDisableBackfaceCulling();
         DrawModel(terrain->waterplane, 

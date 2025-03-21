@@ -24,6 +24,9 @@
 #define GRAVITY_CONST 500
 #define FONT_SPACING 1.0
 
+#define FOG_MIN 1.0
+#define FOG_MAX 10.0
+
 // Index for 'textures'.
 #define NONE_TEXID -1 // TODO: remove this <-
 #define GRID4x4_TEXID 0
@@ -65,14 +68,20 @@
 #define POSTPROCESS_SHADER 1
 #define BLOOM_TRESHOLD_SHADER 2
 #define WDEPTH_SHADER 3
-#define PRJ_ENVHIT_PSYS_SHADER 4
-#define BASIC_WEAPON_PSYS_SHADER 5
-#define FOLIAGE_SHADER 6
-#define FOG_PARTICLE_SHADER 7
-#define WATER_SHADER 8
-#define GUNFX_SHADER 9
-#define ENEMY_GUNFX_SHADER 10
-#define MAX_SHADERS 11
+#define WDEPTH_INSTANCE_SHADER 4
+#define PRJ_ENVHIT_PSYS_SHADER 5
+#define BASIC_WEAPON_PSYS_SHADER 6
+#define FOLIAGE_SHADER 7
+#define FOG_PARTICLE_SHADER 8
+#define WATER_SHADER 9
+#define GUNFX_SHADER 10
+#define ENEMY_GUNFX_SHADER 11
+#define SSAO_WRITE_NORM_SHADER 12
+#define SSAO_WRITE_POS_SHADER 13
+#define SSAO_WRITE_NORM_I_SHADER 14
+#define SSAO_WRITE_POS_I_SHADER 15
+#define SSAO_SHADER 16
+#define MAX_SHADERS 17
 // ...
  
 
@@ -109,17 +118,16 @@
 #define WATER_SHADER_TIME_FS_UNILOC 7
 #define GUNFX_SHADER_COLOR_FS_UNILOC 8
 #define ENEMY_GUNFX_SHADER_COLOR_FS_UNILOC 9
-#define MAX_FS_UNILOCS 10
+#define MAX_FS_UNILOCS 16
 // ...
-
 
 // Normal lights:
 #define SUN_NLIGHT 0
 #define PLAYER_GUN_NLIGHT 1
 // ...
 
+#define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
-#include "enemies/enemy_lvl0.h"
 
 
 
@@ -129,7 +137,7 @@
 
 
 #define MAX_ALL_ENEMIES 64 // Total max enemies.
-#define MAX_ENEMY_MODELS 1
+#define MAX_ENEMY_MODELS 2
 
 
 
@@ -172,7 +180,12 @@ struct state_t {
 
     unsigned int lights_ubo;
     unsigned int prj_lights_ubo;
-    
+    unsigned int fog_ubo;
+
+    float fog_density;
+    Color fog_color_near;
+    Color fog_color_far;
+
     size_t num_prj_lights;
 
 
@@ -220,7 +233,7 @@ struct state_t {
 
     int has_audio;
     Sound sounds[MAX_SOUNDS];
-
+   
     // Everything is rendered to this texture
     // and then post processed.
     RenderTexture2D env_render_target;
@@ -232,16 +245,16 @@ struct state_t {
     // (NOT CURRENTLY USED)
     RenderTexture2D depth_texture;
 
-
+    Color render_bg_color;
     int running;
     int menu_open;
 };
 
-
+void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);
-void state_render_environment(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
 
+void update_fog_settings(struct state_t* gst);
 
 // Initialization.
 void state_setup_all_shaders(struct state_t* gst);

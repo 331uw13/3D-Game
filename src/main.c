@@ -10,9 +10,9 @@
 #include "input.h"
 #include "util.h"
 #include "terrain.h"
+#include "state_render.h"
 
 #include <rlgl.h>
-
 
 
 
@@ -25,14 +25,7 @@ void loop(struct state_t* gst) {
     testmodel.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
 
-
-    gst->scrn_w = GetScreenWidth();
-    gst->scrn_h = GetScreenHeight();
-
-    gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    gst->bloomtreshold_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    gst->depth_texture = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-
+    //gst->depth_texture = LoadShadowmapRenderTexture(1024, 1024);
 
     while(!WindowShouldClose() && gst->running) {
 
@@ -59,7 +52,7 @@ void loop(struct state_t* gst) {
       
         state_update_frame(gst);
         state_update_shader_uniforms(gst);
-        state_render_environment(gst);
+        state_render(gst);
 
 
 
@@ -73,13 +66,16 @@ void loop(struct state_t* gst) {
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
                 rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
-                
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
-                            "bloom_treshold_texture"), gst->bloomtreshold_target.texture.id);
-                
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
-                            "depth_texture"), gst->depth_texture.texture.id);
-                
+
+                // TODO: Optimize this.
+
+                SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
+                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
+                            "bloom_treshold_texture"), gst->bloomtreshold_target.texture);
+
+                SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
+                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
+                            "depth_texture"), gst->depth_texture.texture);
 
                 DrawTextureRec(
                         gst->env_render_target.texture,
@@ -165,7 +161,7 @@ void loop(struct state_t* gst) {
 
 
             if(gst->debug) {
-                int next_y = 200;
+                int next_y = 300;
                 const int y_inc = 25;
 
                 DrawText(TextFormat("X: %0.2f", gst->player.position.x),
@@ -278,11 +274,10 @@ void first_setup(struct state_t* gst) {
     memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
 
 
-    // --- Load textures ---
-    
-  
-    gst->lights_ubo = 0;
 
+
+    // Lights UBO
+    gst->lights_ubo = 0;
     const size_t lights_ubo_size = MAX_NORMAL_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
     glGenBuffers(1, &gst->lights_ubo);
     glBindBuffer(GL_UNIFORM_BUFFER, gst->lights_ubo);
@@ -295,7 +290,7 @@ void first_setup(struct state_t* gst) {
 
 
 
-
+    // Projectile Lights UBO
     gst->prj_lights_ubo = 0;
     const size_t prj_lights_ubo_size = MAX_PROJECTILE_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
     glGenBuffers(1, &gst->prj_lights_ubo);
@@ -308,6 +303,21 @@ void first_setup(struct state_t* gst) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 
+    // Fog UBO
+    gst->fog_ubo = 0;
+    const size_t fog_ubo_size = FOG_UB_STRUCT_SIZE;
+    glGenBuffers(1, &gst->fog_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, gst->fog_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, fog_ubo_size, NULL, GL_STATIC_DRAW);
+    
+    glBindBufferBase(GL_UNIFORM_BUFFER, 4, gst->fog_ubo);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 4, gst->fog_ubo, 0, fog_ubo_size);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    printf("%i\n", gst->fog_ubo);
+
+
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_weapons(gst);
@@ -318,6 +328,12 @@ void first_setup(struct state_t* gst) {
 
     setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
+
+    gst->fog_density = 2.0;
+    gst->fog_color_near = (Color){ 50, 170, 200 };
+    gst->fog_color_far = (Color){ 80, 50, 70 };
+
+    update_fog_settings(gst);
 
     // --- Setup Terrain ----
     {
@@ -343,7 +359,10 @@ void first_setup(struct state_t* gst) {
     }
 
     init_player_struct(gst, &gst->player);
-    
+
+    state_setup_render_targets(gst);
+
+
     int seed = time(0);
     gst->rseed = seed;
     SetRandomSeed(seed);
