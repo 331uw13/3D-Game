@@ -10,13 +10,14 @@
 
 ---------------------
 
+![image](3dgame-screenshot.png)
+
 * Kill enemy robots to gain xp and upgrade your powerups! (Powerups not yet implemented!!)
 
 * Enemies may drop metal pieces which can be used to fix armor.
 
 * Apples spawn in the world naturally which can be used to heal the player.
 
-![image](3dgame-screenshot.png)
 
 ### Compiling the game.
 > [!NOTE]
