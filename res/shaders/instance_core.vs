@@ -35,10 +35,6 @@ void main()
     vec4 norm = vec4(vertexNormal, 0.0);
 
     fragNormal = vec3(instanceTransform * norm);
-
-    //fragNormal = normalize(vec3( (matNormal * vec4(vertexNormal, 1.0) )));
-    //fragNormal = vec3(instanceTransform * vec4(fragNormal, 1.0 ));
-
     fragViewPos = viewPos;
 
     // Calculate final vertex position

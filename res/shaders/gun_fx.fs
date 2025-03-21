@@ -28,7 +28,6 @@ void main()
 
     vec3 center = (1.0-vec3(2.5*length(fragTexCoord-0.5))) * 0.3;
 
-    //finalColor = vec4(1.0);
     finalColor = texture(texture0, fragTexCoord)*vec4(gun_color.rgb + center, 0.5);
 
 }

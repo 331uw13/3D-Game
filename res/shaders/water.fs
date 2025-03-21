@@ -39,7 +39,7 @@ void main()
 
     float v = voronoi3d(fragPosition.xyz*0.005 + vec3(sin(time)*0.1, time*0.35, cos(time)*0.1)).x;
     float v2 = voronoi3d(fragPosition.xyz*0.0065 + vec3(sin(time)*0.5, time*0.25, cos(time)*0.183)).y;
-    texelColor.rgb += v + v2*0.5;
+    texelColor.rgb += v + v2*0.8;
 
 
     vec3 normal = normalize(fragNormal);
@@ -60,5 +60,6 @@ void main()
     float dist = length(fragViewPos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist);
 
-    finalColor.w = 0.75;
+    finalColor.w = 0.43;
+
 }
