@@ -10,7 +10,8 @@
 
 ---------------------
 
-![image](3dgame-screenshot.png)
+
+![image](https://github.com/331uw13/3D-Game/blob/main/3dgame-screenshot2.png?raw=true)
 
 * Kill enemy robots to gain xp and upgrade your powerups! (Powerups not yet implemented!!)
 
