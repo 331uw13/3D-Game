@@ -15,7 +15,7 @@ static void set_enemies_render_shader(struct state_t* gst, int shader_index) {
     }
 }
 
-
+/*
 static int compare(const void* p1, const void* p2) {
     const struct crithit_marker_t* a = (const struct crithit_marker_t*)p1;
     const struct crithit_marker_t* b = (const struct crithit_marker_t*)p2;
@@ -69,6 +69,7 @@ static void _state_render_crithit_markers(struct state_t* gst) {
                 (Color){ 180+ sin(gst->time*30)*50, 50, 25, alpha });
     }
 }
+*/
 
 #define RENDERPASS_FINAL 0
 #define RENDERPASS_DEPTH_DATA 1
@@ -204,12 +205,15 @@ void state_render(struct state_t* gst) {
 
             // Environment
             render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS], (Color){ 255, 140, 40, 160});
             render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
             render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
             render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
             render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS], ENEMY_WEAPON_COLOR);
+            
+            render_psystem(gst, &gst->psystems[EXPLOSION_PART1_PSYS], (Color){ 255, 50, 10, 255});
+            render_psystem(gst, &gst->psystems[EXPLOSION_PART2_PSYS], (Color){ 255, 140, 40, 160});
+            render_psystem(gst, &gst->psystems[EXPLOSION_PART3_PSYS], (Color){ 30, 30, 30, 230});
+        
         }
 
         player_render(gst, &gst->player);
@@ -221,7 +225,7 @@ void state_render(struct state_t* gst) {
     
 
         
-        _state_render_crithit_markers(gst);
+        //_state_render_crithit_markers(gst);
 
     }
     EndMode3D();

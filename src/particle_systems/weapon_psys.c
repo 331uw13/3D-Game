@@ -61,7 +61,6 @@ void weapon_psys_prj_update(
         struct psystem_t* psystem = NULL;
         if(weapon->id == PLAYER_WEAPON_ID) {
             psystem = &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS];
-
         }
         else
         if(weapon->id == ENEMY_WEAPON_ID) {
@@ -118,7 +117,8 @@ void weapon_psys_prj_update(
 
             struct hitbox_t* hitbox = check_collision_hitboxes(&part_boundingbox, enemy);
             if(hitbox) {
-                enemy_hit(gst, enemy, weapon, hitbox, part->position, part->velocity);
+                float damage = get_weapon_damage(weapon);
+                enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, 0.35);
                 disable_particle(gst, part);
 
                 add_particles(gst,
@@ -129,13 +129,6 @@ void weapon_psys_prj_update(
                         NULL, NO_EXTRADATA
                         );
 
-                add_particles(gst,
-                        &gst->psystems[ENEMY_HIT_PSYS],
-                        GetRandomValue(10, 30),
-                        part->position,
-                        part->velocity,
-                        NULL, NO_EXTRADATA
-                        );
             }
         }
     }
@@ -146,7 +139,7 @@ void weapon_psys_prj_update(
         if(CheckCollisionBoxes(part_boundingbox, get_player_boundingbox(&gst->player))) {
             //player_hit(gst, &gst->player, weapon);
 
-            player_damage(gst, &gst->player, get_weapon_damage(weapon, NULL));
+            player_damage(gst, &gst->player, get_weapon_damage(weapon));
 
             add_particles(gst,
                     &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS],

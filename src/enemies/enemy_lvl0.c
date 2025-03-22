@@ -96,6 +96,10 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
         ent->has_target = 0;
     }
 
+    ent->position.x += ent->knockback_velocity.x;
+    ent->position.y += ent->knockback_velocity.y;
+    ent->position.z += ent->knockback_velocity.z;
+    ent->knockback_velocity = Vector3Scale(ent->knockback_velocity, pow(0.987, TARGET_FPS * gst->dt));
 
     switch(ent->state) {
         case ENT_STATE_HAS_TARGET:
@@ -255,12 +259,11 @@ void enemy_lvl0_render(struct state_t* gst, struct enemy_t* ent) {
 
 
 void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent,
-        Vector3 hit_position, Vector3 hit_direction) {
-   
-    //ent->knockback_velocity = Vector3Scale(hit_direction, 5.0);
+        Vector3 hit_position, Vector3 hit_direction, float knockback) {
+  
 
-    ent->previous_state = ent->state;
-    ent->state = ENT_STATE_WASHIT;
+    ent->knockback_velocity = Vector3Scale(hit_direction, knockback*0.2);
+
 }
 
 void enemy_lvl0_death(struct state_t* gst, struct enemy_t* ent) {

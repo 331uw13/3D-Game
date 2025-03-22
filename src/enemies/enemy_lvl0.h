@@ -12,13 +12,13 @@
 
 struct state_t;
 
-void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, 
-        Vector3 hit_position, Vector3 hit_direction);
 void enemy_lvl0_update  (struct state_t* gst, struct enemy_t* ent);
 void enemy_lvl0_render  (struct state_t* gst, struct enemy_t* ent);
 void enemy_lvl0_death   (struct state_t* gst, struct enemy_t* ent);
 void enemy_lvl0_created (struct state_t* gst, struct enemy_t* ent);
 
+void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent, 
+        Vector3 hit_position, Vector3 hit_direction, float knockback);
 
 
 

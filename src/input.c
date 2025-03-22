@@ -39,13 +39,24 @@ void handle_userinput(struct state_t* gst) {
         spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
     }
 
+
+
+
     if(IsKeyPressed(KEY_R)) {
-        spawn_enemy(gst, ENEMY_LVL1, ENT_HOSTILE, 
+        spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, 
                 (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-40.0, 40.0),
+                    gst->player.position.x + RSEEDRANDOMF(-100.0, 100.0),
                     0,
-                    gst->player.position.z + RSEEDRANDOMF(-40.0, 40.0)
+                    gst->player.position.z + RSEEDRANDOMF(-100.0, 100.0)
                 });
+
+        spawn_enemy(gst, ENEMY_LVL1, ENT_FRIENDLY, 
+                (Vector3){
+                    gst->player.position.x + RSEEDRANDOMF(-100.0, 100.0),
+                    0,
+                    gst->player.position.z + RSEEDRANDOMF(-100.0, 100.0)
+                });
+
     }
 
     
@@ -67,6 +78,7 @@ void handle_userinput(struct state_t* gst) {
     if(gst->player.alive) {
         if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
         && !gst->player.inventory.open
+        && !gst->player.powerup_shop_open
         && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
             gst->player.is_aiming =! gst->player.is_aiming;
             gst->player.aim_idle_timer = 0.0;
@@ -86,21 +98,34 @@ void handle_userinput(struct state_t* gst) {
         else {
             DisableCursor();
         }
+        gst->player.powerup_shop_open = 0;
         gst->player.inventory.open = 0;
     }
+
+    // TODO: remove this.
+    if(IsKeyPressed(KEY_TWO)) {
+        if((gst->player.powerup_shop_open = !gst->player.powerup_shop_open)) {
+            EnableCursor();
+        }
+        else {
+            DisableCursor();
+        }
+        gst->player.inventory.open = 0;
+    }
+    
 
     if(IsKeyPressed(KEY_T)) {
         gst->debug = !gst->debug;
         printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
     }
 
-    if(IsKeyPressed(KEY_TAB) && !gst->menu_open && gst->player.alive) {
+    if(IsKeyPressed(KEY_TAB) 
+            && !gst->menu_open
+            && !gst->player.powerup_shop_open
+            && gst->player.alive) {
         toggle_inventory(gst, &gst->player);
     }
 
-    if(IsKeyPressed(KEY_U)) {
-        TakeScreenshot("3dgame-screenshot.png");
-    }
 
     /*
     if(IsKeyPressed(KEY_ONE)) {

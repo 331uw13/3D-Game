@@ -10,7 +10,6 @@
 #define ENT_STATE_SEARCHING_TARGET 1
 #define ENT_STATE_HAS_TARGET 2
 #define ENT_STATE_CHANGING_ANGLE 3
-#define ENT_STATE_WASHIT 4
 
 #define ENT_TRAVELING_DISABLED 0
 #define ENT_TRAVELING_ENABLED 1
@@ -104,9 +103,7 @@ struct enemy_t {
     // When enemy gets hit. velocity may be applied.
     Vector3 knockback_velocity;
     
-    // How long the enemy is stunned after it was hit.
-    float stun_timer;
-    float max_stun_time; 
+    float time_from_hit;
 
     int xp_gain; // How much xp the player gains when killing this enemy?
 
@@ -149,12 +146,13 @@ struct enemy_t {
     float time_from_target_found;
     float time_from_target_lost;
 
+    int was_hit;
 
     void(*update_callback)(struct state_t*, struct enemy_t*);
     void(*render_callback)(struct state_t*, struct enemy_t*);
     void(*death_callback)(struct state_t*, struct enemy_t*);
     void(*spawn_callback)(struct state_t*, struct enemy_t*);
-    void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/);
+    void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/, float/*knockback*/);
 
 };
 
@@ -180,7 +178,7 @@ struct enemy_t* create_enemy(
         void(*render_callback)(struct state_t*, struct enemy_t*),
         void(*death_callback)(struct state_t*, struct enemy_t*),
         void(*spawn_callback)(struct state_t*, struct enemy_t*),
-        void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/)
+        void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/,float/*knockback*/)
 );
 
 
@@ -203,13 +201,14 @@ void spawn_enemy(
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);
 void enemy_death(struct state_t* gst, struct enemy_t* ent);
-void enemy_hit(
+void enemy_damage(
         struct state_t* gst,
         struct enemy_t* ent,
-        struct weapon_t* weapon,
+        float damage,
         struct hitbox_t* hitbox,
         Vector3 hit_position,
-        Vector3 hit_direction
+        Vector3 hit_direction,
+        float knockback
 );
 
 void enemy_drop_random_item(struct state_t* gst, struct enemy_t* ent);

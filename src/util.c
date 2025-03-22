@@ -75,7 +75,7 @@ Vector3 get_rotation_yz(Vector3 p1, Vector3 p2) {
     
     return (Vector3) {
         0.0, // Ignore X (roll)
-        -(atan2(d.z, d.x)+M_PI),
+        -(atan2(p1.z-p2.z, p1.x-p2.x)),
         acos(d.y / dlen) - 1.570795
     };
 }

@@ -105,9 +105,17 @@ void gui_render_menu_screen(struct state_t* gst) {
             SetWindowSize(DEF_SCRN_W, DEF_SCRN_H);
         }
     }
+
+}
+
+
+void gui_render_powerup_shop(struct state_t* gst) {
+
+    BeginShaderMode(gst->shaders[POWERUP_SHOP_BG_SHADER]);
+
+    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 20, 20, 20, 230 });
     
-
-
+    EndShaderMode();
 
 }
 

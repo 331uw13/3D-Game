@@ -113,8 +113,14 @@ void loop(struct state_t* gst) {
             if(gst->menu_open) {
                 gui_render_menu_screen(gst);
             }
+            else
+            if(gst->player.powerup_shop_open) {
+                gui_render_powerup_shop(gst);
+            }
 
-            render_player_stats(gst, &gst->player);
+            if(!gst->menu_open && !gst->player.powerup_shop_open) {
+                render_player_stats(gst, &gst->player);
+            }
 
             
             // Some info for player:
@@ -267,12 +273,13 @@ void first_setup(struct state_t* gst) {
     const float terrain_amplitude = 20.0;
     const float terrain_pnfrequency = 60.0;
     const int   terrain_octaves = 3;
-   
+  
+    /*
     gst->num_crithit_markers = 0;
     gst->crithit_marker_maxlifetime = 1.5;
 
     memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
-
+    */
 
 
 

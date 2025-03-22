@@ -14,7 +14,7 @@ static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
 
     Vector3 ray_position = (Vector3){
         ent->position.x,
-        ent->position.y + 8.0,
+        ent->position.y + 10.0,
         ent->position.z
     };
     
@@ -110,7 +110,7 @@ struct enemy_t* create_enemy(
         void(*render_callback)(struct state_t*, struct enemy_t*),
         void(*death_callback)(struct state_t*, struct enemy_t*),
         void(*spawn_callback)(struct state_t*, struct enemy_t*),
-        void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/)
+        void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/,float/*knockback*/)
 ){
 
 
@@ -179,15 +179,15 @@ struct enemy_t* create_enemy(
     entptr->render_callback = render_callback;
     entptr->death_callback = death_callback;
     entptr->spawn_callback = spawn_callback;
-    
+    entptr->hit_callback = hit_callback;
+
     entptr->xp_gain = xp_gain;
     entptr->position = initial_position; 
     entptr->health = max_health;
     entptr->max_health = max_health;
 
     entptr->knockback_velocity = (Vector3){0};
-    entptr->stun_timer = 0.0;
-    entptr->max_stun_time = 0.0;
+    entptr->time_from_hit = 99999.0;
 
     entptr->Q_prev   = QuaternionIdentity();
     entptr->Q_target = QuaternionIdentity();
@@ -203,7 +203,7 @@ struct enemy_t* create_enemy(
     entptr->gun_index = 0;
     entptr->has_target = 0;
     entptr->mood = mood;
-
+    entptr->was_hit = 0;
     entptr->alive = 1;
     entptr->weaponptr = weaponptr;
     entptr->weapon_psysptr = weapon_psysptr;
@@ -261,11 +261,15 @@ void update_enemy(struct state_t* gst, struct enemy_t* ent) {
         ent->despawn_timer = 0.0;
     }
 
+    ent->time_from_hit += gst->dt;
+
     if(ent->update_callback) {
         ent->dist_to_player = Vector3Distance(gst->player.position, ent->position);
         ent->firerate_timer += gst->dt;
         ent->update_callback(gst, ent);
     }
+
+    ent->was_hit = 0;
 }
 
 void render_enemy(struct state_t* gst, struct enemy_t* ent) {
@@ -280,25 +284,28 @@ void render_enemy(struct state_t* gst, struct enemy_t* ent) {
     }
 }
 
-
-void enemy_hit(
+void enemy_damage(
         struct state_t* gst,
         struct enemy_t* ent,
-        struct weapon_t* weapon, 
+        float damage,
         struct hitbox_t* hitbox,
         Vector3 hit_position,
-        Vector3 hit_direction
+        Vector3 hit_direction,
+        float knockback
 ){
 
-    int was_critical_hit = 0;
-    float damage = get_weapon_damage(weapon, &was_critical_hit) * hitbox->damage_mult;
-    ent->health -= damage;
+    hit_direction = Vector3Normalize(hit_direction);
 
+    ent->health -= damage;
     hitbox->hits++;
 
-    if(was_critical_hit) {
-        state_add_crithit_marker(gst, hit_position);
-    }
+    add_particles(gst,
+            &gst->psystems[ENEMY_HIT_PSYS],
+            GetRandomValue(30, 50),
+            hit_position,
+            hit_direction,
+            NULL, NO_EXTRADATA
+            );
 
     if(gst->has_audio) {
         int audio_i = ENEMY_HIT_SOUND_0 + GetRandomValue(0, 2); // 3 enemy hit sounds.
@@ -308,6 +315,8 @@ void enemy_hit(
         PlaySound(gst->sounds[audio_i]);
     }
 
+
+    
     if(ent->health <= 0.001) {
         ent->health = 0.0;
         ent->alive = 0;
@@ -316,63 +325,17 @@ void enemy_hit(
     }
 
     if(ent->hit_callback) {
-        ent->hit_callback(gst, ent, hit_position, hit_direction);
+        ent->hit_callback(gst, ent, hit_position, hit_direction, knockback);
     }
 
+    ent->was_hit = 1;
     printf("HITBOX:%i, hits:%i\n", hitbox->tag, hitbox->hits);
     //printf("'%s': %0.2f | Health: %0.2f\n", __func__, damage, ent->health);
 }
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
-    
-    add_particles(gst, // Red particles.
-            &gst->psystems[ENEMY_EXPLOSION_PSYS],
-            GetRandomValue(40, 80),
-            ent->position,
-            (Vector3){0},
-            NULL, NO_EXTRADATA
-            );
-
-    add_particles(gst, // Expanding sphere.
-            &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS],
-            10,
-            ent->position,
-            (Vector3){0},
-            NULL, NO_EXTRADATA
-            );
-    
-
-    SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, ent->position));
-    SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
-    PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
-
-    if(ent->death_callback) {
-        ent->death_callback(gst, ent);
-    }
-
-
-    // Add external force from explosion is player is nearby.
-
-    const float effect_dist = 13.5;
-    const float damage_dist = effect_dist / 1.35;
-
-    Vector3 dir = Vector3Normalize(Vector3Subtract(gst->player.position, ent->position));
-    dir.y = 1.0;
-    float dist = ent->dist_to_player / effect_dist;
-    dist = normalize(effect_dist - dist, 0.0, effect_dist);
-
-    float damage = ent->dist_to_player / damage_dist;
-    damage = normalize(damage_dist - damage, 0.0, damage_dist);
-
-    
-    if(dist > 0.0) {
-        dir = Vector3Scale(dir, dist * ENEMY_DEATH_EXPLOSION_FORCE);
-        player_apply_force(gst, &gst->player, dir);
-
-        player_damage(gst, &gst->player, damage * ENEMY_DEATH_EXPLOSION_DAMAGE);
-    }
-
-
+   
+    create_explosion(gst, ent->position, 125/*damage*/, 100.0/*radius*/);
     int xp_gain_bonus = 0;
 
     for(size_t i = 0; i < ent->num_hitboxes; i++) {
@@ -390,6 +353,10 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     
     player_add_xp(gst, ent->xp_gain + xp_gain_bonus);
     enemy_drop_random_item(gst, ent);
+
+    if(ent->death_callback) {
+        ent->death_callback(gst, ent);
+    }
 }
 
 void enemy_add_hitbox(
@@ -491,10 +458,10 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         ENEMY_LVL1_MAX_HEALTH,
                         position,
-                        25,    /* XP Gain */
-                        300.0, /* Target Range */
-                        90.0,  /* Target FOV */
-                        0.2,   /* Firerate */
+                        35,    /* XP Gain */
+                        680.0, /* Target Range */
+                        130.0,  /* Target FOV */
+                        0.085,   /* Firerate */
                         enemy_lvl1_update,
                         enemy_lvl1_render,
                         enemy_lvl1_death,
@@ -558,7 +525,7 @@ int enemy_has_target(
         void(*target_found) (struct state_t*, struct enemy_t*),
         void(*target_lost)   (struct state_t*, struct enemy_t*)
 ){
-    int in_fov = player_in_enemy_fov(gst, ent, ent_body_matrix);
+    int in_fov = player_in_enemy_fov(gst, ent, ent_body_matrix) || ent->was_hit;
     int has_target_now = in_fov && enemy_can_see_player(gst, ent);
 
     if((ent->mood == ENT_HOSTILE) && has_target_now && !ent->has_target) {

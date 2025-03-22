@@ -6,6 +6,7 @@
 #include "light.h"
 #include "inventory.h"
 #include "item.h"
+#include "powerup.h"
 
 struct state_t;
 
@@ -144,6 +145,10 @@ struct player_t {
 
     // Entities cant have this setting.
     int weapon_firetype; 
+
+    int powerup_shop_open;
+    size_t num_avail_powerups; // How many powerups can player handle?
+    struct powerup_t powerups[8];
 };
 
 

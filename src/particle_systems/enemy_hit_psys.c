@@ -39,7 +39,7 @@ void enemy_hit_psys_init(
 ){
 
     part->position = origin;
-    const float p_r = 0.1;
+    const float p_r = 3.5;
     part->position.x += RSEEDRANDOMF(-p_r, p_r);
     part->position.y += RSEEDRANDOMF(-p_r, p_r);
     part->position.z += RSEEDRANDOMF(-p_r, p_r);
@@ -47,7 +47,7 @@ void enemy_hit_psys_init(
    
     part->velocity = Vector3Normalize(Vector3Negate(velocity));
     
-    const float v_r = 0.5;
+    const float v_r = 1.0;
     part->velocity.x += RSEEDRANDOMF(-v_r, v_r);
     part->velocity.y += RSEEDRANDOMF(-v_r, v_r);
     part->velocity.z += RSEEDRANDOMF(-v_r, v_r);

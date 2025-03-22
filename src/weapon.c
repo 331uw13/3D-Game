@@ -5,16 +5,12 @@
 #include "util.h"
 
 
-float get_weapon_damage(struct weapon_t* weapon, int* was_critical_hit) {
+float get_weapon_damage(struct weapon_t* weapon) {
     float damage = weapon->damage;
 
     int critical_hit = (GetRandomValue(0, 100) < weapon->critical_chance);
     if(critical_hit) {
         damage *= weapon->critical_mult;
-    }
-
-    if(was_critical_hit) {
-        *was_critical_hit = critical_hit;
     }
 
     return damage;

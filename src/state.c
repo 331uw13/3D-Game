@@ -14,8 +14,9 @@
 #include "particle_systems/enemy_hit_psys.h"
 #include "particle_systems/fog_effect_psys.h"
 #include "particle_systems/player_hit_psys.h"
-#include "particle_systems/enemy_explosion_psys.h"
-#include "particle_systems/enemy_explosion2_psys.h"
+#include "particle_systems/explosion_part1_psys.h"
+#include "particle_systems/explosion_part2_psys.h"
+#include "particle_systems/explosion_part3_psys.h"
 #include "particle_systems/water_splash_psys.h"
 #include "particle_systems/enemy_gunfx_psys.h"
 #include "particle_systems/prj_envhit2_psys.h"
@@ -101,8 +102,29 @@ void state_update_shader_uniforms(struct state_t* gst) {
                 screen_size,
                 SHADER_UNIFORM_VEC2
                 );
-    }
 
+        SetShaderValue(
+                gst->shaders[POWERUP_SHOP_BG_SHADER],
+                GetShaderLocation(gst->shaders[POWERUP_SHOP_BG_SHADER], "screen_size"),
+                screen_size,
+                SHADER_UNIFORM_VEC2
+                );
+
+    }
+    
+
+    {
+
+        float blur_effect = 0.62;
+        if(gst->player.powerup_shop_open || gst->player.inventory.open || gst->menu_open) {
+            blur_effect = 0.1;
+        }
+
+        SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
+                GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "blur_effect"),
+                &blur_effect, SHADER_UNIFORM_FLOAT);
+
+    }
     // Update time
     {
         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
@@ -116,6 +138,12 @@ void state_update_shader_uniforms(struct state_t* gst) {
         
         SetShaderValue(gst->shaders[WATER_SHADER], 
                 gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
+    
+
+        SetShaderValue(gst->shaders[POWERUP_SHOP_BG_SHADER], 
+                GetShaderLocation(gst->shaders[POWERUP_SHOP_BG_SHADER], "time"),
+                &gst->time, SHADER_UNIFORM_FLOAT);
+
     }
 
     // Water level
@@ -169,8 +197,9 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS]);
     update_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS]);
-    update_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PSYS]);
-    update_psystem(gst, &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS]);
+    update_psystem(gst, &gst->psystems[EXPLOSION_PART1_PSYS]);
+    update_psystem(gst, &gst->psystems[EXPLOSION_PART2_PSYS]);
+    update_psystem(gst, &gst->psystems[EXPLOSION_PART3_PSYS]);
     update_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS]);
@@ -235,6 +264,13 @@ void state_setup_all_shaders(struct state_t* gst) {
         gst->fs_unilocs[POSTPROCESS_CAMPOS_FS_UNILOC] = GetShaderLocation(*shader, "cam_pos");
     }
 
+    // --- Setup POWERUP_SHOP_BG_SHADER ---
+    {
+        Shader* shader = &gst->shaders[POWERUP_SHOP_BG_SHADER];
+        load_shader(
+                "res/shaders/default.vs",
+                "res/shaders/powerup_shop_bg.fs", shader);
+    }
 
     // --- Setup PRJ_ENVHIT_PSYS_SHADER ---
     {
@@ -435,11 +471,11 @@ void state_setup_all_weapons(struct state_t* gst) {
     // Enemy lvl1 weapon.
     gst->enemy_weapons[ENEMY_LVL1_WEAPON] = (struct weapon_t) {
         .id = ENEMY_WEAPON_ID,
-        .accuracy = 9.835,
+        .accuracy = 7.535,
         .damage = 25.0,
         .critical_chance = 5,
         .critical_mult = 7.0,
-        .prj_speed = 530.0,
+        .prj_speed = 685.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
         .color = ENEMY_WEAPON_COLOR,
@@ -630,40 +666,56 @@ void state_setup_all_psystems(struct state_t* gst) {
         psystem->userptr = &gst->player.weapon;
     }
 
-    // Create ENEMY_EXPLOSION_PSYS.
-    { // (when enemy dies it "explodes")
-        struct psystem_t* psystem = &gst->psystems[ENEMY_EXPLOSION_PSYS];
+    // Create EXPLOSION_PART1_PSYS.
+    {
+        struct psystem_t* psystem = &gst->psystems[EXPLOSION_PART1_PSYS];
         create_psystem(
                 gst,
                 PSYS_GROUPID_ENV,
                 PSYS_ONESHOT,
                 psystem,
-                5000,
-                enemy_explosion_psys_update,
-                enemy_explosion_psys_init,
+                2049,
+                explosion_part1_psys_update,
+                explosion_part1_psys_init,
                 PRJ_ENVHIT_PSYS_SHADER
                 );
 
         psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
     }
 
-    // Create ENEMY_EXPLOSION_PART2_PSYS.
-    { // (when enemy dies it "explodes")
-        struct psystem_t* psystem = &gst->psystems[ENEMY_EXPLOSION_PART2_PSYS];
+    // Create EXPLOSION_PART2_PSYS.
+    {
+        struct psystem_t* psystem = &gst->psystems[EXPLOSION_PART2_PSYS];
         create_psystem(
                 gst,
                 PSYS_GROUPID_ENV,
                 PSYS_ONESHOT,
                 psystem,
-                16,
-                enemy_explosion_part2_psys_update,
-                enemy_explosion_part2_psys_init,
+                32,
+                explosion_part2_psys_update,
+                explosion_part2_psys_init,
                 PRJ_ENVHIT_PSYS_SHADER
                 );
 
         psystem->particle_mesh = GenMeshSphere(1.0, 32, 32);
     }
 
+    // Create EXPLOSION_PART3_PSYS.
+    {
+        struct psystem_t* psystem = &gst->psystems[EXPLOSION_PART3_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_ONESHOT,
+                psystem,
+                32,
+                explosion_part3_psys_update,
+                explosion_part3_psys_init,
+                PRJ_ENVHIT_PSYS_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshSphere(1.0, 32, 32);
+    }
 
     // Create ENEMY_GUNFX_PSYS.
     { // (gun fx)
@@ -710,6 +762,7 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/cloth.png", PLAYER_HANDS_TEXID);
     load_texture(gst, "res/textures/player_skin.png", PLAYER_SKIN_TEXID);
     load_texture(gst, "res/textures/gun_metal.png", METAL2_TEXID);
+    load_texture(gst, "res/textures/enemy_lvl1.png", ENEMY_LVL1_TEXID);
     
     SetTraceLogLevel(LOG_NONE);
 
@@ -755,7 +808,7 @@ void state_setup_all_enemy_models(struct state_t* gst) {
     }
 
     load_enemy_model(gst, ENEMY_LVL0, "res/models/enemy_lvl0.glb", ENEMY_LVL0_TEXID);
-    load_enemy_model(gst, ENEMY_LVL1, "res/models/enemy_lvl1.glb", GRID9x9_TEXID);
+    load_enemy_model(gst, ENEMY_LVL1, "res/models/enemy_lvl1.glb", ENEMY_LVL1_TEXID);
 
     // ...
 }
@@ -837,6 +890,7 @@ void state_delete_all_item_models(struct state_t* gst) {
 }
 
 
+/*
 void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
     struct crithit_marker_t* marker = &gst->crithit_markers[gst->num_crithit_markers];
 
@@ -854,6 +908,7 @@ void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
         gst->num_crithit_markers = 0;
     }
 }
+*/
 
 void update_fog_settings(struct state_t* gst) {
     glBindBuffer(GL_UNIFORM_BUFFER, gst->fog_ubo);
@@ -911,6 +966,85 @@ void update_fog_settings(struct state_t* gst) {
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, far_color);
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+
+static float get_explosion_effect(Vector3 exp_pos, Vector3 p, float radius) {
+    float dist = Vector3Distance(exp_pos, p);
+    float effect = CLAMP(normalize(dist, radius, 0.0), 0.0, 1.0);
+
+    return effect * effect;
+}
+
+
+void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius) {
+ 
+    add_particles(gst,
+            &gst->psystems[EXPLOSION_PART1_PSYS],
+            GetRandomValue(50, 100),
+            position,
+            (Vector3){0}, &radius, HAS_EXTRADATA);
+
+    add_particles(gst,
+            &gst->psystems[EXPLOSION_PART2_PSYS],
+            GetRandomValue(20, 25),
+            position,
+            (Vector3){0}, &radius, HAS_EXTRADATA);
+
+    add_particles(gst,
+            &gst->psystems[EXPLOSION_PART3_PSYS],
+            GetRandomValue(20, 25),
+            position,
+            (Vector3){0}, NULL, NO_EXTRADATA);
+
+
+
+    SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, position));
+    SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
+    PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
+
+
+    // Calculate explosion effects to player.
+    {
+        float effect = get_explosion_effect(position, gst->player.position, radius);
+
+        if(effect > 0.0) {
+            float damage_to_player = effect * damage;
+            printf("Explosion damage to player: %f\n", damage_to_player);
+            player_damage(gst, &gst->player, damage_to_player);
+
+            // Apply external force from explosion to player.
+            Vector3 force_dir = Vector3Normalize(Vector3Subtract(gst->player.position, position));
+            force_dir = Vector3Scale(force_dir, damage_to_player*0.5);
+            player_apply_force(gst, &gst->player, force_dir);
+        }
+    }
+
+
+    // Calculate explosion effects to enemies nearby.
+
+    for(size_t i = 0; i < gst->num_enemies; i++) {
+        struct enemy_t* ent = &gst->enemies[i];
+        if(!ent->alive) {
+            continue;
+        }
+
+        float effect_to_ent = get_explosion_effect(position, ent->position, radius);
+        float exp_damage_to_ent = effect_to_ent * damage;
+        float exp_knockback_to_ent = effect_to_ent * 10.0;
+
+        printf("Explosion Damage to ent: %0.2f\n", exp_damage_to_ent);
+        struct hitbox_t* hitbox = &ent->hitboxes[HITBOX_BODY];
+
+        enemy_damage(
+                gst,
+                ent,
+                exp_damage_to_ent,
+                hitbox,
+                Vector3Add(ent->position, hitbox->offset),
+                Vector3Subtract(ent->position, position),
+                exp_knockback_to_ent);
+    }
 }
 
 

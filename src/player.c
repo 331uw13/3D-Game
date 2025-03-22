@@ -26,10 +26,11 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->ground_friction = 0.015;
     p->air_friction = 0.001;
     p->dash_speed = 400.0;
-    p->dash_timer_max = 4.5;
+    p->dash_timer_max = 4.0;
     // ------------------------
 
 
+    p->powerup_shop_open = 0;
     p->cam = (Camera){ 0 };
     p->cam.position = gst->terrain.valid_player_spawnpoint;
     p->cam.target = (Vector3){ 0, 0, 0 };
@@ -297,7 +298,7 @@ static float test = 0.0;
 void player_update(struct state_t* gst, struct player_t* p) {
    
     // Player may shoot projectile.
-    if(!p->inventory.open
+    if(!p->inventory.open && !p->powerup_shop_open
        && p->alive
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
         ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -552,6 +553,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     if(IsKeyDown(KEY_LEFT_SHIFT)
     && p->onground
     && !p->inventory.open
+    && !p->powerup_shop_open
     && !p->is_aiming
     && !p->in_water
     ){
@@ -563,8 +565,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         p->speed *= p->air_speed_mult;
     }
 
-    // Decrease speed if inventory is open
-    if(p->inventory.open) {
+    // Decrease speed if inventory or powerup shop is open
+    if(p->inventory.open || p->powerup_shop_open) {
         p->speed *= 0.5;
     }
 
@@ -628,6 +630,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         if(!p->onground 
             && IsKeyPressed(KEY_SPACE)
             && (p->dash_timer >= p->dash_timer_max)
+            && !p->inventory.open
+            && !p->powerup_shop_open
             && !p->in_water) {
             p->dash_velocity.x = p->velocity.x * p->dash_speed;
             p->dash_velocity.z = p->velocity.z * p->dash_speed;
@@ -635,7 +639,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         }
 
         // Can the player jump?
-        if(IsKeyPressed(KEY_SPACE) && ((p->onground && !p->inventory.open) || p->in_water)) {
+        if(IsKeyPressed(KEY_SPACE) 
+                && ((p->onground && !p->inventory.open && !p->powerup_shop_open) || p->in_water)) {
             p->velocity.y = (!p->in_water) ? p->jump_force : (p->jump_force*0.5);
             p->onground = 0;
         }
@@ -688,6 +693,9 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
     if(p->inventory.open) {
+        return;
+    }
+    if(p->powerup_shop_open) {
         return;
     }
     if(gst->menu_open) {

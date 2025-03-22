@@ -49,7 +49,8 @@
 #define PLAYER_SKIN_TEXID 17
 #define PLAYER_HANDS_TEXID 18
 #define METAL2_TEXID 19
-#define MAX_TEXTURES 20
+#define ENEMY_LVL1_TEXID 20
+#define MAX_TEXTURES 21
 // ...
 
 
@@ -80,7 +81,8 @@
 #define GUNFX_SHADER 10
 #define ENEMY_GUNFX_SHADER 11
 #define CRYSTAL_FOLIAGE_SHADER 12
-#define MAX_SHADERS 13
+#define POWERUP_SHOP_BG_SHADER 13
+#define MAX_SHADERS 14
 // ...
  
 
@@ -94,13 +96,14 @@
 #define ENEMY_HIT_PSYS 3 
 #define FOG_EFFECT_PSYS 4
 #define PLAYER_HIT_PSYS 5
-#define ENEMY_EXPLOSION_PSYS 6
-#define ENEMY_EXPLOSION_PART2_PSYS 7 // For extra effect.
-#define WATER_SPLASH_PSYS 8
-#define ENEMY_GUNFX_PSYS 9
-#define ENEMY_PRJ_ENVHIT_PART2_PSYS 10   // For extra effect.
-#define PLAYER_PRJ_ENVHIT_PART2_PSYS 11 // For extra effect.
-#define MAX_PSYSTEMS 12
+#define EXPLOSION_PART1_PSYS 6
+#define EXPLOSION_PART2_PSYS 7
+#define EXPLOSION_PART3_PSYS 8
+#define WATER_SPLASH_PSYS 9
+#define ENEMY_GUNFX_PSYS 10
+#define ENEMY_PRJ_ENVHIT_PART2_PSYS 11  // For extra effect.
+#define PLAYER_PRJ_ENVHIT_PART2_PSYS 12 // For extra effect.
+#define MAX_PSYSTEMS 13
 // ...
 
 
@@ -222,10 +225,11 @@ struct state_t {
     int rseed; // Seed for randomgen functions.
     int debug;
 
+    /*
     struct crithit_marker_t crithit_markers[MAX_RENDER_CRITHITS];
     size_t num_crithit_markers;
     float  crithit_marker_maxlifetime;
-
+    */
 
     int xp_value_add;
     float xp_update_timer;
@@ -255,6 +259,7 @@ void state_update_shader_uniforms(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
 
 void update_fog_settings(struct state_t* gst);
+void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 
 // Initialization.
 void state_setup_all_shaders(struct state_t* gst);
@@ -275,7 +280,7 @@ void state_delete_all_item_models(struct state_t* gst);
 
 
 // Misc.
-void state_add_crithit_marker(struct state_t* gst, Vector3 position);
+//void state_add_crithit_marker(struct state_t* gst, Vector3 position);
 
 
 
