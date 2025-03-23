@@ -53,7 +53,7 @@ vec3 get_bloom() {
     vec2 size = screen_size * 0.22;
     vec2 sf = 1.0/(size * 2.0);
     const int r = 4;
-    
+   
     for(int x = -r; x <= r; x++) {
         for(int y = -r; y <= r; y++) {
             vec2 p = vec2(x, y) * BLOOM_POS_M;
@@ -76,8 +76,12 @@ vec3 get_bloom() {
 void main()
 {
 
+    vec2 texcoords = fragTexCoord;
+    if(blur_effect < 0.5) {
+        texcoords.x += (sin(gl_FragCoord.y*0.8+time*30.0)*0.5+0.5)*0.5;
+    }
 
-    vec3 color = texture(texture0, fragTexCoord).rgb;
+    vec3 color = texture(texture0, texcoords).rgb;
 
 
     vec3 tobloom = texture(texture0, fragTexCoord).rgb;

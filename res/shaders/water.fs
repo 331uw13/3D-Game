@@ -10,7 +10,6 @@ in vec3 fragViewPos;
 
 // Input uniform values
 uniform sampler2D texture0;
-uniform sampler2D reflect_texture;
 uniform vec4 colDiffuse;
 uniform float time;
 
@@ -56,10 +55,12 @@ void main()
     finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));
 
 
-
     float dist = length(fragViewPos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist);
 
-    finalColor.w = 0.53;
+    finalColor.w = 0.46;
+
+
+
 
 }

@@ -42,5 +42,5 @@ void main()
     float dist = length(fragViewPos - fragPosition);
     col = get_fog(col, dist);
 
-    finalColor = vec4(col, texelcolor.w);
+    finalColor = vec4(col, 1.0);
 }

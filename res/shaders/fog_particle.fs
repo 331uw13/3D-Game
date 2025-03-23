@@ -10,6 +10,7 @@ uniform sampler2D texture0;
 uniform float time;
 
 out vec4 finalColor;
+uniform vec4 psystem_color;
 //uniform vec3 viewPos;
 
 in vec3 fragViewPos;
@@ -21,9 +22,9 @@ void main()
 {
     vec3 col;
    
-    col = vec3(0.08, 0.1, 0.1);
+    col = psystem_color.rgb;
     float dist = length(fragViewPos - fragPosition);
     col = get_fog(col, dist);
 
-    finalColor = vec4(col, 1.0);
+    finalColor = vec4(col, psystem_color.w);
 }

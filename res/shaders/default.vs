@@ -12,13 +12,15 @@ uniform mat4 matModel;
 uniform mat4 matNormal;
 uniform vec3 viewPos;
 
+
 // Output vertex attributes (to fragment shader)
 out vec3 fragPosition;
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
 out vec3 fragViewPos;
-// NOTE: Add here your custom variables
+out vec4 light_space;
+
 
 void main()
 {

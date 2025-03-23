@@ -10,9 +10,13 @@ in vec3 fragViewPos;
 
 // Input uniform values
 uniform sampler2D texture0;
+uniform sampler2D depth_texture;
 uniform vec4 colDiffuse;
 uniform float water_level;
+uniform float terrain_lowest_point;
 uniform float time;
+
+in vec4 light_space;
 
 // Output fragment color
 out vec4 finalColor;
@@ -76,7 +80,7 @@ void main()
         // Color below water.
         
         float min = water_level;
-        float max = -300;
+        float max = terrain_lowest_point;
         float t = (y - min) / (max - min);
         t = clamp(t, 0.0, 1.0);
 
@@ -93,7 +97,6 @@ void main()
 
     float dist = length(fragViewPos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist);
-
 
 
 }

@@ -16,10 +16,12 @@ uniform vec2 screen_size;
 #define PI2 (PI*2)
 #define PIR (PI/180.0)
 
-#define FOV 100.0
-#define MAX_RAYLEN 100.0
-#define MIN_DIST 0.00001
+#define FOV 80.0
+#define MAX_RAYLEN 60.0
+#define MIN_DIST 0.1
 
+
+// TODO: Render in smaller resolution and upscale.
 
 
 float lerp(float t, float min, float max) {
@@ -104,8 +106,33 @@ vec4 min_sdf(vec4 a, vec4 b) {
 
 #include "res/shaders/voronoi.glsl"
 
+vec4 map(vec3 p) {
+    vec4 ret = vec4(0.0, 0.0, 0.0, 999999.99);
+
+
+    {
+        vec3 q = p;
+
+        q.xy *= rotm2(sin(p.z*0.008)+time*0.2);
+        q = rep(q, vec3(15.0, 15.0, 30.0));
+        
+        q = abs(q) - sin(0.89+time)*0.5+0.5;
+        q.zy *= rotm2(time);
+        q.xz *= rotm2(time);
+
+        vec3 s0col = vec3(0.5, 0.5, 0.5);
+        vec4 s0 = vec4(s0col, boxframe_sdf(q, vec3(5.0), 0.15) );
+        ret = min_sdf(ret, s0);
+    }
+
+
+
+
+    return ret;
+}
 // xyz = Color, w = Distance.
 //
+/*
 vec4 map(vec3 p) {
     vec4 ret = vec4(0.0, 0.0, 0.0, 999999.99);
 
@@ -116,15 +143,17 @@ vec4 map(vec3 p) {
         q.xy *= rotm2(sin(p.z*0.002)+time*0.2);
 
         q = rep(q, vec3(10.0, 10.0, 30.0));
+        q = abs(q) - sin(p.z*0.35) * 5.0+1.0;
 
-        vec3 s0col = vec3(0.5, 0.3, 0.0);
-        vec4 s0 = vec4(s0col, boxframe_sdf(abs(q)-sin(p.z*0.3)*3.0, vec3(3.0), 0.15));
+        vec3 s0col = vec3(0.5, 0.5, 0.5);
+        vec4 s0 = vec4(s0col, boxframe_sdf(q, vec3(5.0), 0.15));
         ret = min_sdf(ret, s0);
     }
 
 
     return ret;
 }
+*/
 
 vec4 raymarch(vec3 ro, vec3 rd) {
     vec3 color = vec3(0.0, 0.0, 0.0);
@@ -147,7 +176,6 @@ vec4 raymarch(vec3 ro, vec3 rd) {
 
             float pulse = sin(time*10.0 + p.z*0.1)*0.5+0.5;
 
-            color += vec3(pulse*0.23);
 
             was_hit = 1;
             break;
@@ -166,9 +194,9 @@ vec4 raymarch(vec3 ro, vec3 rd) {
         steps *= steps * steps;
         float glow = steps / (MAX_RAYLEN * MAX_RAYLEN * MAX_RAYLEN);
     
-        glow = pow(glow, 0.25);
+        glow = pow(glow, 0.15);
 
-        float vnoise = voronoi3d(p*0.3).x;
+        float vnoise = voronoi3d(p*0.2).x;
         vec3 glow_color = palette(vnoise+sin(p.z*0.2+time), RGB_PALETTE);
         color += glow * glow_color;
     }
@@ -187,9 +215,10 @@ void main() {
     color = raymarch(ro, rd).xyz;
 
 
-    finalColor.w = 0.235;
+    finalColor.w = 0.15;
     finalColor.xyz = color;
 }
+
 
 
 
