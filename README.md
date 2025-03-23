@@ -11,13 +11,16 @@
 ---------------------
 
 
-![image](https://github.com/331uw13/3D-Game/blob/main/3dgame-screenshot2.png?raw=true)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-32538.png?raw=true)
 
-* Kill enemy robots to gain xp and upgrade your powerups! (Powerups not yet implemented!!)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-47349.png?raw=true)
+
+* Gain XP by shooting enemy robots and upgrade your powerups.  (Some powerups are not yet implemented)
 
 * Enemies may drop metal pieces which can be used to fix armor.
 
 * Apples spawn in the world naturally which can be used to heal the player.
+
 
 
 ### Compiling the game.
