@@ -76,6 +76,7 @@ void loop(struct state_t* gst) {
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "depth_texture"), gst->depth_texture.texture);
+                
 
                 DrawTextureRec(
                         gst->env_render_target.texture,
@@ -114,11 +115,11 @@ void loop(struct state_t* gst) {
                 gui_render_menu_screen(gst);
             }
             else
-            if(gst->player.powerup_shop_open) {
+            if(gst->player.powerup_shop.open) {
                 gui_render_powerup_shop(gst);
             }
 
-            if(!gst->menu_open && !gst->player.powerup_shop_open) {
+            if(!gst->menu_open && !gst->player.powerup_shop.open) {
                 render_player_stats(gst, &gst->player);
             }
 
@@ -239,15 +240,6 @@ void first_setup(struct state_t* gst) {
     }
 
     SetExitKey(-1);
-
-    // Loading screen.
-    BeginDrawing();
-    {
-        ClearBackground((Color){ 10, 10, 10, 255 });
-        DrawText("Loading...", 100, 100, 40, (Color){ 180, 180, 180, 255 });
-    }
-    EndDrawing();
-
     gst->font = LoadFont("res/Topaz-8.ttf");
 
     
@@ -256,6 +248,7 @@ void first_setup(struct state_t* gst) {
     SetTraceLogLevel(LOG_ERROR);
     rlSetClipPlanes(rlGetCullDistanceNear()+0.15, rlGetCullDistanceFar()+3000);
 
+    gst->num_textures = 0;
     gst->num_textures = 0;
     gst->debug = 0;
     gst->num_enemies = 0;
@@ -269,9 +262,9 @@ void first_setup(struct state_t* gst) {
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
     const float terrain_scale = 20.0;
-    const u32   terrain_size = 1024;
-    const float terrain_amplitude = 20.0;
-    const float terrain_pnfrequency = 60.0;
+    const u32   terrain_size = 2048;
+    const float terrain_amplitude = 30.0;
+    const float terrain_pnfrequency = 80.0;
     const int   terrain_octaves = 3;
   
     /*
@@ -280,6 +273,9 @@ void first_setup(struct state_t* gst) {
 
     memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
     */
+
+
+
 
 
 
@@ -324,23 +320,14 @@ void first_setup(struct state_t* gst) {
 
     printf("%i\n", gst->fog_ubo);
 
+    
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_weapons(gst);
-    state_setup_all_psystems(gst);
     state_setup_all_sounds(gst);
     state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
-
-    setup_natural_item_spawn_settings(gst);
-    setup_default_enemy_spawn_settings(gst);
-
-    gst->fog_density = 2.0;
-    gst->fog_color_near = (Color){ 50, 170, 200 };
-    gst->fog_color_far = (Color){ 80, 50, 70 };
-
-    update_fog_settings(gst);
 
     // --- Setup Terrain ----
     {
@@ -365,14 +352,28 @@ void first_setup(struct state_t* gst) {
 
     }
 
+    state_setup_all_psystems(gst);
+    
+    setup_natural_item_spawn_settings(gst);
+    setup_default_enemy_spawn_settings(gst);
+
+    gst->fog_density = 2.0;
+    gst->fog_color_near = (Color){ 50, 170, 200 };
+    gst->fog_color_far = (Color){ 80, 50, 70 };
+
+    update_fog_settings(gst);
+    update_powerup_shop_offers(gst);
+    gst->player.powerup_shop.available = 1;
+
+
     init_player_struct(gst, &gst->player);
 
     state_setup_render_targets(gst);
 
-
     int seed = time(0);
     gst->rseed = seed;
     SetRandomSeed(seed);
+
 
 
     // Make sure all lights are disabled.

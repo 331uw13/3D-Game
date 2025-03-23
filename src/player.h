@@ -11,9 +11,17 @@
 struct state_t;
 
 
-#define HIGH_MAX_ARMOR 20  // How much players max armor can be upgraded to?
+#define ABS_MAX_ARMOR 20
+#define ABS_MAX_HEALTH 1000
 #define MAX_DEFAULT_ARMOR  3
 #define DEFAULT_ARMOR_DAMAGE_DAMPEN 0.765
+
+#define ARMOR_DAMAGE_DAMPEN_MIN 0.95
+#define ARMOR_DAMAGE_DAMPEN_MAX 0.25
+
+#define FIRERATE_MIN 0.0005
+#define FIRERATE_MAX 0.1
+
 
 #define PLAYER_HEALTH_COLOR_LOW (Color){ 255, 50, 20, 255 }
 #define PLAYER_HEALTH_COLOR_HIGH (Color){ 50, 255, 20, 255 }
@@ -95,6 +103,7 @@ struct player_t {
 
     struct item_t* item_in_crosshair;
    
+    struct powerup_shop_t powerup_shop;
     struct inventory_t inventory;
 
     Model gunmodel;
@@ -146,9 +155,7 @@ struct player_t {
     // Entities cant have this setting.
     int weapon_firetype; 
 
-    int powerup_shop_open;
-    size_t num_avail_powerups; // How many powerups can player handle?
-    struct powerup_t powerups[8];
+    int any_gui_open;
 };
 
 

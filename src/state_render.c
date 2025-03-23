@@ -110,6 +110,8 @@ static void render_terrain_and_enemies(struct state_t* gst, int renderpass) {
  
 }
 
+
+
 void state_render(struct state_t* gst) {
 
     
@@ -125,6 +127,8 @@ void state_render(struct state_t* gst) {
     EndTextureMode();
 
 
+
+   
     //  ------ Final pass.
 
     BeginTextureMode(gst->env_render_target);
@@ -132,6 +136,8 @@ void state_render(struct state_t* gst) {
 
     BeginMode3D(gst->player.cam);
     {
+
+        
         // Render debug info if needed. --------
         if(gst->debug) {
             for(size_t i = 0; i < gst->num_enemies; i++) {
@@ -171,27 +177,6 @@ void state_render(struct state_t* gst) {
 
         render_terrain_and_enemies(gst, RENDERPASS_FINAL);
 
-        /*
-        set_enemies_render_shader(gst, DEFAULT_SHADER);
- 
-       
-        // Enemies.
-        for(size_t i = 0; i < gst->num_enemies; i++) {
-            struct enemy_t* ent = &gst->enemies[i];
-            if(!ent->alive) {
-                continue;
-            }
-
-            render_enemy(gst, ent);
-        }
-
-
-        render_terrain(gst, &gst->terrain, 
-                DEFAULT_SHADER, // Shader for terrain.
-                FOLIAGE_SHADER  // Shader for foliage
-                );
-
-                */
         // Particle systems. (rendered only if needed)
         {
             // Player
@@ -204,7 +189,7 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
 
             // Environment
-            render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 255, 160, 20, 255});
+            render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
             render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
             render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
             render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
@@ -214,6 +199,7 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[EXPLOSION_PART2_PSYS], (Color){ 255, 140, 40, 160});
             render_psystem(gst, &gst->psystems[EXPLOSION_PART3_PSYS], (Color){ 30, 30, 30, 230});
         
+            render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 70, 60, 50, 255 });
         }
 
         player_render(gst, &gst->player);

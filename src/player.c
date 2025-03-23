@@ -30,7 +30,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     // ------------------------
 
 
-    p->powerup_shop_open = 0;
     p->cam = (Camera){ 0 };
     p->cam.position = gst->terrain.valid_player_spawnpoint;
     p->cam.target = (Vector3){ 0, 0, 0 };
@@ -75,7 +74,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->max_health = 300.0;
     p->health = p->max_health;
     p->alive = 1;
-
     p->accuracy_modifier = 0.0;
     p->accuracy_control = 0.0;
     p->time_from_last_shot = 0.0;
@@ -83,11 +81,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->firerate_timer = 0.0;
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->inventory.open = 0;
+    p->powerup_shop.open = 0;
+    p->powerup_shop.selected_index = -1;
+    p->powerup_shop.timeout_time = 0.0;
 
     p->aim_idle_timer = 0.0;
-
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
-
     p->rotation_from_hit = (Vector3){ 0, 0, 0 };
     
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
@@ -114,6 +113,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
     p->gunfx_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUNFX_TEXID];
     p->gunfx_timer = 1.0;
+
+    p->xp = 165;
 
     // calculate matrices for when player is aiming and not aiming.
     
@@ -288,8 +289,18 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     p->is_aiming = 0;
     p->ready_to_shoot = 0;
     p->cam.position = gst->terrain.valid_player_spawnpoint;
+    p->velocity = (Vector3){0, 0, 0};
+    p->ext_force_vel = (Vector3){0, 0, 0};
+    p->ext_force_acc = (Vector3){0, 0, 0};
     p->xp = 0;
     p->kills = 0;
+   
+    for(size_t i = 0; i < gst->num_enemies; i++) {
+        gst->enemies[i].alive = 0;
+    }
+
+    setup_default_enemy_spawn_settings(gst);
+
     DisableCursor();
 }
 
@@ -297,8 +308,9 @@ static float test = 0.0;
 
 void player_update(struct state_t* gst, struct player_t* p) {
    
+
     // Player may shoot projectile.
-    if(!p->inventory.open && !p->powerup_shop_open
+    if(!p->any_gui_open
        && p->alive
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
         ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -552,8 +564,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     // Can player run?
     if(IsKeyDown(KEY_LEFT_SHIFT)
     && p->onground
-    && !p->inventory.open
-    && !p->powerup_shop_open
+    && !p->any_gui_open
     && !p->is_aiming
     && !p->in_water
     ){
@@ -565,8 +576,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         p->speed *= p->air_speed_mult;
     }
 
-    // Decrease speed if inventory or powerup shop is open
-    if(p->inventory.open || p->powerup_shop_open) {
+    // Decrease speed if any gui is open.
+    if(p->any_gui_open) {
         p->speed *= 0.5;
     }
 
@@ -577,7 +588,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
     // For noclip.
     if(p->noclip) {
-        p->speed *= 5.0;
+        p->speed *= 20.0;
         p->onground = 0;
     }
 
@@ -630,8 +641,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         if(!p->onground 
             && IsKeyPressed(KEY_SPACE)
             && (p->dash_timer >= p->dash_timer_max)
-            && !p->inventory.open
-            && !p->powerup_shop_open
+            && !p->any_gui_open
             && !p->in_water) {
             p->dash_velocity.x = p->velocity.x * p->dash_speed;
             p->dash_velocity.z = p->velocity.z * p->dash_speed;
@@ -640,7 +650,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
         // Can the player jump?
         if(IsKeyPressed(KEY_SPACE) 
-                && ((p->onground && !p->inventory.open && !p->powerup_shop_open) || p->in_water)) {
+                && ((p->onground && !p->any_gui_open) || p->in_water)) {
             p->velocity.y = (!p->in_water) ? p->jump_force : (p->jump_force*0.5);
             p->onground = 0;
         }
@@ -692,13 +702,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
-    if(p->inventory.open) {
-        return;
-    }
-    if(p->powerup_shop_open) {
-        return;
-    }
-    if(gst->menu_open) {
+    if(p->any_gui_open) {
         return;
     }
 
@@ -787,9 +791,6 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
 
 
 
-
-
-
     // * Experience level text.
     // * Full/Semi auto text
     {
@@ -844,11 +845,83 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
                 FONT_SPACING,
                 (Color){ 20, 150, 20, 255 }
                 );
-
-
-
-
     }
+
+
+
+    // Show extra info about powerups if inventory is open.
+    
+    if(!p->inventory.open) {
+        return;
+    }
+
+    Vector2 textpos = (Vector2){ 30, 400 };
+    const float textpos_y_inc = 17.5;
+    DrawTextEx(
+            gst->font,
+            TextFormat("Accuracy: %0.1f / %0.1f", p->weapon.accuracy, WEAPON_ACCURACY_MAX),
+            textpos,
+            15,
+            FONT_SPACING,
+            (Color){ 200, 200, 200, 255 }
+            );
+    textpos.y += textpos_y_inc;
+
+    DrawTextEx(
+            gst->font,
+            TextFormat("Firerate: %0.1f / %0.1f", p->firerate, FIRERATE_MIN),
+            textpos,
+            15,
+            FONT_SPACING,
+            (Color){ 200, 200, 200, 255 }
+            );
+    textpos.y += textpos_y_inc;
+
+    DrawTextEx(
+            gst->font,
+            TextFormat("Max Health: %0.1f / %i", p->max_health, ABS_MAX_HEALTH),
+            textpos,
+            15,
+            FONT_SPACING,
+            (Color){ 200, 200, 200, 255 }
+            );
+    textpos.y += textpos_y_inc;
+
+    DrawTextEx(
+            gst->font,
+            TextFormat("Max Armor: %i / %i", p->max_armor, ABS_MAX_ARMOR),
+            textpos,
+            15,
+            FONT_SPACING,
+            (Color){ 200, 200, 200, 255 }
+            );
+    textpos.y += textpos_y_inc;
+
+    DrawTextEx(
+            gst->font,
+            TextFormat("Weapon damage: %0.1f / %0.1f", p->weapon.damage, WEAPON_DAMAGE_MAX),
+            textpos,
+            15,
+            FONT_SPACING,
+            (Color){ 200, 200, 200, 255 }
+            );
+    textpos.y += textpos_y_inc;
+
+    DrawTextEx(
+            gst->font,
+            TextFormat("Armor damage dampen: %0.1f / %0.1f", p->armor_damage_dampen, ARMOR_DAMAGE_DAMPEN_MAX),
+            textpos,
+            15,
+            FONT_SPACING,
+            (Color){ 200, 200, 200, 255 }
+            );
+    textpos.y += textpos_y_inc;
+
+
+
+
+
+
 }
 
 

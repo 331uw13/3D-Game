@@ -33,8 +33,7 @@ static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
     return terrain->heightmap.data[index];
 }
 
-
-
+#define CLEAR_BACKGROUND ClearBackground((Color){ 10, 10, 10, 255 })
 
 
 RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z) {
@@ -138,6 +137,24 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         fm->tree_type0[i] = MatrixMultiply(rotation, translation);
     }
 
+    // Tree Type1
+    fm->num_tree_type1 = TREE_TYPE1_MAX_PERCHUNK;
+    for(size_t i = 0; i < fm->num_tree_type1; i++) {
+        
+        float x = RSEEDRANDOMF(x_min, x_max);
+        float z = RSEEDRANDOMF(z_min, z_max);
+
+        RayCollision ray = raycast_terrain(terrain, x, z);
+
+        if(ray.point.y < terrain->water_ylevel) {
+            continue;
+        }
+
+        Matrix translation = MatrixTranslate(x, ray.point.y, z);
+        Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
+        fm->tree_type1[i] = MatrixMultiply(rotation, translation);
+    }
+
     // Rock Type0
     fm->num_rock_type0 = ROCK_TYPE0_MAX_PERCHUNK;
     for(size_t i = 0; i < fm->num_rock_type0; i++) {
@@ -229,7 +246,25 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         *chunk = (struct chunk_t) { 0 };
+        
     
+        // Loading bar
+        BeginDrawing();
+        {
+            CLEAR_BACKGROUND;
+
+            DrawText(TextFormat("Loading chunk (%i / %i)", i, terrain->num_chunks), 100, 100, 40.0, WHITE);
+            const float bar_x = 100;
+            const float bar_y = 200;
+            const float bar_max_x = 800;
+            float bar_height = 20;
+            float bar_width = map((float)i, 0, (float)terrain->num_chunks, 0.0, bar_max_x);
+            DrawRectangle(bar_x-5, bar_y-5, bar_max_x+10, bar_height+10, (Color){ 30, 40, 30, 255 });
+            DrawRectangle(bar_x, bar_y, bar_width, bar_height, (Color){ 80, 200, 80, 255 });
+
+        }
+        EndDrawing();
+
         chunk->mesh.triangleCount = chunk_triangle_count;
         chunk->mesh.vertexCount = chunk->mesh.triangleCount * 3;
 
@@ -385,6 +420,8 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     printf("\n----------------\n");
 }
 
+
+
 void generate_terrain(
         struct state_t* gst,
         struct terrain_t* terrain,
@@ -395,8 +432,9 @@ void generate_terrain(
         int    octaves,
         int    seed
 ) {
-
     // Start by creating a height map for the terrain.
+
+
 
     terrain->heightmap.total_size = (terrain_size) * (terrain_size);
     terrain->heightmap.data = malloc(terrain->heightmap.total_size * sizeof *terrain->heightmap.data);
@@ -404,6 +442,7 @@ void generate_terrain(
     terrain->chunks = NULL;
 
     terrain->highest_point = 0.0;
+    terrain->lowest_point = 999999;
     terrain->num_visible_chunks = 0;
 
     terrain->water_ylevel = WATER_INITIAL_YLEVEL;
@@ -411,7 +450,12 @@ void generate_terrain(
     // The 'randomf' function modifies the seed.
     int seed_x = randomgen(&seed);
     int seed_z = randomgen(&seed);
-    
+ 
+    BeginDrawing();
+    CLEAR_BACKGROUND;
+    DrawText("Creating heightmap 1 / 3", 100, 100, 40.0, WHITE);
+    EndDrawing();   
+
     // First pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
@@ -425,21 +469,56 @@ void generate_terrain(
         }
     }
 
+    BeginDrawing();
+    CLEAR_BACKGROUND;
+    DrawText("Creating heightmap 2 / 3", 100, 100, 40.0, WHITE);
+    EndDrawing();   
+
+
     // Second pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
 
-            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/6);
-            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/6);
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/7.25);
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/7.25);
 
             float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 10);
             terrain->heightmap.data[index] += value;
         }
     }
 
+    BeginDrawing();
+    CLEAR_BACKGROUND;
+    DrawText("Creating heightmap 3 / 3", 100, 100, 40.0, WHITE);
+    EndDrawing();   
 
-    // Get highest point.
+
+    // Third pass.
+    for(u32 z = 0; z < terrain->heightmap.size; z++) {
+        for(u32 x = 0; x < terrain->heightmap.size; x++) {
+            size_t index = z * terrain->heightmap.size + x;
+
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency);
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency);
+            float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude*3.0);
+
+
+            float p_nx2 = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/10.0);
+            float p_nz2 = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/10.0);
+            float value2 = fbm_2D(p_nx2, p_nz2, octaves);
+
+            float p_nx3 = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/2.0);
+            float p_nz3 = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/2.0);
+            float value3 = fbm_2D(p_nx3, p_nz3, octaves);
+
+
+            terrain->heightmap.data[index] += value * (value2 * value3);
+        }
+    }
+    
+
+    // Get highest and lowest point.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
@@ -448,8 +527,19 @@ void generate_terrain(
             if(v > terrain->highest_point) {
                 terrain->highest_point = v;
             }
+
+            if(v < terrain->lowest_point) {
+                terrain->lowest_point = v;
+            }
         }
     }
+
+    printf("Terrain highest point: %0.2f\n", terrain->highest_point);
+    printf("Terrain lowest point: %0.2f\n", terrain->lowest_point);
+
+    SetShaderValueV(gst->shaders[DEFAULT_SHADER],
+            GetShaderLocation(gst->shaders[DEFAULT_SHADER], "terrain_lowest_point"),
+            &terrain->lowest_point, 1, SHADER_UNIFORM_FLOAT);
 
     
     size_t triangle_count = (terrain->heightmap.size-1) * (terrain->heightmap.size-1) * 2;
@@ -504,6 +594,7 @@ void generate_terrain(
             };
         }
     }
+    
 
     terrain->scaling = terrain_scaling;
 
@@ -532,6 +623,25 @@ void generate_terrain(
         fmodels->tree_type0.materials[1].shader = gst->shaders[FOLIAGE_SHADER];
         fmodels->tree_type0.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
             = gst->textures[LEAF_TEXID];
+
+
+
+        // Tree Type 1
+        fmodels->tree_type1 = LoadModel("res/models/tree_type1.glb");
+        
+        // Tree bark
+        fmodels->tree_type1.materials[0] = LoadMaterialDefault();
+        fmodels->tree_type1.materials[0].shader = gst->shaders[FOLIAGE_SHADER];
+        fmodels->tree_type1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
+            = gst->textures[TREEBARK_TEXID];
+        
+        // Tree leafs
+        fmodels->tree_type1.materials[1] = LoadMaterialDefault();
+        fmodels->tree_type1.materials[1].shader = gst->shaders[FOLIAGE_SHADER];
+        fmodels->tree_type1.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
+            = gst->textures[LEAF_TEXID];
+
+
 
         // Rock type 0
         fmodels->rock_type0 = LoadModel("res/models/rock_type0.glb");
@@ -581,6 +691,12 @@ void generate_terrain(
         = (terrain->num_max_visible_chunks * TREE_TYPE0_MAX_PERCHUNK);
     terrain->rfmatrices.tree_type0 
         = malloc(terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
+
+    terrain->rfmatrices.tree_type1_size 
+        = (terrain->num_max_visible_chunks * TREE_TYPE1_MAX_PERCHUNK);
+    terrain->rfmatrices.tree_type1 
+        = malloc(terrain->rfmatrices.tree_type1_size * sizeof(Matrix));
+
 
     terrain->rfmatrices.rock_type0_size 
         = (terrain->num_max_visible_chunks * ROCK_TYPE0_MAX_PERCHUNK);
@@ -660,6 +776,10 @@ void delete_terrain(struct terrain_t* terrain) {
         free(terrain->rfmatrices.tree_type0);
         terrain->rfmatrices.tree_type0 = NULL;
     }
+    if(terrain->rfmatrices.tree_type1) {
+        free(terrain->rfmatrices.tree_type1);
+        terrain->rfmatrices.tree_type1 = NULL;
+    }
     if(terrain->rfmatrices.rock_type0) {
         free(terrain->rfmatrices.rock_type0);
         terrain->rfmatrices.rock_type0 = NULL;
@@ -668,10 +788,11 @@ void delete_terrain(struct terrain_t* terrain) {
         free(terrain->rfmatrices.crystals);
         terrain->rfmatrices.crystals = NULL;
     }
-   
     UnloadModel(terrain->waterplane);
     UnloadModel(terrain->foliage_models.tree_type0);
+    UnloadModel(terrain->foliage_models.tree_type1);
     UnloadModel(terrain->foliage_models.rock_type0);
+    UnloadModel(terrain->foliage_models.crystal);
 
     printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
@@ -699,8 +820,6 @@ static void copy_foliage_matrices_from_chunk(
 
 #include <rlgl.h>
 
-// TODO: This needs optimization!
-// ------------------------------
 
 void render_terrain(
         struct state_t* gst,
@@ -718,10 +837,14 @@ void render_terrain(
     // - Copy matrices from chunk data to these arrays
     //   Then draw them all at once.
 
-
     memset(terrain->rfmatrices.tree_type0, 0, terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
     terrain->rfmatrices.num_tree_type0 = 0;
     size_t rf_tree_type0_index = 0; // Where to copy from next chunk?
+
+    memset(terrain->rfmatrices.tree_type1, 0, terrain->rfmatrices.tree_type1_size * sizeof(Matrix));
+    terrain->rfmatrices.num_tree_type1 = 0;
+    size_t rf_tree_type1_index = 0;
+
 
     memset(terrain->rfmatrices.rock_type0, 0, terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
     terrain->rfmatrices.num_rock_type0 = 0;
@@ -733,7 +856,7 @@ void render_terrain(
     size_t rf_crystal_index = 0;
 
 
-    terrain->water_ylevel += sin(gst->time)*0.000585;
+    terrain->water_ylevel += sin(gst->time)*0.001585;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -742,6 +865,7 @@ void render_terrain(
         if(chunk->dst2player > RENDER_DISTANCE) {
             continue;
         }
+
     
         terrain->num_visible_chunks++;
 
@@ -752,6 +876,15 @@ void render_terrain(
                 &rf_tree_type0_index,
                 chunk->foliage_matrices.tree_type0,
                 chunk->foliage_matrices.num_tree_type0
+                );
+
+        copy_foliage_matrices_from_chunk(
+                terrain->rfmatrices.tree_type1,
+                terrain->rfmatrices.tree_type1_size,
+                &terrain->rfmatrices.num_tree_type1,
+                &rf_tree_type1_index,
+                chunk->foliage_matrices.tree_type1,
+                chunk->foliage_matrices.num_tree_type1
                 );
 
         copy_foliage_matrices_from_chunk(
@@ -782,6 +915,13 @@ void render_terrain(
     terrain->foliage_models.tree_type0.materials[0].shader = gst->shaders[foliage_shader_index];
     terrain->foliage_models.tree_type0.materials[1].shader = gst->shaders[foliage_shader_index];
     terrain->foliage_models.rock_type0.materials[0].shader = gst->shaders[foliage_shader_index];
+    
+    if(foliage_shader_index == WDEPTH_INSTANCE_SHADER) {
+        terrain->foliage_models.crystal.materials[0].shader = gst->shaders[foliage_shader_index];
+    }
+    else {
+        terrain->foliage_models.crystal.materials[0].shader = gst->shaders[CRYSTAL_FOLIAGE_SHADER];
+    }
 
 
     // Render all trees
@@ -796,6 +936,19 @@ void render_terrain(
             terrain->foliage_models.tree_type0.materials[1],
             terrain->rfmatrices.tree_type0,
             terrain->rfmatrices.num_tree_type0
+            );
+
+    DrawMeshInstanced( // Tree bark
+            terrain->foliage_models.tree_type1.meshes[0],
+            terrain->foliage_models.tree_type1.materials[0],
+            terrain->rfmatrices.tree_type1,
+            terrain->rfmatrices.num_tree_type1
+            );
+    DrawMeshInstanced( // Tree leafs
+            terrain->foliage_models.tree_type1.meshes[1],
+            terrain->foliage_models.tree_type1.materials[1],
+            terrain->rfmatrices.tree_type1,
+            terrain->rfmatrices.num_tree_type1
             );
 
     // Render all rocks

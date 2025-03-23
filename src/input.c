@@ -39,31 +39,12 @@ void handle_userinput(struct state_t* gst) {
         spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
     }
 
-
-
-
-    if(IsKeyPressed(KEY_R)) {
-        spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, 
-                (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-100.0, 100.0),
-                    0,
-                    gst->player.position.z + RSEEDRANDOMF(-100.0, 100.0)
-                });
-
-        spawn_enemy(gst, ENEMY_LVL1, ENT_FRIENDLY, 
-                (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-100.0, 100.0),
-                    0,
-                    gst->player.position.z + RSEEDRANDOMF(-100.0, 100.0)
-                });
-
+    if(IsKeyPressed(KEY_F2)) {
+        const char* filename = TextFormat("screenshot-%i.png", GetRandomValue(10000,99999));
+        printf(" < Took screenshot, filename: \"%s\" >\n", filename);
+        TakeScreenshot(filename);
     }
 
-    
-    if(IsKeyPressed(KEY_Y)) {
-        gst->player.cam.position = (Vector3){ 0, 100, 0 };
-        printf("Teleported to (0, 100, 0)\n");
-    }
     if(IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
         gst->player.aim_button_hold_timer += gst->dt;
         if(gst->player.aim_button_hold_timer >= 0.485/* <- Treshold */) {
@@ -75,10 +56,13 @@ void handle_userinput(struct state_t* gst) {
         
     }
 
+    if(IsKeyPressed(KEY_I)) {
+        update_powerup_shop_offers(gst);
+    }
+    
     if(gst->player.alive) {
         if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
-        && !gst->player.inventory.open
-        && !gst->player.powerup_shop_open
+        && !gst->player.any_gui_open
         && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
             gst->player.is_aiming =! gst->player.is_aiming;
             gst->player.aim_idle_timer = 0.0;
@@ -98,18 +82,20 @@ void handle_userinput(struct state_t* gst) {
         else {
             DisableCursor();
         }
-        gst->player.powerup_shop_open = 0;
+        gst->player.powerup_shop.open = 0;
         gst->player.inventory.open = 0;
+        gst->player.powerup_shop.open = 0;
     }
 
     // TODO: remove this.
     if(IsKeyPressed(KEY_TWO)) {
-        if((gst->player.powerup_shop_open = !gst->player.powerup_shop_open)) {
+        if((gst->player.powerup_shop.open = !gst->player.powerup_shop.open)) {
             EnableCursor();
         }
         else {
             DisableCursor();
         }
+        gst->player.powerup_shop.selected_index = -1;
         gst->player.inventory.open = 0;
     }
     
@@ -121,7 +107,7 @@ void handle_userinput(struct state_t* gst) {
 
     if(IsKeyPressed(KEY_TAB) 
             && !gst->menu_open
-            && !gst->player.powerup_shop_open
+            && !gst->player.powerup_shop.open
             && gst->player.alive) {
         toggle_inventory(gst, &gst->player);
     }

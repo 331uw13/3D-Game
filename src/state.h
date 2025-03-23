@@ -63,7 +63,8 @@
 #define PRJ_ENVHIT_SOUND 5
 #define PLAYER_HIT_SOUND 6
 #define ENEMY_EXPLOSION_SOUND 7
-#define MAX_SOUNDS 8
+#define POWERUP_SOUND 8
+#define MAX_SOUNDS 9
 //...
 
 
@@ -103,7 +104,8 @@
 #define ENEMY_GUNFX_PSYS 10
 #define ENEMY_PRJ_ENVHIT_PART2_PSYS 11  // For extra effect.
 #define PLAYER_PRJ_ENVHIT_PART2_PSYS 12 // For extra effect.
-#define MAX_PSYSTEMS 13
+#define CLOUD_PSYS 13
+#define MAX_PSYSTEMS 14
 // ...
 
 
@@ -149,6 +151,8 @@
 #define SUN_LIGHT_ID 0
 #define PLAYER_GUN_LIGHT_ID 1
 
+
+#define NUM_POWERUP_OFFERS 3
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -208,7 +212,6 @@ struct state_t {
     size_t num_enemies;
    
 
-
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
 
@@ -249,9 +252,12 @@ struct state_t {
     // (NOT CURRENTLY USED)
     RenderTexture2D depth_texture;
 
+ 
     Color render_bg_color;
     int running;
     int menu_open;
+
+
 };
 
 void state_setup_render_targets(struct state_t* gst);

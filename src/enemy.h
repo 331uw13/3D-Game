@@ -24,8 +24,8 @@
 #define MAX_ENEMY_TYPES 2
 
 
-#define ENEMY_DESPAWN_RADIUS 2500.0
-#define ENEMY_DESPAWN_TIME 120 // (in seconds)
+#define ENEMY_DESPAWN_RADIUS 1000.0
+#define ENEMY_DESPAWN_TIME 60 // (in seconds)
 
 
 #define ENEMY_LVL0_MAX_HEALTH 100

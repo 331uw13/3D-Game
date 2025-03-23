@@ -700,9 +700,7 @@ void update_enemy_spawn_system(struct state_t* gst) {
 
             spawn_enemies(gst, enemy_type, n, gst->spawnsys.spawn_radius[enemy_type]);
         }
-
     }
-
 }
 
 void setup_default_enemy_spawn_settings(struct state_t* gst) {
@@ -710,23 +708,23 @@ void setup_default_enemy_spawn_settings(struct state_t* gst) {
 
     // ENEMY_LVL0 Defaults.
     type = ENEMY_LVL0;
-    gst->spawnsys.max_in_spawn_radius[type] = 6;
-    gst->spawnsys.max_in_world[type] = 12;
+    gst->spawnsys.max_in_spawn_radius[type] = 4;
+    gst->spawnsys.max_in_world[type] = 10;
     gst->spawnsys.spawn_radius[type] = 800.0;
-    gst->spawnsys.spawn_timers_max[type] = 25.0;
+    gst->spawnsys.spawn_timers_max[type] = 30.0;
     gst->spawnsys.spawn_timers[type] = 20.0; // Skip little bit ahead.
-    gst->spawnsys.num_spawns_min[type] = 3;
-    gst->spawnsys.num_spawns_max[type] = 6;
+    gst->spawnsys.num_spawns_min[type] = 2;
+    gst->spawnsys.num_spawns_max[type] = 5;
 
 
     // ENEMY_LVL1 Defaults.
     type = ENEMY_LVL1;
-    gst->spawnsys.max_in_spawn_radius[type] = 3;
-    gst->spawnsys.max_in_world[type] = 8;
+    gst->spawnsys.max_in_spawn_radius[type] = 6;
+    gst->spawnsys.max_in_world[type] = 10;
     gst->spawnsys.spawn_radius[type] = 1200.0;
-    gst->spawnsys.spawn_timers_max[type] = 40.0;
-    gst->spawnsys.spawn_timers[type] = 30.0;
-    gst->spawnsys.num_spawns_min[type] = 3;
+    gst->spawnsys.spawn_timers_max[type] = 120.0;
+    gst->spawnsys.spawn_timers[type] = 0.0;
+    gst->spawnsys.num_spawns_min[type] = 2;
     gst->spawnsys.num_spawns_max[type] = 6;
 
 

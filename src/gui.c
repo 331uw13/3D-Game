@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <math.h>
 #include "gui.h"
 #include "state.h"
 
@@ -19,6 +21,42 @@ int mouse_on_rect(Vector2 rect_pos, Vector2 rect_size) {
             (mouse.y > rect_pos.y) && (mouse.y < (rect_pos.y+rect_size.y))
             );
 
+}
+
+
+int gui_button_ext(
+        struct state_t* gst,
+        const char* text,
+        float font_size,
+        Vector2 position,
+        Color bg_color, // Background color
+        Color fg_color, // Foreground color (text)
+        Color ln_focus_color, // Lines color around button when focused.
+        Color ln_unfocus_color // Lines color around button when unfocused.
+){
+    int clicked = 0;
+    Vector2 measure = MeasureTextEx(gst->font, text, font_size, FONT_SPACING);
+
+    Rectangle rect = (Rectangle) {
+        position.x - EXTRA_OFF_W,   position.y - EXTRA_OFF_H,
+        measure.x  + EXTRA_OFF_W*2,  measure.y + EXTRA_OFF_H*1.5
+    };
+
+    DrawRectangle(rect.x, rect.y, rect.width, rect.height, bg_color);
+    DrawTextEx(gst->font, text, position, font_size, FONT_SPACING, fg_color);
+
+    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
+
+
+    DrawRectangleLines(rect.x, rect.y, rect.width, rect.height,
+            mouse_on ? ln_focus_color : ln_unfocus_color);
+
+    if(mouse_on && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        clicked = 1;
+    }
+
+
+    return clicked;
 }
 
 
@@ -53,6 +91,8 @@ int gui_button(
 
     return clicked;
 }
+
+
 
 
 void gui_render_respawn_screen(struct state_t* gst) {
@@ -110,12 +150,157 @@ void gui_render_menu_screen(struct state_t* gst) {
 
 
 void gui_render_powerup_shop(struct state_t* gst) {
-
+    struct powerup_shop_t* shop = &gst->player.powerup_shop;
+   
     BeginShaderMode(gst->shaders[POWERUP_SHOP_BG_SHADER]);
-
-    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 20, 20, 20, 230 });
-    
+    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 0, 0, 0, 255 });
     EndShaderMode();
+
+    const float offer_btn_space = 50.0;
+
+    Vector2 shop_size = (Vector2) {
+        740, (NUM_POWERUP_OFFERS * offer_btn_space)+150
+    };
+
+    Vector2 shop_pos = (Vector2) {
+        200, 200
+    };
+
+    Rectangle shop_rect = (Rectangle){
+        .x = shop_pos.x-50.0,
+        .y = shop_pos.y-20.0,
+        .width = shop_size.x,
+        .height = shop_size.y
+    };
+
+    DrawRectangleV(
+            (Vector2){
+                shop_rect.x,
+                shop_rect.y
+            },
+            shop_size,
+            (Color){ 60, 45, 30, 200 });
+
+    DrawRectangleLinesEx(shop_rect, 2.0, (Color){ 150, 50, 20, 200});
+
+    if(!shop->available) {
+        
+        Vector2 text_pos = (Vector2){
+            shop_pos.x - 15,
+            shop_pos.y + shop_size.y/2-40
+        };
+
+        DrawTextEx(gst->font, "Wait until more offers appear...",
+                text_pos,
+                23.0, FONT_SPACING, (Color){ 200, 80, 20, 180});
+
+        for(int i = 0; i < 3; i++) {
+            float y = text_pos.y + (i * 3 + 30.0);
+            DrawLine(text_pos.x-10, y, text_pos.x+shop_size.x-100 - i*200, y, RED);
+        }
+
+        text_pos.y += 80.0;
+        
+        DrawTextEx(gst->font, TextFormat("-> New offers in %i seconds.", 
+                    (int)(POWERUP_SHOP_TIMEOUT - shop->timeout_time)),
+                text_pos,
+                15.0, FONT_SPACING, (Color){ 200, 120, 50, 180});
+
+        if(gui_button(gst, "Ok.", 20, (Vector2){ shop_pos.x, shop_pos.y+shop_size.y-60 })) {
+            gst->player.powerup_shop.open = 0;
+            DisableCursor();
+        }
+        return;
+    }
+
+    DrawTextEx(gst->font, "* Powerup Shop Offers", shop_pos, 20.0, FONT_SPACING, TEXT_COLOR);
+    
+    DrawTextEx(gst->font, 
+            TextFormat("Your XP: %i", gst->player.xp),
+            (Vector2){shop_pos.x+20, shop_pos.y+35}, 15.0, FONT_SPACING, TEXT_COLOR);
+
+    
+    float offer_btn_y = shop_pos.y+80;
+
+    int blink = (int)((sin(gst->time*10.0)*0.5+0.5)*100);
+    Color selected_color = (Color){ 40, 100+blink, 50, 255 };
+    const Color available_color = (Color){ 80, 80, 80, 255 };
+    const Color unavailable_color = (Color){ 120, 50, 30, 255 };
+
+    for(int i = 0; i < NUM_POWERUP_OFFERS; i++) {
+        struct powerup_t* powerup = &shop->offers[i];
+
+        const float offer_font_size = 20.0;
+        const float space_xpcost_text = 180.0;
+        Vector2 name_size = MeasureTextEx(gst->font, powerup->name, offer_font_size, FONT_SPACING);
+        
+        int can_afford = (powerup->xp_cost <= gst->player.xp);
+
+        Color ln_color = unavailable_color;
+        if(can_afford) {
+            ln_color = available_color;
+
+            if(i == shop->selected_index) {
+                ln_color = selected_color;
+            }
+        }
+
+
+        DrawRectangleLinesEx(
+                (Rectangle){
+                shop_pos.x - EXTRA_OFF_W-4,
+                offer_btn_y - EXTRA_OFF_H-4,
+                name_size.x + EXTRA_OFF_W*2 + space_xpcost_text+8,
+                name_size.y + EXTRA_OFF_H*1.5+8,
+                },
+                2.0,
+                ln_color);
+
+        DrawTextEx(gst->font,
+                TextFormat("%i", powerup->xp_cost),
+                (Vector2){
+                    shop_pos.x - 5,
+                    offer_btn_y
+                }, 23.0, FONT_SPACING, (can_afford) ? TEXT_COLOR : (Color){ 100, 80, 80, 255 });
+
+        if(gui_button_ext(gst, 
+                    powerup->name, offer_font_size, 
+                    (Vector2){ shop_pos.x+space_xpcost_text, offer_btn_y },
+                    (Color){ 75, 45, 30, 200 },  // bg
+                    can_afford ? (Color){ 200, 120, 60, 255 } : (Color){ 100, 88, 80, 200 }, // fg
+                    (Color){ 180, 150, 80, 255 }, // focused.
+                    (Color){ 130, 80, 20, 255 } // un-focused.
+                    ) && can_afford) {
+            printf("Selected '%s'\n", powerup->name);
+            shop->selected_index = i;
+        }
+
+        offer_btn_y += offer_btn_space;
+    }
+
+
+
+    if(gui_button(gst, "Buy", 20.0, (Vector2){ shop_pos.x, offer_btn_y })) {
+        if((shop->selected_index < 0) || (shop->selected_index >= NUM_POWERUP_OFFERS)) {
+            return;
+        }
+        
+        struct powerup_t* selected = &shop->offers[shop->selected_index];
+        if(selected->xp_cost > gst->player.xp) {
+            return;
+        }
+
+        apply_powerup(gst, &gst->player, selected->type);
+    
+        player_add_xp(gst, -selected->xp_cost);
+
+        shop->open = 0;
+        shop->timeout_time = 0.0;
+        shop->available = 0;
+        DisableCursor();
+        
+        printf("Powerup bought: \"%s\", xp_cost: %i\n", selected->name, selected->xp_cost);
+    }
 
 }
 

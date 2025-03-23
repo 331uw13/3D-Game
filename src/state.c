@@ -20,6 +20,7 @@
 #include "particle_systems/water_splash_psys.h"
 #include "particle_systems/enemy_gunfx_psys.h"
 #include "particle_systems/prj_envhit2_psys.h"
+#include "particle_systems/cloud_psys.h"
 
 
 
@@ -116,7 +117,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     {
 
         float blur_effect = 0.62;
-        if(gst->player.powerup_shop_open || gst->player.inventory.open || gst->menu_open) {
+        if(gst->player.any_gui_open) {
             blur_effect = 0.1;
         }
 
@@ -173,6 +174,12 @@ void state_update_shader_uniforms(struct state_t* gst) {
 // NOTE: DO NOT RENDER FROM HERE:
 void state_update_frame(struct state_t* gst) {
     
+    gst->player.any_gui_open = (
+            gst->menu_open 
+            || gst->player.inventory.open
+            || gst->player.powerup_shop.open
+         );
+
     handle_userinput(gst);
     
     if(gst->menu_open) {
@@ -181,12 +188,26 @@ void state_update_frame(struct state_t* gst) {
     player_update(gst, &gst->player);
 
 
-    // Enemies.
-    for(size_t i = 0; i < gst->num_enemies; i++) {
-        update_enemy(gst, &gst->enemies[i]);
+    
+    if(!gst->player.powerup_shop.available
+    && (gst->player.powerup_shop.timeout_time < POWERUP_SHOP_TIMEOUT)) {
+        gst->player.powerup_shop.timeout_time += gst->dt;
+        if(gst->player.powerup_shop.timeout_time > POWERUP_SHOP_TIMEOUT) {
+            update_powerup_shop_offers(gst);
+            gst->player.powerup_shop.available = 1;
+            gst->player.powerup_shop.timeout_time = 0.0;
+        }
     }
 
-    //update_enemy_spawn_system(gst);
+
+    // Enemies.
+    if(!gst->player.powerup_shop.open) {
+        for(size_t i = 0; i < gst->num_enemies; i++) {
+            update_enemy(gst, &gst->enemies[i]);
+        }
+
+        //update_enemy_spawn_system(gst);
+    }
     update_natural_item_spawns(gst);
 
     // (updated only if needed)
@@ -204,25 +225,28 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS]);
+    update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
 
     update_inventory(gst, &gst->player);
     update_items(gst);
 
     // Update xp level.
-    if(gst->xp_value_add > 0) {
+    if(gst->xp_value_add != 0) {
         gst->xp_update_timer += gst->dt;
 
         if(gst->xp_update_timer >= 0.035) {
             gst->xp_update_timer = 0.0;
 
-            gst->player.xp++;
-            gst->xp_value_add--;
-
+            if(gst->xp_value_add > 0) {
+                gst->player.xp++;
+                gst->xp_value_add--;
+            }
+            else {
+                gst->player.xp--;
+                gst->xp_value_add++;
+            }
         }
-
     }
-
-   
 }
 
 
@@ -736,6 +760,27 @@ void state_setup_all_psystems(struct state_t* gst) {
         psystem->particle_material.maps[MATERIAL_MAP_DIFFUSE].texture 
             = gst->textures[GUNFX_TEXID];
     }
+
+
+    // Create CLOUD_PSYS.
+    {
+        const size_t num_cloud_parts = 200;
+        struct psystem_t* psystem = &gst->psystems[CLOUD_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_CONTINUOUS,
+                psystem,
+                num_cloud_parts,
+                cloud_psys_update,
+                cloud_psys_init,
+                FOG_PARTICLE_SHADER
+                );
+
+        psystem->particle_mesh = GenMeshCube(30, 10, 80);
+        add_particles(gst, psystem, num_cloud_parts, (Vector3){0}, (Vector3){0}, NULL, NO_EXTRADATA);
+    }
+
 }
 
 void state_setup_all_textures(struct state_t* gst) {
@@ -792,6 +837,7 @@ void state_setup_all_sounds(struct state_t* gst) {
     gst->sounds[PRJ_ENVHIT_SOUND] = LoadSound("res/audio/envhit.wav");
     gst->sounds[PLAYER_HIT_SOUND] = LoadSound("res/audio/playerhit.wav");
     gst->sounds[ENEMY_EXPLOSION_SOUND] = LoadSound("res/audio/enemy_explosion.wav");
+    gst->sounds[POWERUP_SOUND] = LoadSound("res/audio/powerup.wav");
     
 
     SetMasterVolume(30.0);
@@ -1033,6 +1079,9 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
         float exp_damage_to_ent = effect_to_ent * damage;
         float exp_knockback_to_ent = effect_to_ent * 10.0;
 
+        if(effect_to_ent <= 0.0) {
+            continue;
+        }
         printf("Explosion Damage to ent: %0.2f\n", exp_damage_to_ent);
         struct hitbox_t* hitbox = &ent->hitboxes[HITBOX_BODY];
 
@@ -1046,6 +1095,8 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
                 exp_knockback_to_ent);
     }
 }
+
+
 
 
 

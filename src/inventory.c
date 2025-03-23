@@ -205,6 +205,7 @@ void render_inventory(struct state_t* gst, struct player_t* player) {
             if(gui_button(gst, "Eat", 15.0, (Vector2){ btn_x, btn_y })) {
                 player_heal(gst, &gst->player, selected_item->health_boost_when_eaten);
                 player->inventory.items[selected_item->index] = NULL;
+                printf("%li\n", selected_item->index);
                 player->inventory.selected_item_index = -1;
             }
             btn_y += btn_y_inc;
