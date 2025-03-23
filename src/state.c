@@ -206,7 +206,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        //update_enemy_spawn_system(gst);
+        update_enemy_spawn_system(gst);
     }
     update_natural_item_spawns(gst);
 
