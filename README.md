@@ -4,9 +4,9 @@
 ---------------------
 
 > [!WARNING]
-> The game is not ready and may run poorly on some computers because it is not yet optimized well.
->
-> Try changing the render settings in __src/terrain.h__ if you experience performance issues
+> The game is not ready and __may__ run poorly because it is not yet optimized well.
+> Also 'res/shaders/powerup_shop_bg.fs' shader can be really slow on older hardware(because of the raymarching algorithm). it is in the todo list to add option to disable it
+> Try changing render settings in __src/terrain.h__ if you experience performance issues
 
 ---------------------
 
