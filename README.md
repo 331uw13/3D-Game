@@ -22,6 +22,11 @@
 * Apples spawn in the world naturally which can be used to heal the player.
 
 
+### Controls
+* 2: Open powerup shop menu.
+* TAB: Open inventory
+* ESC: Open menu.
+
 
 ### Compiling the game.
 > [!NOTE]
