@@ -8,6 +8,7 @@ in vec2 vertexTexCoord;
 in vec3 vertexNormal;
 in vec4 vertexColor;
 
+
 // Input uniform values
 uniform mat4 mvp;
 uniform mat4 matNormal;
@@ -21,6 +22,7 @@ out vec3 fragNormal;
 out vec3 fragViewPos;
 
 in mat4 instanceTransform;
+layout(location = 8) in vec4 instanceColor;
 
 
 void main()
@@ -28,7 +30,7 @@ void main()
     // Send vertex attributes to fragment shader
     fragPosition = vec3(instanceTransform * vec4(vertexPosition, 1.0));
     fragTexCoord = vertexTexCoord;
-    fragColor = vec4(1.0);
+    fragColor = instanceColor;
 
 
     vec4 transfpos = instanceTransform * vec4(vertexPosition,1.0);

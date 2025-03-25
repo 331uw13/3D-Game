@@ -5,7 +5,6 @@ in vec3 fragPosition;
 in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragNormal;
-flat in int instance_id;
 
 uniform sampler2D texture0;
 
@@ -24,10 +23,14 @@ uniform float time;
 
 void main()
 {
+    /*
     float v = voronoi3d(fragPosition*0.65).x;
     vec3 col = psystem_color.rgb;
 
     v *= v;
 
     finalColor = vec4(col*1.25, v);
+    */
+    finalColor = fragColor;
+    finalColor.w = 1.0;
 }
