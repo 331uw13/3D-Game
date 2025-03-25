@@ -14,7 +14,7 @@
 #include "particle_systems/enemy_hit_psys.h"
 #include "particle_systems/fog_effect_psys.h"
 #include "particle_systems/player_hit_psys.h"
-#include "particle_systems/explosion_part1_psys.h"
+#include "particle_systems/explosion_psys.h"
 #include "particle_systems/explosion_part2_psys.h"
 #include "particle_systems/explosion_part3_psys.h"
 #include "particle_systems/water_splash_psys.h"
@@ -206,7 +206,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        update_enemy_spawn_system(gst);
+        //update_enemy_spawn_system(gst); 
     }
     update_natural_item_spawns(gst);
 
@@ -525,6 +525,8 @@ void state_setup_all_psystems(struct state_t* gst) {
 
         psystem->particle_mesh = GenMeshSphere(1.25, 16, 16);
         psystem->userptr = &gst->player.weapon;
+    
+        setup_psystem_color_vbo(gst, psystem);
     }
 
     // Create PLAYER_PRJ_ENVHIT_PSYS.

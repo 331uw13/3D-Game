@@ -154,6 +154,9 @@ int apply_powerup(struct state_t* gst, struct player_t* player, int powerup_type
 
         case POWERUP_MOVEMENT_BOOST:
             {
+                player->walkspeed += 0.5;
+                player->run_speed_mult += 0.5;
+                player->dash_timer_max -= 1.0;
             }
             break;
 

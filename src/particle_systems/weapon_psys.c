@@ -35,6 +35,11 @@ void weapon_psys_prj_update(
     part->light.position = part->position;
     set_light(gst, &part->light, gst->prj_lights_ubo);
 
+    
+    // FOR TESTING.
+    part->color.a = 255;
+    rainbow_palette(sin(part->lifetime), &part->color.r, &part->color.g, &part->color.b);
+
 
     // Check collision with water
 

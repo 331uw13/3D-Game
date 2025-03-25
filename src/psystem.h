@@ -9,6 +9,8 @@
 
 struct state_t;
 
+#define PSYS_NO_COLOR_VBO 0xFFFF
+
 
 struct particle_t {
     
@@ -103,6 +105,8 @@ struct psystem_t {
     int   halt;
     void* userptr;
 
+    size_t color_vbo_size;
+    unsigned int color_vbo;
 };
 
 
@@ -121,6 +125,10 @@ void create_psystem(
         int shader_index // See state.h
         );
 
+// Setup vbo to handle colors for each particle.
+// IMPORTANT NOTE: if using individual colors for each mesh drawn with 'DrawMeshInstanced'
+//                 this function must be called after particle system has been created!
+void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys);
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys);
 void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color);

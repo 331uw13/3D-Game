@@ -7,6 +7,7 @@
 #include "state.h"
 #include "util.h"
 
+#include <rlgl.h>
 
 
 void delete_psystem(struct psystem_t* psys) {
@@ -19,6 +20,10 @@ void delete_psystem(struct psystem_t* psys) {
     if(psys->transforms) {
         free(psys->transforms);
         psys->transforms = NULL;
+    }
+
+    if(psys->color_vbo != PSYS_NO_COLOR_VBO) {
+        glDeleteBuffers(1, &psys->color_vbo);
     }
 
     UnloadMesh(psys->particle_mesh);
@@ -93,10 +98,45 @@ void create_psystem(
     psys->particle_material = LoadMaterialDefault();
     psys->particle_material.shader = gst->shaders[shader_index];
 
+    psys->color_vbo = PSYS_NO_COLOR_VBO;
 
     psys->halt = 0;
     psys->first_render = 1;
     psys->enabled = 1;
+}
+
+void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys) {
+    if(psys->color_vbo != PSYS_NO_COLOR_VBO) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Particle system's color vbo seems to be already created\033[0m\n",
+                __func__);
+        return;
+    }
+    if(!psys->enabled || (psys->max_particles == 0)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Particle system must be created before enabling color vbo\033[0m\n",
+                __func__);
+        return;
+    }
+
+
+    rlEnableVertexArray(psys->particle_mesh.vaoId);
+
+    psys->color_vbo = (sizeof(float) * 4) * psys->max_particles;
+    psys->color_vbo = rlLoadVertexBuffer(NULL, psys->color_vbo, 1);
+
+
+    int attrib_loc = glGetAttribLocation(gst->shaders[psys->shader_index].id, "instanceColor");
+    size_t stride = sizeof(float)*4;
+
+    //for(size_t i = 0; i < psys->max_particles; i++) {
+        rlEnableVertexAttribute(attrib_loc);
+        rlSetVertexAttribute(attrib_loc, 4, RL_FLOAT, 0, stride, 0);
+        rlSetVertexAttributeDivisor(attrib_loc, 1);
+    //}
+
+
+    printf("Particle system has color vbo\n");
+
+    rlDisableVertexArray();
 }
 
 
@@ -139,6 +179,13 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         return;
     }
 
+    int has_color_vbo = (psys->color_vbo != PSYS_NO_COLOR_VBO);
+
+    if(has_color_vbo) {
+        rlEnableVertexArray(psys->particle_mesh.vaoId);
+        glBindBuffer(GL_ARRAY_BUFFER, psys->color_vbo);
+    }
+    
 
     for(size_t i = 0; i < psys->max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
@@ -167,13 +214,34 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         p->lifetime += gst->dt;
         if((psys->time_setting == PSYS_ONESHOT) && (p->lifetime > p->max_lifetime)) {
             p->alive = 0;
-
             if(p->has_light) {
                 disable_light(gst, &p->light, gst->prj_lights_ubo);
             }
 
             continue;
         }
+
+        // Update individual colors if needed.
+
+        if(psys->color_vbo != PSYS_NO_COLOR_VBO) {
+            const size_t color_size = sizeof(float)*4;
+            const size_t offset = p->index * color_size;
+
+            float color_data[4] = {
+                (float)p->color.r/255.0,
+                (float)p->color.g/255.0,
+                (float)p->color.b/255.0,
+                (float)p->color.a/255.0
+            };
+
+            glBufferSubData(GL_ARRAY_BUFFER, offset, color_size, color_data);
+
+        }
+    }
+   
+    if(has_color_vbo) {
+        rlDisableVertexArray();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
 
@@ -225,14 +293,35 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
 
     SetShaderValue(gst->shaders[psys->shader_index], psys->shader_time_uniformloc,
             &gst->time, SHADER_UNIFORM_FLOAT);
-    
-    
+
+
+    /*
+    rlEnableVertexArray(psys->particle_mesh.vaoId);
+    glBindBuffer(GL_ARRAY_BUFFER, psys->color_vbo);
+    if(psys->color_vbo != PSYS_NO_COLOR_VBO) {
+        for(size_t i = 0; i < psys->max_particles; i++) {
+            struct particle_t* part = &psys->particles[i];
+            float data[4] = {
+                (float)part->color.r / 255.0,
+                (float)part->color.g / 255.0,
+                (float)part->color.b / 255.0,
+                (float)part->color.a / 255.0
+            };
+
+            size_t offset = i *( sizeof(float)*4);
+            glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(float)*4, data);
+
+        }
+    }
+    rlDisableVertexArray();
+    */
     DrawMeshInstanced(
             psys->particle_mesh,
             psys->particle_material,
             psys->transforms,
             psys->max_particles
             );
+    
 
     // clear the transform matrix array for next frame.
     memset(psys->transforms, 0, psys->max_particles * sizeof *psys->transforms);

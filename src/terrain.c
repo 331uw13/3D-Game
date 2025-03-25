@@ -270,7 +270,7 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
 
         chunk->mesh.vertices = malloc(chunk->mesh.vertexCount * 3 * sizeof(float));
         chunk->mesh.normals  = malloc(chunk->mesh.vertexCount * 3 * sizeof(float));
-        chunk->mesh.texcoords = malloc(chunk->mesh.vertexCount * 2 * sizeof(float));
+        /*TODO*/chunk->mesh.texcoords = malloc(chunk->mesh.vertexCount * 2 * sizeof(float));
 
         // Used for calculating normals.
         Vector3 vA = { 0 };
