@@ -77,7 +77,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->accuracy_modifier = 0.0;
     p->accuracy_control = 0.0;
     p->time_from_last_shot = 0.0;
-    p->firerate = 0.1;
+    p->firerate = 0.065;
     p->firerate_timer = 0.0;
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->inventory.open = 0;
@@ -169,9 +169,9 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
     // Move the projectile initial position little bit ahead.
-    prj_position.x += p->looking_at.x * 5.0;
-    prj_position.y += p->looking_at.y * 5.0;
-    prj_position.z += p->looking_at.z * 5.0;
+    prj_position.x += p->looking_at.x * 10.0;
+    prj_position.y += p->looking_at.y * 10.0;
+    prj_position.z += p->looking_at.z * 10.0;
 
     add_projectile(gst, &p->weapon_psys, &p->weapon, 
             prj_position, p->looking_at, p->accuracy_modifier);
@@ -244,7 +244,7 @@ void player_damage(struct state_t* gst, struct player_t* p, float damage) {
             num_particles,
             p->position,
             Vector3Normalize(Vector3Subtract(p->cam.target, p->cam.position)),
-            NULL, NO_EXTRADATA
+            NULL, NO_EXTRADATA, NO_IDB
             );
 }
 
@@ -486,7 +486,7 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
             p->gun_light.position = lpos;
             p->gun_light.color = p->weapon.color;
-            set_light(gst, &p->gun_light, gst->lights_ubo);
+            set_light(gst, &p->gun_light, LIGHTS_UBO);
         }
 
 

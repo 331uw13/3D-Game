@@ -162,7 +162,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                             1,
                             prj_pos,
                             (Vector3){0},
-                            ent, HAS_EXTRADATA
+                            ent, HAS_EXTRADATA, NO_IDB
                             );
                     
                     if(gst->has_audio) {

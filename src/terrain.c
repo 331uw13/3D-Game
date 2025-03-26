@@ -710,12 +710,6 @@ void generate_terrain(
         = malloc(terrain->rfmatrices.crystals_size * sizeof(Matrix));
 
 
-    printf("Terrain foliage matrice arrays: %p, %p, %p\n", 
-            terrain->rfmatrices.tree_type0,
-            terrain->rfmatrices.rock_type0,
-            terrain->rfmatrices.crystals);
-
-
     // Get valid spawnpoint for player.
     {
         int attemps = 0;

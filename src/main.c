@@ -41,9 +41,9 @@ void loop(struct state_t* gst) {
                 gst->scrn_w = sw;
                 gst->scrn_h = sh;
                 UnloadRenderTexture(gst->env_render_target);
-                UnloadRenderTexture(gst->bloomtreshold_target);
+                UnloadRenderTexture(gst->bloomtresh_target);
                 gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-                gst->bloomtreshold_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+                gst->bloomtresh_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
               
                 printf(" Resized to %ix%i\n", sw, sh);
             }
@@ -68,15 +68,14 @@ void loop(struct state_t* gst) {
                 rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
 
                 // TODO: Optimize this.
-
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
-                            "bloom_treshold_texture"), gst->bloomtreshold_target.texture);
+                            "bloomtresh_texture"), gst->bloomtresh_target.texture);
 
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "depth_texture"), gst->depth_texture.texture);
-                
+    
 
                 DrawTextureRec(
                         gst->env_render_target.texture,
@@ -123,6 +122,9 @@ void loop(struct state_t* gst) {
                 render_player_stats(gst, &gst->player);
             }
 
+            if(gst->devmenu_open) {
+                gui_render_devmenu(gst);
+            }
             
             // Some info for player:
 
@@ -214,11 +216,12 @@ void cleanup(struct state_t* gst) {
     state_delete_all_item_models(gst);
 
     UnloadRenderTexture(gst->env_render_target);
-    UnloadRenderTexture(gst->bloomtreshold_target);
+    UnloadRenderTexture(gst->bloomtresh_target);
     UnloadRenderTexture(gst->depth_texture);
 
-    glDeleteBuffers(1, &gst->lights_ubo);
-    glDeleteBuffers(1, &gst->prj_lights_ubo);
+    for(int i = 0; i < MAX_UBOS; i++) {
+        glDeleteBuffers(1, &gst->ubo[i]);
+    }
 
     UnloadFont(gst->font);
 
@@ -231,14 +234,6 @@ void cleanup(struct state_t* gst) {
 void first_setup(struct state_t* gst) {
 
     InitWindow(DEF_SCRN_W, DEF_SCRN_H, "331uw13's 3D-Game");
-
-    // TODO: REMOVE THIS:
-    {
-        int mon = GetCurrentMonitor();
-        SetWindowPosition(DEF_SCRN_W-10, 30);
-
-    }
-
     SetExitKey(-1);
     gst->font = LoadFont("res/Topaz-8.ttf");
 
@@ -262,20 +257,19 @@ void first_setup(struct state_t* gst) {
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
 
-    /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
-    const float terrain_amplitude = 10.0;
+    const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 30.0;
     const int   terrain_octaves = 3;
   
-    */
+    /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 2048;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 80.0;
     const int   terrain_octaves = 3;
-  
+    */
     /*
     gst->num_crithit_markers = 0;
     gst->crithit_marker_maxlifetime = 1.5;
@@ -284,52 +278,10 @@ void first_setup(struct state_t* gst) {
     */
 
 
+    state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
+    state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
+    state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
 
-
-
-
-    // Lights UBO
-    gst->lights_ubo = 0;
-    const size_t lights_ubo_size = MAX_NORMAL_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
-    glGenBuffers(1, &gst->lights_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, gst->lights_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, lights_ubo_size, NULL, GL_STATIC_DRAW);
-    
-    glBindBufferBase(GL_UNIFORM_BUFFER, 2, gst->lights_ubo);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 2, gst->lights_ubo, 0, lights_ubo_size);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-
-
-    // Projectile Lights UBO
-    gst->prj_lights_ubo = 0;
-    const size_t prj_lights_ubo_size = MAX_PROJECTILE_LIGHTS * LIGHT_SHADER_STRUCT_SIZE;
-    glGenBuffers(1, &gst->prj_lights_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, gst->prj_lights_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, prj_lights_ubo_size, NULL, GL_STATIC_DRAW);
-    
-    glBindBufferBase(GL_UNIFORM_BUFFER, 3, gst->prj_lights_ubo);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 3, gst->prj_lights_ubo, 0, prj_lights_ubo_size);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-
-    // Fog UBO
-    gst->fog_ubo = 0;
-    const size_t fog_ubo_size = FOG_UB_STRUCT_SIZE;
-    glGenBuffers(1, &gst->fog_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, gst->fog_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, fog_ubo_size, NULL, GL_STATIC_DRAW);
-    
-    glBindBufferBase(GL_UNIFORM_BUFFER, 4, gst->fog_ubo);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 4, gst->fog_ubo, 0, fog_ubo_size);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    printf("%i\n", gst->fog_ubo);
-
-    
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
@@ -385,14 +337,20 @@ void first_setup(struct state_t* gst) {
 
 
 
+
     // Make sure all lights are disabled.
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
         struct light_t disabled = {
             .enabled = 0,
             .index = i
         };
-        set_light(gst, &disabled, gst->lights_ubo);
+        set_light(gst, &disabled, LIGHTS_UBO);
     }
+    for(size_t i = 0; i < MAX_DECAY_LIGHTS; i++) {
+        gst->decay_lights[i].enabled = 0;
+    }
+
+    gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
 
 
     struct light_t SUN = (struct light_t) {
@@ -408,11 +366,12 @@ void first_setup(struct state_t* gst) {
         .type = LIGHT_POINT,
         .enabled = 1,
         .strength = 0.35,
+        .radius = 2.0,
         .index = PLAYER_GUN_LIGHT_ID
-    };
+    }; // Player's gun light is updated from 'src/player.c'
 
 
-    set_light(gst,  &SUN, gst->lights_ubo);
+    set_light(gst, &SUN, LIGHTS_UBO);
 }
 
 int main(void) {

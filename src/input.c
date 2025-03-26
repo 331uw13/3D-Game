@@ -11,6 +11,16 @@
 // TODO: clean this up.
 
 
+static void toggle_gui(int* gui_open) {
+    if((*gui_open = !*gui_open)) {
+        EnableCursor();
+    }
+    else {
+        DisableCursor();
+    }
+}
+
+
 void handle_userinput(struct state_t* gst) {
     
     if(gst->player.alive) {
@@ -24,10 +34,6 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(IsKeyPressed(KEY_G)) {
-        gst->player.noclip = !gst->player.noclip;
-    }
-
     if(IsKeyPressed(KEY_X)) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
@@ -38,6 +44,7 @@ void handle_userinput(struct state_t* gst) {
     if(IsKeyPressed(KEY_V)) {
         spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
     }
+
 
     if(IsKeyPressed(KEY_F2)) {
         const char* filename = TextFormat("screenshot-%i.png", GetRandomValue(10000,99999));
@@ -56,6 +63,7 @@ void handle_userinput(struct state_t* gst) {
         
     }
 
+    // TODO: remove this.
     if(IsKeyPressed(KEY_I)) {
         update_powerup_shop_offers(gst);
     }
@@ -76,35 +84,20 @@ void handle_userinput(struct state_t* gst) {
 
 
     if(IsKeyPressed(KEY_ESCAPE) && gst->player.alive) {
-        if((gst->menu_open = !gst->menu_open)) {
-            EnableCursor();
-        }
-        else {
-            DisableCursor();
-        }
+        toggle_gui(&gst->menu_open);
         gst->player.powerup_shop.open = 0;
         gst->player.inventory.open = 0;
         gst->player.powerup_shop.open = 0;
+        gst->devmenu_open = 0;
     }
 
     // TODO: remove this.
     if(IsKeyPressed(KEY_TWO)) {
-        if((gst->player.powerup_shop.open = !gst->player.powerup_shop.open)) {
-            EnableCursor();
-        }
-        else {
-            DisableCursor();
-        }
+        toggle_gui(&gst->player.powerup_shop.open);
         gst->player.powerup_shop.selected_index = -1;
         gst->player.inventory.open = 0;
     }
     
-
-    if(IsKeyPressed(KEY_T)) {
-        gst->debug = !gst->debug;
-        printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
-    }
-
     if(IsKeyPressed(KEY_TAB) 
             && !gst->menu_open
             && !gst->player.powerup_shop.open
@@ -113,17 +106,41 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    /*
-    if(IsKeyPressed(KEY_ONE)) {
-        SetTargetFPS(35);
-        printf("Target FPS 35 (for debug) press <2> to undo.\n");
-    }
-    if(IsKeyPressed(KEY_TWO)) {
-        SetTargetFPS(TARGET_FPS);
-        printf("Target FPS %i\n", TARGET_FPS);
-    }
-    */
 
+    // Dev mode input.
+
+    if(IsKeyPressed(KEY_G)) {
+        if(!DEV_MODE) {
+            fprintf(stderr, "\033[31mdev mode is disabled, cant toggle noclip\033[0m\n");
+            return;
+        }
+        gst->player.noclip = !gst->player.noclip;
+    }
+
+    if(IsKeyPressed(KEY_T)) {
+        if(!DEV_MODE) {
+            fprintf(stderr, "\033[31mdev mode is disabled, cant render debug info\033[0m\n");
+            return;
+        }
+        gst->debug = !gst->debug;
+        printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
+    }
+
+    if(IsKeyPressed(KEY_R)) {
+        if(!DEV_MODE) {
+            fprintf(stderr, "\033[31mdev mode is disabled, cant open dev menu\033[0m\n");
+            return;
+        }
+        toggle_gui(&gst->devmenu_open);
+    }
+
+
+    if(IsKeyPressed(KEY_FOUR)) {
+        SetTargetFPS(500);
+    }
+    if(IsKeyPressed(KEY_FIVE)) {
+        SetTargetFPS(28);
+    }
 
 }
 

@@ -72,6 +72,7 @@ struct player_t {
     int      is_aiming;
     int      alive;
 
+
     int armor;
     int max_armor;
     float armor_damage_dampen;
@@ -156,6 +157,7 @@ struct player_t {
     int weapon_firetype; 
 
     int any_gui_open;
+    
 };
 
 

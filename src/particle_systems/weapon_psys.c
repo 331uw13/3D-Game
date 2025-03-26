@@ -9,6 +9,13 @@
 #define MISSING_PSYSUSERPTR fprintf(stderr, "\033[31m(ERROR) '%s': Missing psystem 'userptr'\033[0m\n", __func__)
 
 
+static void disable_projectile(struct state_t* gst, struct particle_t* part) {
+    disable_particle(gst, part);
+    part->light.position.y += 5.0;
+    add_decay_light(gst, &part->light, 14.0);
+}
+
+
 void weapon_psys_prj_update(
         struct state_t* gst,
         struct psystem_t* psys,
@@ -26,21 +33,60 @@ void weapon_psys_prj_update(
         return;
     }
 
+
+    if(weapon->id == PLAYER_WEAPON_ID) {
+        if(!part->user_i[0]) {
+            
+            float closest = 99999999;
+            Vector3 point;
+
+            for(size_t i = 0; i < gst->num_enemies; i++) {
+                float pdiste = Vector3Distance(gst->enemies[i].position, part->position);
+                if(!gst->enemies[i].alive) {
+                    continue;
+                }
+
+                if(closest > pdiste) {
+                    closest = pdiste;
+                    point = gst->enemies[i].position;
+                    part->user_i[0] = 1;
+                    part->user_v[0] = gst->enemies[i].position;
+                }
+            }
+        }
+
+        if(part->user_i[0]) {
+            float ent_mass = 20.0;
+            float part_mass = 0.5;
+
+            float dist = Vector3Distance(part->user_v[0], part->position);
+            Vector3 dir = Vector3Subtract(part->user_v[0], part->position);
+            float mag = ((ent_mass * part_mass)*0.2) / (dist * dist);
+
+            dir = Vector3Scale(dir, mag);
+
+            part->velocity = Vector3Add(part->velocity, dir);
+        }
+    }
+
+
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
 
     Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     *part->transform = transform;
 
-    part->light.position = part->position;
-    set_light(gst, &part->light, gst->prj_lights_ubo);
-
-    
     // FOR TESTING.
     part->color.a = 255;
     rainbow_palette(sin(part->lifetime), &part->color.r, &part->color.g, &part->color.b);
 
 
+
+    part->light.color = part->color;
+    part->light.position = part->position;
+    set_light(gst, &part->light, PRJLIGHTS_UBO);
+
+   
     // Check collision with water
 
     if(part->position.y <= gst->terrain.water_ylevel) {
@@ -50,11 +96,14 @@ void weapon_psys_prj_update(
                 GetRandomValue(10, 20),
                 part->position,
                 part->velocity,
-                NULL, NO_EXTRADATA
-                );       
-        disable_particle(gst, part);
+                NULL, NO_EXTRADATA, NO_IDB
+                );
+        disable_projectile(gst, part);
+        //disable_particle(gst, part);
         return;
     }
+
+
 
 
     // Check collision with terrain
@@ -62,6 +111,8 @@ void weapon_psys_prj_update(
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
 
     if(t_hit.point.y >= part->position.y) {
+
+        //create_explosion(gst, part->position, 100.0, 100.0);
 
         struct psystem_t* psystem = NULL;
         if(weapon->id == PLAYER_WEAPON_ID) {
@@ -78,7 +129,7 @@ void weapon_psys_prj_update(
                 1,
                 part->position,
                 (Vector3){0, 0, 0},
-                NULL, NO_EXTRADATA
+                NULL, NO_EXTRADATA, NO_IDB
                 );
 
     
@@ -90,7 +141,7 @@ void weapon_psys_prj_update(
         }
         */
 
-        disable_particle(gst, part);
+        disable_projectile(gst, part);
         return;
     }
 
@@ -124,14 +175,15 @@ void weapon_psys_prj_update(
             if(hitbox) {
                 float damage = get_weapon_damage(weapon);
                 enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, 0.35);
-                disable_particle(gst, part);
+        
+                disable_projectile(gst, part);
 
                 add_particles(gst,
                         &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS],
                         1,
                         part->position,
                         (Vector3){0, 0, 0},
-                        NULL, NO_EXTRADATA
+                        NULL, NO_EXTRADATA, NO_IDB
                         );
 
             }
@@ -151,7 +203,7 @@ void weapon_psys_prj_update(
                     1,
                     part->position,
                     (Vector3){0, 0, 0},
-                    NULL, NO_EXTRADATA
+                    NULL, NO_EXTRADATA, NO_IDB
                     );
 
             /*
@@ -164,7 +216,8 @@ void weapon_psys_prj_update(
                     );
                     */
 
-            disable_particle(gst, part);
+            
+            disable_projectile(gst, part);
         }
     }
 
@@ -193,13 +246,15 @@ void weapon_psys_prj_init(
 
     transform = MatrixMultiply(transform, rotation_m);
 
+    part->user_i[0] = 0;
     
     part->light = (struct light_t) {
         .enabled = 1,
         .type = LIGHT_POINT,
         .color = weapon->color,
         .strength = 1.0,
-        .index = gst->num_prj_lights
+        .index = gst->num_prj_lights,
+        .radius = 10.0
         // position is updated later.
     };
 
@@ -209,7 +264,16 @@ void weapon_psys_prj_init(
         gst->num_prj_lights = 0;
     }
 
+    part->color = gst->player.weapon.color;
+
     part->has_light = 1;
     *part->transform = transform;
     part->max_lifetime = weapon->prj_max_lifetime;
+
+    if(weapon->id == PLAYER_WEAPON_ID) {
+        add_particles(gst, 
+                &gst->psystems[PRJ_TRAIL_PSYS], 6, (Vector3){0}, (Vector3){0},
+                part, HAS_EXTRADATA, NO_IDB);
+    }
+
 }

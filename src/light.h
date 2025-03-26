@@ -9,7 +9,7 @@
 
 // NOTE: these 2 values must be the same as in 'res/shaders/light.glsl'
 #define MAX_PROJECTILE_LIGHTS 128
-#define MAX_NORMAL_LIGHTS 4
+#define MAX_NORMAL_LIGHTS 16
 
 
 // Shader uniform locations index.
@@ -27,26 +27,32 @@
 
 struct state_t;
 
-#define LIGHT_SHADER_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 
 struct light_t {
     int type;
+    int ubo_index;
     int enabled;
     Vector3 position;
     Color   color;
     float   strength;
-   
-    int index; // Index in lights or projectile lights uniform block array.
+    float   radius;
+    int     index; // Index in lights or projectile lights uniform block array.
+
+    // How fast the light dims overtime if added to 'state->decay_lights' array?
+    float decay; 
 };
 
 
 void set_light(
         struct state_t* gst,
         struct light_t* light,
-        unsigned int ubo
+        int ubo_index
         );
 
-void disable_light(struct state_t* gst, struct light_t* light, unsigned int ubo);
+void disable_light(struct state_t* gst, struct light_t* light, int ubo_index);
+
+void add_decay_light(struct state_t* gst, struct light_t* light, float decay_time_mult);
+void update_decay_lights(struct state_t* gst);
 
 
 #endif

@@ -35,8 +35,7 @@ void add_projectile(struct state_t* gst, struct psystem_t* psys, struct weapon_t
             1,
             initial_pos,
             direction,
-            NULL,
-            NO_EXTRADATA
+            NULL, NO_EXTRADATA, NO_IDB
             );
 }
 /*

@@ -16,6 +16,9 @@
 
 
 
+// Enable: "Noclip", "Dev menu", "Render debug info"
+#define DEV_MODE 1
+
 
 #define DEF_SCRN_W 1500
 #define DEF_SCRN_H 800
@@ -86,7 +89,8 @@
 #define ENEMY_GUNFX_SHADER 11
 #define CRYSTAL_FOLIAGE_SHADER 12
 #define POWERUP_SHOP_BG_SHADER 13
-#define MAX_SHADERS 14
+#define EXPLOSION_PSYS_SHADER 14
+#define MAX_SHADERS 15
 // ...
  
 
@@ -100,15 +104,14 @@
 #define ENEMY_HIT_PSYS 3 
 #define FOG_EFFECT_PSYS 4
 #define PLAYER_HIT_PSYS 5
-#define EXPLOSION_PART1_PSYS 6
-#define EXPLOSION_PART2_PSYS 7
-#define EXPLOSION_PART3_PSYS 8
-#define WATER_SPLASH_PSYS 9
-#define ENEMY_GUNFX_PSYS 10
-#define ENEMY_PRJ_ENVHIT_PART2_PSYS 11  // For extra effect.
-#define PLAYER_PRJ_ENVHIT_PART2_PSYS 12 // For extra effect.
-#define CLOUD_PSYS 13
-#define MAX_PSYSTEMS 14
+#define EXPLOSION_PSYS 6
+#define WATER_SPLASH_PSYS 7
+#define ENEMY_GUNFX_PSYS 8
+#define ENEMY_PRJ_ENVHIT_PART2_PSYS 9  // For extra effect.
+#define PLAYER_PRJ_ENVHIT_PART2_PSYS 10 // For extra effect.
+#define CLOUD_PSYS 11
+#define PRJ_TRAIL_PSYS 12
+#define MAX_PSYSTEMS 13
 // ...
 
 
@@ -129,14 +132,25 @@
 #define MAX_FS_UNILOCS 16
 // ...
 
+#define NUM_BLOOMTRESH_FRAMES 16 // How many frames to save of 'bloom treshold'
+
 // Normal lights:
 #define SUN_NLIGHT 0
 #define PLAYER_GUN_NLIGHT 1
 // ...
 
+// How many lights can decay at once?
+#define MAX_DECAY_LIGHTS 16
+
+#define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
 
+// Uniform buffer objects.
+#define FOG_UBO 0
+#define LIGHTS_UBO 1     // "Normal" lights
+#define PRJLIGHTS_UBO 2  // Projectile lights.
+#define MAX_UBOS 3
 
 
 #define ENEMY_LVL0_WEAPON 0
@@ -149,13 +163,22 @@
 
 
 
-#define MAX_RENDER_CRITHITS 8
+//#define MAX_RENDER_CRITHITS 8
 
+// Static lights in lights ubo
 #define SUN_LIGHT_ID 0
 #define PLAYER_GUN_LIGHT_ID 1
+#define MAX_STATIC_LIGHTS 2
+
+// Dynamic lights in lights ubo
+#define EXPLOSION_LIGHTS_ID 3
+#define MAX_EXPLOSION_LIGHTS (MAX_NORMAL_LIGHTS - MAX_STATIC_LIGHTS)
 
 
 #define NUM_POWERUP_OFFERS 3
+
+
+
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -187,10 +210,7 @@ struct state_t {
     struct player_t player;
     Font font;
 
-
-    unsigned int lights_ubo;
-    unsigned int prj_lights_ubo;
-    unsigned int fog_ubo;
+    unsigned int ubo[MAX_UBOS];
 
     float fog_density;
     Color fog_color_near;
@@ -205,7 +225,10 @@ struct state_t {
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
 
-    
+    // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
+    struct light_t decay_lights[MAX_DECAY_LIGHTS];
+    size_t next_explosion_light_index;
+
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
@@ -250,18 +273,22 @@ struct state_t {
 
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
-    RenderTexture2D bloomtreshold_target;
+    RenderTexture2D bloomtresh_target;
+
 
     // (NOT CURRENTLY USED)
     RenderTexture2D depth_texture;
 
- 
+
     Color render_bg_color;
     int running;
     int menu_open;
-
+    int devmenu_open;
 
 };
+
+
+void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
 
 void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);
@@ -269,6 +296,7 @@ void state_update_frame(struct state_t* gst);
 
 void update_fog_settings(struct state_t* gst);
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
+
 
 // Initialization.
 void state_setup_all_shaders(struct state_t* gst);

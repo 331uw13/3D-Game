@@ -133,7 +133,6 @@ void state_render(struct state_t* gst) {
 
     BeginTextureMode(gst->env_render_target);
     ClearBackground(gst->render_bg_color);
-
     BeginMode3D(gst->player.cam);
     {
 
@@ -180,9 +179,9 @@ void state_render(struct state_t* gst) {
         // Particle systems. (rendered only if needed)
         {
             // Player
+            render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
             render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
             render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
-            render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
             
             // Enemies
             render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], ENEMY_WEAPON_COLOR);
@@ -195,11 +194,9 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
             render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS], ENEMY_WEAPON_COLOR);
             
-            render_psystem(gst, &gst->psystems[EXPLOSION_PART1_PSYS], (Color){ 255, 50, 10, 255});
-            render_psystem(gst, &gst->psystems[EXPLOSION_PART2_PSYS], (Color){ 255, 140, 40, 160});
-            render_psystem(gst, &gst->psystems[EXPLOSION_PART3_PSYS], (Color){ 30, 30, 30, 230});
-        
+            render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
             render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 70, 60, 50, 255 });
+            render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
         }
 
         player_render(gst, &gst->player);
@@ -209,18 +206,16 @@ void state_render(struct state_t* gst) {
         render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
         rlEnableDepthMask();
     
-
-        
         //_state_render_crithit_markers(gst);
 
     }
     EndMode3D();
     EndTextureMode();
-
-
+    
     // Get bloom treshold texture.
 
-    BeginTextureMode(gst->bloomtreshold_target);
+    
+    BeginTextureMode(gst->bloomtresh_target);
     ClearBackground((Color){ 0,0,0, 255 });
     BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
     {
@@ -238,5 +233,4 @@ void state_render(struct state_t* gst) {
     EndShaderMode();
     EndTextureMode();
 
-   
 }

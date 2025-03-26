@@ -16,10 +16,11 @@ struct particle_t {
     
     Vector3 velocity;
     Vector3 accel;
-    Color   color;
+    Color   color; // (Not used if 'psystem->color_vbo' is not setup)
     
     float   lifetime;
     float   max_lifetime;
+    float   n_lifetime; // Normalized lifetime.
 
     float   scale;
     float   initial_scale;
@@ -32,6 +33,10 @@ struct particle_t {
     // corresponding matrix is found at 'psystem->transforms[particle->index]'
     Vector3 position;
     Vector3 prev_position; // previous position (updated by 'update_psystem').
+    Vector3 origin;
+
+    Color start_color;
+    Color end_color;
 
     // pointing to corresponding location for this particle
     // in psystem_t 'transforms'
@@ -43,6 +48,10 @@ struct particle_t {
     int has_light;
     int last_update;
 
+    int user_i[3];
+    Vector3 user_v[3];
+
+    int idb; // Behaviour ID.
 };
 
 #define NO_EXTRADATA 0
@@ -56,13 +65,13 @@ struct particle_t {
 #define PSYS_ONESHOT 0
 #define PSYS_CONTINUOUS 1
 
+#define NO_IDB -1
+
 
 struct psystem_t {
 
     int groupid;
     int enabled;
-
-   
     struct particle_t* particles;
     
     Matrix*     transforms;
@@ -74,6 +83,7 @@ struct psystem_t {
     size_t num_alive_parts;
 
     size_t nextpart_index;
+    
 
     // Called to update each particle.
     void(*update_callback)(
@@ -107,6 +117,7 @@ struct psystem_t {
 
     size_t color_vbo_size;
     unsigned int color_vbo;
+
 };
 
 
@@ -130,6 +141,8 @@ void create_psystem(
 //                 this function must be called after particle system has been created!
 void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys);
 
+void psystem_set_idb(struct psystem_t* psys, int id, size_t num);
+
 void update_psystem(struct state_t* gst, struct psystem_t* psys);
 void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color);
 
@@ -140,7 +153,8 @@ void add_particles(
         Vector3 origin,
         Vector3 velocity,
         void* extradata_ptr,
-        int has_extradata
+        int has_extradata,
+        int idb
         );
 
 void disable_particle(struct state_t* gst, struct particle_t* p);

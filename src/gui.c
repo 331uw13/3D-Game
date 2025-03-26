@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <math.h>
+
 #include "gui.h"
 #include "state.h"
+#include "util.h"
 
 
 #define EXTRA_OFF_H 10.0    // How much extra space for Height
@@ -304,4 +306,41 @@ void gui_render_powerup_shop(struct state_t* gst) {
 
 }
 
+void gui_render_devmenu(struct state_t* gst) {
+    
+    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 30, 30, 200 });
+    const char* menu_text = "[ Development menu ]";
+    const float menu_text_fontsize = 20.0;
+    DrawTextEx(gst->font, menu_text, 
+            (Vector2){ gst->scrn_w - MeasureText(menu_text, menu_text_fontsize)*2, 10 },
+            menu_text_fontsize, FONT_SPACING, TEXT_COLOR);
+
+
+    const float btn_y_inc = 34.0;
+    Vector2 btn_pos = (Vector2){ 80, 150 };
+
+    DrawTextEx(gst->font, "-- Spawn enemies --", (Vector2){ btn_pos.x, btn_pos.y-40 }, 20.0, FONT_SPACING, TEXT_COLOR);
+
+    const float spawn_rad = 40.0;
+
+    if(gui_button(gst, "Enemy LVL0", 15.0, btn_pos)) {
+        spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, (Vector3){
+                    gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
+                    0,
+                    gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
+                });
+    }
+    btn_pos.y += btn_y_inc;
+
+    if(gui_button(gst, "Enemy LVL1", 15.0, btn_pos)) {
+        spawn_enemy(gst, ENEMY_LVL1, ENT_FRIENDLY, (Vector3){
+                    gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
+                    0,
+                    gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
+                });
+    }
+    btn_pos.y += btn_y_inc;
+
+
+}
 

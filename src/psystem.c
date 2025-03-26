@@ -69,7 +69,6 @@ void create_psystem(
     psys->pinit_callback = pinit_callback_ptr;
     psys->userptr = NULL;
 
-
     psys->particles = calloc(max_particles, sizeof *psys->particles);
     if(!psys->particles) {
         fprintf(stderr, " >> (ERROR) '%s' Failed to allocate memory for particles\n",
@@ -127,34 +126,11 @@ void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys) {
     int attrib_loc = glGetAttribLocation(gst->shaders[psys->shader_index].id, "instanceColor");
     size_t stride = sizeof(float)*4;
 
-    //for(size_t i = 0; i < psys->max_particles; i++) {
-        rlEnableVertexAttribute(attrib_loc);
-        rlSetVertexAttribute(attrib_loc, 4, RL_FLOAT, 0, stride, 0);
-        rlSetVertexAttributeDivisor(attrib_loc, 1);
-    //}
-
-
-    printf("Particle system has color vbo\n");
+    rlEnableVertexAttribute(attrib_loc);
+    rlSetVertexAttribute(attrib_loc, 4, RL_FLOAT, 0, stride, 0);
+    rlSetVertexAttributeDivisor(attrib_loc, 1);
 
     rlDisableVertexArray();
-}
-
-
-static struct particle_t* _add_particle(struct psystem_t* psys) {
-    struct particle_t* p = &psys->particles[psys->nextpart_index];
-    p->transform = &psys->transforms[psys->nextpart_index];
-
-    p->alive = 1;
-    p->lifetime = 0.0;
-    p->has_light = 0;
-    p->last_update = 0;
-
-    psys->nextpart_index++;
-    if(psys->nextpart_index >= psys->max_particles) {
-        psys->nextpart_index = 0;
-    }
-
-    return p;
 }
 
 
@@ -205,17 +181,18 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
             p->last_update = 1;
         }
 
+        p->n_lifetime = normalize(p->lifetime, 0, p->max_lifetime);
+        
         psys->num_alive_parts++;
         psys->update_callback(gst, psys, p);
 
         p->prev_position = p->position;
 
-
         p->lifetime += gst->dt;
         if((psys->time_setting == PSYS_ONESHOT) && (p->lifetime > p->max_lifetime)) {
             p->alive = 0;
             if(p->has_light) {
-                disable_light(gst, &p->light, gst->prj_lights_ubo);
+                disable_light(gst, &p->light, PRJLIGHTS_UBO);
             }
 
             continue;
@@ -328,6 +305,37 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
 }
 
 
+static struct particle_t* _add_particle(struct psystem_t* psys) {
+    struct particle_t* p = &psys->particles[psys->nextpart_index];
+    p->transform = &psys->transforms[psys->nextpart_index];
+
+    p->position = (Vector3){ 0, 0, 0 };
+    p->prev_position = (Vector3){ 0, 0, 0 };
+    p->origin = (Vector3){ 0, 0, 0 };
+    p->velocity = (Vector3){ 0, 0, 0 };
+    p->accel = (Vector3){ 0, 0, 0 };
+    p->color = (Color){ 0, 0, 0, 255 };
+    p->start_color = (Color){ 0, 0, 0, 255 };
+    p->end_color = (Color){ 0, 0, 0, 255 };
+    p->extradata = NULL;
+    p->lifetime = 0.0;
+    p->max_lifetime = 0.0;
+    p->n_lifetime = 0.0;
+    p->scale = 0.0;
+    p->initial_scale = 0.0;
+    p->alive = 1;
+    p->has_light = 0;
+    p->last_update = 0;
+    p->idb = NO_IDB;
+
+    psys->nextpart_index++;
+    if(psys->nextpart_index >= psys->max_particles) {
+        psys->nextpart_index = 0;
+    }
+
+    return p;
+}
+
 void add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
@@ -335,14 +343,18 @@ void add_particles(
         Vector3 origin,
         Vector3 velocity,
         void* extradata_ptr,
-        int has_extradata
+        int has_extradata,
+        int idb
         )
 {
 
     for(size_t i = 0; i < n; i++) {
         struct particle_t* p = _add_particle(psys);
 
-        // callback to initialize the particle.
+        p->origin = origin;
+        p->idb = idb;
+
+        // Callback to initialize the particle.
         psys->pinit_callback(
                 gst,
                 psys,
@@ -361,9 +373,12 @@ void disable_particle(struct state_t* gst, struct particle_t* p) {
     p->alive = 0;
     p->lifetime = p->max_lifetime;
     
+    /*
     if(p->has_light) {
-        disable_light(gst, &p->light, gst->prj_lights_ubo);
+        disable_light(gst, &p->light, PRJLIGHTS_UBO);
         p->has_light = 0;
     }
+    */
 }
+
 

@@ -46,7 +46,7 @@ void prj_envhit_psys_update(
                 nextpsys, 
                 GetRandomValue(5, 10),
                 part->position, (Vector3){0},
-                NULL, NO_EXTRADATA);
+                NULL, NO_EXTRADATA, NO_IDB);
     }
 }
 

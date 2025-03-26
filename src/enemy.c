@@ -304,7 +304,7 @@ void enemy_damage(
             GetRandomValue(30, 50),
             hit_position,
             hit_direction,
-            NULL, NO_EXTRADATA
+            NULL, NO_EXTRADATA, NO_IDB
             );
 
     if(gst->has_audio) {
