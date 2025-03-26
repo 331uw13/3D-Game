@@ -8,7 +8,6 @@
 
 
 // ------------ Common powerups ---------------
-// (all common powerups can be stacked)
 
 #define POWERUP_COMMON 0
 
@@ -41,25 +40,19 @@
 
 #define POWERUP_RARE 1
 
-// Player can shoot multiple projectiles at once. (can be stacked)
+// Player can shoot multiple projectiles at once.
 #define POWERUP_BURST_FIRE 7
 
-// Projectiles size is increased. (can be stacked)
+// Projectiles size is increased.
 #define POWERUP_BIGGER_PROJECTILES 8
-
-// Some enemies have small chance to make player temporarily "blind". (can not be stacked.)
-#define POWERUP_IMMUNITY_TO_BLINDNESS 9 
-
-// Player picksup and eats apples automatically when nearby. (can be stacked, increases the range)
-#define POWERUP_APPLE_MAGNET 10
 
 
 // ------------ Special powerups ---------------
 
 #define POWERUP_SPECIAL 2
 
-// Player's health regenrates by itself overtime. (can be stacked)
-#define POWERUP_HEALTH_REGEN 11
+// Player's health regenrates by itself overtime.
+#define POWERUP_HEALTH_REGEN 9
 
 // ...
 
@@ -75,19 +68,18 @@
 // ...
 
 
-#define NUM_POWERUPS 12
-#define NUM_POWERUP_OFFERS 3
-
+#define NUM_POWERUPS 10
+#define NUM_POWERUP_OFFERS 4
 
 struct powerup_t {
     int type;
     int rarity;
     int xp_cost;
-    int can_be_stacked;
+    int max_level;
+    float xp_cost_mult;    // xp_cost is multiplied with this number everytime player buys this powerup.
     char* name;
 };
 
-#define POWERUP_SHOP_TIMEOUT 6
 
 
 struct powerup_shop_t {
@@ -95,15 +87,14 @@ struct powerup_shop_t {
     int selected_index; // If set to negative value, nothing is selected.
     struct powerup_t offers[NUM_POWERUP_OFFERS];
 
-    int available;
-    float timeout_time;
+    struct powerup_t powerups[NUM_POWERUPS];
 };
 
 struct state_t;
 struct player_t;
 
-struct powerup_t get_powerup(int powerup_type);
-int apply_powerup(struct state_t* gst, struct player_t* player, int powerup_type);
+void set_powerup_defaults(struct state_t* gst, struct powerup_shop_t* shop);
+void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_type);
 void update_powerup_shop_offers(struct state_t* gst);
 
 

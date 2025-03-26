@@ -347,7 +347,7 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
         xp_gain_bonus += ent->hitboxes[i].hits;
     }
 
-    gst->player.kills++;
+    gst->player.kills[ent->type]++;
 
     xp_gain_bonus = CLAMP(xp_gain_bonus, 0, ENEMY_XP_GAIN_MAX_BONUS);
     printf("xp-gain: %i\n", ent->xp_gain + xp_gain_bonus);
@@ -357,6 +357,20 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
 
     if(ent->death_callback) {
         ent->death_callback(gst, ent);
+    }
+
+    struct ent_spawnsys_t* spawnsys = &gst->enemy_spawn_systems[ent->type];
+    spawnsys->spawn_timer += spawnsys->add_time_when_killed;
+
+    if(spawnsys->to_nextlevel_kills <= gst->player.kills[ent->type]) {
+        increase_spawnsys_difficulty(gst, spawnsys);
+    }
+
+    if((gst->player.kills[ent->type] >= spawnsys->kills_to_next_spawnsys)
+    && (spawnsys->next_spawnsys > 0)) {
+        printf("\033[36m(SpawnSystem): EnemyLVL%i is able to spawn now!\033[0m\n", spawnsys->next_spawnsys);
+        gst->enemy_spawn_systems[spawnsys->next_spawnsys].can_spawn = 1;
+        spawnsys->next_spawnsys = -1;
     }
 }
 
@@ -409,7 +423,7 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         ENEMY_LVL0_MAX_HEALTH,
                         position,
-                        12,    /* XP Gain */
+                        35,    /* XP Gain */
                         780.0, /* Target Range */
                         0,     /* Fov is ignored because its the full range. */
                         0.2,   /* Firerate */
@@ -459,10 +473,10 @@ void spawn_enemy(
                         &gst->enemy_weapons[enemy_type],
                         ENEMY_LVL1_MAX_HEALTH,
                         position,
-                        35,    /* XP Gain */
+                        60,    /* XP Gain */
                         680.0, /* Target Range */
-                        130.0,  /* Target FOV */
-                        0.085,   /* Firerate */
+                        90.0,  /* Target FOV */
+                        0.085, /* Firerate */
                         enemy_lvl1_update,
                         enemy_lvl1_render,
                         enemy_lvl1_death,
@@ -653,53 +667,44 @@ static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
     return pos;
 }
 
-void spawn_enemies(
-        struct state_t* gst,
-        int enemy_type,
-        size_t n,
-        float spawn_radius
-){
 
-    int num_enemies_in_world = 0;
-    int num_enemies = num_enemies_in_radius(gst, enemy_type, spawn_radius, &num_enemies_in_world);
+void update_enemy_spawn_systems(struct state_t* gst) {
 
-    printf("Enemy type '%i' in world: %i\n", enemy_type, num_enemies_in_world);
+    for(int enemy_type = 0; enemy_type < MAX_ENEMY_TYPES; enemy_type++) {
+        struct ent_spawnsys_t* spawnsys = &gst->enemy_spawn_systems[enemy_type];
 
-    if(num_enemies_in_world >= gst->spawnsys.max_in_world[enemy_type]) {
-        printf("'%s': Too many '%i' in world\n",
-                __func__, enemy_type);
-        return;
-    }
+        if(!spawnsys->can_spawn) {
+            continue;
+        }
 
-    if(num_enemies >= gst->spawnsys.max_in_spawn_radius[enemy_type]) {
-        printf("'%s': Too many '%i' in spawn radius\n",
-                __func__, enemy_type);
-        return;
-    }
+        spawnsys->spawn_timer += gst->dt;
+        if(spawnsys->spawn_timer >= spawnsys->spawn_delay) {
+            spawnsys->spawn_timer = 0.0;
 
-    for(size_t i = 0; i < n; i++) {
-        spawn_enemy(gst, enemy_type, ENT_HOSTILE, get_good_spawn_pos(gst, spawn_radius));
-    }
+            int to_spawn = GetRandomValue(spawnsys->num_spawns_min, spawnsys->num_spawns_max);
 
-}
+            int in_world = 0;
+            int in_radius = num_enemies_in_radius(gst, enemy_type, spawnsys->spawn_radius, &in_world);
 
-void update_enemy_spawn_system(struct state_t* gst) {
+            if(in_world >= spawnsys->max_in_world) {
+                fprintf(stderr, "\033[35m(WARNING) '%s': Too many 'EnemyLVL%i' in world\033[0m\n",
+                        __func__, enemy_type);
+                continue;
+            }
 
-    for(int enemy_type = 0; 
-            enemy_type < MAX_ENEMY_TYPES;
-            enemy_type++
-    ){
-        
-        gst->spawnsys.spawn_timers[enemy_type] += gst->dt;
-        if(gst->spawnsys.spawn_timers[enemy_type] >= gst->spawnsys.spawn_timers_max[enemy_type]) {
-            gst->spawnsys.spawn_timers[enemy_type] = 0.0;
+            if(in_radius >= spawnsys->max_in_spawn_radius) {
+                fprintf(stderr, "\033[35m(WARNING) '%s': Too many 'EnemyLVL%i' in spawn radius\033[0m\n",
+                        __func__, enemy_type);
+                continue;
+            }
 
-            int n = GetRandomValue(
-                    gst->spawnsys.num_spawns_min[enemy_type],
-                    gst->spawnsys.num_spawns_max[enemy_type]);
-            n = CLAMP(n, 0, gst->spawnsys.max_in_spawn_radius[enemy_type]);
+            to_spawn = CLAMP(to_spawn, 0, spawnsys->max_in_spawn_radius);
 
-            spawn_enemies(gst, enemy_type, n, gst->spawnsys.spawn_radius[enemy_type]);
+            for(int i = 0; i < to_spawn; i++) {
+                spawn_enemy(gst, enemy_type, ENT_HOSTILE, get_good_spawn_pos(gst, spawnsys->spawn_radius));
+            }
+
+            printf("\033[36m(SpawnSystem): Spawned EnemyLVL%i (%i)\033[0m\n", enemy_type, to_spawn);
         }
     }
 }
@@ -707,28 +712,73 @@ void update_enemy_spawn_system(struct state_t* gst) {
 void setup_default_enemy_spawn_settings(struct state_t* gst) {
     int type;
 
-    // ENEMY_LVL0 Defaults.
-    type = ENEMY_LVL0;
-    gst->spawnsys.max_in_spawn_radius[type] = 4;
-    gst->spawnsys.max_in_world[type] = 10;
-    gst->spawnsys.spawn_radius[type] = 800.0;
-    gst->spawnsys.spawn_timers_max[type] = 30.0;
-    gst->spawnsys.spawn_timers[type] = 20.0; // Skip little bit ahead.
-    gst->spawnsys.num_spawns_min[type] = 2;
-    gst->spawnsys.num_spawns_max[type] = 5;
+    // --- ENEMY_LVL0 Defaults ---
+    {
+        struct ent_spawnsys_t* spawnsys = &gst->enemy_spawn_systems[ENEMY_LVL0];
+
+        spawnsys->enemy_type = ENEMY_LVL0;
+        spawnsys->max_difficulty = ENEMY_LVL0_MAX_DIFFICULTY;
+        spawnsys->can_spawn = 1;
+        spawnsys->difficulty = 0;
+        spawnsys->max_in_world = 10;
+        spawnsys->max_in_spawn_radius = 6;
+        spawnsys->spawn_radius = 800.0;
+        spawnsys->spawn_delay = 30.0;
+        spawnsys->num_spawns_min = 3;
+        spawnsys->num_spawns_max = 4;
+        spawnsys->nextlevel_kills_add = 10;
+        spawnsys->to_nextlevel_kills = 10;
+        spawnsys->add_time_when_killed = 5.0;
+
+        spawnsys->next_spawnsys = ENEMY_LVL1;
+        spawnsys->kills_to_next_spawnsys = 8;
+        
+        // Skip little bit ahead to not let the player keep waiting for too long.
+        spawnsys->spawn_timer = spawnsys->spawn_delay-2.0;
+    }
+
+    // --- ENEMY_LVL1 Defaults ---
+    {
+        struct ent_spawnsys_t* spawnsys = &gst->enemy_spawn_systems[ENEMY_LVL1];
+
+        spawnsys->enemy_type = ENEMY_LVL1;
+        spawnsys->max_difficulty = ENEMY_LVL1_MAX_DIFFICULTY;
+        spawnsys->can_spawn = 0;
+        spawnsys->difficulty = 0;
+        spawnsys->max_in_world = 10;
+        spawnsys->max_in_spawn_radius = 6;
+        spawnsys->spawn_radius = 800.0;
+        spawnsys->spawn_delay = 40.0;
+        spawnsys->num_spawns_min = 1;
+        spawnsys->num_spawns_max = 2;
+        spawnsys->nextlevel_kills_add = 10;
+        spawnsys->to_nextlevel_kills = 20;
+        spawnsys->add_time_when_killed = 2.0;
+        spawnsys->spawn_timer = spawnsys->spawn_delay-3.0;
+        
+        spawnsys->next_spawnsys = -1;
+        spawnsys->kills_to_next_spawnsys = 0;
+    }
+}
+
+void increase_spawnsys_difficulty(struct state_t* gst, struct ent_spawnsys_t* spawnsys) {
+
+    if(spawnsys->difficulty >= spawnsys->max_difficulty) {
+        return;
+    }
+    
+    spawnsys->to_nextlevel_kills += spawnsys->nextlevel_kills_add;
+    spawnsys->num_spawns_max += 2;
+
+    // Increase weapon accuracy and projectile speed.
+
+    struct weapon_t* ent_weapon = &gst->enemy_weapons[spawnsys->enemy_type];
+    ent_weapon->accuracy += 0.15;
+    ent_weapon->prj_speed += 85;
 
 
-    // ENEMY_LVL1 Defaults.
-    type = ENEMY_LVL1;
-    gst->spawnsys.max_in_spawn_radius[type] = 6;
-    gst->spawnsys.max_in_world[type] = 10;
-    gst->spawnsys.spawn_radius[type] = 1200.0;
-    gst->spawnsys.spawn_timers_max[type] = 120.0;
-    gst->spawnsys.spawn_timers[type] = 0.0;
-    gst->spawnsys.num_spawns_min[type] = 2;
-    gst->spawnsys.num_spawns_max[type] = 6;
-
-
+    printf("\033[36m(SpawnSystem): Increased EnemyLVL%i Difficulty\033[0m\n",
+            spawnsys->enemy_type);
 }
 
 

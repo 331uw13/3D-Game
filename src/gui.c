@@ -95,19 +95,34 @@ int gui_button(
 }
 
 
+static void render_num_kills(struct state_t* gst) {
+    DrawTextEx(gst->font, 
+           "Kills:",
+           (Vector2){ 30, 50.0 },
+           20.0,
+           FONT_SPACING,
+           (Color){ 180, 230, 240, 255 }
+           );
+
+
+    float kills_text_y = 80.0;
+    for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
+        DrawTextEx(gst->font, 
+                TextFormat("Enemy LVL%i: %i", i, gst->player.kills[i]),
+                (Vector2){ 50, kills_text_y },
+                15.0,
+                FONT_SPACING,
+                TEXT_COLOR
+                );
+        kills_text_y += 23.0;
+    }
+}
 
 
 void gui_render_respawn_screen(struct state_t* gst) {
     
-    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 10, 10, 150 });
-    DrawTextEx(gst->font, 
-            TextFormat("Enemies killed: %i", gst->player.kills),
-            (Vector2){ 30, 200 },
-            20.0,
-            FONT_SPACING,
-            TEXT_COLOR
-            );
-
+    
+    render_num_kills(gst);
 
     if(gui_button(gst, "Respawn", 30.0, (Vector2){100, gst->scrn_h/2})) {
         player_respawn(gst, &gst->player);
@@ -116,21 +131,15 @@ void gui_render_respawn_screen(struct state_t* gst) {
     if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->scrn_h/2 + 70})) {
         gst->running = 0;
     }
-
-
 }
+
 
 void gui_render_menu_screen(struct state_t* gst) {
     
     DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 10, 10, 150 });
-    DrawTextEx(gst->font, 
-            TextFormat("Enemies killed: %i", gst->player.kills),
-            (Vector2){ 30, 200 },
-            20.0,
-            FONT_SPACING,
-            TEXT_COLOR
-            );
-    
+  
+    render_num_kills(gst);
+
     if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->scrn_h/2})) {
         gst->running = 0;
     }
@@ -185,43 +194,14 @@ void gui_render_powerup_shop(struct state_t* gst) {
 
     DrawRectangleLinesEx(shop_rect, 2.0, (Color){ 150, 50, 20, 200});
 
-    if(!shop->available) {
-        
-        Vector2 text_pos = (Vector2){
-            shop_pos.x - 15,
-            shop_pos.y + shop_size.y/2-40
-        };
-
-        DrawTextEx(gst->font, "Wait until more offers appear...",
-                text_pos,
-                23.0, FONT_SPACING, (Color){ 200, 80, 20, 180});
-
-        for(int i = 0; i < 3; i++) {
-            float y = text_pos.y + (i * 3 + 30.0);
-            DrawLine(text_pos.x-10, y, text_pos.x+shop_size.x-100 - i*200, y, RED);
-        }
-
-        text_pos.y += 80.0;
-        
-        DrawTextEx(gst->font, TextFormat("-> New offers in %i seconds.", 
-                    (int)(POWERUP_SHOP_TIMEOUT - shop->timeout_time)),
-                text_pos,
-                15.0, FONT_SPACING, (Color){ 200, 120, 50, 180});
-
-        if(gui_button(gst, "Ok.", 20, (Vector2){ shop_pos.x, shop_pos.y+shop_size.y-60 })) {
-            gst->player.powerup_shop.open = 0;
-            DisableCursor();
-        }
-        return;
-    }
-
     DrawTextEx(gst->font, "* Powerup Shop Offers", shop_pos, 20.0, FONT_SPACING, TEXT_COLOR);
     
     DrawTextEx(gst->font, 
             TextFormat("Your XP: %i", gst->player.xp),
             (Vector2){shop_pos.x+20, shop_pos.y+35}, 15.0, FONT_SPACING, TEXT_COLOR);
 
-    
+
+   
     float offer_btn_y = shop_pos.y+80;
 
     int blink = (int)((sin(gst->time*10.0)*0.5+0.5)*100);
@@ -236,7 +216,11 @@ void gui_render_powerup_shop(struct state_t* gst) {
         const float space_xpcost_text = 180.0;
         Vector2 name_size = MeasureTextEx(gst->font, powerup->name, offer_font_size, FONT_SPACING);
         
-        int can_afford = (powerup->xp_cost <= gst->player.xp);
+        int can_afford = 
+               (gst->xp_value_add == 0)
+            && (powerup->xp_cost <= gst->player.xp)
+            && (gst->player.powerup_levels[powerup->type] < powerup->max_level);
+
 
         Color ln_color = unavailable_color;
         if(can_afford) {
@@ -272,7 +256,8 @@ void gui_render_powerup_shop(struct state_t* gst) {
                     can_afford ? (Color){ 200, 120, 60, 255 } : (Color){ 100, 88, 80, 200 }, // fg
                     (Color){ 180, 150, 80, 255 }, // focused.
                     (Color){ 130, 80, 20, 255 } // un-focused.
-                    ) && can_afford) {
+                    ) 
+                && can_afford) {
             printf("Selected '%s'\n", powerup->name);
             shop->selected_index = i;
         }
@@ -292,17 +277,49 @@ void gui_render_powerup_shop(struct state_t* gst) {
             return;
         }
 
-        apply_powerup(gst, &gst->player, selected->type);
-    
-        player_add_xp(gst, -selected->xp_cost);
+        shop->powerups[selected->type].xp_cost *= shop->powerups[selected->type].xp_cost_mult;
 
-        shop->open = 0;
-        shop->timeout_time = 0.0;
-        shop->available = 0;
-        DisableCursor();
-        
-        printf("Powerup bought: \"%s\", xp_cost: %i\n", selected->name, selected->xp_cost);
+        apply_powerup(gst, &gst->player, selected->type);
+        player_add_xp(gst, -selected->xp_cost);
+        update_powerup_shop_offers(gst);
     }
+
+    if(gui_button_ext(gst, 
+                "New offers (-25 XP)", 15.0, 
+                (Vector2){ shop_pos.x+150, offer_btn_y+5 },
+                (Color){ 75, 45, 30, 200 },  // bg
+                (Color){ 200, 120, 60, 255 }, // fg
+                (Color){ 180, 150, 80, 255 }, // focused.
+                (Color){ 130, 80, 20, 255 } // un-focused.
+                ) && (gst->player.xp >= 25)) {
+        player_add_xp(gst, -25);
+        update_powerup_shop_offers(gst);
+    }
+
+    if(gui_button_ext(gst, 
+                "Close", 15.0, 
+                (Vector2){ shop_pos.x+540, offer_btn_y+5 },
+                (Color){ 75, 45, 30, 200 },  // bg
+                (Color){ 200, 120, 60, 255 }, // fg
+                (Color){ 180, 150, 80, 255 }, // focused.
+                (Color){ 130, 80, 20, 255 } // un-focused.
+                )) {
+        shop->open = 0;
+        DisableCursor();
+    }
+
+
+    Vector2 ptext_pos = (Vector2){ gst->scrn_w-500, 20 };
+    for(int i = 0; i < NUM_POWERUPS; i++) {
+        struct powerup_t* powerup = &gst->player.powerup_shop.powerups[i];
+
+        DrawTextEx(gst->font,
+                TextFormat("%i/%i (%s)", gst->player.powerup_levels[i], powerup->max_level, powerup->name),
+                ptext_pos, 15.0, FONT_SPACING, TEXT_COLOR);
+
+        ptext_pos.y += 20.0;
+    }
+
 
 }
 

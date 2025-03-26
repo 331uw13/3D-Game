@@ -174,7 +174,6 @@
 #define MAX_EXPLOSION_LIGHTS (MAX_NORMAL_LIGHTS - MAX_STATIC_LIGHTS)
 
 
-#define NUM_POWERUP_OFFERS 3
 
 
 
@@ -187,9 +186,16 @@ struct crithit_marker_t {
     float   dst; // Distance to player. Used for sorting to fix alpha blending.
 };
 
-
+/*
 // Enemy spawn settings for each type.
 struct spawn_system_t {
+    
+    // Spawn system difficulty for the enemy will be increased based on number of kills(of the same enemy).
+    // (explained in 'spawnsys_set_next_difficulty()' how the difficutly is increased.)
+
+    int   can_spawn           [MAX_ENEMY_TYPES];
+    int   to_nextlevel_kills  [MAX_ENEMY_TYPES];  // How many kills to update to next difficulty?
+
     int   max_in_spawn_radius [MAX_ENEMY_TYPES];  // How many can spawn in spawn radius?
     int   max_in_world        [MAX_ENEMY_TYPES];  // How many can be spawned in world total?
     float spawn_radius        [MAX_ENEMY_TYPES];  // Spawn radius around player position.
@@ -200,6 +206,7 @@ struct spawn_system_t {
     int num_spawns_min [MAX_ENEMY_TYPES]; // Min number of enemies to spawn
     int num_spawns_max [MAX_ENEMY_TYPES]; // Max number of enemies to spawn
 };
+*/
 
 
 // Game state "gst".
@@ -231,7 +238,8 @@ struct state_t {
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
-    struct spawn_system_t spawnsys;
+    //struct spawn_system_t spawnsys;
+    struct ent_spawnsys_t enemy_spawn_systems[MAX_ENEMY_TYPES];
     Model  enemy_models[MAX_ENEMY_MODELS];
     struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;

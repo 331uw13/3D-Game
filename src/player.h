@@ -7,6 +7,7 @@
 #include "inventory.h"
 #include "item.h"
 #include "powerup.h"
+#include "enemy.h"
 
 struct state_t;
 
@@ -72,6 +73,7 @@ struct player_t {
     int      is_aiming;
     int      alive;
 
+    int powerup_levels[NUM_POWERUPS];
 
     int armor;
     int max_armor;
@@ -134,7 +136,7 @@ struct player_t {
     float max_health;
     float health_normalized;
 
-    int kills;
+    int kills[MAX_ENEMY_TYPES];
 
     struct weapon_t  weapon; // Weapon stats.
     //struct psystem_t weapon_psys;

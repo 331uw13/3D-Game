@@ -184,16 +184,6 @@ void state_update_frame(struct state_t* gst) {
 
     player_update(gst, &gst->player);
     
-    if(!gst->player.powerup_shop.available
-    && (gst->player.powerup_shop.timeout_time < POWERUP_SHOP_TIMEOUT)) {
-        gst->player.powerup_shop.timeout_time += gst->dt;
-        if(gst->player.powerup_shop.timeout_time > POWERUP_SHOP_TIMEOUT) {
-            update_powerup_shop_offers(gst);
-            gst->player.powerup_shop.available = 1;
-            gst->player.powerup_shop.timeout_time = 0.0;
-        }
-    }
-
 
     // Enemies.
     if(!gst->player.powerup_shop.open) {
@@ -201,7 +191,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        //update_enemy_spawn_system(gst); 
+        update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -228,7 +218,7 @@ void state_update_frame(struct state_t* gst) {
     if(gst->xp_value_add != 0) {
         gst->xp_update_timer += gst->dt;
 
-        if(gst->xp_update_timer >= 0.035) {
+        if(gst->xp_update_timer >= 0.001) {
             gst->xp_update_timer = 0.0;
 
             if(gst->xp_value_add > 0) {
@@ -463,7 +453,7 @@ void state_setup_all_weapons(struct state_t* gst) {
     // Player's weapon.
     gst->player.weapon = (struct weapon_t) {
         .gid = PLAYER_WEAPON_GID,
-        .accuracy = 7.85,
+        .accuracy = 8.35,
         .damage = 10.0,
         .critical_chance = 10,
         .critical_mult = 1.85,

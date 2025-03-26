@@ -136,7 +136,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
                         player_vel.y *= 0.7;
                         player_pos.x = player_pos.x + (player_vel.x * prj_time);
-                        player_pos.y = player_pos.y + (player_vel.y * prj_time);
+                        //player_pos.y = player_pos.y + (player_vel.y * prj_time);
                         player_pos.z = player_pos.z + (player_vel.z * prj_time);
                     }
                     Vector3 prj_dir = Vector3Normalize(Vector3Subtract(player_pos, prj_pos));

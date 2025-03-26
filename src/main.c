@@ -323,8 +323,9 @@ void first_setup(struct state_t* gst) {
     gst->fog_color_far = (Color){ 80, 50, 70 };
 
     update_fog_settings(gst);
+    
+    set_powerup_defaults(gst, &gst->player.powerup_shop);
     update_powerup_shop_offers(gst);
-    gst->player.powerup_shop.available = 1;
 
 
     init_player_struct(gst, &gst->player);

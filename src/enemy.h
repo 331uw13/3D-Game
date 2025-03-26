@@ -29,7 +29,7 @@
 
 
 #define ENEMY_LVL0_MAX_HEALTH 100
-#define ENEMY_LVL1_MAX_HEALTH 180
+#define ENEMY_LVL1_MAX_HEALTH 75
 
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 #define ENEMY_MAX_MATRICES 4
@@ -156,6 +156,38 @@ struct enemy_t {
 
 };
 
+
+#define ENEMY_LVL0_MAX_DIFFICULTY 10
+#define ENEMY_LVL1_MAX_DIFFICULTY 10
+
+
+struct ent_spawnsys_t {
+    int enemy_type;  
+    int difficulty;
+    int max_difficulty;
+
+    int can_spawn;
+    int max_in_world;         // How many this type of enemy can be in the world at once?
+    int max_in_spawn_radius;  // How many can spawn in the same radius?
+    float spawn_radius;
+
+    float spawn_timer;
+    float spawn_delay; // How long to wait until more may be spawned?
+    float add_time_when_killed; // How many seconds to add into 'spawn_timer' when enemy gets killed?
+
+    int num_spawns_min; // Min number of enemies to spawn.
+    int num_spawns_max; // Max number of enemies to spawn.
+
+    int to_nextlevel_kills;  // How many kills does it take to increase difficuly?
+    int nextlevel_kills_add; // How many to add into 'to_nextlevel_kills' when difficulty is increased?
+
+    // When enough of this type of enemy is killed 'next_spawnsys' is able to spawn.
+    // If set to negative this will be ignored.
+    int next_spawnsys; 
+    int kills_to_next_spawnsys;
+};
+
+
 // IMPORTANT NOTE: remember to adjust 'MAX_ENEMY_MODELS' in 'state.h'
 // when adding more models!
 int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
@@ -218,7 +250,10 @@ int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius,
 
 // Spawns 'n' number of hostile enemies around player with radius of 'spawn_radius'
 void spawn_enemies(struct state_t* gst, int enemy_type, size_t n, float spawn_radius); 
-void update_enemy_spawn_system(struct state_t* gst);
+
+void update_enemy_spawn_systems(struct state_t* gst);
+void increase_spawnsys_difficulty(struct state_t* gst, struct ent_spawnsys_t* spawnsys);
+
 
 void setup_default_enemy_spawn_settings(struct state_t* gst);
 

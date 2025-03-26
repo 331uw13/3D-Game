@@ -29,6 +29,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     // ------------------------
 
+    p->xp = 999999;
+    
 
     p->cam = (Camera){ 0 };
     p->cam.position = gst->terrain.valid_player_spawnpoint;
@@ -55,7 +57,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->in_water = 0;
     p->dash_timer = 0.0;
     p->enable_fov_effect = 1;
-    p->kills = 0;
     p->fovy_change = 0.0;
     p->item_in_crosshair = NULL;
     p->speed = 0.0;
@@ -77,13 +78,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->accuracy_modifier = 0.0;
     p->accuracy_control = 0.0;
     p->time_from_last_shot = 0.0;
-    p->firerate = 0.065;
+    p->firerate = 0.1;
     p->firerate_timer = 0.0;
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->inventory.open = 0;
     p->powerup_shop.open = 0;
     p->powerup_shop.selected_index = -1;
-    p->powerup_shop.timeout_time = 0.0;
 
     p->aim_idle_timer = 0.0;
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
@@ -114,7 +114,13 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->gunfx_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUNFX_TEXID];
     p->gunfx_timer = 1.0;
 
-    p->xp = 165;
+    for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
+        p->kills[i] = 0;
+    }
+
+    for(size_t i = 0; i < NUM_POWERUPS; i++) {
+        p->powerup_levels[i] = 0;
+    }
 
     // calculate matrices for when player is aiming and not aiming.
     
@@ -207,6 +213,10 @@ void player_damage(struct state_t* gst, struct player_t* p, float damage) {
     if(p->noclip) {
         return;
     }
+    if(p->powerup_shop.open) {
+        return;
+    }
+
     if(damage < 0.0) {
         return;
     }
@@ -294,7 +304,10 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     p->ext_force_vel = (Vector3){0, 0, 0};
     p->ext_force_acc = (Vector3){0, 0, 0};
     p->xp = 0;
-    p->kills = 0;
+    
+    for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
+        p->kills[i] = 0;
+    }
    
     for(size_t i = 0; i < gst->num_enemies; i++) {
         gst->enemies[i].alive = 0;
@@ -768,7 +781,9 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
   
     if(!p->alive) {
         gui_render_respawn_screen(gst);
+        return;
     }
+
 
 
     float stats_x = 20.0;
@@ -860,82 +875,6 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
                 (Color){ 20, 150, 20, 255 }
                 );
     }
-
-
-
-    // Show extra info about powerups if inventory is open.
-    
-    if(!p->inventory.open) {
-        return;
-    }
-
-    Vector2 textpos = (Vector2){ 30, 400 };
-    const float textpos_y_inc = 17.5;
-    DrawTextEx(
-            gst->font,
-            TextFormat("Accuracy: %0.1f / %0.1f", p->weapon.accuracy, WEAPON_ACCURACY_MAX),
-            textpos,
-            15,
-            FONT_SPACING,
-            (Color){ 200, 200, 200, 255 }
-            );
-    textpos.y += textpos_y_inc;
-
-    DrawTextEx(
-            gst->font,
-            TextFormat("Firerate: %0.1f / %0.1f", p->firerate, FIRERATE_MIN),
-            textpos,
-            15,
-            FONT_SPACING,
-            (Color){ 200, 200, 200, 255 }
-            );
-    textpos.y += textpos_y_inc;
-
-    DrawTextEx(
-            gst->font,
-            TextFormat("Max Health: %0.1f / %i", p->max_health, ABS_MAX_HEALTH),
-            textpos,
-            15,
-            FONT_SPACING,
-            (Color){ 200, 200, 200, 255 }
-            );
-    textpos.y += textpos_y_inc;
-
-    DrawTextEx(
-            gst->font,
-            TextFormat("Max Armor: %i / %i", p->max_armor, ABS_MAX_ARMOR),
-            textpos,
-            15,
-            FONT_SPACING,
-            (Color){ 200, 200, 200, 255 }
-            );
-    textpos.y += textpos_y_inc;
-
-    DrawTextEx(
-            gst->font,
-            TextFormat("Weapon damage: %0.1f / %0.1f", p->weapon.damage, WEAPON_DAMAGE_MAX),
-            textpos,
-            15,
-            FONT_SPACING,
-            (Color){ 200, 200, 200, 255 }
-            );
-    textpos.y += textpos_y_inc;
-
-    DrawTextEx(
-            gst->font,
-            TextFormat("Armor damage dampen: %0.1f / %0.1f", p->armor_damage_dampen, ARMOR_DAMAGE_DAMPEN_MAX),
-            textpos,
-            15,
-            FONT_SPACING,
-            (Color){ 200, 200, 200, 255 }
-            );
-    textpos.y += textpos_y_inc;
-
-
-
-
-
-
 }
 
 
