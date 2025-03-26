@@ -173,7 +173,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     prj_position.y += p->looking_at.y * 10.0;
     prj_position.z += p->looking_at.z * 10.0;
 
-    add_projectile(gst, &p->weapon_psys, &p->weapon, 
+    add_projectile(gst, &gst->psystems[PLAYER_WEAPON_PSYS], &p->weapon, 
             prj_position, p->looking_at, p->accuracy_modifier);
 
     // Recoil animation.
@@ -244,6 +244,7 @@ void player_damage(struct state_t* gst, struct player_t* p, float damage) {
             num_particles,
             p->position,
             Vector3Normalize(Vector3Subtract(p->cam.target, p->cam.position)),
+            (Color){ 65, 5, 2, 150 },
             NULL, NO_EXTRADATA, NO_IDB
             );
 }
@@ -307,9 +308,10 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
 static float test = 0.0;
 
 void player_update(struct state_t* gst, struct player_t* p) {
-   
 
-    // Player may shoot projectile.
+
+    //rainbow_palette(sin(gst->time), &p->weapon.color.r, &p->weapon.color.g, &p->weapon.color.b);
+
     if(!p->any_gui_open
        && p->alive
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
@@ -514,6 +516,18 @@ void player_render(struct state_t* gst, struct player_t* p) {
 
     // Gun FX
     if(p->gunfx_timer < 1.0) {
+        
+        float color4f[4] = {
+            (float)gst->player.weapon.color.r / 255.0,
+            (float)gst->player.weapon.color.g / 255.0,
+            (float)gst->player.weapon.color.b / 255.0,
+            (float)gst->player.weapon.color.a / 255.0
+        };
+
+        SetShaderValue(gst->shaders[GUNFX_SHADER], 
+                gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC], color4f, SHADER_UNIFORM_VEC4);
+
+ 
         p->gunfx_model.transform = p->gunmodel.transform;
         
         p->gunfx_model.transform 

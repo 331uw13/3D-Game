@@ -25,6 +25,7 @@ void enemy_hit_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 );
 

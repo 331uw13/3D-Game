@@ -40,7 +40,8 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int),
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, 
+            Vector3,Vector3,Color,void*,int),
         int shader_index
 ){
     psys->halt = 1;
@@ -222,7 +223,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
     }
 }
 
-void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
+void render_psystem(struct state_t* gst, struct psystem_t* psys, Color global_psys_color) {
     if(psys->halt) {
         return;
     }
@@ -257,11 +258,12 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
     }
 
 
+
     const float psystem_color[4] = {
-        (float)color.r / 255.0,
-        (float)color.g / 255.0,
-        (float)color.b / 255.0,
-        (float)color.a / 255.0,
+        (float)global_psys_color.r / 255.0,
+        (float)global_psys_color.g / 255.0,
+        (float)global_psys_color.b / 255.0,
+        (float)global_psys_color.a / 255.0,
     };
 
     SetShaderValue(gst->shaders[psys->shader_index], psys->shader_color_uniformloc,
@@ -272,26 +274,7 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
             &gst->time, SHADER_UNIFORM_FLOAT);
 
 
-    /*
-    rlEnableVertexArray(psys->particle_mesh.vaoId);
-    glBindBuffer(GL_ARRAY_BUFFER, psys->color_vbo);
-    if(psys->color_vbo != PSYS_NO_COLOR_VBO) {
-        for(size_t i = 0; i < psys->max_particles; i++) {
-            struct particle_t* part = &psys->particles[i];
-            float data[4] = {
-                (float)part->color.r / 255.0,
-                (float)part->color.g / 255.0,
-                (float)part->color.b / 255.0,
-                (float)part->color.a / 255.0
-            };
 
-            size_t offset = i *( sizeof(float)*4);
-            glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(float)*4, data);
-
-        }
-    }
-    rlDisableVertexArray();
-    */
     DrawMeshInstanced(
             psys->particle_mesh,
             psys->particle_material,
@@ -300,7 +283,7 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color) {
             );
     
 
-    // clear the transform matrix array for next frame.
+    // Clear the transform matrix array for next frame.
     memset(psys->transforms, 0, psys->max_particles * sizeof *psys->transforms);
 }
 
@@ -342,6 +325,7 @@ void add_particles(
         size_t n, /* particles to be added */
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata_ptr,
         int has_extradata,
         int idb
@@ -361,6 +345,7 @@ void add_particles(
                 p,
                 origin,
                 velocity,
+                part_color,
                 extradata_ptr,
                 (has_extradata && extradata_ptr)
                 );

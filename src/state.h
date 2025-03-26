@@ -90,7 +90,8 @@
 #define CRYSTAL_FOLIAGE_SHADER 12
 #define POWERUP_SHOP_BG_SHADER 13
 #define EXPLOSION_PSYS_SHADER 14
-#define MAX_SHADERS 15
+#define PLAYER_HIT_SHADER 15
+#define MAX_SHADERS 16
 // ...
  
 
@@ -98,20 +99,18 @@
 // Enemies have pointers into global particle systems and weapons.
 
 // Global particle systems:
-#define PLAYER_PRJ_ENVHIT_PSYS 0
-#define ENEMY_PRJ_ENVHIT_PSYS 1
-#define ENEMY_LVL0_WEAPON_PSYS 2
-#define ENEMY_HIT_PSYS 3 
+#define PLAYER_WEAPON_PSYS 0
+#define ENEMY_WEAPON_PSYS 1
+#define PROJECTILE_ENVHIT_PSYS 2
+#define ENEMY_HIT_PSYS 3
 #define FOG_EFFECT_PSYS 4
 #define PLAYER_HIT_PSYS 5
 #define EXPLOSION_PSYS 6
 #define WATER_SPLASH_PSYS 7
 #define ENEMY_GUNFX_PSYS 8
-#define ENEMY_PRJ_ENVHIT_PART2_PSYS 9  // For extra effect.
-#define PLAYER_PRJ_ENVHIT_PART2_PSYS 10 // For extra effect.
-#define CLOUD_PSYS 11
-#define PRJ_TRAIL_PSYS 12
-#define MAX_PSYSTEMS 13
+#define CLOUD_PSYS 9
+#define PRJ_TRAIL_PSYS 10
+#define MAX_PSYSTEMS 11
 // ...
 
 

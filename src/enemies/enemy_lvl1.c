@@ -188,9 +188,8 @@ void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
 
                     ent->gun_index = !ent->gun_index;
 
-
                     add_projectile(gst,
-                            &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                            &gst->psystems[ENEMY_WEAPON_PSYS],
                             &gst->enemy_weapons[ENEMY_LVL1_WEAPON],
                             prj_pos, prj_dir, NO_ACCURACY_MOD);
 
@@ -198,8 +197,7 @@ void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
                     add_particles(gst,
                             &gst->psystems[ENEMY_GUNFX_PSYS],
                             1,
-                            prj_pos,
-                            (Vector3){0},
+                            prj_pos, (Vector3){0}, ent->weaponptr->color,
                             ent, HAS_EXTRADATA, NO_IDB);
                 
                     if(gst->has_audio) {

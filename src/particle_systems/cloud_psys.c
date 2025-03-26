@@ -30,7 +30,7 @@ void cloud_psys_update(
 
 
     if(Vector3Distance(gst->player.position, part->position) > RADIUS) {
-        cloud_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, NULL, NO_EXTRADATA);
+        cloud_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, (Color){0}, NULL, NO_EXTRADATA);
     }
 }
 
@@ -43,21 +43,23 @@ void cloud_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
-    part->lifetime = 0.0;
     
     part->position = (Vector3) {
         gst->player.position.x + RSEEDRANDOMF(-RADIUS, RADIUS),
         RSEEDRANDOMF(-100, 100) + 800,
         gst->player.position.z + RSEEDRANDOMF(-RADIUS, RADIUS)
     };
-
-    part->scale = RSEEDRANDOMF(1.0, 5.0);
-
+   
     part->velocity = (Vector3) {
         0, 0, RSEEDRANDOMF(-200, -100)
     };
+
+    part->lifetime = 0.0;
+    part->scale = RSEEDRANDOMF(1.0, 5.0);
+
 
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     Matrix rotation = MatrixRotateXYZ((Vector3){ 
@@ -65,7 +67,6 @@ void cloud_psys_init(
                 RSEEDRANDOMF(0, 360)*DEG2RAD,
                 RSEEDRANDOMF(0, 360)*DEG2RAD
             });
-    *part->transform = MatrixMultiply(rotation, translation);
 }
 
 

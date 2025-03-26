@@ -42,11 +42,12 @@ void explosion_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
-
-
     if(!has_extradata) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Missing extradata pointer\033[0m\n",
+                __func__);
         return;
     }
 
@@ -61,10 +62,7 @@ void explosion_psys_init(
     part->position.x += RSEEDRANDOMF(-p_r, p_r) + (8.0 * cos(part->index));
     part->position.y += RSEEDRANDOMF(-p_r, p_r);
     part->position.z += RSEEDRANDOMF(-p_r, p_r) + (8.0 * sin(part->index));
-    Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
   
-
-
 
     // Choose particle behaviour
 
@@ -94,11 +92,6 @@ void explosion_psys_init(
         part->start_color = (Color){ 50, 50, 50, 255 };
         part->end_color   = (Color){ 5, 5, 5, 255 };
     }
-
-
-
-
-    *part->transform = transform;
 }
 
 

@@ -16,7 +16,7 @@ void prj_trail_psys_update(
     struct particle_t* tofollow_part = (struct particle_t*)part->extradata;
 
     if(((part->lifetime + gst->dt) >= part->max_lifetime) && tofollow_part->alive) {
-        prj_trail_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, tofollow_part, HAS_EXTRADATA);
+        prj_trail_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, (Color){0}, tofollow_part, HAS_EXTRADATA);
         part->lifetime = 0.0;
         return;
     }
@@ -39,6 +39,7 @@ void prj_trail_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
     struct particle_t* tofollow_part = (struct particle_t*)extradata;

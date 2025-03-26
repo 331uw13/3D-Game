@@ -30,7 +30,7 @@ void fog_effect_psys_update(
 
 
     if(Vector3Distance(gst->player.position, part->position) > RADIUS) {
-        fog_effect_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, NULL, NO_EXTRADATA);
+        fog_effect_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, (Color){0}, NULL, NO_EXTRADATA);
     }
 }
 
@@ -43,6 +43,7 @@ void fog_effect_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
     part->lifetime = 0.0;
@@ -59,14 +60,6 @@ void fog_effect_psys_init(
         RSEEDRANDOMF(-vel_r, vel_r),
         RSEEDRANDOMF(-vel_r, vel_r)
     };
-
-    Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    Matrix rotation = MatrixRotateXYZ((Vector3){ 
-                RSEEDRANDOMF(0, 360)*DEG2RAD,
-                RSEEDRANDOMF(0, 360)*DEG2RAD,
-                RSEEDRANDOMF(0, 360)*DEG2RAD
-            });
-    *part->transform = MatrixMultiply(rotation, translation);
 }
 
 

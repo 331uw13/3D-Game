@@ -40,25 +40,27 @@ void player_hit_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
 
-    part->position = origin;
+    part->color = part_color;
+
     const float p_r = 0.1;
+    part->position = origin;
     part->position.x += RSEEDRANDOMF(-p_r, p_r);
     part->position.y += RSEEDRANDOMF(-p_r, p_r);
     part->position.z += RSEEDRANDOMF(-p_r, p_r);
    
-    part->velocity = Vector3Normalize(Vector3Negate(velocity));
     
     const float v_r = 0.5;
+    part->velocity = Vector3Normalize(Vector3Negate(velocity));
     part->velocity.x += RSEEDRANDOMF(-v_r, v_r);
     part->velocity.y += RSEEDRANDOMF(-v_r*0.5, v_r*2);
     part->velocity.z += RSEEDRANDOMF(-v_r, v_r);
    
     part->accel.y = 5.0;
 
-    *part->transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     part->max_lifetime = RSEEDRANDOMF(5.0, 8.0);
 }
 

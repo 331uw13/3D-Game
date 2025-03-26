@@ -1,25 +1,26 @@
-#ifndef WEAPON_PSYSTEM_H
-#define WEAPON_PSYSTEM_H
+#ifndef PRJ_ENVHIT_PSYSTEM_H
+#define PRJ_ENVHIT_PSYSTEM_H
+
 
 
 #include <raylib.h>
 
-struct state_t;
 struct psystem_t;
+struct state_t;
 struct particle_t;
 
-// Projectile update and initialization for any type of normal weapon.
 
 
-// WEAPON PROJECTILE PARTICLE UPDATE
-void weapon_psys_prj_update(
+// PARTICLE UPDATE
+void projectile_envhit_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
 );
 
-// WEAPON PROJECTILE PARTICLE INITIALIZATION
-void weapon_psys_prj_init(
+
+// PARTICLE INITIALIZATION
+void projectile_envhit_psys_init(
         struct state_t* gst,
         struct psystem_t* psys, 
         struct particle_t* part,
@@ -28,6 +29,7 @@ void weapon_psys_prj_init(
         Color part_color,
         void* extradata, int has_extradata
 );
+
 
 
 #endif

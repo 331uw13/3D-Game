@@ -321,10 +321,10 @@ void gui_render_devmenu(struct state_t* gst) {
 
     DrawTextEx(gst->font, "-- Spawn enemies --", (Vector2){ btn_pos.x, btn_pos.y-40 }, 20.0, FONT_SPACING, TEXT_COLOR);
 
-    const float spawn_rad = 40.0;
+    const float spawn_rad = 200.0;
 
     if(gui_button(gst, "Enemy LVL0", 15.0, btn_pos)) {
-        spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, (Vector3){
+        spawn_enemy(gst, ENEMY_LVL0, ENT_HOSTILE, (Vector3){
                     gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
                     0,
                     gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
@@ -333,7 +333,7 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
     if(gui_button(gst, "Enemy LVL1", 15.0, btn_pos)) {
-        spawn_enemy(gst, ENEMY_LVL1, ENT_FRIENDLY, (Vector3){
+        spawn_enemy(gst, ENEMY_LVL1, ENT_HOSTILE, (Vector3){
                     gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
                     0,
                     gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)

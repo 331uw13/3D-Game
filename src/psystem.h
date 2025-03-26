@@ -99,6 +99,7 @@ struct psystem_t {
          struct particle_t*, // Current particle
          Vector3,  // Particle initial position
          Vector3, // Velocity to new particle
+         Color,   // Color for individual particle (NOTE: not used if psystem doesnt have color vbo enabled.)
          void*,   // Extra data pointer
          int      // Has extra data?
          );
@@ -132,7 +133,8 @@ void create_psystem(
         struct psystem_t* psys,
         size_t max_particles,
         void(*update_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*),
-        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, Vector3,Vector3,void*,int),
+        void(*pinit_callback_ptr)(struct state_t*, struct psystem_t*, struct particle_t*, 
+            Vector3,Vector3,Color,void*,int),
         int shader_index // See state.h
         );
 
@@ -144,7 +146,7 @@ void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys);
 void psystem_set_idb(struct psystem_t* psys, int id, size_t num);
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys);
-void render_psystem(struct state_t* gst, struct psystem_t* psys, Color color);
+void render_psystem(struct state_t* gst, struct psystem_t* psys, Color global_psys_color);
 
 void add_particles(
         struct state_t* gst,
@@ -152,6 +154,7 @@ void add_particles(
         size_t n, /* Particles to be added */
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata_ptr,
         int has_extradata,
         int idb

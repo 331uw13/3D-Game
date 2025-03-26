@@ -178,22 +178,18 @@ void state_render(struct state_t* gst) {
 
         // Particle systems. (rendered only if needed)
         {
-            // Player
+            render_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS], (Color){0});
+            render_psystem(gst, &gst->psystems[ENEMY_WEAPON_PSYS], (Color){0});
+            render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
+
             render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
-            render_psystem(gst, &gst->player.weapon_psys, gst->player.weapon.color);
-            render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS], gst->player.weapon.color);
-            
-            // Enemies
-            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], ENEMY_WEAPON_COLOR);
             render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
+            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
+
 
             // Environment
             render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
             render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
-            render_psystem(gst, &gst->psystems[ENEMY_LVL0_WEAPON_PSYS], ENEMY_WEAPON_COLOR);
-            render_psystem(gst, &gst->psystems[PLAYER_PRJ_ENVHIT_PART2_PSYS], gst->player.weapon.color);
-            render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PART2_PSYS], ENEMY_WEAPON_COLOR);
-            
             render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
             render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 70, 60, 50, 255 });
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
@@ -202,10 +198,6 @@ void state_render(struct state_t* gst) {
         player_render(gst, &gst->player);
         render_items(gst);
 
-        rlDisableDepthMask();
-        render_psystem(gst, &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS], ENEMY_WEAPON_COLOR);
-        rlEnableDepthMask();
-    
         //_state_render_crithit_markers(gst);
 
     }

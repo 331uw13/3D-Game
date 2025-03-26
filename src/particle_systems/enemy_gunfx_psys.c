@@ -50,14 +50,19 @@ void enemy_gunfx_psys_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
+    if(!extradata || !has_extradata) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Missing extradata pointer\033[0m\n",
+                __func__);
+        return;
+    }
 
+    part->color = part_color;
     part->extradata = extradata;
     part->position = origin;
     part->scale = 0.0; // scale lerp.
-    
-    *part->transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     part->max_lifetime = 1.0;
 }
 

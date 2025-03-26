@@ -148,7 +148,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                     prj_pos.z += prj_dir.z * ft;
 
                     add_projectile(gst, 
-                            &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                            &gst->psystems[ENEMY_WEAPON_PSYS],
                             &gst->enemy_weapons[ENEMY_LVL0_WEAPON], 
                             prj_pos, prj_dir, ent->accuracy_modifier);
 
@@ -160,8 +160,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                     add_particles(gst,
                             &gst->psystems[ENEMY_GUNFX_PSYS],
                             1,
-                            prj_pos,
-                            (Vector3){0},
+                            prj_pos, (Vector3){0}, ent->weaponptr->color,
                             ent, HAS_EXTRADATA, NO_IDB
                             );
                     

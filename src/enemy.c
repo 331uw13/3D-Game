@@ -304,6 +304,7 @@ void enemy_damage(
             GetRandomValue(30, 50),
             hit_position,
             hit_direction,
+            (Color){ 255, 120, 0, 255 },
             NULL, NO_EXTRADATA, NO_IDB
             );
 
@@ -404,7 +405,7 @@ void spawn_enemy(
                         enemy_type,
                         mood,
                         &gst->enemy_models[enemy_type],
-                        &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                        &gst->psystems[ENEMY_WEAPON_PSYS],
                         &gst->enemy_weapons[enemy_type],
                         ENEMY_LVL0_MAX_HEALTH,
                         position,
@@ -454,7 +455,7 @@ void spawn_enemy(
                         enemy_type,
                         mood,
                         &gst->enemy_models[enemy_type],
-                        &gst->psystems[ENEMY_LVL0_WEAPON_PSYS],
+                        &gst->psystems[ENEMY_WEAPON_PSYS],
                         &gst->enemy_weapons[enemy_type],
                         ENEMY_LVL1_MAX_HEALTH,
                         position,

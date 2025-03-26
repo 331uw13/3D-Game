@@ -13,13 +13,14 @@
 
 #define WEAPON_DAMAGE_MAX 500.0
 
-#define PLAYER_WEAPON_ID 0
-#define ENEMY_WEAPON_ID 1
-#define INVLID_WEAPON_ID 2
+#define PLAYER_WEAPON_GID 0
+#define ENEMY_WEAPON_GID 1
+#define INVLID_WEAPON_GID 2
+
 
 struct weapon_t {
 
-    int id; // This can be used to know who the weapon belongs to.
+    int gid; // "Group id". This can be used to know who the weapon belongs to.
 
     // Weapon settings.
 

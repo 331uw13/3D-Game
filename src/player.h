@@ -137,7 +137,7 @@ struct player_t {
     int kills;
 
     struct weapon_t  weapon; // Weapon stats.
-    struct psystem_t weapon_psys;
+    //struct psystem_t weapon_psys;
     float accuracy_modifier; // Used to decrease accuracy if shooting rapidly.
     float accuracy_control; // 'WEAPON_ACCURACY_MIN' to 'WEAPON_ACCURACY_MAX'. 
                             //  higher number means better accuracy control

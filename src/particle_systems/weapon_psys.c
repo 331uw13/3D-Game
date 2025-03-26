@@ -6,8 +6,6 @@
 #include "../enemy.h"
 
 
-#define MISSING_PSYSUSERPTR fprintf(stderr, "\033[31m(ERROR) '%s': Missing psystem 'userptr'\033[0m\n", __func__)
-
 
 static void disable_projectile(struct state_t* gst, struct particle_t* part) {
     disable_particle(gst, part);
@@ -21,20 +19,22 @@ void weapon_psys_prj_update(
         struct psystem_t* psys,
         struct particle_t* part
 ){
-    struct weapon_t* weapon = (struct weapon_t*)psys->userptr;
+    struct weapon_t* weapon = (struct weapon_t*)part->extradata;
     if(!weapon) {
-        MISSING_PSYSUSERPTR;
+        fprintf(stderr, "\033[31m(ERROR) '%s': Missing extradata pointer\033[0m\n",
+                __func__);
         return;
     }
 
-    if(weapon->id >= INVLID_WEAPON_ID) {
+    if(weapon->gid >= INVLID_WEAPON_GID) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Invalid weapon id\033[0m\n",
                 __func__);
         return;
     }
 
 
-    if(weapon->id == PLAYER_WEAPON_ID) {
+    /*
+    if(weapon->gid == PLAYER_WEAPON_ID) {
         if(!part->user_i[0]) {
             
             float closest = 99999999;
@@ -68,19 +68,13 @@ void weapon_psys_prj_update(
             part->velocity = Vector3Add(part->velocity, dir);
         }
     }
-
+    */
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
 
     Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     *part->transform = transform;
-
-    // FOR TESTING.
-    part->color.a = 255;
-    rainbow_palette(sin(part->lifetime), &part->color.r, &part->color.g, &part->color.b);
-
-
 
     part->light.color = part->color;
     part->light.position = part->position;
@@ -96,15 +90,16 @@ void weapon_psys_prj_update(
                 GetRandomValue(10, 20),
                 part->position,
                 part->velocity,
+                (Color){0},
                 NULL, NO_EXTRADATA, NO_IDB
                 );
         disable_projectile(gst, part);
-        //disable_particle(gst, part);
         return;
     }
 
 
 
+    int env_hit = 0;
 
     // Check collision with terrain
 
@@ -112,37 +107,7 @@ void weapon_psys_prj_update(
 
     if(t_hit.point.y >= part->position.y) {
 
-        //create_explosion(gst, part->position, 100.0, 100.0);
-
-        struct psystem_t* psystem = NULL;
-        if(weapon->id == PLAYER_WEAPON_ID) {
-            psystem = &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS];
-        }
-        else
-        if(weapon->id == ENEMY_WEAPON_ID) {
-            psystem = &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS];
-        }
-
-        add_particles(
-                gst,
-                psystem,
-                1,
-                part->position,
-                (Vector3){0, 0, 0},
-                NULL, NO_EXTRADATA, NO_IDB
-                );
-
-    
-        /*
-        if(gst->has_audio) {
-            SetSoundPitch(gst->sounds[PRJ_ENVHIT_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.25));
-            SetSoundVolume(gst->sounds[PRJ_ENVHIT_SOUND], get_volume_dist(gst->player.position, part->position));
-            PlaySound(gst->sounds[PRJ_ENVHIT_SOUND]);
-        }
-        */
-
-        disable_projectile(gst, part);
-        return;
+        env_hit = 1;
     }
 
 
@@ -161,6 +126,7 @@ void weapon_psys_prj_update(
 
     // TODO: Optimize this! <---
    
+
     if(psys->groupid == PSYS_GROUPID_PLAYER) {
         // Check collision with enemies.
         
@@ -175,17 +141,7 @@ void weapon_psys_prj_update(
             if(hitbox) {
                 float damage = get_weapon_damage(weapon);
                 enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, 0.35);
-        
-                disable_projectile(gst, part);
-
-                add_particles(gst,
-                        &gst->psystems[PLAYER_PRJ_ENVHIT_PSYS],
-                        1,
-                        part->position,
-                        (Vector3){0, 0, 0},
-                        NULL, NO_EXTRADATA, NO_IDB
-                        );
-
+                env_hit = 1;
             }
         }
     }
@@ -194,31 +150,20 @@ void weapon_psys_prj_update(
         // Check collision with player.
 
         if(CheckCollisionBoxes(part_boundingbox, get_player_boundingbox(&gst->player))) {
-            //player_hit(gst, &gst->player, weapon);
-
             player_damage(gst, &gst->player, get_weapon_damage(weapon));
-
-            add_particles(gst,
-                    &gst->psystems[ENEMY_PRJ_ENVHIT_PSYS],
-                    1,
-                    part->position,
-                    (Vector3){0, 0, 0},
-                    NULL, NO_EXTRADATA, NO_IDB
-                    );
-
-            /*
-            add_particles(gst,
-                    &gst->psystems[PLAYER_HIT_PSYS],
-                    GetRandomValue(5, 10),
-                    part->position,
-                    part->velocity,
-                    NULL, NO_EXTRADATA
-                    );
-                    */
-
-            
-            disable_projectile(gst, part);
+            env_hit = 1;
         }
+    }
+
+    if(env_hit) {
+        add_particles(gst,
+                &gst->psystems[PROJECTILE_ENVHIT_PSYS],
+                1,
+                part->position,
+                (Vector3){0, 0, 0},
+                part->color,
+                NULL, NO_EXTRADATA, NO_IDB);
+        disable_projectile(gst, part);
     }
 
 }
@@ -229,25 +174,24 @@ void weapon_psys_prj_init(
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
+        Color part_color,
         void* extradata, int has_extradata
 ){
-    struct weapon_t* weapon = (struct weapon_t*)psys->userptr;
-    if(!weapon) {
-        MISSING_PSYSUSERPTR;
+
+    struct weapon_t* weapon = (struct weapon_t*)extradata;
+    if(!weapon || !has_extradata) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Missing extradata pointer\033[0m\n",
+                __func__);
         return;
     }
 
+    part->extradata = extradata;
     part->velocity = velocity;
     part->position = origin;
-    Matrix transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    Matrix rotation_m = MatrixRotateXYZ((Vector3){
-            RSEEDRANDOMF(-3.0, 3.0), 0.0, RSEEDRANDOMF(-3.0, 3.0)
-            });
-
-    transform = MatrixMultiply(transform, rotation_m);
-
     part->user_i[0] = 0;
-    
+
+
+    // Add projectile light
     part->light = (struct light_t) {
         .enabled = 1,
         .type = LIGHT_POINT,
@@ -257,23 +201,19 @@ void weapon_psys_prj_init(
         .radius = 10.0
         // position is updated later.
     };
-
-
     gst->num_prj_lights++;
     if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
         gst->num_prj_lights = 0;
     }
 
-    part->color = gst->player.weapon.color;
-
+    part->color = weapon->color;
     part->has_light = 1;
-    *part->transform = transform;
     part->max_lifetime = weapon->prj_max_lifetime;
 
-    if(weapon->id == PLAYER_WEAPON_ID) {
-        add_particles(gst, 
-                &gst->psystems[PRJ_TRAIL_PSYS], 6, (Vector3){0}, (Vector3){0},
-                part, HAS_EXTRADATA, NO_IDB);
-    }
+    add_particles(gst, 
+            &gst->psystems[PRJ_TRAIL_PSYS], 
+            6,
+            (Vector3){0}, (Vector3){0}, (Color){0},
+            part, HAS_EXTRADATA, NO_IDB);
 
 }
