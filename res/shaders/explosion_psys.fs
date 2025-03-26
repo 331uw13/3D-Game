@@ -1,3 +1,4 @@
+
 #version 430
 
 in vec3 fragPosition;
@@ -11,21 +12,19 @@ out vec4 finalColor;
 uniform vec3 viewPos;
 
 
+// TODO: Remove these from all psystem shaders and clean them up.
 uniform vec4 psystem_color;
 uniform float time;
 
 
-
 #include "res/shaders/voronoi.glsl"
-
-
 
 void main()
 {
-    float v = voronoi3d(fragPosition*0.65).x;
-    vec3 col = fragColor.xyz;
+    vec3 color = fragColor.rgb;
 
-    v *= v;
+    float vnoise = voronoi3d(fragPosition*0.1).x;
+    float a = fragColor.w * vnoise;
 
-    finalColor = vec4(col*1.25, v);
+    finalColor = vec4(color, a);
 }

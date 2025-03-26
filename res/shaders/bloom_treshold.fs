@@ -1,7 +1,7 @@
 
 // Write bloom treshold values to texture and post process it later.
 
-#version 330
+#version 430
 
 // Input vertex attributes (from vertex shader)
 in vec2 fragTexCoord;

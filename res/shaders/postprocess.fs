@@ -1,5 +1,5 @@
 
-#version 330
+#version 430
 
 // Input vertex attributes (from vertex shader)
 in vec2 fragTexCoord;
@@ -7,7 +7,7 @@ in vec4 fragColor;
 
 // Input uniform values
 uniform sampler2D texture0;
-uniform sampler2D bloom_treshold_texture;
+uniform sampler2D bloomtresh_texture;
 uniform sampler2D depth_texture;
 
 uniform vec4 colDiffuse;
@@ -30,18 +30,6 @@ float lerp(float t, float min, float max) {
 }
 
 
-// Get color values above treshold.
-vec3 bloom_treshold(vec3 fcolor, vec3 treshold) {
-    vec3 result = vec3(0);
-
-    float brightness = dot(fcolor, treshold);
-    if(brightness > 1.0) {
-        result = fcolor;
-    }
-
-    return result;
-}
-
 #include "res/shaders/voronoi.glsl"
 
 #define BLOOM_SAMPLES 30.0
@@ -53,11 +41,11 @@ vec3 get_bloom() {
     vec2 size = screen_size * 0.22;
     vec2 sf = 1.0/(size * 2.0);
     const int r = 4;
-   
+
     for(int x = -r; x <= r; x++) {
         for(int y = -r; y <= r; y++) {
             vec2 p = vec2(x, y) * BLOOM_POS_M;
-            result += BLOOM_ADD_M * texture(bloom_treshold_texture, fragTexCoord + p * sf).rgb;
+            result += BLOOM_ADD_M * texture(bloomtresh_texture, fragTexCoord + p * sf).rgb;
         }     
     }
 
@@ -65,7 +53,7 @@ vec3 get_bloom() {
     for(int y = -r; y <= r; y++) {
         for(int x = -r; x <= r; x++) {
             vec2 p = vec2(x, y) * BLOOM_POS_M;
-            result += BLOOM_ADD_M * texture(bloom_treshold_texture, fragTexCoord + p * sf).rgb;
+            result += BLOOM_ADD_M * texture(bloomtresh_texture, fragTexCoord + p * sf).rgb;
         }     
     }
 
@@ -75,7 +63,6 @@ vec3 get_bloom() {
 
 void main()
 {
-
     vec2 texcoords = fragTexCoord;
     if(blur_effect < 0.5) {
         texcoords.x += (sin(gl_FragCoord.y*0.8+time*30.0)*0.5+0.5)*0.5;
@@ -83,8 +70,7 @@ void main()
 
     vec3 color = texture(texture0, texcoords).rgb;
 
-
-    vec3 tobloom = texture(texture0, fragTexCoord).rgb;
+    //vec3 tobloom = texture(texture0, fragTexCoord).rgb;
     vec3 bloom = get_bloom();
     color += bloom;
 

@@ -38,10 +38,7 @@ float mapt(float t, float src_min, float src_max, float dst_min, float dst_max) 
 void main()
 {
 
-    // Texel color fetching from texture sampler
     vec4 texelColor = texture(texture0, fragTexCoord);
-    
-
     vec3 normal = normalize(fragNormal);
     vec3 view_dir = normalize(fragViewPos - fragPosition);
 
@@ -97,7 +94,6 @@ void main()
 
     float dist = length(fragViewPos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist);
-
 
 }
 

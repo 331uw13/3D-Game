@@ -1,8 +1,8 @@
 
 
 // NOTE: these 2 values must same as in 'src/light.h'
-#define MAX_PROJECTILE_LIGHTS  (128)
-#define MAX_NORMAL_LIGHTS      4
+#define MAX_PROJECTILE_LIGHTS  128
+#define MAX_NORMAL_LIGHTS      16
 
 
 #define LIGHT_DIRECTIONAL   0
@@ -49,7 +49,7 @@ void compute_lights(vec3 view_dir) {
         if(lights[i].type == LIGHT_POINT) {
             lightdir = normalize(lightpos - fragPosition);
             
-            float light_radius = 2.5;
+            float light_radius = lights[i].strength.y;
             dist = distance(lights[i].pos.xyz, fragPosition) / light_radius;
             dist = 1.0/dist;
         }
@@ -81,7 +81,7 @@ void compute_lights(vec3 view_dir) {
         float dist = 1.0;
         lightdir = normalize(lightpos - fragPosition);
             
-        float light_radius = 4.5;
+        float light_radius = prj_lights[i].strength.y;
         dist = distance(prj_lights[i].pos.xyz, fragPosition) / light_radius;
         dist = 1.0/dist;
 
