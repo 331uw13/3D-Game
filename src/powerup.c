@@ -135,7 +135,7 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
         case POWERUP_MAX_HEALTH_BOOST:
             {
                 player->max_health += 30;
-                player_heal(gst, &gst->player, 65.0);
+                player_heal(gst, &gst->player, 100.0);
             }
             break;
 

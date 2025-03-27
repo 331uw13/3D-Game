@@ -72,10 +72,36 @@ void loop(struct state_t* gst) {
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "bloomtresh_texture"), gst->bloomtresh_target.texture);
 
-                SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
-                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
-                            "depth_texture"), gst->depth_texture.texture);
-    
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_pos_tex"),
+                        gst->gbuffer.position_tex);
+                
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_norm_tex"),
+                        gst->gbuffer.normal_tex);
+                
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_difspec_tex"),
+                        gst->gbuffer.difspec_tex);
+                
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_depth"),
+                        gst->gbuffer.depthbuffer);
+                
+                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "ssao_noise_tex"),
+                        gst->ssao_noise_tex.id);
+             
+                SetShaderValueMatrix(gst->shaders[POSTPROCESS_SHADER],
+                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "cam_view"),
+                        gst->cam_view_matrix);
+
+                SetShaderValueMatrix(gst->shaders[POSTPROCESS_SHADER],
+                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "cam_proj"),
+                        gst->cam_proj_matrix);
+
+
+                for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
+                    SetShaderValueV(gst->shaders[POSTPROCESS_SHADER],
+                            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], TextFormat("ssao_kernel[%i]",i)),
+                            &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
+             
+                }
 
                 DrawTextureRec(
                         gst->env_render_target.texture,
@@ -215,9 +241,12 @@ void cleanup(struct state_t* gst) {
     state_delete_all_enemy_models(gst);
     state_delete_all_item_models(gst);
 
+    UnloadTexture(gst->ssao_noise_tex);
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtresh_target);
     UnloadRenderTexture(gst->depth_texture);
+
+    state_delete_gbuffer(gst);
 
     for(int i = 0; i < MAX_UBOS; i++) {
         glDeleteBuffers(1, &gst->ubo[i]);
@@ -242,6 +271,9 @@ void first_setup(struct state_t* gst) {
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_ERROR);
     rlSetClipPlanes(rlGetCullDistanceNear()+0.15, rlGetCullDistanceFar()+3000);
+    
+    gst->scrn_w = GetScreenWidth();
+    gst->scrn_h = GetScreenHeight();
 
     gst->num_textures = 0;
     gst->num_textures = 0;
@@ -289,6 +321,9 @@ void first_setup(struct state_t* gst) {
     state_setup_all_sounds(gst);
     state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
+    
+    state_setup_gbuffer(gst);
+    state_setup_ssao(gst);
 
     // --- Setup Terrain ----
     {

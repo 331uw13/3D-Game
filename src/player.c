@@ -29,7 +29,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     // ------------------------
 
-    p->xp = 999999;
+    //p->xp = 999999;
     
 
     p->cam = (Camera){ 0 };

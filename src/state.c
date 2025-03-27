@@ -21,6 +21,139 @@
 #include "particle_systems/prj_trail_psys.h"
 
 
+void state_setup_gbuffer(struct state_t* gst) {
+    gst->gbuffer = (struct gbuffer_t) { 0 };
+
+    gst->gbuffer.framebuffer = rlLoadFramebuffer();
+   
+    printf("Creating gbuffer %ix%i\n", gst->scrn_w, gst->scrn_h);
+    if(!gst->gbuffer.framebuffer) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to create framebuffer\033[0m\n",
+                __func__);
+        return;
+    }
+
+    rlEnableFramebuffer(gst->gbuffer.framebuffer);
+
+    // Store positions.
+    gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+    
+    // Store normals.
+    gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+                RL_PIXELFORMAT_UNCOMPRESSED_R16G16B16, 1);
+    
+    // Store diffuse specular colors.
+    gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+                RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
+
+    // Store depth.
+    gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->scrn_w, gst->scrn_h, 1);
+
+
+    rlActiveDrawBuffers(3);
+
+
+    // Attach textures to the framebuffer.
+    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.position_tex,
+            RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
+    
+    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.normal_tex,
+            RL_ATTACHMENT_COLOR_CHANNEL1, RL_ATTACHMENT_TEXTURE2D, 0);
+
+    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.difspec_tex,
+            RL_ATTACHMENT_COLOR_CHANNEL2, RL_ATTACHMENT_TEXTURE2D, 0);
+
+    // Attach depth buffer.
+    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.depthbuffer,
+            RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
+
+
+    if(!rlFramebufferComplete(gst->gbuffer.framebuffer)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Framebuffer is not complete!\033[0m\n",
+                __func__);
+    }
+
+
+    int pos_unit_loc = 0;
+    int norm_unit_loc = 1;
+    int difspec_unit_loc = 2;
+
+    SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
+            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_pos_tex"),
+            &pos_unit_loc, SHADER_UNIFORM_SAMPLER2D);
+    
+    SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
+            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_norm_tex"),
+            &norm_unit_loc, SHADER_UNIFORM_SAMPLER2D);
+
+    SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
+            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_difspec_tex"),
+            &difspec_unit_loc, SHADER_UNIFORM_SAMPLER2D);
+}
+
+void state_setup_ssao(struct state_t* gst) {
+
+    Shader shader = gst->shaders[POSTPROCESS_SHADER];
+    
+    for(size_t i = 0; i < SSAO_KERNEL_SIZE; i++) {
+
+        // Get scale factor to move points closer to the center.
+        float scale = (float)i / (float)SSAO_KERNEL_SIZE;
+        scale = lerp(scale*scale, 0.1, 1.0);
+
+        Vector3 sample = (Vector3) {
+            RSEEDRANDOMF(-1.0, 1.0) * scale,
+            RSEEDRANDOMF(-1.0, 1.0) * scale,
+            RSEEDRANDOMF( 0.0, 1.0) * scale // 0.0 - 1.0 for z to because we want hemisphere sample kernel.
+        };
+  
+
+        gst->ssao_kernel[i] = sample;
+    }
+
+    int width = 32;
+    int height = 32;
+    Color *pixels = (Color *)malloc(width*height*sizeof(Color));
+
+    for (int i = 0; i < width*height; i++) {
+        pixels[i] = (Color) {
+            GetRandomValue(0, 255),
+            GetRandomValue(0, 255),
+            0,
+            0
+        };
+    }
+
+    Image image = (Image) {
+        .data = pixels,
+        .width = width,
+        .height = height,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
+        .mipmaps = 1
+    };
+
+    gst->ssao_noise_tex = LoadTextureFromImage(image);
+    SetTextureWrap(gst->ssao_noise_tex, TEXTURE_WRAP_MIRROR_REPEAT);
+
+
+
+    free(pixels);
+    /*
+    Image img = GenImageWhiteNoise(16, 16, 0.5);
+    gst->ssao_noise_tex = LoadTextureFromImage(img);
+    UnloadImage(img);
+    */
+}
+
+void state_delete_gbuffer(struct state_t* gst) {
+    rlUnloadFramebuffer(gst->gbuffer.framebuffer);
+    rlUnloadTexture(gst->gbuffer.depthbuffer);
+    rlUnloadTexture(gst->gbuffer.position_tex);
+    rlUnloadTexture(gst->gbuffer.normal_tex);
+    rlUnloadTexture(gst->gbuffer.difspec_tex);
+}
+
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size) {
     gst->ubo[ubo_index] = 0;
 
@@ -191,7 +324,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        update_enemy_spawn_systems(gst); 
+        //update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -386,7 +519,7 @@ void state_setup_all_shaders(struct state_t* gst) {
 
     }
 
-    // --- Setup depth value shader for instanced drawing ---
+    // --- Setup depth value shader for instanced rendering ---
     {
         Shader* shader = &gst->shaders[WDEPTH_INSTANCE_SHADER];
         *shader = LoadShader(
@@ -439,6 +572,30 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
+
+
+    // --- Setup gbuffer shader ---
+    {
+        Shader* shader = &gst->shaders[GBUFFER_SHADER];
+        *shader = LoadShader(
+            "res/shaders/default.vs", 
+            "res/shaders/gbuffer.fs"
+        );
+    }
+
+    // --- Setup gbuffer for instanced rendering ---
+    {
+        Shader* shader = &gst->shaders[GBUFFER_INSTANCE_SHADER];
+        *shader = LoadShader(
+            "res/shaders/instance_core.vs", 
+            "res/shaders/gbuffer.fs"
+        );
+
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+    }
+
 
 
     

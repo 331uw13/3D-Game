@@ -91,7 +91,9 @@
 #define POWERUP_SHOP_BG_SHADER 13
 #define EXPLOSION_PSYS_SHADER 14
 #define PLAYER_HIT_SHADER 15
-#define MAX_SHADERS 16
+#define GBUFFER_SHADER 16
+#define GBUFFER_INSTANCE_SHADER 17
+#define MAX_SHADERS 18
 // ...
  
 
@@ -175,7 +177,7 @@
 
 
 
-
+#define SSAO_KERNEL_SIZE 64
 
 
 // Critical hit marker.
@@ -186,28 +188,16 @@ struct crithit_marker_t {
     float   dst; // Distance to player. Used for sorting to fix alpha blending.
 };
 
-/*
-// Enemy spawn settings for each type.
-struct spawn_system_t {
-    
-    // Spawn system difficulty for the enemy will be increased based on number of kills(of the same enemy).
-    // (explained in 'spawnsys_set_next_difficulty()' how the difficutly is increased.)
 
-    int   can_spawn           [MAX_ENEMY_TYPES];
-    int   to_nextlevel_kills  [MAX_ENEMY_TYPES];  // How many kills to update to next difficulty?
+struct gbuffer_t {
+    unsigned int normal_tex;
+    unsigned int position_tex;
+    unsigned int difspec_tex;// <- NOTE: this is ignored for now.
 
-    int   max_in_spawn_radius [MAX_ENEMY_TYPES];  // How many can spawn in spawn radius?
-    int   max_in_world        [MAX_ENEMY_TYPES];  // How many can be spawned in world total?
-    float spawn_radius        [MAX_ENEMY_TYPES];  // Spawn radius around player position.
-    
-    float spawn_timers_max    [MAX_ENEMY_TYPES];  // How long to wait until more can be tried to spawn?
-    float spawn_timers        [MAX_ENEMY_TYPES];  // Time elapsed.
-    
-    int num_spawns_min [MAX_ENEMY_TYPES]; // Min number of enemies to spawn
-    int num_spawns_max [MAX_ENEMY_TYPES]; // Max number of enemies to spawn
+    unsigned int framebuffer;
+    unsigned int depthbuffer;
+
 };
-*/
-
 
 // Game state "gst".
 struct state_t {
@@ -273,6 +263,8 @@ struct state_t {
 
     int has_audio;
     Sound sounds[MAX_SOUNDS];
+
+    struct gbuffer_t gbuffer;
    
     // Everything is rendered to this texture
     // and then post processed.
@@ -282,6 +274,11 @@ struct state_t {
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
 
+
+    Matrix cam_view_matrix;
+    Matrix cam_proj_matrix;
+    Texture ssao_noise_tex;
+    Vector3 ssao_kernel[SSAO_KERNEL_SIZE];
 
     // (NOT CURRENTLY USED)
     RenderTexture2D depth_texture;
@@ -295,6 +292,9 @@ struct state_t {
 };
 
 
+void state_setup_gbuffer(struct state_t* gst);
+void state_setup_ssao(struct state_t* gst);
+void state_delete_gbuffer(struct state_t* gst);
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
 
 void state_setup_render_targets(struct state_t* gst);

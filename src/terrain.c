@@ -949,9 +949,11 @@ void render_terrain(
    
     terrain->foliage_models.tree_type0.materials[0].shader = gst->shaders[foliage_shader_index];
     terrain->foliage_models.tree_type0.materials[1].shader = gst->shaders[foliage_shader_index];
+    terrain->foliage_models.tree_type1.materials[0].shader = gst->shaders[foliage_shader_index];
+    terrain->foliage_models.tree_type1.materials[1].shader = gst->shaders[foliage_shader_index];
     terrain->foliage_models.rock_type0.materials[0].shader = gst->shaders[foliage_shader_index];
     
-    if(foliage_shader_index == WDEPTH_INSTANCE_SHADER) {
+    if(foliage_shader_index == GBUFFER_INSTANCE_SHADER) {
         terrain->foliage_models.crystal.materials[0].shader = gst->shaders[foliage_shader_index];
     }
     else {
@@ -1004,9 +1006,7 @@ void render_terrain(
             );
 
 
-    // TODO: dont render water on depth texture.
-    // Water.
-    {
+    if(terrain_shader_index == DEFAULT_SHADER) {
 
 
         rlDisableBackfaceCulling();

@@ -72,13 +72,21 @@ static void _state_render_crithit_markers(struct state_t* gst) {
 */
 
 #define RENDERPASS_FINAL 0
-#define RENDERPASS_DEPTH_DATA 1
+#define RENDERPASS_GBUFFER 1
 
 static void render_terrain_and_enemies(struct state_t* gst, int renderpass) {
     int terrain_shader_index = DEFAULT_SHADER;
     int foliage_shader_index = FOLIAGE_SHADER;
     int enemy_shader_index = DEFAULT_SHADER;
 
+
+    if(renderpass == RENDERPASS_GBUFFER) {
+        terrain_shader_index = GBUFFER_SHADER;
+        enemy_shader_index = GBUFFER_SHADER;
+        foliage_shader_index = GBUFFER_INSTANCE_SHADER;
+    }
+
+    /*
     switch(renderpass) {
         
         case RENDERPASS_DEPTH_DATA:
@@ -92,6 +100,7 @@ static void render_terrain_and_enemies(struct state_t* gst, int renderpass) {
 
         default:break;
     }
+    */
 
    
     set_enemies_render_shader(gst, enemy_shader_index);
@@ -107,7 +116,6 @@ static void render_terrain_and_enemies(struct state_t* gst, int renderpass) {
     }
     // Terrain.
     render_terrain(gst, &gst->terrain, terrain_shader_index, foliage_shader_index);
- 
 }
 
 
@@ -115,18 +123,21 @@ static void render_terrain_and_enemies(struct state_t* gst, int renderpass) {
 void state_render(struct state_t* gst) {
 
     
-    // ------ Depth.
+    // ------ Geometry data.
 
-    BeginTextureMode(gst->depth_texture);
-    ClearBackground((Color){255, 255, 255, 255});
+    rlEnableFramebuffer(gst->gbuffer.framebuffer);    
+    rlClearColor(0, 0, 0, 0);
+    rlClearScreenBuffers(); // Clear color and depth.
+    rlDisableColorBlend();
     BeginMode3D(gst->player.cam);
     {
-        render_terrain_and_enemies(gst, RENDERPASS_DEPTH_DATA);
+        rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
+        render_terrain_and_enemies(gst, RENDERPASS_GBUFFER);
     }
     EndMode3D();
-    EndTextureMode();
-
-
+    rlDisableFramebuffer();
+    rlClearScreenBuffers();
+    rlEnableColorBlend();
 
    
     //  ------ Final pass.
@@ -135,6 +146,12 @@ void state_render(struct state_t* gst) {
     ClearBackground(gst->render_bg_color);
     BeginMode3D(gst->player.cam);
     {
+
+        // Save camera view and projection matrix for postprocessing.
+        
+        gst->cam_view_matrix = GetCameraViewMatrix(&gst->player.cam);
+        gst->cam_proj_matrix = GetCameraProjectionMatrix(&gst->player.cam, (float)gst->scrn_w / (float)gst->scrn_h);
+
 
         
         // Render debug info if needed. --------
