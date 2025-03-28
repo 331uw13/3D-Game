@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
 static void set_enemies_render_shader(struct state_t* gst, int shader_index) {
     for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
         for(int k = 0; k < gst->enemy_models[i].materialCount; k++) {
@@ -14,6 +15,7 @@ static void set_enemies_render_shader(struct state_t* gst, int shader_index) {
         }
     }
 }
+*/
 
 /*
 static int compare(const void* p1, const void* p2) {
@@ -71,52 +73,85 @@ static void _state_render_crithit_markers(struct state_t* gst) {
 }
 */
 
-#define RENDERPASS_FINAL 0
-#define RENDERPASS_GBUFFER 1
+void prepare_renderpass(struct state_t* gst, int renderpass) {
+    
+    // Prepare terrain and foliage.
+   
+    int rp_shader_i;
+    int rp_shader_foliage_i;
 
-static void render_terrain_and_enemies(struct state_t* gst, int renderpass) {
-    int terrain_shader_index = DEFAULT_SHADER;
-    int foliage_shader_index = FOLIAGE_SHADER;
-    int enemy_shader_index = DEFAULT_SHADER;
 
-
+    if(renderpass == RENDERPASS_RESULT) {
+        rp_shader_i = DEFAULT_SHADER;
+        rp_shader_foliage_i = FOLIAGE_SHADER;
+    }
+    else
     if(renderpass == RENDERPASS_GBUFFER) {
-        terrain_shader_index = GBUFFER_SHADER;
-        enemy_shader_index = GBUFFER_SHADER;
-        foliage_shader_index = GBUFFER_INSTANCE_SHADER;
-    }
-
-    /*
-    switch(renderpass) {
+        rp_shader_i = GBUFFER_SHADER;
+        rp_shader_foliage_i = GBUFFER_INSTANCE_SHADER;
         
-        case RENDERPASS_DEPTH_DATA:
-            terrain_shader_index = WDEPTH_SHADER;
-            foliage_shader_index = WDEPTH_INSTANCE_SHADER;
-            enemy_shader_index = WDEPTH_SHADER;
-            break;
-
-   
-            // ...
-
-        default:break;
     }
-    */
 
-   
-    set_enemies_render_shader(gst, enemy_shader_index);
+
+    // Prepare enemies.
+
+    for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
+        for(int k = 0; k < gst->enemy_models[i].materialCount; k++) {
+            gst->enemy_models[i].materials[0].shader = gst->shaders[rp_shader_i];
+        }
+    }
+
+
+
+    // Prepare terrain and foliage.
+
+    gst->terrain.material.shader = gst->shaders[rp_shader_i];
+
+    // TODO: Create array for foliage models.
+    struct foliage_models_t* foliagemodels = &gst->terrain.foliage_models;
+    foliagemodels->tree_type0.materials[0].shader = gst->shaders[rp_shader_foliage_i];
+    foliagemodels->tree_type0.materials[1].shader = gst->shaders[rp_shader_foliage_i];
+    foliagemodels->tree_type1.materials[0].shader = gst->shaders[rp_shader_foliage_i];
+    foliagemodels->tree_type1.materials[1].shader = gst->shaders[rp_shader_foliage_i];
+    
+    foliagemodels->rock_type0.materials[0].shader = gst->shaders[rp_shader_foliage_i];
+
+
+
+    // Prepare player.
+
+    gst->player.gunmodel.materials[0].shader = gst->shaders[rp_shader_i];
+    gst->player.arms_material.shader = gst->shaders[rp_shader_i];
+    gst->player.hands_material.shader = gst->shaders[rp_shader_i];
+
+
+}
+
+
+static void render_scene(struct state_t* gst, int renderpass) {
+
+    prepare_renderpass(gst, renderpass);
+     
     
     // Enemies.
+    // TODO: Instanced rendering for enemies.
+
     for(size_t i = 0; i < gst->num_enemies; i++) {
         struct enemy_t* ent = &gst->enemies[i];
         if(!ent->alive) {
             continue;
         }
-
         render_enemy(gst, ent);
     }
-    // Terrain.
-    render_terrain(gst, &gst->terrain, terrain_shader_index, foliage_shader_index);
+
+
+    render_terrain(gst, &gst->terrain);
+
+
+    render_player(gst, &gst->player);
 }
+
+
 
 
 
@@ -131,8 +166,17 @@ void state_render(struct state_t* gst) {
     rlDisableColorBlend();
     BeginMode3D(gst->player.cam);
     {
+        rlDisableDepthMask();
+        rlDisableBackfaceCulling();
+
+        gst->skybox.materials[0].shader = gst->shaders[GBUFFER_SHADER];
+        DrawModel(gst->skybox, gst->player.cam.position,1.0, BLACK);
+        rlEnableDepthMask();
+        rlEnableBackfaceCulling();
+
+
         rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
-        render_terrain_and_enemies(gst, RENDERPASS_GBUFFER);
+        render_scene(gst, RENDERPASS_GBUFFER);
     }
     EndMode3D();
     rlDisableFramebuffer();
@@ -148,10 +192,17 @@ void state_render(struct state_t* gst) {
     {
 
         // Save camera view and projection matrix for postprocessing.
+      
+        rlDisableDepthMask();
+        rlDisableBackfaceCulling();
+        gst->skybox.materials[0].shader = gst->shaders[WATER_SHADER];
+        DrawModel(gst->skybox, gst->player.cam.position,1.0, BLACK);
+        rlEnableDepthMask();
+        rlEnableBackfaceCulling();
         
+              
         gst->cam_view_matrix = GetCameraViewMatrix(&gst->player.cam);
         gst->cam_proj_matrix = GetCameraProjectionMatrix(&gst->player.cam, (float)gst->scrn_w / (float)gst->scrn_h);
-
 
         
         // Render debug info if needed. --------
@@ -191,8 +242,8 @@ void state_render(struct state_t* gst) {
         }
         // ------------
 
-        render_terrain_and_enemies(gst, RENDERPASS_FINAL);
-
+        render_scene(gst, RENDERPASS_RESULT);
+        
         // Particle systems. (rendered only if needed)
         {
             render_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS], (Color){0});
@@ -212,9 +263,57 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
         }
 
-        player_render(gst, &gst->player);
-        render_items(gst);
+        // Player Gun FX
+        {
 
+            struct player_t* p = &gst->player;
+
+            if(p->gunfx_timer < 1.0) {
+             
+                float color4f[4] = {
+                    (float)gst->player.weapon.color.r / 255.0,
+                    (float)gst->player.weapon.color.g / 255.0,
+                    (float)gst->player.weapon.color.b / 255.0,
+                    (float)gst->player.weapon.color.a / 255.0
+                };
+
+                SetShaderValue(gst->shaders[GUNFX_SHADER], 
+                        gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC], color4f, SHADER_UNIFORM_VEC4);
+
+ 
+                p->gunfx_model.transform = p->gunmodel.transform;
+                
+                p->gunfx_model.transform 
+                    = MatrixMultiply(MatrixTranslate(0.28, -0.125, -3.5), p->gunfx_model.transform);
+                p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
+
+                float st = lerp(p->gunfx_timer, 2.0, 0.0);
+                p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
+
+                DrawMesh(
+                        p->gunfx_model.meshes[0],
+                        p->gunfx_model.materials[0],
+                        p->gunfx_model.transform
+                        );
+
+                p->gunfx_timer += gst->dt*13.0;
+
+            }
+
+            // Water
+            {
+                rlDisableBackfaceCulling();
+                DrawModel(gst->terrain.waterplane, 
+                        (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
+                        1.0,
+                        (Color){ 255, 255, 255, 255 });
+                
+                rlEnableBackfaceCulling();
+            }
+        }
+
+            // render_player(gst, &gst->player);
+        //render_items(gst);
         //_state_render_crithit_markers(gst);
 
     }
@@ -222,10 +321,9 @@ void state_render(struct state_t* gst) {
     EndTextureMode();
     
     // Get bloom treshold texture.
-
-    
+ 
     BeginTextureMode(gst->bloomtresh_target);
-    ClearBackground((Color){ 0,0,0, 255 });
+    ClearBackground((Color){ 0, 0, 0, 255 });
     BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
     {
         DrawTextureRec(
@@ -242,4 +340,80 @@ void state_render(struct state_t* gst) {
     EndShaderMode();
     EndTextureMode();
 
+
+    // Screen space ambient occlusion.
+    
+    BeginTextureMode(gst->ssao_target);
+    ClearBackground((Color){ 255, 255, 255, 255 });
+    BeginShaderMode(gst->shaders[SSAO_SHADER]);
+    {
+
+
+        // ----- TODO Optimize this...
+
+        const Shader ssao_shader = gst->shaders[SSAO_SHADER];
+        rlEnableShader(ssao_shader.id);
+
+        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_pos_tex"),
+                gst->gbuffer.position_tex);
+        
+        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_norm_tex"),
+                gst->gbuffer.normal_tex);
+        
+        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_difspec_tex"),
+                gst->gbuffer.difspec_tex);
+        
+        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_depth"),
+                gst->gbuffer.depth_tex);
+        
+        rlSetUniformSampler(GetShaderLocation(ssao_shader, "ssao_noise_tex"),
+                gst->ssao_noise_tex.id);
+        
+        SetShaderValueMatrix(ssao_shader,
+                GetShaderLocation(ssao_shader, "cam_view"),
+                gst->cam_view_matrix);
+
+        SetShaderValueMatrix(ssao_shader,
+                GetShaderLocation(ssao_shader, "cam_proj"),
+                gst->cam_proj_matrix);
+   
+        for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
+            SetShaderValueV(ssao_shader,
+                    GetShaderLocation(ssao_shader, TextFormat("ssao_kernel[%i]",i)),
+                    &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
+        
+        }
+
+        //DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, WHITE);
+
+        // Render into fullscreen rectangle so it can be blurred in postprocessing.
+        // to get rid of most noticable artifacts.
+        DrawTextureRec(
+                    gst->env_render_target.texture,
+                    (Rectangle) { 
+                        0.0, 0.0, 
+                        (float)gst->env_render_target.texture.width,
+                        -(float)gst->env_render_target.texture.height
+                    },
+                    (Vector2){ 0.0, 0.0 },
+                    WHITE
+                    );
+    }
+    EndShaderMode();
+    EndTextureMode();
+
+    /*
+    BeginTextureMode(gst->env_render_target);
+    ClearBackground(gst->render_bg_color);
+    BeginMode3D(gst->player.cam);
+    {
+
+    }
+    EndMode3D();
+    EndTextureMode();
+
+    */
+
 }
+
+

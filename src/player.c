@@ -43,7 +43,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             p->cam.position.x, p->cam.position.y, p->cam.position.z);
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->height = 6.5;
+    p->height = 8.5;
     p->hitbox_size = (Vector3){ 1.5, 2.8, 1.5 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
@@ -451,8 +451,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
 
 }
 
-
-void player_render(struct state_t* gst, struct player_t* p) {
+void render_player(struct state_t* gst, struct player_t* p) {
 
     if(p->noclip) {
         return;
@@ -525,39 +524,6 @@ void player_render(struct state_t* gst, struct player_t* p) {
                 p->hands_material,
                 p->gunmodel.transform
                 );
-    }
-
-    // Gun FX
-    if(p->gunfx_timer < 1.0) {
-        
-        float color4f[4] = {
-            (float)gst->player.weapon.color.r / 255.0,
-            (float)gst->player.weapon.color.g / 255.0,
-            (float)gst->player.weapon.color.b / 255.0,
-            (float)gst->player.weapon.color.a / 255.0
-        };
-
-        SetShaderValue(gst->shaders[GUNFX_SHADER], 
-                gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC], color4f, SHADER_UNIFORM_VEC4);
-
- 
-        p->gunfx_model.transform = p->gunmodel.transform;
-        
-        p->gunfx_model.transform 
-            = MatrixMultiply(MatrixTranslate(0.28, -0.125, -3.5), p->gunfx_model.transform);
-        p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
-
-        float st = lerp(p->gunfx_timer, 2.0, 0.0);
-        p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
-
-        DrawMesh(
-                p->gunfx_model.meshes[0],
-                p->gunfx_model.materials[0],
-                p->gunfx_model.transform
-                );
-
-        p->gunfx_timer += gst->dt*13.0;
-
     }
 }
 

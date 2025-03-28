@@ -78,22 +78,20 @@
 #define DEFAULT_SHADER 0
 #define POSTPROCESS_SHADER 1
 #define BLOOM_TRESHOLD_SHADER 2
-#define WDEPTH_SHADER 3
-#define WDEPTH_INSTANCE_SHADER 4
-#define PRJ_ENVHIT_PSYS_SHADER 5
-#define BASIC_WEAPON_PSYS_SHADER 6
-#define FOLIAGE_SHADER 7
-#define FOG_PARTICLE_SHADER 8
-#define WATER_SHADER 9
-#define GUNFX_SHADER 10
-#define ENEMY_GUNFX_SHADER 11
-#define CRYSTAL_FOLIAGE_SHADER 12
-#define POWERUP_SHOP_BG_SHADER 13
-#define EXPLOSION_PSYS_SHADER 14
-#define PLAYER_HIT_SHADER 15
-#define GBUFFER_SHADER 16
-#define GBUFFER_INSTANCE_SHADER 17
-#define MAX_SHADERS 18
+#define PRJ_ENVHIT_PSYS_SHADER 3
+#define BASIC_WEAPON_PSYS_SHADER 4
+#define FOLIAGE_SHADER 5
+#define FOG_PARTICLE_SHADER 6
+#define WATER_SHADER 7
+#define GUNFX_SHADER 8
+#define ENEMY_GUNFX_SHADER 9
+#define POWERUP_SHOP_BG_SHADER 10
+#define EXPLOSION_PSYS_SHADER 11
+#define PLAYER_HIT_SHADER 12
+#define GBUFFER_SHADER 13
+#define GBUFFER_INSTANCE_SHADER 14
+#define SSAO_SHADER 15
+#define MAX_SHADERS 16
 // ...
  
 
@@ -133,7 +131,6 @@
 #define MAX_FS_UNILOCS 16
 // ...
 
-#define NUM_BLOOMTRESH_FRAMES 16 // How many frames to save of 'bloom treshold'
 
 // Normal lights:
 #define SUN_NLIGHT 0
@@ -141,8 +138,7 @@
 // ...
 
 // How many lights can decay at once?
-#define MAX_DECAY_LIGHTS 16
-
+#define MAX_DECAY_LIGHTS 32
 #define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
@@ -176,7 +172,7 @@
 #define MAX_EXPLOSION_LIGHTS (MAX_NORMAL_LIGHTS - MAX_STATIC_LIGHTS)
 
 
-
+// IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
 #define SSAO_KERNEL_SIZE 64
 
 
@@ -192,7 +188,8 @@ struct crithit_marker_t {
 struct gbuffer_t {
     unsigned int normal_tex;
     unsigned int position_tex;
-    unsigned int difspec_tex;// <- NOTE: this is ignored for now.
+    unsigned int difspec_tex; // (Currently not used.)
+    unsigned int depth_tex;
 
     unsigned int framebuffer;
     unsigned int depthbuffer;
@@ -275,13 +272,14 @@ struct state_t {
     RenderTexture2D bloomtresh_target;
 
 
+    Texture ssao_noise_tex;
     Matrix cam_view_matrix;
     Matrix cam_proj_matrix;
-    Texture ssao_noise_tex;
     Vector3 ssao_kernel[SSAO_KERNEL_SIZE];
 
-    // (NOT CURRENTLY USED)
-    RenderTexture2D depth_texture;
+    // Screen space ambient occlusion is rendered into this texture
+    // and later blurred in post processing.
+    RenderTexture2D ssao_target;
 
 
     Color render_bg_color;
@@ -289,6 +287,7 @@ struct state_t {
     int menu_open;
     int devmenu_open;
 
+    Model skybox;
 };
 
 

@@ -178,7 +178,7 @@ void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force);
 // TODO: Rename these.
 // updates player's variables. not movement for movement see (input.c)
 void player_update(struct state_t* gst, struct player_t* p);
-void player_render(struct state_t* gst, struct player_t* p);
+void render_player(struct state_t* gst, struct player_t* p);
 void player_update_movement(struct state_t* gst, struct player_t* p);
 void player_update_camera(struct state_t* gst, struct player_t* p);
 

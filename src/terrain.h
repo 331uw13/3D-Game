@@ -50,8 +50,6 @@ struct foliage_matrices_t {
     Matrix rock_type0[ROCK_TYPE0_MAX_PERCHUNK];
     size_t num_rock_type0;
     
-    Matrix crystals[CRYSTALS_MAX_PERCHUNK];
-    size_t num_crystals;
 };
 
 
@@ -70,18 +68,12 @@ struct render_foliage_matrices {
     Matrix* rock_type0;
     size_t  rock_type0_size;
     size_t  num_rock_type0;
-    
-    Matrix* crystals;
-    size_t  crystals_size;
-    size_t  num_crystals;
-    
 };
 
 struct foliage_models_t {
     Model tree_type0;
     Model tree_type1;
     Model rock_type0;
-    Model crystal;
 };
 
 struct chunk_t {
@@ -142,12 +134,7 @@ void generate_terrain(
 
 void delete_terrain(struct terrain_t* terrain);
 
-void render_terrain(
-        struct state_t* gst,
-        struct terrain_t* terrain,
-        int terrain_shader_index,
-        int foliage_shader_index
-        );
+void render_terrain(struct state_t* gst, struct terrain_t* terrain);
 
 
 

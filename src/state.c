@@ -35,24 +35,34 @@ void state_setup_gbuffer(struct state_t* gst) {
 
     rlEnableFramebuffer(gst->gbuffer.framebuffer);
 
-    // Store positions.
+    // Use 32 bits per channel to avoid floating point precision loss.
+    
+    // Positions.
     gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     
-    // Store normals.
+    // Normals.
     gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R16G16B16, 1);
+                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     
-    // Store diffuse specular colors.
+    // Diffuse specular colors.
     gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
 
-    // Store depth.
+    // Depth
+    gst->gbuffer.depth_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+
+
+
+
+
+
+
     gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->scrn_w, gst->scrn_h, 1);
 
 
-    rlActiveDrawBuffers(3);
-
+    rlActiveDrawBuffers(4);
 
     // Attach textures to the framebuffer.
     rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.position_tex,
@@ -64,6 +74,9 @@ void state_setup_gbuffer(struct state_t* gst) {
     rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.difspec_tex,
             RL_ATTACHMENT_COLOR_CHANNEL2, RL_ATTACHMENT_TEXTURE2D, 0);
 
+    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.depth_tex,
+            RL_ATTACHMENT_COLOR_CHANNEL3, RL_ATTACHMENT_TEXTURE2D, 0);
+
     // Attach depth buffer.
     rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.depthbuffer,
             RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
@@ -74,22 +87,6 @@ void state_setup_gbuffer(struct state_t* gst) {
                 __func__);
     }
 
-
-    int pos_unit_loc = 0;
-    int norm_unit_loc = 1;
-    int difspec_unit_loc = 2;
-
-    SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_pos_tex"),
-            &pos_unit_loc, SHADER_UNIFORM_SAMPLER2D);
-    
-    SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_norm_tex"),
-            &norm_unit_loc, SHADER_UNIFORM_SAMPLER2D);
-
-    SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_difspec_tex"),
-            &difspec_unit_loc, SHADER_UNIFORM_SAMPLER2D);
 }
 
 void state_setup_ssao(struct state_t* gst) {
@@ -120,7 +117,7 @@ void state_setup_ssao(struct state_t* gst) {
         pixels[i] = (Color) {
             GetRandomValue(0, 255),
             GetRandomValue(0, 255),
-            0,
+            0, // Rotating around z axis.
             0
         };
     }
@@ -135,8 +132,6 @@ void state_setup_ssao(struct state_t* gst) {
 
     gst->ssao_noise_tex = LoadTextureFromImage(image);
     SetTextureWrap(gst->ssao_noise_tex, TEXTURE_WRAP_MIRROR_REPEAT);
-
-
 
     free(pixels);
     /*
@@ -174,7 +169,7 @@ void state_setup_render_targets(struct state_t* gst) {
 
     gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
     gst->bloomtresh_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    gst->depth_texture = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
+    gst->ssao_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
     
 }
 
@@ -209,9 +204,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
                 gst->shaders[FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
 
-        SetShaderValue(gst->shaders[CRYSTAL_FOLIAGE_SHADER], 
-                gst->shaders[CRYSTAL_FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-        
         SetShaderValue(gst->shaders[FOG_PARTICLE_SHADER], 
                 gst->shaders[FOG_PARTICLE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
         
@@ -273,9 +265,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
         SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
                 gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
         
-        SetShaderValue(gst->shaders[CRYSTAL_FOLIAGE_SHADER], 
-                gst->fs_unilocs[CRYSTAL_FOLIAGE_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
-        
         SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
                 gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
         
@@ -324,7 +313,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        //update_enemy_spawn_systems(gst); 
+        update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -459,19 +448,6 @@ void state_setup_all_shaders(struct state_t* gst) {
         gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
-    // --- Setup CRYSTAL_FOLIAGE_SHADER ---
-    {
-        Shader* shader = &gst->shaders[CRYSTAL_FOLIAGE_SHADER];
-        load_shader(
-                "res/shaders/instance_core.vs",
-                "res/shaders/crystal.fs", shader);
-       
-        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-  
-        gst->fs_unilocs[CRYSTAL_FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
-    }
     // --- Setup FOG_EFFECT_PARTICLE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOG_PARTICLE_SHADER];
@@ -507,32 +483,6 @@ void state_setup_all_shaders(struct state_t* gst) {
             "res/shaders/bloom_treshold.fs"
         );
     }
-
-
-    // --- Setup depth value shader ---
-    {
-        Shader* shader = &gst->shaders[WDEPTH_SHADER];
-        *shader = LoadShader(
-            "res/shaders/write_depth.vs", 
-            "res/shaders/write_depth.fs"
-        );
-
-    }
-
-    // --- Setup depth value shader for instanced rendering ---
-    {
-        Shader* shader = &gst->shaders[WDEPTH_INSTANCE_SHADER];
-        *shader = LoadShader(
-            "res/shaders/write_instance_depth.vs", 
-            "res/shaders/write_depth.fs"
-        );
-
-        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-        
-    }
-
 
 
     // --- Setup Gun FX Shader ---
@@ -597,6 +547,14 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
+    // --- Setup ssao shader ---
+    {
+        Shader* shader = &gst->shaders[SSAO_SHADER];
+        *shader = LoadShader(
+            "res/shaders/default.vs", 
+            "res/shaders/ssao.fs"
+        );
+    }
 
     
 

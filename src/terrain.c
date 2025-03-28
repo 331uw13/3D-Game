@@ -174,29 +174,6 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         fm->rock_type0[i] = MatrixMultiply(rotation, translation);
     }
 
-    // Crystals
-    fm->num_crystals = CRYSTALS_MAX_PERCHUNK;
-    for(size_t i = 0; i < fm->num_crystals; i++) {
-        
-        float x = RSEEDRANDOMF(x_min, x_max);
-        float z = RSEEDRANDOMF(z_min, z_max);
-
-        RayCollision ray = raycast_terrain(terrain, x, z);
-        
-        if(ray.point.y < terrain->water_ylevel) {
-            continue;
-        }
-
-        Matrix translation = MatrixTranslate(x, ray.point.y, z);
-        Matrix rotation = MatrixRotateXYZ(
-                (Vector3){
-                    RSEEDRANDOMF(0, 360) * DEG2RAD,
-                    RSEEDRANDOMF(0, 360) * DEG2RAD,
-                    RSEEDRANDOMF(0, 360) * DEG2RAD
-                });
-        fm->crystals[i] = MatrixMultiply(rotation, translation);
-    }
-
 }
 
 static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain) {
@@ -650,13 +627,6 @@ void generate_terrain(
         fmodels->rock_type0.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
             = gst->textures[ROCK_TEXID];
  
-
-        // Crystals
-        fmodels->crystal = LoadModel("res/models/crystal.glb");
-        fmodels->crystal.materials[0] = LoadMaterialDefault();
-        fmodels->crystal.materials[0].shader = gst->shaders[CRYSTAL_FOLIAGE_SHADER];
- 
-
     }
 
 
@@ -703,11 +673,6 @@ void generate_terrain(
     terrain->rfmatrices.rock_type0 
         = malloc(terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
 
-
-    terrain->rfmatrices.crystals_size 
-        = (terrain->num_max_visible_chunks * CRYSTALS_MAX_PERCHUNK);
-    terrain->rfmatrices.crystals 
-        = malloc(terrain->rfmatrices.crystals_size * sizeof(Matrix));
 
 
     // Get valid spawnpoint for player.
@@ -778,15 +743,11 @@ void delete_terrain(struct terrain_t* terrain) {
         free(terrain->rfmatrices.rock_type0);
         terrain->rfmatrices.rock_type0 = NULL;
     }
-    if(terrain->rfmatrices.crystals) {
-        free(terrain->rfmatrices.crystals);
-        terrain->rfmatrices.crystals = NULL;
-    }
+
     UnloadModel(terrain->waterplane);
     UnloadModel(terrain->foliage_models.tree_type0);
     UnloadModel(terrain->foliage_models.tree_type1);
     UnloadModel(terrain->foliage_models.rock_type0);
-    UnloadModel(terrain->foliage_models.crystal);
 
     printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
@@ -854,13 +815,11 @@ skip:
 
 void render_terrain(
         struct state_t* gst,
-        struct terrain_t* terrain,
-        int terrain_shader_index,
-        int foliage_shader_index
+        struct terrain_t* terrain
 ){
 
     terrain->num_visible_chunks = 0;
-    terrain->material.shader = gst->shaders[terrain_shader_index];
+    //terrain->material.shader = gst->shaders[terrain_shader_index];
 
     // TODO: Clean this up.
 
@@ -880,11 +839,6 @@ void render_terrain(
     memset(terrain->rfmatrices.rock_type0, 0, terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
     terrain->rfmatrices.num_rock_type0 = 0;
     size_t rf_rock_type0_index = 0;
-
-
-    memset(terrain->rfmatrices.crystals, 0, terrain->rfmatrices.crystals_size * sizeof(Matrix));
-    terrain->rfmatrices.num_crystals = 0;
-    size_t rf_crystal_index = 0;
 
 
     terrain->water_ylevel += sin(gst->time)*0.001585;
@@ -932,21 +886,12 @@ void render_terrain(
                 );
 
 
-        copy_foliage_matrices_from_chunk(
-                terrain->rfmatrices.crystals,
-                terrain->rfmatrices.crystals_size,
-                &terrain->rfmatrices.num_crystals,
-                &rf_crystal_index,
-                chunk->foliage_matrices.crystals,
-                chunk->foliage_matrices.num_crystals
-                );
-
-
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
     }
 
-   
+
+    /*
     terrain->foliage_models.tree_type0.materials[0].shader = gst->shaders[foliage_shader_index];
     terrain->foliage_models.tree_type0.materials[1].shader = gst->shaders[foliage_shader_index];
     terrain->foliage_models.tree_type1.materials[0].shader = gst->shaders[foliage_shader_index];
@@ -959,6 +904,7 @@ void render_terrain(
     else {
         terrain->foliage_models.crystal.materials[0].shader = gst->shaders[CRYSTAL_FOLIAGE_SHADER];
     }
+    */
 
 
     // Render all trees
@@ -996,19 +942,9 @@ void render_terrain(
             terrain->rfmatrices.num_rock_type0
             );
 
-
-    // Render all crystals
-    DrawMeshInstanced(
-            terrain->foliage_models.crystal.meshes[0],
-            terrain->foliage_models.crystal.materials[0],
-            terrain->rfmatrices.crystals,
-            terrain->rfmatrices.num_crystals
-            );
-
-
+    /*
+    // Dont render water into geometry data buffers.
     if(terrain_shader_index == DEFAULT_SHADER) {
-
-
         rlDisableBackfaceCulling();
         DrawModel(terrain->waterplane, 
                 (Vector3){gst->player.position.x, terrain->water_ylevel, gst->player.position.z},
@@ -1017,8 +953,7 @@ void render_terrain(
         
         rlEnableBackfaceCulling();
     }
- 
-
+    */
 
 }
 

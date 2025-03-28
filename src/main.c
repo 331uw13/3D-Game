@@ -61,17 +61,25 @@ void loop(struct state_t* gst) {
             ClearBackground(BLACK);
 
 
+
             // Finally post process everything.
             //
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
                 rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
 
-                // TODO: Optimize this.
+                // ----- TODO: Optimize this.
+               
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "bloomtresh_texture"), gst->bloomtresh_target.texture);
 
+                SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
+                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
+                            "ssao_texture"), gst->ssao_target.texture);
+                
+                
+                /*
                 rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_pos_tex"),
                         gst->gbuffer.position_tex);
                 
@@ -80,9 +88,6 @@ void loop(struct state_t* gst) {
                 
                 rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_difspec_tex"),
                         gst->gbuffer.difspec_tex);
-                
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_depth"),
-                        gst->gbuffer.depthbuffer);
                 
                 rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "ssao_noise_tex"),
                         gst->ssao_noise_tex.id);
@@ -94,14 +99,14 @@ void loop(struct state_t* gst) {
                 SetShaderValueMatrix(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "cam_proj"),
                         gst->cam_proj_matrix);
-
-
+   
                 for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
                     SetShaderValueV(gst->shaders[POSTPROCESS_SHADER],
                             GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], TextFormat("ssao_kernel[%i]",i)),
                             &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
-             
+                
                 }
+                */
 
                 DrawTextureRec(
                         gst->env_render_target.texture,
@@ -244,7 +249,9 @@ void cleanup(struct state_t* gst) {
     UnloadTexture(gst->ssao_noise_tex);
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtresh_target);
-    UnloadRenderTexture(gst->depth_texture);
+    UnloadRenderTexture(gst->ssao_target);
+
+    UnloadModel(gst->skybox);
 
     state_delete_gbuffer(gst);
 
@@ -324,6 +331,9 @@ void first_setup(struct state_t* gst) {
     
     state_setup_gbuffer(gst);
     state_setup_ssao(gst);
+
+    gst->skybox = LoadModelFromMesh(GenMeshSphere(2000.0, 32, 32));
+    gst->skybox.materials[0] = LoadMaterialDefault();
 
     // --- Setup Terrain ----
     {
