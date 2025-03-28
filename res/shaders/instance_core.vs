@@ -33,12 +33,13 @@ void main()
 
 
     vec4 transfpos = instanceTransform * vec4(vertexPosition,1.0);
-    //vec4 norm = vec4(vertexNormal, 0.0);
-    //fragNormal = vec3(instanceTransform * norm);
     fragViewPos = viewPos;
+    
+    vec4 norm = vec4(vertexNormal, 0.0);
+    fragNormal = vec3(instanceTransform * norm);
 
-    mat3 normalMatrix = transpose(inverse(mat3(instanceTransform)));
-    fragNormal = normalMatrix * vertexNormal;
+    //mat3 normalMatrix = transpose(inverse(mat3(instanceTransform)));
+    //fragNormal = normalMatrix * vertexNormal;
 
     // Calculate final vertex position
     gl_Position = mvp * instanceTransform * vec4(vertexPosition, 1.0);
