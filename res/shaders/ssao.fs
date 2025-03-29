@@ -14,6 +14,7 @@ uniform mat4 cam_view;
 uniform mat4 cam_proj;
 uniform vec3 cam_pos;
 uniform vec2 screen_size;
+uniform float render_dist;
 
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -56,11 +57,18 @@ void main() {
     
     float depth = texture(gbuf_depth, fragTexCoord).x;
 
+    const float max_depth = 2000.0;
 
     // map radius, closer should be less effect, further away more.
     const float rad_near = 0.25;
     const float rad_far = 2.5;
     float dt = (viewproj*vec4(frag_pos,1.0)).z;
+
+    if(dt > max_depth) {
+        finalColor = vec4(1.0);
+        return;
+    }
+
     float tmax = 100.0;
     float radius = map(clamp(dt, 0.0, tmax), 0.0, tmax, rad_near, rad_far);
 
@@ -86,12 +94,10 @@ void main() {
     }
 
     ao /= float(SSAO_KERNEL_SIZE);
-
-
-    if(dt >= 1000.0) {
-        ao = 1.0;
-    }
-
+    
+    // Fade ssao effect.
+    float fade = (dt*dt)/(max_depth*max_depth);
+    ao += fade; 
 
     finalColor = vec4(ao, ao, ao, 1.0);
 }

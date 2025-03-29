@@ -9,6 +9,7 @@ in vec4 fragColor;
 uniform sampler2D texture0;
 uniform sampler2D bloomtresh_texture;
 uniform sampler2D ssao_texture;
+uniform sampler2D depth_texture;
 
 uniform vec4 colDiffuse;
 uniform float time;
@@ -38,13 +39,13 @@ float lerp(float t, float min, float max) {
 
 vec3 get_bloom() {
     vec3 result = vec3(0);
-    vec2 size = screen_size * 0.22;
+    vec2 size = screen_size * 0.365;
     vec2 sf = 1.0/(size * 2.0);
     const int r = 4;
 
 
     // TODO: Apply bloom based on depth.
-    // Issue: stuff blurred further away looks bad
+    // Issue: stuff blurred further away looks kind of bad
 
     for(int x = -r; x <= r; x++) {
         for(int y = -r; y <= r; y++) {
