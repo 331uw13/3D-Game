@@ -36,7 +36,7 @@ struct weapon_t {
     float    prj_speed;
     float    prj_max_lifetime;
     Vector3  prj_hitbox_size;
-
+    float    prj_scale;
 
     // Weapon temperature: (TODO)
     // 'temp' increases when shooting. Cooldown is applied if the weapon overheats

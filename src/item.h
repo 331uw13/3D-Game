@@ -13,6 +13,7 @@
 #define MAX_ITEM_NAME_SIZE 32
 #define ITEM_MAX_LIFETIME 60.0 // (in seconds)
 #define ITEM_PICKUP_RADIUS 15.0
+#define ITEM_HOVER_LEVEL 3.0
 
 #define ITEM_COLLISION_SPHERE_RAD 2.0
 #define NATURAL_ITEM_SPAWN_RADIUS 500.0
@@ -41,16 +42,17 @@ struct state_t;
 
 struct item_t {
     int     enabled;
-    int     pickedup;
+    int     pickedup; // TODO: remove this.
+
+    int     can_be_dropped;
 
     int     rarity;
     int     type;
 
-    int     consumable; // Can it be eaten?
-    float   health_boost_when_eaten;
+    int     consumable; 
+    float   health_boost_when_used;
+    float   armor_fix_value; 
 
-    int    can_fix_armor;
-    float  armor_fix_value; // How much the armor may be fixed if the item can do it.
 
     Model*  modelptr;
     Vector3 position;
@@ -78,6 +80,7 @@ int load_item_model(
         );
 
 
+void use_consumable_item(struct state_t* gst, struct item_t* item);
 void spawn_item(struct state_t* gst, u32 item_type, Vector3 position);
 
 void update_items(struct state_t* gst);

@@ -276,7 +276,7 @@ void render_enemy(struct state_t* gst, struct enemy_t* ent) {
     if(!ent->enabled) {
         return;
     }
-    if(ent->dist_to_player > RENDER_DISTANCE) {
+    if(ent->dist_to_player > gst->render_dist) {
         return;
     }
     if(ent->render_callback) {

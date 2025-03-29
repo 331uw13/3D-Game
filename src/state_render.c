@@ -75,8 +75,6 @@ static void _state_render_crithit_markers(struct state_t* gst) {
 
 void prepare_renderpass(struct state_t* gst, int renderpass) {
     
-    // Prepare terrain and foliage.
-   
     int rp_shader_i;
     int rp_shader_foliage_i;
 
@@ -94,7 +92,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
 
 
     // Prepare enemies.
-
     for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
         for(int k = 0; k < gst->enemy_models[i].materialCount; k++) {
             gst->enemy_models[i].materials[0].shader = gst->shaders[rp_shader_i];
@@ -102,28 +99,28 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     }
 
 
-
     // Prepare terrain and foliage.
-
     gst->terrain.material.shader = gst->shaders[rp_shader_i];
-
-    // TODO: Create array for foliage models.
-    struct foliage_models_t* foliagemodels = &gst->terrain.foliage_models;
-    foliagemodels->tree_type0.materials[0].shader = gst->shaders[rp_shader_foliage_i];
-    foliagemodels->tree_type0.materials[1].shader = gst->shaders[rp_shader_foliage_i];
-    foliagemodels->tree_type1.materials[0].shader = gst->shaders[rp_shader_foliage_i];
-    foliagemodels->tree_type1.materials[1].shader = gst->shaders[rp_shader_foliage_i];
-    
-    foliagemodels->rock_type0.materials[0].shader = gst->shaders[rp_shader_foliage_i];
-
-
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        Model* fmodel = &gst->terrain.foliage_models[i];
+        for(int mi = 0; mi < fmodel->materialCount; mi++) {
+            fmodel->materials[mi].shader = gst->shaders[rp_shader_foliage_i];
+        }
+    }
 
     // Prepare player.
-
     gst->player.gunmodel.materials[0].shader = gst->shaders[rp_shader_i];
     gst->player.arms_material.shader = gst->shaders[rp_shader_i];
     gst->player.hands_material.shader = gst->shaders[rp_shader_i];
 
+    
+    // Prepare "skybox"
+    gst->skybox.materials[0].shader = gst->shaders[rp_shader_i];
+
+    // Prepare items.
+    for(size_t i = 0; i < MAX_ITEM_MODELS; i++) {
+        gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
+    }
 
 }
 
@@ -131,7 +128,15 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
 static void render_scene(struct state_t* gst, int renderpass) {
 
     prepare_renderpass(gst, renderpass);
-     
+    
+    // Render huge sphere, 
+    // ssao algorithm freaks out if there is nothing behind
+    // because it doesnt have valid depth.
+    rlDisableDepthMask();
+    rlDisableBackfaceCulling();
+    DrawModel(gst->skybox, gst->player.cam.position, gst->render_dist, BLACK);
+    rlEnableDepthMask();
+    rlEnableBackfaceCulling();
     
     // Enemies.
     // TODO: Instanced rendering for enemies.
@@ -146,9 +151,8 @@ static void render_scene(struct state_t* gst, int renderpass) {
 
 
     render_terrain(gst, &gst->terrain);
-
-
     render_player(gst, &gst->player);
+    render_items(gst);
 }
 
 
@@ -166,15 +170,6 @@ void state_render(struct state_t* gst) {
     rlDisableColorBlend();
     BeginMode3D(gst->player.cam);
     {
-        rlDisableDepthMask();
-        rlDisableBackfaceCulling();
-
-        gst->skybox.materials[0].shader = gst->shaders[GBUFFER_SHADER];
-        DrawModel(gst->skybox, gst->player.cam.position,1.0, BLACK);
-        rlEnableDepthMask();
-        rlEnableBackfaceCulling();
-
-
         rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
         render_scene(gst, RENDERPASS_GBUFFER);
     }
@@ -192,15 +187,6 @@ void state_render(struct state_t* gst) {
     {
 
         // Save camera view and projection matrix for postprocessing.
-      
-        rlDisableDepthMask();
-        rlDisableBackfaceCulling();
-        gst->skybox.materials[0].shader = gst->shaders[WATER_SHADER];
-        DrawModel(gst->skybox, gst->player.cam.position,1.0, BLACK);
-        rlEnableDepthMask();
-        rlEnableBackfaceCulling();
-        
-              
         gst->cam_view_matrix = GetCameraViewMatrix(&gst->player.cam);
         gst->cam_proj_matrix = GetCameraProjectionMatrix(&gst->player.cam, (float)gst->scrn_w / (float)gst->scrn_h);
 
@@ -263,6 +249,17 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
         }
 
+        // Water
+        {
+            rlDisableBackfaceCulling();
+            DrawModel(gst->terrain.waterplane, 
+                    (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
+                    1.0,
+                    (Color){ 255, 255, 255, 255 });
+            
+            rlEnableBackfaceCulling();
+        }
+
         // Player Gun FX
         {
 
@@ -300,21 +297,10 @@ void state_render(struct state_t* gst) {
 
             }
 
-            // Water
-            {
-                rlDisableBackfaceCulling();
-                DrawModel(gst->terrain.waterplane, 
-                        (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
-                        1.0,
-                        (Color){ 255, 255, 255, 255 });
-                
-                rlEnableBackfaceCulling();
-            }
         }
 
-            // render_player(gst, &gst->player);
+        // TODO:
         //render_items(gst);
-        //_state_render_crithit_markers(gst);
 
     }
     EndMode3D();
@@ -377,6 +363,10 @@ void state_render(struct state_t* gst) {
                 GetShaderLocation(ssao_shader, "cam_proj"),
                 gst->cam_proj_matrix);
    
+        SetShaderValueV(ssao_shader,
+                GetShaderLocation(ssao_shader, "render_dist"),
+                &gst->render_dist, SHADER_UNIFORM_FLOAT, 1);
+
         for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
             SetShaderValueV(ssao_shader,
                     GetShaderLocation(ssao_shader, TextFormat("ssao_kernel[%i]",i)),

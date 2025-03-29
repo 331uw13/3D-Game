@@ -47,7 +47,7 @@ static const int MAX_ITEMS_IN_WORLD[] = {
 };
 
 static const int ITEMS_SPAWN_CHANCE[] = { // 0% - 100%
-    60 /* ITEM APPLE */
+    80 /* ITEM APPLE */
     // ...
 };
 
@@ -93,6 +93,19 @@ int load_item_model(struct state_t* gst, u32 item_type, const char* model_filepa
 error:
     SetTraceLogLevel(LOG_NONE);
     return result;
+}
+
+void use_consumable_item(struct state_t* gst, struct item_t* item) {
+    if(!item) {
+        return;
+    }
+    if(!item->consumable) {
+        return;
+    }
+
+    player_heal(gst, &gst->player, item->health_boost_when_used);
+    gst->player.armor += item->armor_fix_value;
+
 }
 
 
@@ -143,24 +156,23 @@ void spawn_item(struct state_t* gst, u32 item_type, Vector3 position) {
     item->pickedup = 0;
     item->rarity = ITEM_RARITIES[item_type];
     item->rarity_color = ITEM_RARITY_COLORS[item->rarity];
-
-    item->can_fix_armor = 0;
-    item->armor_fix_value = 0.0;
+    item->can_be_dropped = 1;
     item->consumable = 0;
-    item->health_boost_when_eaten = 0.0;
+    item->armor_fix_value = 0.0;
+    item->health_boost_when_used = 0.0;
 
     switch(item_type) {
 
         case ITEM_APPLE:
             {
                 item->consumable = 1;
-                item->health_boost_when_eaten = 25.0;
+                item->health_boost_when_used = 25.0;
             }
             break;
 
         case ITEM_METALPIECE:
             {
-                item->can_fix_armor = 1;
+                item->consumable = 1;
                 item->armor_fix_value = 2.0;
             }
             break;
@@ -245,16 +257,16 @@ void render_items(struct state_t* gst) {
             continue;
         }
 
-        if(item->dist_to_player > RENDER_DISTANCE) {
+        if(item->dist_to_player > gst->render_dist) {
             continue;
         }
 
         for(int i = 0; i < item->modelptr->meshCount; i++) {
-        DrawMesh(
-               item->modelptr->meshes[i],
-               item->modelptr->materials[0],
-               item->transform
-               );      
+            DrawMesh(
+                   item->modelptr->meshes[i],
+                   item->modelptr->materials[0],
+                   item->transform
+                   );      
         }
     }
 }
@@ -269,7 +281,7 @@ static Vector3 get_good_item_spawn_pos(struct state_t* gst) {
     while(attemps < max_attemps) {
         pos = (Vector3) {
             gst->player.position.x + RSEEDRANDOMF(-NATURAL_ITEM_SPAWN_RADIUS, NATURAL_ITEM_SPAWN_RADIUS),
-            0,
+            ITEM_HOVER_LEVEL,
             gst->player.position.x + RSEEDRANDOMF(-NATURAL_ITEM_SPAWN_RADIUS, NATURAL_ITEM_SPAWN_RADIUS)
         };
 

@@ -16,6 +16,16 @@ int gui_button(
         Vector2 position
         );
 
+int gui_slider_float(
+        struct state_t* gst,
+        const char* text,
+        float font_size,
+        Vector2 position,
+        float width,
+        float* value,
+        float min_value,
+        float max_value
+        );
 
 void gui_render_respawn_screen(struct state_t* gst);
 void gui_render_menu_screen(struct state_t* gst);

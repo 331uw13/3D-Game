@@ -81,9 +81,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->firerate = 0.1;
     p->firerate_timer = 0.0;
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
-    p->inventory.open = 0;
     p->powerup_shop.open = 0;
     p->powerup_shop.selected_index = -1;
+    p->inventory.selected_index = 0;
 
     p->aim_idle_timer = 0.0;
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
@@ -107,6 +107,13 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
        
 
 
+    p->gun_item = (struct item_t) {
+        .rarity = ITEM_SPECIAL,
+        .type = -1,
+        .consumable = 0,
+        .can_be_dropped = 0,
+        .inv_tex = LoadTexture("res/textures/gun_inv.png")
+    };
 
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
@@ -122,7 +129,14 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         p->powerup_levels[i] = 0;
     }
 
-    // calculate matrices for when player is aiming and not aiming.
+    for(size_t i = 0; i < INV_SIZE; i++) {
+        p->inventory.items[i] = NULL;
+    }
+
+    inv_add_item(gst, p, &p->gun_item);
+
+
+    // Calculate matrices for when player is aiming and not aiming.
     
     // (Not aiming)
     {
@@ -138,18 +152,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         p->gunmodel_aim_offset_m 
             = MatrixTranslate(0.3, 0.3, -0.6);
     }
-
-
-    p->inventory.item_drag = NULL;
-    for(size_t i = 0; i < INV_SIZE; i++) {
-        p->inventory.items[i] = NULL;
-    }
-
 }
 
 void delete_player(struct player_t* p) {
     UnloadModel(p->gunmodel);
     UnloadModel(p->gunfx_model);
+    UnloadTexture(p->gun_item.inv_tex);
     // ...
     
     printf("\033[35m -> Deleted Player\033[0m\n");
@@ -175,9 +183,10 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     prj_position = Vector3Transform(prj_position, p->gunmodel.transform);
 
     // Move the projectile initial position little bit ahead.
-    prj_position.x += p->looking_at.x * 10.0;
-    prj_position.y += p->looking_at.y * 10.0;
-    prj_position.z += p->looking_at.z * 10.0;
+    const float movef = 10.0 + (p->weapon.prj_scale * 2.0);
+    prj_position.x += p->looking_at.x * movef;
+    prj_position.y += p->looking_at.y * movef;
+    prj_position.z += p->looking_at.z * movef;
 
     add_projectile(gst, &gst->psystems[PLAYER_WEAPON_PSYS], &p->weapon, 
             prj_position, p->looking_at, p->accuracy_modifier);
@@ -222,7 +231,7 @@ void player_damage(struct state_t* gst, struct player_t* p, float damage) {
     }
 
     if(p->armor > 0) {
-        p->armor--;
+        p->armor -= 1.0;
         damage *= (1.0 - p->armor_damage_dampen);
     }
 
@@ -318,22 +327,22 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     DisableCursor();
 }
 
-static float test = 0.0;
 
 void player_update(struct state_t* gst, struct player_t* p) {
 
-
-    //rainbow_palette(sin(gst->time), &p->weapon.color.r, &p->weapon.color.g, &p->weapon.color.b);
+    p->holding_gun = (p->inventory.selected_index == 0);
+    //rainbow_palette(sin(gst->time*0.75), &p->weapon.color.r, &p->weapon.color.g, &p->weapon.color.b);
 
     if(!p->any_gui_open
        && p->alive
+       && p->holding_gun
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
         ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) {
         player_shoot(gst, &gst->player);
     }
 
-    if((p->aim_idle_timer > 2.75) && p->is_aiming) {
+    if(((p->aim_idle_timer > 2.75) && p->is_aiming) || (!p->holding_gun)) {
         p->is_aiming = 0;
     }
 
@@ -420,7 +429,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
     p->cam.target.y += p->rotation_from_hit.y * gst->dt;
     p->cam.target.x += p->rotation_from_hit.z * gst->dt;
 
-
+    /*
     if((p->cam.position.y < gst->terrain.water_ylevel) && !p->in_water) {
         p->in_water = 1;
         gst->fog_density = 6.5;
@@ -432,6 +441,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
         gst->fog_density = 1.0;
         update_fog_settings(gst);
     }
+    */
 
     // FOV Effect. Change FOV smoothly based on player velocity.
     if(p->enable_fov_effect) {
@@ -453,6 +463,9 @@ void player_update(struct state_t* gst, struct player_t* p) {
 
 void render_player(struct state_t* gst, struct player_t* p) {
 
+    if(!p->alive) {
+        return;
+    }
     if(p->noclip) {
         return;
     }
@@ -490,8 +503,9 @@ void render_player(struct state_t* gst, struct player_t* p) {
 
     p->gunmodel.transform = transform;
 
+    const size_t inv_selected_i = p->inventory.selected_index;
 
-    if(p->alive) {
+    if(p->holding_gun) {
         // Update Gun Light here because otherwise it will be one frame behind.
         {
             Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
@@ -524,6 +538,26 @@ void render_player(struct state_t* gst, struct player_t* p) {
                 p->hands_material,
                 p->gunmodel.transform
                 );
+    }
+    else 
+    if(inv_selected_i < INV_SIZE) {
+        struct item_t* item_in_hands = p->inventory.items[inv_selected_i];
+        if(!item_in_hands) {
+            return;
+        }
+
+        Matrix item_offset = MatrixTranslate(1.0, -0.75, -2.0);
+        Matrix item_scale = MatrixScale(0.3, 0.3, 0.3);
+
+        Matrix item_transf = MatrixMultiply(item_offset, rotate_m);
+        item_transf = MatrixMultiply(item_scale, item_transf);
+
+        DrawMesh(
+                item_in_hands->modelptr->meshes[0],
+                item_in_hands->modelptr->materials[0],
+                item_transf
+                );
+
     }
 }
 

@@ -68,7 +68,7 @@ void handle_userinput(struct state_t* gst) {
         update_powerup_shop_offers(gst);
     }
     
-    if(gst->player.alive) {
+    if(gst->player.alive && gst->player.holding_gun) {
         if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
         && !gst->player.any_gui_open
         && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
@@ -97,14 +97,7 @@ void handle_userinput(struct state_t* gst) {
         gst->player.powerup_shop.selected_index = -1;
         gst->player.inventory.open = 0;
     }
-    
-    if(IsKeyPressed(KEY_TAB) 
-            && !gst->menu_open
-            && !gst->player.powerup_shop.open
-            && gst->player.alive) {
-        toggle_inventory(gst, &gst->player);
-    }
-
+   
 
 
     // Dev mode input.

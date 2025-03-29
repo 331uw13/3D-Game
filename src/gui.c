@@ -11,6 +11,7 @@
 
 #define TEXT_COLOR        (Color) { 160, 176, 180, 255 }
 #define BUTTON_BG_COLOR   (Color) { 30, 40, 50, 200 }
+#define BUTTON_BG_FOCUS_COLOR (Color) { 40, 60, 70, 200 }
 #define FOCUS_COLOR       (Color) { 50, 150, 170, 200 }
 #define UNFOCUS_COLOR     (Color) { 50, 70, 80, 200 }
 
@@ -26,15 +27,15 @@ int mouse_on_rect(Vector2 rect_pos, Vector2 rect_size) {
 }
 
 
-int gui_button_ext(
+static int gui_button_ext(
         struct state_t* gst,
         const char* text,
         float font_size,
         Vector2 position,
         Color bg_color, // Background color
         Color fg_color, // Foreground color (text)
-        Color ln_focus_color, // Lines color around button when focused.
-        Color ln_unfocus_color // Lines color around button when unfocused.
+        Color focus_color,
+        Color unfocus_color
 ){
     int clicked = 0;
     Vector2 measure = MeasureTextEx(gst->font, text, font_size, FONT_SPACING);
@@ -44,14 +45,11 @@ int gui_button_ext(
         measure.x  + EXTRA_OFF_W*2,  measure.y + EXTRA_OFF_H*1.5
     };
 
-    DrawRectangle(rect.x, rect.y, rect.width, rect.height, bg_color);
+    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
+    DrawRectangle(rect.x, rect.y, rect.width, rect.height, mouse_on ? focus_color : unfocus_color);
     DrawTextEx(gst->font, text, position, font_size, FONT_SPACING, fg_color);
 
-    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
 
-
-    DrawRectangleLines(rect.x, rect.y, rect.width, rect.height,
-            mouse_on ? ln_focus_color : ln_unfocus_color);
 
     if(mouse_on && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         clicked = 1;
@@ -77,14 +75,10 @@ int gui_button(
         measure.x  + EXTRA_OFF_W*2,  measure.y + EXTRA_OFF_H*1.5
     };
 
-    DrawRectangle(rect.x, rect.y, rect.width, rect.height, BUTTON_BG_COLOR);
+    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
+    DrawRectangle(rect.x, rect.y, rect.width, rect.height, mouse_on ? BUTTON_BG_FOCUS_COLOR : BUTTON_BG_COLOR);
     DrawTextEx(gst->font, text, position, font_size, FONT_SPACING, TEXT_COLOR);
 
-    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
-
-
-    DrawRectangleLines(rect.x, rect.y, rect.width, rect.height,
-            mouse_on ? FOCUS_COLOR : UNFOCUS_COLOR);
 
     if(mouse_on && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         clicked = 1;
@@ -93,6 +87,46 @@ int gui_button(
 
     return clicked;
 }
+
+int gui_slider_float(
+        struct state_t* gst,
+        const char* text,
+        float font_size,
+        Vector2 position,
+        float width,
+        float* value_ptr,
+        float min_value,
+        float max_value
+){
+    Vector2 measure = MeasureTextEx(gst->font, text, font_size, FONT_SPACING);
+
+    Rectangle rect = (Rectangle) {
+        position.x - EXTRA_OFF_W, position.y - EXTRA_OFF_H,
+        width + EXTRA_OFF_W*2, measure.y + EXTRA_OFF_H*1.5
+    };
+
+    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
+
+    DrawRectangle(rect.x, rect.y, rect.width, rect.height, BUTTON_BG_COLOR);
+
+    float bar_width = map(*value_ptr, min_value, max_value, 0, rect.width);
+    DrawRectangle(rect.x, rect.y, bar_width, rect.height, 
+            mouse_on ? (Color){ 50, 90, 70, 200 } : (Color){ 40, 73, 85, 200 });
+
+
+    DrawTextEx(gst->font, text, position, font_size, FONT_SPACING, TEXT_COLOR);
+
+    int isactive = (mouse_on && IsMouseButtonDown(MOUSE_LEFT_BUTTON));
+
+    if(isactive) {
+        Vector2 mouse = GetMousePosition();
+        float value = map(mouse.x, rect.x, rect.x+rect.width,  min_value, max_value);
+        *value_ptr = value;
+    }
+
+    return isactive;
+}
+
 
 
 static void render_num_kills(struct state_t* gst) {
@@ -137,14 +171,25 @@ void gui_render_respawn_screen(struct state_t* gst) {
 void gui_render_menu_screen(struct state_t* gst) {
     
     DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 10, 10, 150 });
-  
     render_num_kills(gst);
 
     if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->scrn_h/2})) {
         gst->running = 0;
     }
 
-    if(gui_button(gst, "Toggle Fullscreen", 20.0, (Vector2){100, gst->scrn_h/2 + 80})) {
+    Vector2 btn_pos = (Vector2){ 100, gst->scrn_h/2+80 };
+
+    gui_slider_float(gst, "Render Distance", 20.0, btn_pos, 530,
+            &gst->menu_slider_render_dist_v, MIN_RENDERDIST, MAX_RENDERDIST);
+    
+    if(gui_button(gst, "Apply", 20.0, (Vector2){ btn_pos.x+600, btn_pos.y })) {
+        set_render_dist(gst, gst->menu_slider_render_dist_v);
+    }
+
+    btn_pos.y += 50.0;
+
+
+    if(gui_button(gst, "Toggle Fullscreen", 20.0, btn_pos)) {
         
         if(!IsWindowFullscreen()) {
             int monitor = GetCurrentMonitor();
@@ -156,6 +201,7 @@ void gui_render_menu_screen(struct state_t* gst) {
             SetWindowSize(DEF_SCRN_W, DEF_SCRN_H);
         }
     }
+
 
 }
 
@@ -209,6 +255,9 @@ void gui_render_powerup_shop(struct state_t* gst) {
     const Color available_color = (Color){ 80, 80, 80, 255 };
     const Color unavailable_color = (Color){ 120, 50, 30, 255 };
 
+    const Color focus_color = (Color) { 68, 50, 20, 255 };
+    const Color unfocus_color = (Color) { 54, 41, 19, 255 };
+
     for(int i = 0; i < NUM_POWERUP_OFFERS; i++) {
         struct powerup_t* powerup = &shop->offers[i];
 
@@ -254,8 +303,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
                     (Vector2){ shop_pos.x+space_xpcost_text, offer_btn_y },
                     (Color){ 75, 45, 30, 200 },  // bg
                     can_afford ? (Color){ 200, 120, 60, 255 } : (Color){ 100, 88, 80, 200 }, // fg
-                    (Color){ 180, 150, 80, 255 }, // focused.
-                    (Color){ 130, 80, 20, 255 } // un-focused.
+                    focus_color, unfocus_color
                     ) 
                 && can_afford) {
             printf("Selected '%s'\n", powerup->name);
@@ -289,9 +337,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
                 (Vector2){ shop_pos.x+150, offer_btn_y+5 },
                 (Color){ 75, 45, 30, 200 },  // bg
                 (Color){ 200, 120, 60, 255 }, // fg
-                (Color){ 180, 150, 80, 255 }, // focused.
-                (Color){ 130, 80, 20, 255 } // un-focused.
-                ) && (gst->player.xp >= 25)) {
+                focus_color, unfocus_color) && (gst->player.xp >= 25)) {
         player_add_xp(gst, -25);
         update_powerup_shop_offers(gst);
     }
@@ -301,9 +347,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
                 (Vector2){ shop_pos.x+540, offer_btn_y+5 },
                 (Color){ 75, 45, 30, 200 },  // bg
                 (Color){ 200, 120, 60, 255 }, // fg
-                (Color){ 180, 150, 80, 255 }, // focused.
-                (Color){ 130, 80, 20, 255 } // un-focused.
-                )) {
+                focus_color, unfocus_color)) {
         shop->open = 0;
         DisableCursor();
     }
@@ -325,7 +369,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
 
 void gui_render_devmenu(struct state_t* gst) {
     
-    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 30, 30, 200 });
+    //DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 30, 30, 200 });
     const char* menu_text = "[ Development menu ]";
     const float menu_text_fontsize = 20.0;
     DrawTextEx(gst->font, menu_text, 
@@ -364,6 +408,16 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
-
+    /*
+    if(gui_button(gst, "RenderDist++", 15.0, btn_pos)) {
+        set_render_dist(gst, gst->render_dist+200);
+    }
+    btn_pos.y += btn_y_inc;
+    
+    if(gui_button(gst, "RenderDist--", 15.0, btn_pos)) {
+        set_render_dist(gst, gst->render_dist-200);
+    }
+    btn_pos.y += btn_y_inc;
+    */
 }
 

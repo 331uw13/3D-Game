@@ -8,6 +8,112 @@
 #include "util.h"
 
 
+void render_inventory(struct state_t* gst, struct player_t* player) {
+    
+    float slot_space = 5.0;
+
+    Vector2 slot_size = (Vector2) { 40.0, 40.0 };
+    Vector2 inv_pos = (Vector2) { 5.0, 200.0 };
+    Vector2 inv_size = (Vector2) { slot_size.x+10, (slot_size.y+slot_space)*INV_SIZE + slot_space };
+
+    DrawRectangleV(inv_pos, inv_size, (Color){ 30, 30, 30, 200 });
+
+    for(int i = 0; i < INV_SIZE; i++) {
+
+        Vector2 slot_pos = (Vector2){ inv_pos.x+slot_space,  inv_pos.y+slot_space + (i*(slot_size.y+slot_space)) };
+        DrawRectangleV(slot_pos, slot_size, (Color){ 70, 70, 70, 200 });
+
+        int iselected = (i == player->inventory.selected_index);
+
+        if(iselected) {
+            DrawRectangleLinesEx((Rectangle){ slot_pos.x-2, slot_pos.y-2, slot_size.x+4, slot_size.y+4 }, 2.0, GREEN);
+        
+        }
+
+        struct item_t* item = player->inventory.items[i];
+        if(!item) {
+            continue;
+        }
+
+        if((i > 0) && iselected) {
+            DrawTextEx(gst->font, "<E>: Drop item\n<MouseRight>: Use item",
+                    (Vector2){ inv_pos.x, inv_pos.y-35 }, 13.0, 1.0,
+                    ColorLerp((Color){ 200, 200, 200, 255 }, (Color){200, 200, 200, 0},
+                            player->inventory.time_from_selected));
+
+        }
+
+        DrawTexturePro(
+                item->inv_tex,
+                (Rectangle) { // src
+                    0, 0, item->inv_tex.width, item->inv_tex.height
+                },
+                (Rectangle) { // dest
+                    slot_pos.x, slot_pos.y,
+                    slot_size.x, slot_size.y
+                },
+                (Vector2){0, 0}, 0, // No rotation.
+                WHITE
+                );
+
+        
+
+
+    }
+}
+
+void update_inventory(struct state_t* gst, struct player_t* player) {
+    
+    float mouse_wheel = GetMouseWheelMove();
+    
+    if(player->inventory.time_from_selected < 1.0) {
+        player->inventory.time_from_selected += gst->dt*0.75;
+    }
+
+    if(mouse_wheel > 0) {
+        player->inventory.selected_index--;
+        player->inventory.time_from_selected = 0.0;
+    }
+    else
+    if(mouse_wheel < 0) {
+        player->inventory.selected_index++;
+        player->inventory.time_from_selected = 0.0;
+    }
+    player->inventory.selected_index = CLAMP(player->inventory.selected_index, 0, INV_SIZE-1);
+
+
+    size_t selected_i = player->inventory.selected_index;
+    struct item_t* selected = player->inventory.items[selected_i];
+    if(selected) {
+        if(IsKeyPressed(KEY_E) && selected->can_be_dropped) {
+            spawn_item(gst, selected->type, 
+                    (Vector3){player->position.x, player->position.y-3.0, player->position.z });
+            player->inventory.items[selected_i] = NULL;
+        }
+        else
+        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && (selected->consumable)) {
+            use_consumable_item(gst, selected);
+            player->inventory.items[selected_i] = NULL;
+        }
+    }
+}
+
+
+int inv_add_item(struct state_t* gst, struct player_t* player, struct item_t* item) {
+    int result = 0;
+    for(size_t i = 0; i < INV_SIZE; i++) {
+        if(!player->inventory.items[i]) {
+            player->inventory.items[i] = item;
+            result = 1;
+            break;
+        }
+
+    }
+
+    return result;
+}
+
+/*
 void update_inventory(struct state_t* gst, struct player_t* player) {
     if(!player->inventory.open) {
         return;
@@ -259,6 +365,6 @@ int inv_add_item(struct state_t* gst, struct player_t* player, struct item_t* it
 
     return added;
 }
-
+*/
 
 

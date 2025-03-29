@@ -40,11 +40,17 @@ void loop(struct state_t* gst) {
             if((sw != gst->scrn_w) || (sh != gst->scrn_h)) {
                 gst->scrn_w = sw;
                 gst->scrn_h = sh;
+ 
+                UnloadTexture(gst->ssao_noise_tex);
                 UnloadRenderTexture(gst->env_render_target);
                 UnloadRenderTexture(gst->bloomtresh_target);
-                gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-                gst->bloomtresh_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-              
+                UnloadRenderTexture(gst->ssao_target);
+                state_delete_gbuffer(gst);
+
+                state_setup_gbuffer(gst);
+                state_setup_ssao(gst);
+                state_setup_render_targets(gst);
+               
                 printf(" Resized to %ix%i\n", sw, sh);
             }
         }
@@ -181,7 +187,6 @@ void loop(struct state_t* gst) {
                 if(IsKeyPressed(KEY_F)) {
                     item->enabled = !inv_add_item(gst, &gst->player, item);
                 }
-                
             }
 
 
@@ -250,10 +255,9 @@ void cleanup(struct state_t* gst) {
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->bloomtresh_target);
     UnloadRenderTexture(gst->ssao_target);
+    state_delete_gbuffer(gst);
 
     UnloadModel(gst->skybox);
-
-    state_delete_gbuffer(gst);
 
     for(int i = 0; i < MAX_UBOS; i++) {
         glDeleteBuffers(1, &gst->ubo[i]);
@@ -277,7 +281,6 @@ void first_setup(struct state_t* gst) {
     DisableCursor();
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_ERROR);
-    rlSetClipPlanes(rlGetCullDistanceNear()+0.15, rlGetCullDistanceFar()+3000);
     
     gst->scrn_w = GetScreenWidth();
     gst->scrn_h = GetScreenHeight();
@@ -296,19 +299,18 @@ void first_setup(struct state_t* gst) {
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
 
+    /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 30.0;
     const int   terrain_octaves = 3;
-  
-    /*
+    */
     const float terrain_scale = 20.0;
     const u32   terrain_size = 2048;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 80.0;
     const int   terrain_octaves = 3;
-    */
     /*
     gst->num_crithit_markers = 0;
     gst->crithit_marker_maxlifetime = 1.5;
@@ -321,6 +323,16 @@ void first_setup(struct state_t* gst) {
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
 
+    // Setup fog.
+    gst->fog = (struct fog_t) {
+        .mode = FOG_MODE_TORENDERDIST,
+        .color_near = (Color){ 50, 170, 200 },
+        .color_far = (Color){ 80, 50, 70 },
+        .density = 0.0 // Density is ignored when fog mode is TORENDERDIST
+    };
+
+    set_fog_settings(gst, &gst->fog);
+
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
@@ -331,8 +343,9 @@ void first_setup(struct state_t* gst) {
     
     state_setup_gbuffer(gst);
     state_setup_ssao(gst);
+    state_setup_render_targets(gst);
 
-    gst->skybox = LoadModelFromMesh(GenMeshSphere(2000.0, 32, 32));
+    gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
     gst->skybox.materials[0] = LoadMaterialDefault();
 
     // --- Setup Terrain ----
@@ -363,25 +376,23 @@ void first_setup(struct state_t* gst) {
     setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
 
-    gst->fog_density = 2.0;
+
+    /*// Setup fog.
+    gst->fog_density = 0.0;
     gst->fog_color_near = (Color){ 50, 170, 200 };
     gst->fog_color_far = (Color){ 80, 50, 70 };
-
     update_fog_settings(gst);
-    
+    */
+    // Initialize powerup shop.
     set_powerup_defaults(gst, &gst->player.powerup_shop);
     update_powerup_shop_offers(gst);
 
 
     init_player_struct(gst, &gst->player);
 
-    state_setup_render_targets(gst);
-
     int seed = time(0);
     gst->rseed = seed;
     SetRandomSeed(seed);
-
-
 
 
     // Make sure all lights are disabled.
@@ -418,6 +429,7 @@ void first_setup(struct state_t* gst) {
 
 
     set_light(gst, &SUN, LIGHTS_UBO);
+    set_fog_settings(gst, &gst->fog);
 }
 
 int main(void) {

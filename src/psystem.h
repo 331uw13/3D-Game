@@ -48,8 +48,10 @@ struct particle_t {
     int has_light;
     int last_update;
 
-    int user_i[3];
-    Vector3 user_v[3];
+    short   user_i[16];
+    float   user_f[4];
+    Vector3 user_v[4];
+    void*   user_p[4];
 
     int idb; // Behaviour ID.
 };

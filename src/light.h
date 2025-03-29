@@ -7,9 +7,10 @@
 // Modified from raylibs 'rlights'
 
 
-// NOTE: these 2 values must be the same as in 'res/shaders/light.glsl'
+// NOTE: these values must be the same as in 'res/shaders/light.glsl'
 #define MAX_PROJECTILE_LIGHTS 128
 #define MAX_NORMAL_LIGHTS 16
+#define MAX_DECAY_LIGHTS 32
 
 
 // Shader uniform locations index.

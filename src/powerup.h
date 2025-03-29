@@ -7,9 +7,7 @@
 
 
 
-// ------------ Common powerups ---------------
 
-#define POWERUP_COMMON 0
 
 // Player can shoot more accurately
 // and "recoil" doesnt affect accuracy that much.
@@ -33,47 +31,26 @@
 // Projectile speed is increased.
 #define POWERUP_PROJECTILE_SPEED_BOOST 6
 
-
-
-// ------------ Rare powerups ---------------
-// (only some rare powerups can be stacked)
-
-#define POWERUP_RARE 1
-
 // Player can shoot multiple projectiles at once.
 #define POWERUP_BURST_FIRE 7
 
 // Projectiles size is increased.
 #define POWERUP_BIGGER_PROJECTILES 8
 
-
-// ------------ Special powerups ---------------
-
-#define POWERUP_SPECIAL 2
-
 // Player's health regenrates by itself overtime.
 #define POWERUP_HEALTH_REGEN 9
 
-// ...
+// Projectiles go through enemies.
+#define POWERUP_FMJPRJ_ABILITY 10
+
+#define POWERUP_GRAVITY_PROJECTILES 11
 
 
-
-
-// ------------ Legendary powerups ---------------
-#define POWERUP_LEGENDARY 3
-// ...
-
-// ------------ Mythical powerups ---------------
-#define POWERUP_MYTHICAL 4
-// ...
-
-
-#define NUM_POWERUPS 10
+#define NUM_POWERUPS 12
 #define NUM_POWERUP_OFFERS 4
 
 struct powerup_t {
     int type;
-    int rarity;
     int xp_cost;
     int max_level;
     float xp_cost_mult;    // xp_cost is multiplied with this number everytime player buys this powerup.

@@ -75,8 +75,8 @@ struct player_t {
 
     int powerup_levels[NUM_POWERUPS];
 
-    int armor;
-    int max_armor;
+    float armor;
+    float max_armor;
     float armor_damage_dampen;
 
     // External force may be applied to player.
@@ -102,7 +102,7 @@ struct player_t {
     // was less than X amount of time time it will be set to DISABLE_AIM_MODE_WHEN_MOUSERIGHT
     int   disable_aim_mode; 
     float aim_button_hold_timer; 
-
+    int holding_gun;
 
     struct item_t* item_in_crosshair;
    
@@ -113,6 +113,7 @@ struct player_t {
     Material arms_material;
     Material hands_material;
 
+    struct item_t  gun_item; // Used for inventory
     struct light_t gun_light;
 
     //Vector3 gunmodel_offset;
@@ -128,6 +129,7 @@ struct player_t {
     int    recoil_done;
     int    recoil_in_progress;
 
+    // Used when player aims
     float gun_draw_timer; // 0.0 to 1.0 
     float gun_draw_speed; // how fast 'gun_draw_timer' reaches 1.0
     int   ready_to_shoot; // set to 1 when 'gun_draw_timer' finished.
@@ -159,7 +161,7 @@ struct player_t {
     int weapon_firetype; 
 
     int any_gui_open;
-    
+
 };
 
 

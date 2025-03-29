@@ -10,15 +10,10 @@
 struct state_t;
 
 
-#define RENDER_DISTANCE 3000
 #define CHUNK_SIZE 64
 
 #define WATER_INITIAL_YLEVEL -230 // NOTE: This must be same as in 'res/shaders/default.fs'
 
-#define TREE_TYPE0_MAX_PERCHUNK 40
-#define TREE_TYPE1_MAX_PERCHUNK 8
-#define ROCK_TYPE0_MAX_PERCHUNK 10
-#define CRYSTALS_MAX_PERCHUNK 1
 
 struct heightmap_t {
     float*  data;
@@ -38,7 +33,7 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
     Vector3 b2;
 };
 
-
+/*
 // For each chunk.
 struct foliage_matrices_t {
     Matrix tree_type0[TREE_TYPE0_MAX_PERCHUNK];
@@ -51,9 +46,14 @@ struct foliage_matrices_t {
     size_t num_rock_type0;
     
 };
+*/
 
+#define TF_TREE_TYPE0 0
+#define TF_TREE_TYPE1 1
+#define TF_ROCK_TYPE0 2
+#define MAX_FOLIAGE_TYPES 3
 
-
+/*
 // All foliage matrices from chunks go here each frame 
 // and they are rendered all at once.
 struct render_foliage_matrices {
@@ -69,11 +69,26 @@ struct render_foliage_matrices {
     size_t  rock_type0_size;
     size_t  num_rock_type0;
 };
+*/
 
-struct foliage_models_t {
-    Model tree_type0;
-    Model tree_type1;
-    Model rock_type0;
+// This data is not directly being used to render foliages from.
+//   When chunks are being generated
+//   this array will be filled with their transformation matrix
+//   then they are copied to 'foliage_rdata' and rendered all at once(per type)
+//   ^ this will reduce the draw calls.
+struct chunk_foliage_data_t {
+    Matrix* matrices;         
+    size_t  matrices_size;   // How many elements was allocated for matrix array?
+    size_t  num_foliage;     // Chunk may not generate the absolute max number of foliage.
+};
+
+// "Foliage render data"
+// Matrices from all visible chunks to player.
+struct foliage_rdata_t {
+    Matrix* matrices;      
+    size_t  matrices_size;   // How many elemets was allocated for matrix array?
+    size_t  num_render;      // How many to render?
+    size_t  next_index;      // Keep track of index where to copy.
 };
 
 struct chunk_t {
@@ -82,8 +97,9 @@ struct chunk_t {
     Vector3  center_pos;
     float    dst2player;
 
-    struct foliage_matrices_t foliage_matrices;
+    struct chunk_foliage_data_t foliage_data[MAX_FOLIAGE_TYPES];
 };
+
 
 struct terrain_t {
     Material  material;
@@ -96,8 +112,9 @@ struct terrain_t {
     int    num_max_visible_chunks;
     int    num_visible_chunks;
 
-    struct foliage_models_t         foliage_models;
-    struct render_foliage_matrices  rfmatrices;
+    size_t                 foliage_max_perchunk  [MAX_FOLIAGE_TYPES];
+    Model                  foliage_models [MAX_FOLIAGE_TYPES];
+    struct foliage_rdata_t foliage_rdata  [MAX_FOLIAGE_TYPES];
 
     float highest_point;
     float lowest_point;
@@ -133,7 +150,6 @@ void generate_terrain(
 //void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
 
 void delete_terrain(struct terrain_t* terrain);
-
 void render_terrain(struct state_t* gst, struct terrain_t* terrain);
 
 

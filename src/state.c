@@ -56,9 +56,6 @@ void state_setup_gbuffer(struct state_t* gst) {
 
 
 
-
-
-
     gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->scrn_w, gst->scrn_h, 1);
 
 
@@ -304,7 +301,6 @@ void state_update_frame(struct state_t* gst) {
         return;
     }
 
-    player_update(gst, &gst->player);
     
 
     // Enemies.
@@ -331,10 +327,11 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
     update_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS]);
 
-    update_inventory(gst, &gst->player);
     update_items(gst);
     update_decay_lights(gst);
+    update_inventory(gst, &gst->player);
     
+    player_update(gst, &gst->player);
 
     // Update xp level.
     if(gst->xp_value_add != 0) {
@@ -575,6 +572,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .prj_speed = 530.0,
         .prj_max_lifetime = 15.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
+        .prj_scale = 1.0,
         .color = (Color) { 20, 255, 200, 255 },
         
         // TODO -----
@@ -594,6 +592,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .prj_speed = 530.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
+        .prj_scale = 1.0,
         .color = (Color){ 255, 20, 50, 200 },
         .overheat_temp = -1,
     };
@@ -608,6 +607,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .prj_speed = 685.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
+        .prj_scale = 1.0,
         .color = (Color){ 255, 20, 255, 200 },
         .overheat_temp = -1,
     };
@@ -1006,33 +1006,84 @@ void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
 }
 */
 
-void update_fog_settings(struct state_t* gst) {
+void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
     glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FOG_UBO]);
 
     gst->render_bg_color = (Color) {
-        gst->fog_color_far.r * 0.6,
-        gst->fog_color_far.g * 0.6,
-        gst->fog_color_far.b * 0.6,
+        fog->color_far.r * 0.6,
+        fog->color_far.g * 0.6,
+        fog->color_far.b * 0.6,
+        255
+    };
+
+    float near_color4f[4] = {
+        (float)fog->color_near.r / 255.0,
+        (float)fog->color_near.g / 255.0,
+        (float)fog->color_near.b / 255.0,
+        1.0
+    };
+
+    float far_color4f[4] = {
+        (float)fog->color_far.r / 255.0,
+        (float)fog->color_far.g / 255.0,
+        (float)fog->color_far.b / 255.0,
+        1.0
+    };
+
+    float settings[4] = { 0 };
+
+
+    if(fog->mode == FOG_MODE_TORENDERDIST) {
+        float test = 1.0 / (gst->render_dist-1000.0);
+        test = pow(test, exp(test));
+        settings[0] = test;
+    }
+
+
+
+
+    printf("'%s': New fog density = %f\n", __func__, settings[0]);
+
+    size_t offset;
+    size_t size = sizeof(float)*4;
+
+    offset = 0;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, settings);
+
+    offset = 16;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, near_color4f);
+
+    offset = 32;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, far_color4f);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+
+    /*
+    gst->render_bg_color = (Color) {
+        gst->fog.color_far.r * 0.6,
+        gst->fog.color_far.g * 0.6,
+        gst->fog.color_far.b * 0.6,
         255
     };
 
 
     int max_far = 100;
-    gst->fog_color_far.r = CLAMP(gst->fog_color_far.r, 0, max_far);
-    gst->fog_color_far.g = CLAMP(gst->fog_color_far.g, 0, max_far);
-    gst->fog_color_far.b = CLAMP(gst->fog_color_far.b, 0, max_far);
+    gst->fog.color_far.r = CLAMP(gst->fog.color_far.r, 0, max_far);
+    gst->fog.color_far.g = CLAMP(gst->fog.color_far.g, 0, max_far);
+    gst->fog.color_far.b = CLAMP(gst->fog.color_far.b, 0, max_far);
 
     float near_color[4] = {
-        (float)gst->fog_color_near.r / 255.0,
-        (float)gst->fog_color_near.g / 255.0,
-        (float)gst->fog_color_near.b / 255.0,
+        (float)gst->fog.color_near.r / 255.0,
+        (float)gst->fog.color_near.g / 255.0,
+        (float)gst->fog.color_near.b / 255.0,
         1.0
     };
 
     float far_color[4] = {
-        (float)gst->fog_color_far.r / 255.0,
-        (float)gst->fog_color_far.g / 255.0,
-        (float)gst->fog_color_far.b / 255.0,
+        (float)gst->fog.color_far.r / 255.0,
+        (float)gst->fog.color_far.g / 255.0,
+        (float)gst->fog.color_far.b / 255.0,
         1.0
     };
 
@@ -1045,11 +1096,13 @@ void update_fog_settings(struct state_t* gst) {
     float density[4] = {
         // Convert fog density to more friendly scale.
         // Otherwise it is very exponental with very very samll numbers.
-        map(log(CLAMP(gst->fog_density, FOG_MIN, FOG_MAX)), FOG_MIN, FOG_MAX, 0.0015, 0.02),
+        0.0, //map(log(CLAMP(gst->fog_density, FOG_MIN, FOG_MAX)), FOG_MIN, FOG_MAX, 0.0015, 0.02),
         0.0,
         0.0,  // Maybe adding more settings later.
         0.0
     };
+
+
     offset = 0;
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, density);
 
@@ -1062,6 +1115,7 @@ void update_fog_settings(struct state_t* gst) {
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, far_color);
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+     */
 }
 
 
@@ -1162,4 +1216,64 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
                 exp_knockback_to_ent);
     }
 }
+
+
+void set_render_dist(struct state_t* gst, float new_dist) {
+    new_dist = CLAMP(new_dist, MIN_RENDERDIST, MAX_RENDERDIST);
+
+    gst->render_dist = new_dist;
+    rlSetClipPlanes(0.160000, gst->render_dist+3000.0);
+
+    gst->menu_slider_render_dist_v = gst->render_dist;
+
+    // Figure out how many chunks may be rendered at once.
+    // This is bad because it is not accurate at all... but will do for now.
+    // Also doesnt take in count the "frustrum culling" for chunks.
+
+    gst->terrain.num_max_visible_chunks = 8; // take in count error.
+    for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
+        struct chunk_t* chunk = &gst->terrain.chunks[i];
+
+        float dst = Vector3Length(chunk->center_pos);
+
+        if(dst <= gst->render_dist) {
+            gst->terrain.num_max_visible_chunks++;
+        }
+    }
+
+    printf("'%s': New render distance: %0.3f\n", __func__, new_dist);
+    printf("'%s': Predicted visible chunks: %i\n", __func__, gst->terrain.num_max_visible_chunks);
+
+
+    // Allocate/Reallocate space for foliage.
+    // When rendering terrain: foliage are copied into bigger arrays and then rendered all at once(per type)
+    // ^ This will reduce number of draw calls.
+
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        struct foliage_rdata_t* f_rdata = &gst->terrain.foliage_rdata[i];
+
+        if(f_rdata->matrices) {
+            free(f_rdata->matrices);
+            f_rdata->matrices = NULL;
+        }
+
+        f_rdata->matrices_size 
+            = gst->terrain.num_max_visible_chunks
+            * gst->terrain.foliage_max_perchunk[i];
+
+        f_rdata->matrices = malloc(f_rdata->matrices_size * sizeof *f_rdata->matrices);
+    
+        printf("\033[35m(%p)\033[0m\n", f_rdata->matrices);
+    }
+
+
+    // Strech water plane to match render distance.
+    gst->terrain.waterplane.transform = MatrixScale(gst->render_dist, 1.0, gst->render_dist);
+
+    if(gst->fog.mode == FOG_MODE_TORENDERDIST) {
+        set_fog_settings(gst, &gst->fog);
+    }
+
+}
+
 

@@ -21,7 +21,7 @@ void prj_trail_psys_update(
         return;
     }
 
-    float scalelrp = lerp(part->n_lifetime, 1.0, 0.0);
+    float scalelrp = lerp(part->n_lifetime, tofollow_part->scale, 0.0);
     Matrix scale_matrix = MatrixScale(scalelrp, scalelrp, scalelrp);
 
     part->color = ColorLerp(part->start_color, part->end_color, part->n_lifetime*3.0);//tofollow_part->color;
@@ -57,7 +57,7 @@ void prj_trail_psys_init(
     part->position.y += tofollow_part->velocity.y*6;
     part->position.z += tofollow_part->velocity.z*6;
     part->extradata = extradata;
-    part->max_lifetime = RSEEDRANDOMF(0.05, 0.1);
+    part->max_lifetime = RSEEDRANDOMF(0.05, 0.0865);
     part->lifetime = part->max_lifetime;
 }
 

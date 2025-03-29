@@ -23,6 +23,9 @@
 #define DEF_SCRN_W 1500
 #define DEF_SCRN_H 800
 
+#define MAX_RENDERDIST 8000.0
+#define MIN_RENDERDIST 2200.0
+
 #define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
 #define MAX_VOLUME_DIST 720 // How far away can player hear sounds.?
@@ -138,7 +141,6 @@
 // ...
 
 // How many lights can decay at once?
-#define MAX_DECAY_LIGHTS 32
 #define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
@@ -196,6 +198,22 @@ struct gbuffer_t {
 
 };
 
+
+// Sets the fog density automatically to 'render_dist'
+// 'density' variable in fog_t struct will be ignored.
+#define FOG_MODE_TORENDERDIST 0
+
+// Density can be controlled arbitrarily. range: 0 - 10.0
+#define FOG_MODE_CUSTOM 1
+
+
+struct fog_t {
+    float density;
+    Color color_near;
+    Color color_far;
+    int mode;
+};
+
 // Game state "gst".
 struct state_t {
     float time;
@@ -204,12 +222,9 @@ struct state_t {
     Font font;
 
     unsigned int ubo[MAX_UBOS];
-
-    float fog_density;
-    Color fog_color_near;
-    Color fog_color_far;
-
     size_t num_prj_lights;
+
+    struct fog_t fog;
 
 
     Shader shaders[MAX_SHADERS];
@@ -247,6 +262,8 @@ struct state_t {
 
     int rseed; // Seed for randomgen functions.
     int debug;
+
+    float render_dist; // Render distance.
 
     /*
     struct crithit_marker_t crithit_markers[MAX_RENDER_CRITHITS];
@@ -286,6 +303,8 @@ struct state_t {
     int running;
     int menu_open;
     int devmenu_open;
+    
+    float menu_slider_render_dist_v;
 
     Model skybox;
 };
@@ -300,9 +319,10 @@ void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
 
-void update_fog_settings(struct state_t* gst);
+void set_fog_settings(struct state_t* gst, struct fog_t* fog);
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 
+void set_render_dist(struct state_t* gst, float new_dist);
 
 // Initialization.
 void state_setup_all_shaders(struct state_t* gst);

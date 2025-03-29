@@ -27,10 +27,50 @@ static size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
     return (size_t)i;
 }
 
-
 static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
     size_t index = get_heightmap_index(terrain, x, z);
     return terrain->heightmap.data[index];
+}
+
+
+static void _load_foliage_model(struct state_t* gst, Model* modelptr, const char* model_filepath) {
+    *modelptr = LoadModel(model_filepath);
+    
+    for(size_t i = 0; i < modelptr->materialCount; i++) {
+        modelptr->materials[i] = LoadMaterialDefault();
+        modelptr->materials[i].shader = gst->shaders[FOLIAGE_SHADER];
+    }
+}
+
+static void _load_terrain_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
+   
+
+    _load_foliage_model(gst, &terrain->foliage_models[TF_TREE_TYPE0], "res/models/tree_type0.glb");
+    terrain->foliage_models[TF_TREE_TYPE0].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture
+        = gst->textures[TREEBARK_TEXID];
+    terrain->foliage_models[TF_TREE_TYPE0].materials[1].maps[MATERIAL_MAP_DIFFUSE].texture
+        = gst->textures[LEAF_TEXID];
+
+    terrain->foliage_max_perchunk[TF_TREE_TYPE0] = 64;
+
+
+
+    _load_foliage_model(gst, &terrain->foliage_models[TF_TREE_TYPE1], "res/models/tree_type1.glb");
+    terrain->foliage_models[TF_TREE_TYPE1].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture
+        = gst->textures[TREEBARK_TEXID];
+    terrain->foliage_models[TF_TREE_TYPE1].materials[1].maps[MATERIAL_MAP_DIFFUSE].texture
+        = gst->textures[LEAF_TEXID];
+    
+    terrain->foliage_max_perchunk[TF_TREE_TYPE1] = 32;
+
+
+
+    _load_foliage_model(gst, &terrain->foliage_models[TF_ROCK_TYPE0], "res/models/rock_type0.glb");
+    terrain->foliage_models[TF_ROCK_TYPE0].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture
+        = gst->textures[ROCK_TEXID];
+    
+    terrain->foliage_max_perchunk[TF_ROCK_TYPE0] = 16;
+
 }
 
 #define CLEAR_BACKGROUND ClearBackground((Color){ 10, 10, 10, 255 })
@@ -109,9 +149,22 @@ Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, RayC
     return MatrixRotateXYZ((Vector3){ axis.x, 0.0, axis.z });
 }
 
+// RENAME THIS FUNCTIONS:
 static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
-    
-    struct foliage_matrices_t* fm = &chunk->foliage_matrices;
+
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        size_t max_perchunk = terrain->foliage_max_perchunk[i];
+        
+        if(max_perchunk == 0) {
+            fprintf(stderr, "\033[35m(WARNING) '%s': Foliage type %li, max perchunk is zero!\033[0m\n",
+                    __func__, i);
+            continue;
+        }
+
+        chunk->foliage_data[i].matrices = malloc(max_perchunk * sizeof(Matrix));
+        chunk->foliage_data[i].matrices_size = max_perchunk;
+        chunk->foliage_data[i].num_foliage = 0;
+    }
 
     const float x_min = chunk->position.x;
     const float x_max = chunk->position.x + (terrain->chunk_size * terrain->scaling);
@@ -119,60 +172,72 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
     const float z_max = chunk->position.z + (terrain->chunk_size * terrain->scaling);
 
 
-    // Tree Type0
-    fm->num_tree_type0 = TREE_TYPE0_MAX_PERCHUNK;
-    for(size_t i = 0; i < fm->num_tree_type0; i++) {
-        
+    struct chunk_foliage_data_t* chunk_fdata = NULL;
+    
+
+    // Positions and rotations for: TF_TREE_TYPE0
+    chunk_fdata = &chunk->foliage_data[TF_TREE_TYPE0];
+    for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
+    
         float x = RSEEDRANDOMF(x_min, x_max);
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
-
         if(ray.point.y < terrain->water_ylevel) {
             continue;
         }
 
+
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
-        Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
-        fm->tree_type0[i] = MatrixMultiply(rotation, translation);
+        Matrix rotation    = MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI));
+
+        chunk_fdata->matrices[i] = MatrixMultiply(rotation, translation);
+        chunk_fdata->num_foliage++;
     }
 
-    // Tree Type1
-    fm->num_tree_type1 = TREE_TYPE1_MAX_PERCHUNK;
-    for(size_t i = 0; i < fm->num_tree_type1; i++) {
-        
+
+    // Positions and rotations for: TF_TREE_TYPE1
+    chunk_fdata = &chunk->foliage_data[TF_TREE_TYPE1];
+    for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
+    
         float x = RSEEDRANDOMF(x_min, x_max);
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
-
         if(ray.point.y < terrain->water_ylevel) {
             continue;
         }
 
+
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
-        Matrix rotation = MatrixRotateY(RSEEDRANDOMF(0.0, 360.0)*DEG2RAD);
-        fm->tree_type1[i] = MatrixMultiply(rotation, translation);
+        Matrix rotation    = MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI));
+
+        chunk_fdata->matrices[i] = MatrixMultiply(rotation, translation);
+        chunk_fdata->num_foliage++;
     }
 
-    // Rock Type0
-    fm->num_rock_type0 = ROCK_TYPE0_MAX_PERCHUNK;
-    for(size_t i = 0; i < fm->num_rock_type0; i++) {
-        
+    // Positions and rotations for: TF_ROCK_TYPE0
+    chunk_fdata = &chunk->foliage_data[TF_ROCK_TYPE0];
+    for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
+    
         float x = RSEEDRANDOMF(x_min, x_max);
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
+        if(ray.point.y < terrain->water_ylevel) {
+            continue;
+        }
+
 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
-        Matrix rotation = MatrixRotateXYZ(
-                (Vector3){
-                    RSEEDRANDOMF(0, 360) * DEG2RAD,
-                    RSEEDRANDOMF(0, 360) * DEG2RAD,
-                    RSEEDRANDOMF(0, 360) * DEG2RAD
-                });
-        fm->rock_type0[i] = MatrixMultiply(rotation, translation);
+        Matrix rotation    = MatrixRotateXYZ(
+                                (Vector3){ RSEEDRANDOMF(-M_PI, M_PI), RSEEDRANDOMF(-M_PI, M_PI), RSEEDRANDOMF(-M_PI, M_PI) });
+
+        chunk_fdata->matrices[i] = MatrixMultiply(rotation, translation);
+        chunk_fdata->num_foliage++;
     }
+
+
 
 }
 
@@ -409,8 +474,12 @@ void generate_terrain(
         int    octaves,
         int    seed
 ) {
-    // Start by creating a height map for the terrain.
 
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        terrain->foliage_rdata[i].matrices = NULL;
+    }
+
+    // Start by creating a height map for the terrain.
 
 
     terrain->heightmap.total_size = (terrain_size) * (terrain_size);
@@ -582,97 +651,21 @@ void generate_terrain(
     terrain->material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[MOSS_TEXID];
 
 
-    // Load foliage models
-    {
-        struct foliage_models_t* fmodels = &terrain->foliage_models;
-
-        // Tree Type 0
-        fmodels->tree_type0 = LoadModel("res/models/tree_type0.glb");
-        
-        // Tree bark
-        fmodels->tree_type0.materials[0] = LoadMaterialDefault();
-        fmodels->tree_type0.materials[0].shader = gst->shaders[FOLIAGE_SHADER];
-        fmodels->tree_type0.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[TREEBARK_TEXID];
-        
-        // Tree leafs
-        fmodels->tree_type0.materials[1] = LoadMaterialDefault();
-        fmodels->tree_type0.materials[1].shader = gst->shaders[FOLIAGE_SHADER];
-        fmodels->tree_type0.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[LEAF_TEXID];
-
-
-
-        // Tree Type 1
-        fmodels->tree_type1 = LoadModel("res/models/tree_type1.glb");
-        
-        // Tree bark
-        fmodels->tree_type1.materials[0] = LoadMaterialDefault();
-        fmodels->tree_type1.materials[0].shader = gst->shaders[FOLIAGE_SHADER];
-        fmodels->tree_type1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[TREEBARK_TEXID];
-        
-        // Tree leafs
-        fmodels->tree_type1.materials[1] = LoadMaterialDefault();
-        fmodels->tree_type1.materials[1].shader = gst->shaders[FOLIAGE_SHADER];
-        fmodels->tree_type1.materials[1].maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[LEAF_TEXID];
-
-
-
-        // Rock type 0
-        fmodels->rock_type0 = LoadModel("res/models/rock_type0.glb");
-        fmodels->rock_type0.materials[0] = LoadMaterialDefault();
-        fmodels->rock_type0.materials[0].shader = gst->shaders[FOLIAGE_SHADER];
-        fmodels->rock_type0.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[ROCK_TEXID];
- 
-    }
-
-
-    _load_terrain_chunks(gst, terrain);
-
-
-    // Figure out how many chunks may be rendered at once.
-    // This is bad... but will do for now.
-
-    terrain->num_max_visible_chunks = 8; // take in count error..
-    for(size_t i = 0; i < terrain->num_chunks; i++) {
-        struct chunk_t* chunk = &terrain->chunks[i];
-
-        float dst = Vector3Length(chunk->center_pos);
-
-        if(dst <= RENDER_DISTANCE) {
-            terrain->num_max_visible_chunks++;
-        }
-    }
-
     // Create plane for water
     const float waterplane_size = (CHUNK_SIZE * (1+terrain->num_max_visible_chunks/4)) * terrain->scaling;
     terrain->waterplane = LoadModelFromMesh(GenMeshPlane(waterplane_size, waterplane_size, 32, 32));
     terrain->waterplane.materials[0] = LoadMaterialDefault();
     terrain->waterplane.materials[0].shader = gst->shaders[WATER_SHADER];
 
+ 
 
 
-    // Allocate memory for all foliage matrices.
+    
+    _load_terrain_foliage_models(gst, terrain);
+    _load_terrain_chunks(gst, terrain);
+     set_render_dist(gst, 3000.0);
 
-    terrain->rfmatrices.tree_type0_size 
-        = (terrain->num_max_visible_chunks * TREE_TYPE0_MAX_PERCHUNK);
-    terrain->rfmatrices.tree_type0 
-        = malloc(terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
-
-    terrain->rfmatrices.tree_type1_size 
-        = (terrain->num_max_visible_chunks * TREE_TYPE1_MAX_PERCHUNK);
-    terrain->rfmatrices.tree_type1 
-        = malloc(terrain->rfmatrices.tree_type1_size * sizeof(Matrix));
-
-
-    terrain->rfmatrices.rock_type0_size 
-        = (terrain->num_max_visible_chunks * ROCK_TYPE0_MAX_PERCHUNK);
-    terrain->rfmatrices.rock_type0 
-        = malloc(terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
-
+   
 
 
     // Get valid spawnpoint for player.
@@ -713,8 +706,11 @@ void generate_terrain(
 
 void delete_terrain(struct terrain_t* terrain) {
     if(terrain->chunks) {
-
         for(size_t i = 0; i < terrain->num_chunks; i++) {
+            for(int j = 0; j < MAX_FOLIAGE_TYPES; j++) {
+                free(terrain->chunks[i].foliage_data[j].matrices);
+            }
+
             UnloadMesh(terrain->chunks[i].mesh);
         }
 
@@ -731,24 +727,20 @@ void delete_terrain(struct terrain_t* terrain) {
         terrain->heightmap.data = NULL;
     }
 
-    if(terrain->rfmatrices.tree_type0) {
-        free(terrain->rfmatrices.tree_type0);
-        terrain->rfmatrices.tree_type0 = NULL;
-    }
-    if(terrain->rfmatrices.tree_type1) {
-        free(terrain->rfmatrices.tree_type1);
-        terrain->rfmatrices.tree_type1 = NULL;
-    }
-    if(terrain->rfmatrices.rock_type0) {
-        free(terrain->rfmatrices.rock_type0);
-        terrain->rfmatrices.rock_type0 = NULL;
-    }
 
     UnloadModel(terrain->waterplane);
-    UnloadModel(terrain->foliage_models.tree_type0);
-    UnloadModel(terrain->foliage_models.tree_type1);
-    UnloadModel(terrain->foliage_models.rock_type0);
+    
+    // Free foliage data from memory.
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        UnloadModel(terrain->foliage_models[i]);
 
+        struct foliage_rdata_t* f_rdata = &terrain->foliage_rdata[i];
+        if(f_rdata->matrices) {
+            free(f_rdata->matrices);
+            f_rdata->matrices = NULL;
+        }
+    }
+    
     printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
 
@@ -806,7 +798,7 @@ static int chunk_in_player_view(struct player_t* player, struct terrain_t* terra
     float f = map(dot, 1.0, -1.0, 0.0, 180.0);
 
 
-    res = (f < 90.0);
+    res = (f < 130.0);
 skip:
     return res;
 }
@@ -821,12 +813,9 @@ void render_terrain(
     terrain->num_visible_chunks = 0;
     //terrain->material.shader = gst->shaders[terrain_shader_index];
 
-    // TODO: Clean this up.
 
-    // - Clear foliage matrices.
-    // - Copy matrices from chunk data to these arrays
-    //   Then draw them all at once.
 
+    /*
     memset(terrain->rfmatrices.tree_type0, 0, terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
     terrain->rfmatrices.num_tree_type0 = 0;
     size_t rf_tree_type0_index = 0; // Where to copy from next chunk?
@@ -839,15 +828,33 @@ void render_terrain(
     memset(terrain->rfmatrices.rock_type0, 0, terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
     terrain->rfmatrices.num_rock_type0 = 0;
     size_t rf_rock_type0_index = 0;
+    */
+
+
+    // Clear foliage render data from previous frame.
+
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        struct foliage_rdata_t* f_rdata = &terrain->foliage_rdata[i];
+        memset(f_rdata->matrices, 0, f_rdata->matrices_size * sizeof *f_rdata->matrices);
+        f_rdata->next_index = 0;
+        f_rdata->num_render = 0;
+    }
 
 
     terrain->water_ylevel += sin(gst->time)*0.001585;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
-        chunk->dst2player = Vector3Distance(chunk->center_pos, gst->player.position);
+        chunk->dst2player = 
+            Vector3Distance(
+                    (Vector3){
+                        chunk->center_pos.x, 0, chunk->center_pos.z
+                    },
+                    (Vector3){
+                        gst->player.position.x, 0, gst->player.position.z
+                    });
 
-        if(chunk->dst2player > RENDER_DISTANCE) {
+        if(chunk->dst2player > gst->render_dist) {
             continue;
         }
 
@@ -858,103 +865,56 @@ void render_terrain(
 
         terrain->num_visible_chunks++;
 
-        copy_foliage_matrices_from_chunk(
-                terrain->rfmatrices.tree_type0,
-                terrain->rfmatrices.tree_type0_size,
-                &terrain->rfmatrices.num_tree_type0,
-                &rf_tree_type0_index,
-                chunk->foliage_matrices.tree_type0,
-                chunk->foliage_matrices.num_tree_type0
-                );
 
-        copy_foliage_matrices_from_chunk(
-                terrain->rfmatrices.tree_type1,
-                terrain->rfmatrices.tree_type1_size,
-                &terrain->rfmatrices.num_tree_type1,
-                &rf_tree_type1_index,
-                chunk->foliage_matrices.tree_type1,
-                chunk->foliage_matrices.num_tree_type1
-                );
 
-        copy_foliage_matrices_from_chunk(
-                terrain->rfmatrices.rock_type0,
-                terrain->rfmatrices.rock_type0_size,
-                &terrain->rfmatrices.num_rock_type0,
-                &rf_rock_type0_index,
-                chunk->foliage_matrices.rock_type0,
-                chunk->foliage_matrices.num_rock_type0
-                );
+        for(size_t k = 0; k < MAX_FOLIAGE_TYPES; k++) {
+            struct foliage_rdata_t*       f_rdata     = &terrain->foliage_rdata[k];
+            struct chunk_foliage_data_t*  chunk_fdata = &chunk->foliage_data[k];
 
+
+            if(chunk->foliage_data[k].matrices == NULL) {
+                fprintf(stderr, "\033[31m(ERROR) '%s': chunk foliage data is NULL\033[0m\n",
+                        __func__);
+                continue;
+            }
+         
+            //printf("%li / %li\n", f_rdata->next_index, f_rdata->matrices_size);
+
+            memmove(
+                    &f_rdata->matrices[f_rdata->next_index],
+                    chunk_fdata->matrices,
+                    chunk_fdata->num_foliage * sizeof(Matrix)
+                    );
+
+            f_rdata->next_index += chunk_fdata->num_foliage;
+            f_rdata->num_render += chunk_fdata->num_foliage;
+
+        }
 
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
     }
 
+    // Render foliage.
 
-    /*
-    terrain->foliage_models.tree_type0.materials[0].shader = gst->shaders[foliage_shader_index];
-    terrain->foliage_models.tree_type0.materials[1].shader = gst->shaders[foliage_shader_index];
-    terrain->foliage_models.tree_type1.materials[0].shader = gst->shaders[foliage_shader_index];
-    terrain->foliage_models.tree_type1.materials[1].shader = gst->shaders[foliage_shader_index];
-    terrain->foliage_models.rock_type0.materials[0].shader = gst->shaders[foliage_shader_index];
-    
-    if(foliage_shader_index == GBUFFER_INSTANCE_SHADER) {
-        terrain->foliage_models.crystal.materials[0].shader = gst->shaders[foliage_shader_index];
+    for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
+        Model* fmodel = &terrain->foliage_models[i];
+
+        if(fmodel->materialCount < fmodel->meshCount) {
+            fprintf(stderr, "\033[35m(WARNING) '%s': foliage model(type:%li) mesh count doesnt match material count??\n",
+                    __func__, i);
+        }
+
+        for(size_t mi = 0; mi < fmodel->meshCount; mi++) {
+            size_t mat_index = CLAMP(mi, 0, fmodel->materialCount);
+            DrawMeshInstanced(
+                    fmodel->meshes[mi],
+                    fmodel->materials[mat_index],
+                    terrain->foliage_rdata[i].matrices,
+                    terrain->foliage_rdata[i].num_render
+                    );
+        }
     }
-    else {
-        terrain->foliage_models.crystal.materials[0].shader = gst->shaders[CRYSTAL_FOLIAGE_SHADER];
-    }
-    */
-
-
-    // Render all trees
-    DrawMeshInstanced( // Tree bark
-            terrain->foliage_models.tree_type0.meshes[0],
-            terrain->foliage_models.tree_type0.materials[0],
-            terrain->rfmatrices.tree_type0,
-            terrain->rfmatrices.num_tree_type0
-            );
-    DrawMeshInstanced( // Tree leafs
-            terrain->foliage_models.tree_type0.meshes[1],
-            terrain->foliage_models.tree_type0.materials[1],
-            terrain->rfmatrices.tree_type0,
-            terrain->rfmatrices.num_tree_type0
-            );
-
-    DrawMeshInstanced( // Tree bark
-            terrain->foliage_models.tree_type1.meshes[0],
-            terrain->foliage_models.tree_type1.materials[0],
-            terrain->rfmatrices.tree_type1,
-            terrain->rfmatrices.num_tree_type1
-            );
-    DrawMeshInstanced( // Tree leafs
-            terrain->foliage_models.tree_type1.meshes[1],
-            terrain->foliage_models.tree_type1.materials[1],
-            terrain->rfmatrices.tree_type1,
-            terrain->rfmatrices.num_tree_type1
-            );
-
-    // Render all rocks
-    DrawMeshInstanced(
-            terrain->foliage_models.rock_type0.meshes[0],
-            terrain->foliage_models.rock_type0.materials[0],
-            terrain->rfmatrices.rock_type0,
-            terrain->rfmatrices.num_rock_type0
-            );
-
-    /*
-    // Dont render water into geometry data buffers.
-    if(terrain_shader_index == DEFAULT_SHADER) {
-        rlDisableBackfaceCulling();
-        DrawModel(terrain->waterplane, 
-                (Vector3){gst->player.position.x, terrain->water_ylevel, gst->player.position.z},
-                1.0,
-                (Color){ 255, 255, 255, 255 });
-        
-        rlEnableBackfaceCulling();
-    }
-    */
-
 }
 
 
