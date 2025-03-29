@@ -6,14 +6,14 @@
 > [!WARNING]
 > The game is not ready and __may__ run poorly because it is not yet optimized well.
 > Also 'res/shaders/powerup_shop_bg.fs' shader can be really slow on older hardware(because of the raymarching algorithm). it is in the todo list to add option to disable it
-> Try changing render settings in __src/terrain.h__ if you experience performance issues
+> Try changing render settings from the menu
 
 ---------------------
 
 
-![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-32538.png?raw=true)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-16380.png?raw=true)
 
-![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-47349.png?raw=true)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-43398.png?raw=true)
 
 * Gain XP by shooting enemy robots and upgrade your powerups.  (Some powerups are not yet implemented)
 
@@ -21,13 +21,23 @@
 
 * Apples spawn in the world naturally which can be used to heal the player.
 
-
+-------------
 ### Controls
 * 2: Open powerup shop menu.
-* TAB: Open inventory
 * ESC: Open menu.
-
-
+-------------
+### Currently Working Powerups
+* Accuracy boost
+* Faster firerate
+* Max health boost
+* Max armor boost
+* Movement boost
+* Damage boost
+* Projectile speed boost
+* Bigger projectiles
+* FMJ Projectile ability (projectiles go trough enemies)
+* Gravity projectiles (player also takes damage when fired)
+-------------
 ### Compiling the game.
 > [!NOTE]
 > Raylib must be installed on your system.
