@@ -45,6 +45,9 @@ void handle_userinput(struct state_t* gst) {
         spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
     }
 
+    if(IsKeyPressed(KEY_L)) {
+        gst->ssao_enabled = !gst->ssao_enabled;
+    }
 
     if(IsKeyPressed(KEY_F2)) {
         const char* filename = TextFormat("screenshot-%i.png", GetRandomValue(10000,99999));

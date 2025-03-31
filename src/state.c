@@ -159,6 +159,7 @@ void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, siz
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+
 void state_setup_render_targets(struct state_t* gst) {
 
     gst->scrn_w = GetScreenWidth();
@@ -167,7 +168,8 @@ void state_setup_render_targets(struct state_t* gst) {
     gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
     gst->bloomtresh_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
     gst->ssao_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    
+    gst->bloomtresh_downsample = LoadRenderTexture(gst->scrn_w/1.5, gst->scrn_h/1.5);
+
 }
 
 static void load_texture(struct state_t* gst, const char* filepath, int texid) {
@@ -182,71 +184,43 @@ static void load_texture(struct state_t* gst, const char* filepath, int texid) {
 
 void state_update_shader_uniforms(struct state_t* gst) {
 
-    // --------------------------
-    // TODO: OPTIMIZE THIS LATER
-    // --------------------------
-
     // Update Player view position.
-    //
-    {
-        float camposf3[3] = { 
-            gst->player.cam.position.x,
-            gst->player.cam.position.y,
-            gst->player.cam.position.z
-        };
-        
-        SetShaderValue(gst->shaders[DEFAULT_SHADER], 
-                gst->shaders[DEFAULT_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
+    shader_setu_vec3(gst, DEFAULT_SHADER,      U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, WATER_SHADER,        U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, FOLIAGE_SHADER,      U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, FOG_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
 
-        SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
-                gst->shaders[FOLIAGE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-
-        SetShaderValue(gst->shaders[FOG_PARTICLE_SHADER], 
-                gst->shaders[FOG_PARTICLE_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-        
-        SetShaderValue(gst->shaders[WATER_SHADER], 
-                gst->shaders[WATER_SHADER].locs[SHADER_LOC_VECTOR_VIEW], camposf3, SHADER_UNIFORM_VEC3);
-    }
-
-    // Update camera target and position for post processing.
-    {
-        const Vector3 camdir = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
-        float camtarget3f[3] = {
-            camdir.x, camdir.y, camdir.z
-        };
-        
-        SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-                gst->fs_unilocs[POSTPROCESS_CAMTARGET_FS_UNILOC], camtarget3f, SHADER_UNIFORM_VEC3);
-        
-        SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-                gst->fs_unilocs[POSTPROCESS_CAMPOS_FS_UNILOC], &gst->player.cam.position, SHADER_UNIFORM_VEC3);
-    }
 
     // Update screen size.
-    {
 
-        const float screen_size[2] = {
-            GetScreenWidth(), GetScreenHeight()
-        };
+    Vector2 screen_size = (Vector2) {
+        GetScreenWidth(), GetScreenHeight()
+    };
 
-        SetShaderValue(
-                gst->shaders[POSTPROCESS_SHADER],
-                gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC],
-                screen_size,
-                SHADER_UNIFORM_VEC2
-                );
-
-        SetShaderValue(
-                gst->shaders[POWERUP_SHOP_BG_SHADER],
-                GetShaderLocation(gst->shaders[POWERUP_SHOP_BG_SHADER], "screen_size"),
-                screen_size,
-                SHADER_UNIFORM_VEC2
-                );
-    }
+    shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &screen_size);
+    shader_setu_vec2(gst, POWERUP_SHOP_BG_SHADER,  U_SCREEN_SIZE, &screen_size);
+    shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &screen_size);
+    
     
 
-    {
+    // Update time
+    shader_setu_float(gst, DEFAULT_SHADER,         U_TIME, &gst->time);
+    shader_setu_float(gst, FOLIAGE_SHADER,         U_TIME, &gst->time);
+    shader_setu_float(gst, POSTPROCESS_SHADER,     U_TIME, &gst->time);
+    shader_setu_float(gst, WATER_SHADER,           U_TIME, &gst->time);
+    shader_setu_float(gst, POWERUP_SHOP_BG_SHADER, U_TIME, &gst->time);
 
+    // Update water level
+    shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
+
+
+
+    // Update misc.
+    
+    shader_setu_int(gst, POSTPROCESS_SHADER, U_SSAO_ENABLED, &gst->ssao_enabled);
+    shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
+    /*
+    {
         float blur_effect = 0.62;
         if(gst->player.any_gui_open) {
             blur_effect = 0.1;
@@ -257,31 +231,8 @@ void state_update_shader_uniforms(struct state_t* gst) {
                 &blur_effect, SHADER_UNIFORM_FLOAT);
 
     }
-    // Update time
-    {
-        SetShaderValue(gst->shaders[FOLIAGE_SHADER], 
-                gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
-        
-        SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-                gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
-        
-        SetShaderValue(gst->shaders[WATER_SHADER], 
-                gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC], &gst->time, SHADER_UNIFORM_FLOAT);
-    
+    */
 
-        SetShaderValue(gst->shaders[POWERUP_SHOP_BG_SHADER], 
-                GetShaderLocation(gst->shaders[POWERUP_SHOP_BG_SHADER], "time"),
-                &gst->time, SHADER_UNIFORM_FLOAT);
-
-    }
-
-    // Water level
-    SetShaderValue(gst->shaders[DEFAULT_SHADER], 
-            GetShaderLocation(gst->shaders[DEFAULT_SHADER], "water_level"), &gst->terrain.water_ylevel, SHADER_UNIFORM_FLOAT);
-    
-    SetShaderValue(gst->shaders[DEFAULT_SHADER], 
-            GetShaderLocation(gst->shaders[DEFAULT_SHADER], "time"), &gst->time, SHADER_UNIFORM_FLOAT);
-    
 }
 
 
@@ -295,13 +246,15 @@ void state_update_frame(struct state_t* gst) {
             || gst->player.powerup_shop.open
          );
 
+
     handle_userinput(gst);
     
     if(gst->menu_open) {
         return;
     }
 
-    
+    //printf("Enemies rendered: %i / %i\n", gst->num_enemies_rendered, gst->num_enemies);
+
 
     // Enemies.
     if(!gst->player.powerup_shop.open) {
@@ -309,7 +262,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        update_enemy_spawn_systems(gst); 
+        //update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -376,11 +329,13 @@ void state_setup_all_shaders(struct state_t* gst) {
                 "res/shaders/default.vs",
                 "res/shaders/postprocess.fs", shader);
 
+        /*
         gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
         gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC] = GetShaderLocation(*shader, "screen_size");
         gst->fs_unilocs[POSTPROCESS_PLAYER_HEALTH_FS_UNILOC] = GetShaderLocation(*shader, "health");
         gst->fs_unilocs[POSTPROCESS_CAMTARGET_FS_UNILOC] = GetShaderLocation(*shader, "cam_target");
         gst->fs_unilocs[POSTPROCESS_CAMPOS_FS_UNILOC] = GetShaderLocation(*shader, "cam_pos");
+        */
     }
 
     // --- Setup POWERUP_SHOP_BG_SHADER ---
@@ -435,14 +390,14 @@ void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[FOLIAGE_SHADER];
         load_shader(
-                "res/shaders/instance_core.vs",
+                "res/shaders/foliage.vs",
                 "res/shaders/foliage.fs", shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
   
-        gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
+        //gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
     // --- Setup FOG_EFFECT_PARTICLE_SHADER ---
@@ -457,7 +412,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
 
-
+    
     // --- Setup Water Shader ---
     {
         Shader* shader = &gst->shaders[WATER_SHADER];
@@ -468,7 +423,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
        
-        gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
+        //gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
 
@@ -481,6 +436,16 @@ void state_setup_all_shaders(struct state_t* gst) {
         );
     }
 
+    // --- Setup Bloom Treshold Shader ---
+    {
+        Shader* shader = &gst->shaders[BLOOM_BLUR_SHADER];
+        *shader = LoadShader(
+            0, /* use raylibs default vertex shader */
+            "res/shaders/bloom_blur.fs"
+        );
+    }
+
+
 
     // --- Setup Gun FX Shader ---
     {
@@ -490,7 +455,7 @@ void state_setup_all_shaders(struct state_t* gst) {
             "res/shaders/player_gunfx.fs"
         );
         
-        gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "player_gun_color");
+        //gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "player_gun_color");
     }
 
     // --- Setup Enemy Gun FX Shader ---
@@ -505,7 +470,6 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
-
 
     {
         Shader* shader = &gst->shaders[PLAYER_HIT_SHADER];
@@ -552,8 +516,6 @@ void state_setup_all_shaders(struct state_t* gst) {
             "res/shaders/ssao.fs"
         );
     }
-
-    
 
 
     SetTraceLogLevel(LOG_NONE);
@@ -813,7 +775,7 @@ void state_setup_all_psystems(struct state_t* gst) {
 
     // Create CLOUD_PSYS.
     {
-        const size_t num_cloud_parts = 200;
+        const size_t num_cloud_parts = 800;
         struct psystem_t* psystem = &gst->psystems[CLOUD_PSYS];
         create_psystem(
                 gst,
@@ -831,6 +793,7 @@ void state_setup_all_psystems(struct state_t* gst) {
                 (Vector3){0}, (Vector3){0}, (Color){0},
                 NULL, NO_EXTRADATA, NO_IDB);
     }
+
 
 }
 

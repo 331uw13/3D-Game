@@ -279,8 +279,15 @@ void render_enemy(struct state_t* gst, struct enemy_t* ent) {
     if(ent->dist_to_player > gst->render_dist) {
         return;
     }
+
+    int skip_view_test = (ent->dist_to_player < 200);
+    if(!skip_view_test && !point_in_player_view(gst, &gst->player, ent->position, 90.0)) {
+        return;
+    }
+
     if(ent->render_callback) {
         ent->render_callback(gst, ent);
+        gst->num_enemies_rendered++;
     }
 }
 

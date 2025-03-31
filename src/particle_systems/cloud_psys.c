@@ -49,12 +49,12 @@ void cloud_psys_init(
     
     part->position = (Vector3) {
         gst->player.position.x + RSEEDRANDOMF(-RADIUS, RADIUS),
-        RSEEDRANDOMF(-100, 100) + 800,
+        RSEEDRANDOMF(-100, 600) + 800,
         gst->player.position.z + RSEEDRANDOMF(-RADIUS, RADIUS)
     };
    
     part->velocity = (Vector3) {
-        0, 0, RSEEDRANDOMF(-200, -100)
+        0, 0, RSEEDRANDOMF(-500, -100)
     };
 
     part->lifetime = 0.0;

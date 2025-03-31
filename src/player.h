@@ -173,7 +173,7 @@ void player_damage  (struct state_t* gst, struct player_t* p, float damage);
 void player_heal    (struct state_t* gst, struct player_t* p, float heal);
 void player_add_xp  (struct state_t* gst, int xp);
 void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force);
-
+int  point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point, float fov_range);
 
 /*TODO*/void player_update_death_animation(struct state_t* gst, struct player_t* p);
 

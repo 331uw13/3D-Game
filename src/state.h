@@ -13,7 +13,7 @@
 #include "enemy.h"
 #include "item.h"
 #include "gui.h"
-
+#include "shader_util.h"
 
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
@@ -94,12 +94,10 @@
 #define GBUFFER_SHADER 13
 #define GBUFFER_INSTANCE_SHADER 14
 #define SSAO_SHADER 15
-#define MAX_SHADERS 16
+#define BLOOM_BLUR_SHADER 16
+#define MAX_SHADERS 17
 // ...
  
-
-// Player's weapon particle system is stored in player struct.
-// Enemies have pointers into global particle systems and weapons.
 
 // Global particle systems:
 #define PLAYER_WEAPON_PSYS 0
@@ -113,25 +111,7 @@
 #define ENEMY_GUNFX_PSYS 8
 #define CLOUD_PSYS 9
 #define PRJ_TRAIL_PSYS 10
-#define MAX_PSYSTEMS 11
-// ...
-
-
-// TODO: Clean this up.
-// Uniform locations for fragment shaders
-// (index in 'fs_unilocs' array)
-#define POSTPROCESS_TIME_FS_UNILOC 0
-#define POSTPROCESS_SCREENSIZE_FS_UNILOC 1
-#define POSTPROCESS_PLAYER_HEALTH_FS_UNILOC 2
-#define POSTPROCESS_CAMTARGET_FS_UNILOC 3
-#define POSTPROCESS_CAMPOS_FS_UNILOC 4
-#define PROJECTILE_POSTPROCESS_SCREENSIZE_FS_UNILOC 5
-#define FOLIAGE_SHADER_TIME_FS_UNILOC 6
-#define WATER_SHADER_TIME_FS_UNILOC 7
-#define GUNFX_SHADER_COLOR_FS_UNILOC 8
-#define ENEMY_GUNFX_SHADER_COLOR_FS_UNILOC 9
-#define CRYSTAL_FOLIAGE_SHADER_TIME_FS_UNILOC 10
-#define MAX_FS_UNILOCS 16
+#define MAX_PSYSTEMS 12
 // ...
 
 
@@ -175,7 +155,7 @@
 
 
 // IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
-#define SSAO_KERNEL_SIZE 64
+#define SSAO_KERNEL_SIZE 32
 
 
 // Critical hit marker.
@@ -195,7 +175,6 @@ struct gbuffer_t {
 
     unsigned int framebuffer;
     unsigned int depthbuffer;
-
 };
 
 
@@ -214,6 +193,7 @@ struct fog_t {
     int mode;
 };
 
+
 // Game state "gst".
 struct state_t {
     float time;
@@ -225,10 +205,12 @@ struct state_t {
     size_t num_prj_lights;
 
     struct fog_t fog;
+    
 
+    Shader               shaders[MAX_SHADERS];
+    struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
 
-    Shader shaders[MAX_SHADERS];
-    int    fs_unilocs[MAX_FS_UNILOCS];
+    // REMOVE THIS:
 
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
@@ -245,7 +227,7 @@ struct state_t {
     Model  enemy_models[MAX_ENEMY_MODELS];
     struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;
-   
+    size_t num_enemies_rendered;
 
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
@@ -289,6 +271,7 @@ struct state_t {
     RenderTexture2D bloomtresh_target;
 
 
+    int ssao_enabled;
     Texture ssao_noise_tex;
     Matrix cam_view_matrix;
     Matrix cam_proj_matrix;
@@ -305,8 +288,9 @@ struct state_t {
     int devmenu_open;
     
     float menu_slider_render_dist_v;
-
     Model skybox;
+
+    RenderTexture2D bloomtresh_downsample;
 };
 
 
@@ -314,6 +298,7 @@ void state_setup_gbuffer(struct state_t* gst);
 void state_setup_ssao(struct state_t* gst);
 void state_delete_gbuffer(struct state_t* gst);
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
+void state_setup_grass(struct state_t* gst);
 
 void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);

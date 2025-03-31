@@ -83,36 +83,8 @@ void loop(struct state_t* gst) {
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_target.texture);
-                
-                
-                /*
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_pos_tex"),
-                        gst->gbuffer.position_tex);
-                
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_norm_tex"),
-                        gst->gbuffer.normal_tex);
-                
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "gbuf_difspec_tex"),
-                        gst->gbuffer.difspec_tex);
-                
-                rlSetUniformSampler(GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "ssao_noise_tex"),
-                        gst->ssao_noise_tex.id);
-             
-                SetShaderValueMatrix(gst->shaders[POSTPROCESS_SHADER],
-                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "cam_view"),
-                        gst->cam_view_matrix);
+    
 
-                SetShaderValueMatrix(gst->shaders[POSTPROCESS_SHADER],
-                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "cam_proj"),
-                        gst->cam_proj_matrix);
-   
-                for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
-                    SetShaderValueV(gst->shaders[POSTPROCESS_SHADER],
-                            GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], TextFormat("ssao_kernel[%i]",i)),
-                            &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
-                
-                }
-                */
 
                 DrawTextureRec(
                         gst->env_render_target.texture,
@@ -206,19 +178,19 @@ void loop(struct state_t* gst) {
 
 
             if(gst->debug) {
-                int next_y = 300;
+                int next_y = 50;
+                int dtext_x = gst->scrn_w - 500;
                 const int y_inc = 25;
 
-                DrawText(TextFormat("X: %0.2f", gst->player.position.x),
-                            15.0, next_y, 20, GREEN);
-                DrawText(TextFormat("Y: %0.2f", gst->player.position.y),
-                            15.0+130.0, next_y, 20, GREEN);
-                DrawText(TextFormat("Z: %0.2f", gst->player.position.z),
-                            15.0+130.0*2, next_y, 20, GREEN);
-   
+
+                DrawText(TextFormat("NumVisibleChunks: %i / %li", gst->terrain.num_visible_chunks, gst->terrain.num_chunks),
+                        dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
-                DrawText(TextFormat("NumVisibleChunks: %i", gst->terrain.num_visible_chunks),
-                        15.0, next_y, 20, PURPLE);
+
+                DrawText(TextFormat("NumRenderedEnemies: %li / %li", gst->num_enemies_rendered, gst->num_enemies),
+                        dtext_x, next_y, 20, PURPLE);
+                next_y += y_inc;
+
                 
                 DrawText("(Debug ON)", gst->scrn_w - 200, 10, 20, GREEN);
             }
@@ -273,7 +245,7 @@ void cleanup(struct state_t* gst) {
 
 void first_setup(struct state_t* gst) {
 
-    InitWindow(DEF_SCRN_W, DEF_SCRN_H, "331uw13's 3D-Game");
+    InitWindow(DEF_SCRN_W, DEF_SCRN_H, "3D-Game");
     SetExitKey(-1);
     gst->font = LoadFont("res/Topaz-8.ttf");
 
@@ -291,33 +263,34 @@ void first_setup(struct state_t* gst) {
     gst->num_enemies = 0;
     gst->num_prj_lights = 0;
     gst->dt = 0.016;
+    gst->time = 0.0;
     gst->num_enemy_weapons = 0;
     gst->menu_open = 0;
     gst->running = 1;
-
-    memset(gst->fs_unilocs, 0, MAX_FS_UNILOCS * sizeof *gst->fs_unilocs);
+    gst->ssao_enabled = 1;
+    
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
+    init_shaderutil(gst);
 
-    /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 30.0;
     const int   terrain_octaves = 3;
-    */
+    /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 2048;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 80.0;
     const int   terrain_octaves = 3;
+    */
     /*
     gst->num_crithit_markers = 0;
     gst->crithit_marker_maxlifetime = 1.5;
 
     memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
     */
-
 
     state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
@@ -326,8 +299,10 @@ void first_setup(struct state_t* gst) {
     // Setup fog.
     gst->fog = (struct fog_t) {
         .mode = FOG_MODE_TORENDERDIST,
-        .color_near = (Color){ 50, 170, 200 },
-        .color_far = (Color){ 80, 50, 70 },
+        //.color_near = (Color){ 50, 170, 200 },
+        //.color_far = (Color){ 80, 50, 70 },
+        .color_near = (Color){ 10, 20, 50 },
+        .color_far = (Color){ 30, 10, 40 },
         .density = 0.0 // Density is ignored when fog mode is TORENDERDIST
     };
 
@@ -345,8 +320,10 @@ void first_setup(struct state_t* gst) {
     state_setup_ssao(gst);
     state_setup_render_targets(gst);
 
+
     gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
     gst->skybox.materials[0] = LoadMaterialDefault();
+
 
     // --- Setup Terrain ----
     {
@@ -371,6 +348,7 @@ void first_setup(struct state_t* gst) {
 
     }
 
+    init_player_struct(gst, &gst->player);
     state_setup_all_psystems(gst);
     
     setup_natural_item_spawn_settings(gst);
@@ -388,7 +366,6 @@ void first_setup(struct state_t* gst) {
     update_powerup_shop_offers(gst);
 
 
-    init_player_struct(gst, &gst->player);
 
     int seed = time(0);
     gst->rseed = seed;
@@ -415,14 +392,14 @@ void first_setup(struct state_t* gst) {
         .enabled = 1,
         .color = (Color){ 240, 210, 200, 255 },
         .position = (Vector3){ -1, 1, -1 },
-        .strength = 1.0,
+        .strength = 0.4,
         .index = SUN_LIGHT_ID
     };
 
     gst->player.gun_light = (struct light_t) {
         .type = LIGHT_POINT,
         .enabled = 1,
-        .strength = 0.35,
+        .strength = 0.75,
         .radius = 2.0,
         .index = PLAYER_GUN_LIGHT_ID
     }; // Player's gun light is updated from 'src/player.c'

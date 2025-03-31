@@ -27,6 +27,14 @@ int gui_slider_float(
         float max_value
         );
 
+int gui_checkbox(
+        struct state_t* gst,
+        const char* text,
+        float font_size,
+        Vector2 position,
+        int* ptr
+        );
+
 void gui_render_respawn_screen(struct state_t* gst);
 void gui_render_menu_screen(struct state_t* gst);
 void gui_render_powerup_shop(struct state_t* gst);

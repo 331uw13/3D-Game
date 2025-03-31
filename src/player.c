@@ -29,7 +29,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     // ------------------------
 
-    //p->xp = 999999;
+    p->xp = 999999;
     
 
     p->cam = (Camera){ 0 };
@@ -290,6 +290,62 @@ void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force) 
 
     p->velocity.y = force.y * 5.0;
 
+}
+
+/*
+
+static int chunk_in_player_view(struct player_t* player, struct terrain_t* terrain, struct chunk_t* chunk) {
+    int res = 0;
+
+    Vector3 P1 = (Vector3) {
+        chunk->center_pos.x, 0, chunk->center_pos.z
+    };
+
+    Vector3 P2 = (Vector3) {
+        player->position.x, 0, player->position.z
+    };
+
+    float test_dist = (terrain->chunk_size) * terrain->scaling;
+    if(chunk->dst2player < test_dist) {
+        res = 1;
+        goto skip;
+    }
+
+
+    Vector3 up = (Vector3){ 0.0, 1.0, 0.0 };
+    Vector3 right = GetCameraRight(&player->cam);
+    Vector3 forward = Vector3CrossProduct(up, right);
+
+    Vector3 dir = Vector3Normalize(Vector3Subtract(P1, P2));
+    float dot = Vector3DotProduct(dir, forward);
+
+
+
+    float f = map(dot, 1.0, -1.0, 0.0, 180.0);
+
+
+    res = (f < 130.0);
+skip:
+    return res;
+}
+   */
+int point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point, float fov_range) {
+
+    // Need to ignore Y axis
+    Vector3 P1 = (Vector3) { point.x, 0, point.z };
+    Vector3 P2 = (Vector3) { p->position.x, 0, p->position.z };
+
+    Vector3 up = GetCameraUp(&p->cam);
+    Vector3 right = GetCameraRight(&p->cam);
+    Vector3 forward = Vector3CrossProduct(up, right);
+
+    Vector3 dir = Vector3Normalize(Vector3Subtract(P1, P2));
+    float dot = Vector3DotProduct(dir, forward);
+
+    // Map result of dot product to 0 - 180
+    float f = map(dot, 1.0, -1.0, 0.0, 180.0);
+
+    return (f < fov_range);
 }
 
 Vector3 Vec3Lerp(float t, Vector3 a, Vector3 b) {

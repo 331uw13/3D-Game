@@ -6,6 +6,7 @@
 #include <rlgl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*
 static void set_enemies_render_shader(struct state_t* gst, int shader_index) {
@@ -78,7 +79,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     int rp_shader_i;
     int rp_shader_foliage_i;
 
-
     if(renderpass == RENDERPASS_RESULT) {
         rp_shader_i = DEFAULT_SHADER;
         rp_shader_foliage_i = FOLIAGE_SHADER;
@@ -87,7 +87,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     if(renderpass == RENDERPASS_GBUFFER) {
         rp_shader_i = GBUFFER_SHADER;
         rp_shader_foliage_i = GBUFFER_INSTANCE_SHADER;
-        
     }
 
 
@@ -121,8 +120,8 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     for(size_t i = 0; i < MAX_ITEM_MODELS; i++) {
         gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
     }
-
 }
+
 
 
 static void render_scene(struct state_t* gst, int renderpass) {
@@ -141,6 +140,9 @@ static void render_scene(struct state_t* gst, int renderpass) {
     // Enemies.
     // TODO: Instanced rendering for enemies.
 
+
+    gst->num_enemies_rendered = 0;
+
     for(size_t i = 0; i < gst->num_enemies; i++) {
         struct enemy_t* ent = &gst->enemies[i];
         if(!ent->alive) {
@@ -157,26 +159,28 @@ static void render_scene(struct state_t* gst, int renderpass) {
 
 
 
-
+static Vector3 test_cube_pos = (Vector3){0, 0, 0 };
 
 void state_render(struct state_t* gst) {
 
-    
+
     // ------ Geometry data.
 
-    rlEnableFramebuffer(gst->gbuffer.framebuffer);    
-    rlClearColor(0, 0, 0, 0);
-    rlClearScreenBuffers(); // Clear color and depth.
-    rlDisableColorBlend();
-    BeginMode3D(gst->player.cam);
-    {
-        rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
-        render_scene(gst, RENDERPASS_GBUFFER);
+    if(gst->ssao_enabled && !gst->player.any_gui_open) {
+        rlEnableFramebuffer(gst->gbuffer.framebuffer);    
+        rlClearColor(0, 0, 0, 0);
+        rlClearScreenBuffers(); // Clear color and depth.
+        rlDisableColorBlend();
+        BeginMode3D(gst->player.cam);
+        {
+            rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
+            render_scene(gst, RENDERPASS_GBUFFER);
+        }
+        EndMode3D();
+        rlDisableFramebuffer();
+        rlClearScreenBuffers();
+        rlEnableColorBlend();
     }
-    EndMode3D();
-    rlDisableFramebuffer();
-    rlClearScreenBuffers();
-    rlEnableColorBlend();
 
    
     //  ------ Final pass.
@@ -247,6 +251,7 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
             render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 70, 60, 50, 255 });
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
+            
         }
 
         // Water
@@ -260,23 +265,25 @@ void state_render(struct state_t* gst) {
             rlEnableBackfaceCulling();
         }
 
+        Color cube_color = (Color){ 0, 0, 0, 255 };
+        rainbow_palette(sin(gst->time), &cube_color.r, &cube_color.g, &cube_color.b);
+        DrawCubeV(test_cube_pos, (Vector3){ 30, 30, 30 }, cube_color);
+
+        RayCollision ray = raycast_terrain(&gst->terrain, test_cube_pos.x, test_cube_pos.z);
+        test_cube_pos.y = ray.point.y;
+
+        if(IsKeyDown(KEY_LEFT_CONTROL)) {
+            test_cube_pos = gst->player.cam.position;
+        }
+
+
         // Player Gun FX
         {
 
             struct player_t* p = &gst->player;
 
             if(p->gunfx_timer < 1.0) {
-             
-                float color4f[4] = {
-                    (float)gst->player.weapon.color.r / 255.0,
-                    (float)gst->player.weapon.color.g / 255.0,
-                    (float)gst->player.weapon.color.b / 255.0,
-                    (float)gst->player.weapon.color.a / 255.0
-                };
-
-                SetShaderValue(gst->shaders[GUNFX_SHADER], 
-                        gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC], color4f, SHADER_UNIFORM_VEC4);
-
+            
  
                 p->gunfx_model.transform = p->gunmodel.transform;
                 
@@ -286,7 +293,8 @@ void state_render(struct state_t* gst) {
 
                 float st = lerp(p->gunfx_timer, 2.0, 0.0);
                 p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
-
+                
+                shader_setu_color(gst, GUNFX_SHADER, U_GUNFX_COLOR, &gst->player.weapon.color);
                 DrawMesh(
                         p->gunfx_model.meshes[0],
                         p->gunfx_model.materials[0],
@@ -296,8 +304,9 @@ void state_render(struct state_t* gst) {
                 p->gunfx_timer += gst->dt*13.0;
 
             }
-
         }
+
+
 
         // TODO:
         //render_items(gst);
@@ -327,54 +336,79 @@ void state_render(struct state_t* gst) {
     EndTextureMode();
 
 
+    // Down sample and blur bloom treshold.
+
+    BeginTextureMode(gst->bloomtresh_downsample);
+    ClearBackground((Color){ 0, 0, 0, 255 });
+    BeginShaderMode(gst->shaders[BLOOM_BLUR_SHADER]);
+    {
+        int src_width = gst->bloomtresh_target.texture.width;
+        int src_height = gst->bloomtresh_target.texture.height;
+
+        int dst_width = gst->bloomtresh_downsample.texture.width;
+        int dst_height = gst->bloomtresh_downsample.texture.height;
+
+        Vector2 size = (Vector2){ dst_width, dst_height };
+        shader_setu_vec2(gst, BLOOM_BLUR_SHADER, U_SCREEN_SIZE, &size);
+
+        DrawTexturePro(gst->bloomtresh_target.texture,
+                (Rectangle){ 0, 0, src_width, src_height },
+                (Rectangle){ 0, 0, dst_width, dst_height },
+                (Vector2){0}, 0.0, WHITE
+                );
+    }
+    EndShaderMode();
+    EndTextureMode();
+    
+
+    // Upscale blurred bloom treshold.
+
+    BeginTextureMode(gst->bloomtresh_target);
+    ClearBackground((Color){ 0, 0, 0, 255 });
+    {
+        int dst_width = gst->bloomtresh_target.texture.width;
+        int dst_height = gst->bloomtresh_target.texture.height;
+
+        int src_width = gst->bloomtresh_downsample.texture.width;
+        int src_height = gst->bloomtresh_downsample.texture.height;
+
+        DrawTexturePro(gst->bloomtresh_downsample.texture,
+                (Rectangle){ 0, 0, src_width, src_height },
+                (Rectangle){ 0, 0, dst_width, dst_height },
+                (Vector2){0}, 0.0, WHITE
+                );
+    }
+    EndTextureMode();
+
+
+
+
+    if(!gst->ssao_enabled || gst->player.any_gui_open) {
+        return;
+    }
     // Screen space ambient occlusion.
     
     BeginTextureMode(gst->ssao_target);
     ClearBackground((Color){ 255, 255, 255, 255 });
     BeginShaderMode(gst->shaders[SSAO_SHADER]);
     {
-
-
-        // ----- TODO Optimize this...
-
         const Shader ssao_shader = gst->shaders[SSAO_SHADER];
         rlEnableShader(ssao_shader.id);
 
-        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_pos_tex"),
-                gst->gbuffer.position_tex);
-        
-        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_norm_tex"),
-                gst->gbuffer.normal_tex);
-        
-        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_difspec_tex"),
-                gst->gbuffer.difspec_tex);
-        
-        rlSetUniformSampler(GetShaderLocation(ssao_shader, "gbuf_depth"),
-                gst->gbuffer.depth_tex);
-        
-        rlSetUniformSampler(GetShaderLocation(ssao_shader, "ssao_noise_tex"),
-                gst->ssao_noise_tex.id);
-        
-        SetShaderValueMatrix(ssao_shader,
-                GetShaderLocation(ssao_shader, "cam_view"),
-                gst->cam_view_matrix);
-
-        SetShaderValueMatrix(ssao_shader,
-                GetShaderLocation(ssao_shader, "cam_proj"),
-                gst->cam_proj_matrix);
-   
-        SetShaderValueV(ssao_shader,
-                GetShaderLocation(ssao_shader, "render_dist"),
-                &gst->render_dist, SHADER_UNIFORM_FLOAT, 1);
-
+        shader_setu_sampler(gst, SSAO_SHADER, U_GBUFPOS_TEX, gst->gbuffer.position_tex);
+        shader_setu_sampler(gst, SSAO_SHADER, U_GBUFNORM_TEX, gst->gbuffer.normal_tex);
+        shader_setu_sampler(gst, SSAO_SHADER, U_GBUFDEPTH_TEX, gst->gbuffer.depth_tex);
+        shader_setu_sampler(gst, SSAO_SHADER, U_SSAO_NOISE_TEX, gst->ssao_noise_tex.id);
+  
+        shader_setu_matrix(gst, SSAO_SHADER, U_CAMVIEW_MATRIX, gst->cam_view_matrix);
+        shader_setu_matrix(gst, SSAO_SHADER, U_CAMPROJ_MATRIX, gst->cam_proj_matrix);
+  
         for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
             SetShaderValueV(ssao_shader,
                     GetShaderLocation(ssao_shader, TextFormat("ssao_kernel[%i]",i)),
                     &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
         
         }
-
-        //DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, WHITE);
 
         // Render into fullscreen rectangle so it can be blurred in postprocessing.
         // to get rid of most noticable artifacts.
@@ -391,18 +425,6 @@ void state_render(struct state_t* gst) {
     }
     EndShaderMode();
     EndTextureMode();
-
-    /*
-    BeginTextureMode(gst->env_render_target);
-    ClearBackground(gst->render_bg_color);
-    BeginMode3D(gst->player.cam);
-    {
-
-    }
-    EndMode3D();
-    EndTextureMode();
-
-    */
 
 }
 

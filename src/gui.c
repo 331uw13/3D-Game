@@ -49,6 +49,7 @@ static int gui_button_ext(
     DrawRectangle(rect.x, rect.y, rect.width, rect.height, mouse_on ? focus_color : unfocus_color);
     DrawTextEx(gst->font, text, position, font_size, FONT_SPACING, fg_color);
 
+    
 
 
     if(mouse_on && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -127,6 +128,39 @@ int gui_slider_float(
     return isactive;
 }
 
+int gui_checkbox(
+        struct state_t* gst,
+        const char* text,
+        float font_size,
+        Vector2 position,
+        int* ptr
+){
+    int clicked = 0;
+    Vector2 measure = MeasureTextEx(gst->font, text, font_size, FONT_SPACING);
+
+    Rectangle rect = (Rectangle) {
+        position.x - EXTRA_OFF_W, position.y - EXTRA_OFF_H,
+        40.0, 40.0
+    };
+
+    int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
+    
+    Vector2 boxsize = (Vector2) { 30.0, 30.0 };
+    DrawRectangle(rect.x, rect.y, rect.width, rect.height, mouse_on ? BUTTON_BG_FOCUS_COLOR : BUTTON_BG_COLOR);
+
+    DrawTextEx(gst->font, text, (Vector2){position.x+15, position.y}, font_size, FONT_SPACING, TEXT_COLOR);
+
+    if(*ptr) {
+        DrawRectangle(rect.x+3, rect.y+3, rect.width-6, rect.height-6, (Color){ 50, 180, 200, 200 });
+    }
+
+    if(mouse_on && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        *ptr = !*ptr;
+        clicked = 1;
+    }
+
+    return clicked;
+}
 
 
 static void render_num_kills(struct state_t* gst) {
@@ -179,14 +213,16 @@ void gui_render_menu_screen(struct state_t* gst) {
 
     Vector2 btn_pos = (Vector2){ 100, gst->scrn_h/2+80 };
 
+    gui_checkbox(gst, "SSAO Enabled", 20.0, btn_pos, &gst->ssao_enabled);
+    btn_pos.y += 50.0;
+
     gui_slider_float(gst, "Render Distance", 20.0, btn_pos, 530,
             &gst->menu_slider_render_dist_v, MIN_RENDERDIST, MAX_RENDERDIST);
-    
     if(gui_button(gst, "Apply", 20.0, (Vector2){ btn_pos.x+600, btn_pos.y })) {
         set_render_dist(gst, gst->menu_slider_render_dist_v);
     }
-
     btn_pos.y += 50.0;
+
 
 
     if(gui_button(gst, "Toggle Fullscreen", 20.0, btn_pos)) {
@@ -387,7 +423,7 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
-    const float spawn_rad = 200.0;
+    const float spawn_rad = 300.0;
 
     if(gui_button(gst, "Enemy LVL0", 15.0, btn_pos)) {
         spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, (Vector3){

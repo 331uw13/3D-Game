@@ -281,7 +281,7 @@ void weapon_psys_prj_init(
         .enabled = 1,
         .type = LIGHT_POINT,
         .color = weapon->color,
-        .strength = 1.0,
+        .strength = 1.25,
         .index = gst->num_prj_lights,
         .radius = 10.0
         // position is updated later.
@@ -299,7 +299,7 @@ void weapon_psys_prj_init(
 
     add_particles(gst, 
             &gst->psystems[PRJ_TRAIL_PSYS], 
-            8,
+            16,
             (Vector3){0}, (Vector3){0}, (Color){0},
             part, HAS_EXTRADATA, NO_IDB);
 

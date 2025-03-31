@@ -768,43 +768,6 @@ static void copy_foliage_matrices_from_chunk(
 #include <rlgl.h>
 
 
-static int chunk_in_player_view(struct player_t* player, struct terrain_t* terrain, struct chunk_t* chunk) {
-    int res = 0;
-
-    Vector3 P1 = (Vector3) {
-        chunk->center_pos.x, 0, chunk->center_pos.z
-    };
-
-    Vector3 P2 = (Vector3) {
-        player->position.x, 0, player->position.z
-    };
-
-    float test_dist = (terrain->chunk_size) * terrain->scaling;
-    if(chunk->dst2player < test_dist) {
-        res = 1;
-        goto skip;
-    }
-
-
-    Vector3 up = (Vector3){ 0.0, 1.0, 0.0 };
-    Vector3 right = GetCameraRight(&player->cam);
-    Vector3 forward = Vector3CrossProduct(up, right);
-
-    Vector3 dir = Vector3Normalize(Vector3Subtract(P1, P2));
-    float dot = Vector3DotProduct(dir, forward);
-
-
-
-    float f = map(dot, 1.0, -1.0, 0.0, 180.0);
-
-
-    res = (f < 130.0);
-skip:
-    return res;
-}
-
-
-
 void render_terrain(
         struct state_t* gst,
         struct terrain_t* terrain
@@ -858,8 +821,12 @@ void render_terrain(
             continue;
         }
 
-        int inview = chunk_in_player_view(&gst->player, terrain, chunk);
-        if(!inview) {
+
+        // Chunks very nearby may get discarded if the center position goes behind the player.
+        // dont need to test it if its very close.
+        int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
+
+        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 100.0/*fov range*/)) {
             continue;
         }
 
