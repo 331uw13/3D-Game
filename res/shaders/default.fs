@@ -6,17 +6,16 @@ in vec4 fragColor;
 in vec3 fragPosition;
 in vec3 fragNormal;
 
-in vec3 fragViewPos;
 
 // Input uniform values
 uniform sampler2D texture0;
 uniform sampler2D depth_texture;
 uniform vec4 colDiffuse;
-uniform float water_level;
+uniform float u_waterlevel;
 uniform float terrain_lowest_point;
-uniform float time;
+uniform float u_time;
+uniform vec3 u_campos;
 
-in vec4 light_space;
 
 // Output fragment color
 out vec4 finalColor;
@@ -40,7 +39,7 @@ void main()
 
     vec4 texelColor = texture(texture0, fragTexCoord);
     vec3 normal = normalize(fragNormal);
-    vec3 view_dir = normalize(fragViewPos - fragPosition);
+    vec3 view_dir = normalize(u_campos - fragPosition);
 
   
     compute_lights(view_dir);
@@ -55,13 +54,13 @@ void main()
     // Create effect around water.
     
     float rad = 6.24;
-    float level = (water_level+rad) + voronoi3d(fragPosition.xyz*0.01+vec3(0,-time,0)).y*5.0;
+    float level = (u_waterlevel+rad) + voronoi3d(fragPosition.xyz*0.01+vec3(0,-u_time,0)).y*5.0;
 
     float y = fragPosition.y;
-    if(y <= level && y >= water_level) {
+    if(y <= level && y >= u_waterlevel) {
         // Color above water.
 
-        float t = (y - level) / (water_level - level);
+        float t = (y - level) / (u_waterlevel - level);
 
         vec3 to = vec3(0.0, 0.1, 0.3);
         vec3 from = vec3(0.0, 0.3, 0.4);
@@ -73,10 +72,10 @@ void main()
                 ) * t;
     }
     else
-    if(y <= water_level) {
+    if(y <= u_waterlevel) {
         // Color below water.
         
-        float min = water_level;
+        float min = u_waterlevel;
         float max = terrain_lowest_point;
         float t = (y - min) / (max - min);
         t = clamp(t, 0.0, 1.0);
@@ -92,7 +91,9 @@ void main()
     }
 
 
-    float dist = length(fragViewPos - fragPosition);
+
+
+    float dist = length(u_campos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist);
 
 }

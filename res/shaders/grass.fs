@@ -26,7 +26,5 @@ float lerp(float t, float min, float max) {
 void main()
 {
 
-    vec3 center = (1.0-vec3(2.5*length(fragTexCoord-0.5))) * 0.3;
-    finalColor = texture(texture0, fragTexCoord)*vec4(u_gunfx_color.rgb + center, 0.5);
-
+    finalColor = vec4(0.1, 0.5, 0.1, 1.0);
 }

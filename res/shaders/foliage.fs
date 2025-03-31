@@ -6,13 +6,12 @@ in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragNormal;
 
+in float time;
+
 uniform sampler2D texture0;
-uniform float time;
+uniform vec3 u_campos;
 
 out vec4 finalColor;
-//uniform vec3 viewPos;
-
-in vec3 fragViewPos;
 
 
 #include "res/shaders/fog.glsl"
@@ -29,7 +28,7 @@ void main()
     texelcolor.rgb *= 0.6;
     //texelcolor *= vec3(0.5, 0.7, 0.2);
 
-    vec3 view_dir = normalize(fragViewPos - fragPosition);
+    vec3 view_dir = normalize(u_campos - fragPosition);
     compute_lights(view_dir);
 
 
@@ -39,7 +38,7 @@ void main()
     v *= v;
     col += (v * 0.25) * vec3(0.0, 0.3,0.3);
 
-    float dist = length(fragViewPos - fragPosition);
+    float dist = length(u_campos - fragPosition);
     col = get_fog(col, dist);
 
     finalColor = vec4(col, 1.0);

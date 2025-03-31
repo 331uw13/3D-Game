@@ -1,20 +1,18 @@
 #version 430
 
 // IMPORTANT NOTE: This must be same as in 'src/state.h'
-#define SSAO_KERNEL_SIZE 64
+#define SSAO_KERNEL_SIZE 32
 
-uniform sampler2D gbuf_pos_tex;
-uniform sampler2D gbuf_norm_tex;
-uniform sampler2D gbuf_difspec_tex; // (NOT CURRENTLY USED)
-uniform sampler2D gbuf_depth;
-
-uniform sampler2D ssao_noise_tex;
+uniform sampler2D u_gbuf_pos_tex;
+uniform sampler2D u_gbuf_norm_tex;
+uniform sampler2D u_gbuf_difspec_tex; // (NOT CURRENTLY USED)
+uniform sampler2D u_gbuf_depth_tex;
+uniform sampler2D u_ssao_noise_tex;
 uniform vec3 ssao_kernel[SSAO_KERNEL_SIZE];
-uniform mat4 cam_view;
-uniform mat4 cam_proj;
+uniform mat4 u_camview_matrix;
+uniform mat4 u_camproj_matrix;
 uniform vec3 cam_pos;
-uniform vec2 screen_size;
-uniform float render_dist;
+uniform vec2 u_screen_size;
 
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -38,13 +36,13 @@ float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
 void main() {
     float ao = 0.0;
 
-    vec2 noise_scale = vec2(screen_size.x/8.0, screen_size.y/8.0);
+    vec2 noise_scale = vec2(u_screen_size.x/8.0, u_screen_size.y/8.0);
 
     // Data from geometry buffer.
-    vec3 frag_pos   = texture(gbuf_pos_tex, fragTexCoord).xyz;
-    vec3 normal     = texture(gbuf_norm_tex, fragTexCoord).rgb;
-    vec3 randomvec  = texture(ssao_noise_tex, fragTexCoord*noise_scale).xyz;
-    mat4 viewproj   = cam_proj * cam_view;
+    vec3 frag_pos   = texture(u_gbuf_pos_tex, fragTexCoord).xyz;
+    vec3 normal     = texture(u_gbuf_norm_tex, fragTexCoord).rgb;
+    vec3 randomvec  = texture(u_ssao_noise_tex, fragTexCoord*noise_scale).xyz;
+    mat4 viewproj   = u_camproj_matrix * u_camview_matrix;
 
     
     normal = normalize(normal);
@@ -55,9 +53,9 @@ void main() {
     vec3 bitangent = cross(normal, tangent);
     mat3 TBN = mat3(tangent, bitangent, normal);
     
-    float depth = texture(gbuf_depth, fragTexCoord).x;
+    float depth = texture(u_gbuf_depth_tex, fragTexCoord).x;
 
-    const float max_depth = 2000.0;
+    const float max_depth = 1200.0;
 
     // map radius, closer should be less effect, further away more.
     const float rad_near = 0.25;
@@ -84,7 +82,7 @@ void main() {
         offset.xyz = offset.xyz * 0.5 + 0.5;
 
         offset = clamp(offset, vec4(0.0), vec4(1.0));
-        float sample_depth = texture(gbuf_depth, offset.xy).x;
+        float sample_depth = texture(u_gbuf_depth_tex, offset.xy).x;
 
         // Range check.
         float tr = ld(frag_pos.z);

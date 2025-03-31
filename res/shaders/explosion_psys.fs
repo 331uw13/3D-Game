@@ -12,10 +12,6 @@ out vec4 finalColor;
 uniform vec3 viewPos;
 
 
-// TODO: Remove these from all psystem shaders and clean them up.
-uniform vec4 psystem_color;
-uniform float time;
-
 
 #include "res/shaders/voronoi.glsl"
 

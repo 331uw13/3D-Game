@@ -35,5 +35,6 @@ void main()
     color = bloom_treshold(color, vec3(0.85, 0.86, 0.8));
 
 
+
     finalColor = vec4(color, 1.0);
 }

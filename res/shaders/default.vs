@@ -10,7 +10,6 @@ in vec4 vertexColor;
 uniform mat4 mvp;
 uniform mat4 matModel;
 uniform mat4 matNormal;
-uniform vec3 viewPos;
 
 
 // Output vertex attributes (to fragment shader)
@@ -18,7 +17,6 @@ out vec3 fragPosition;
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
-out vec3 fragViewPos;
 
 
 void main()
@@ -31,9 +29,7 @@ void main()
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
     fragNormal = normalize(vec3(matNormal*vec4(vertexNormal, 1.0)));
-    fragViewPos = viewPos;
 
-  
     // Calculate final vertex position
     gl_Position = mvp*vec4(vertpos, 1.0);
     

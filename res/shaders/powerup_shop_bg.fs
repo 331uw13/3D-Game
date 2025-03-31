@@ -9,8 +9,8 @@ in vec4 fragColor;
 out vec4 finalColor;
 
 
-uniform float time;
-uniform vec2 screen_size;
+uniform float u_time;
+uniform vec2 u_screen_size;
 
 #define PI 3.14159
 #define PI2 (PI*2)
@@ -29,7 +29,7 @@ float lerp(float t, float min, float max) {
 }
 
 vec3 raydir() {
-    vec2 rs = screen_size*0.5;
+    vec2 rs = u_screen_size*0.5;
     float hf = tan((90.0-FOV*0.5)*(PIR));
     return normalize(vec3(gl_FragCoord.xy-rs, (rs.y*hf)));
 }
@@ -113,12 +113,12 @@ vec4 map(vec3 p) {
     {
         vec3 q = p;
 
-        q.xy *= rotm2(sin(p.z*0.008)+time*0.2);
+        q.xy *= rotm2(sin(p.z*0.008)+u_time*0.2);
         q = rep(q, vec3(15.0, 15.0, 30.0));
         
-        q = abs(q) - sin(0.89+time)*0.5+0.5;
-        q.zy *= rotm2(time);
-        q.xz *= rotm2(time);
+        q = abs(q) - sin(0.89+u_time)*0.5+0.5;
+        q.zy *= rotm2(u_time);
+        q.xz *= rotm2(u_time);
 
         vec3 s0col = vec3(0.5, 0.5, 0.5);
         vec4 s0 = vec4(s0col, boxframe_sdf(q, vec3(5.0), 0.15) );
@@ -140,7 +140,7 @@ vec4 map(vec3 p) {
     {
         vec3 q = p;
 
-        q.xy *= rotm2(sin(p.z*0.002)+time*0.2);
+        q.xy *= rotm2(sin(p.z*0.002)+u_time*0.2);
 
         q = rep(q, vec3(10.0, 10.0, 30.0));
         q = abs(q) - sin(p.z*0.35) * 5.0+1.0;
@@ -174,7 +174,7 @@ vec4 raymarch(vec3 ro, vec3 rd) {
             vec3 light_color = vec3(1.0, 1.0, 1.0);
             color = closest.xyz * compute_light(p, ro, light_pos, light_color);
 
-            float pulse = sin(time*10.0 + p.z*0.1)*0.5+0.5;
+            float pulse = sin(u_time*10.0 + p.z*0.1)*0.5+0.5;
 
 
             was_hit = 1;
@@ -197,7 +197,7 @@ vec4 raymarch(vec3 ro, vec3 rd) {
         glow = pow(glow, 0.15);
 
         float vnoise = voronoi3d(p*0.2).x;
-        vec3 glow_color = palette(vnoise+sin(p.z*0.2+time), RGB_PALETTE);
+        vec3 glow_color = palette(vnoise+sin(p.z*0.2+u_time), RGB_PALETTE);
         color += glow * glow_color;
     }
 
@@ -209,7 +209,7 @@ void main() {
 
     vec3 color = vec3(0.0, 0.0, 0.0);
 
-    vec3 ro = vec3(0, 0, time*8.0);
+    vec3 ro = vec3(0, 0, u_time*8.0);
     vec3 rd = raydir();
 
     color = raymarch(ro, rd).xyz;
