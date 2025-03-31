@@ -11,9 +11,9 @@
 ---------------------
 
 
-![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-16380.png?raw=true)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-51819.png?raw=true)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-14380.png?raw=true)
 
-![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-43398.png?raw=true)
 
 * Gain XP by shooting enemy robots and upgrade your powerups.  (Some powerups are not yet implemented)
 
