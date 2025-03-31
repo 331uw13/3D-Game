@@ -24,7 +24,7 @@ void prj_trail_psys_update(
     float scalelrp = lerp(part->n_lifetime, tofollow_part->scale, 0.0);
     Matrix scale_matrix = MatrixScale(scalelrp, scalelrp, scalelrp);
 
-    part->color = ColorLerp(part->start_color, part->end_color, part->n_lifetime*3.0);//tofollow_part->color;
+    part->color = ColorLerp(part->start_color, part->end_color, part->n_lifetime*2.0);//tofollow_part->color;
 
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     *part->transform = MatrixMultiply(scale_matrix, translation);
@@ -49,7 +49,7 @@ void prj_trail_psys_init(
         tofollow_part->color.r,
         tofollow_part->color.g,
         tofollow_part->color.b,
-        20
+        0
     };
 
     part->position = tofollow_part->position;

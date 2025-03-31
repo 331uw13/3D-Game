@@ -136,7 +136,6 @@ int gui_checkbox(
         int* ptr
 ){
     int clicked = 0;
-    Vector2 measure = MeasureTextEx(gst->font, text, font_size, FONT_SPACING);
 
     Rectangle rect = (Rectangle) {
         position.x - EXTRA_OFF_W, position.y - EXTRA_OFF_H,
@@ -144,8 +143,6 @@ int gui_checkbox(
     };
 
     int mouse_on = mouse_on_rect((Vector2){ rect.x, rect.y }, (Vector2){ rect.width, rect.height });
-    
-    Vector2 boxsize = (Vector2) { 30.0, 30.0 };
     DrawRectangle(rect.x, rect.y, rect.width, rect.height, mouse_on ? BUTTON_BG_FOCUS_COLOR : BUTTON_BG_COLOR);
 
     DrawTextEx(gst->font, text, (Vector2){position.x+15, position.y}, font_size, FONT_SPACING, TEXT_COLOR);
@@ -192,11 +189,11 @@ void gui_render_respawn_screen(struct state_t* gst) {
     
     render_num_kills(gst);
 
-    if(gui_button(gst, "Respawn", 30.0, (Vector2){100, gst->scrn_h/2})) {
+    if(gui_button(gst, "Respawn", 30.0, (Vector2){100, gst->res_y/2})) {
         player_respawn(gst, &gst->player);
     }
 
-    if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->scrn_h/2 + 70})) {
+    if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->res_y/2 + 70})) {
         gst->running = 0;
     }
 }
@@ -204,14 +201,14 @@ void gui_render_respawn_screen(struct state_t* gst) {
 
 void gui_render_menu_screen(struct state_t* gst) {
     
-    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 10, 10, 150 });
+    DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 10, 10, 10, 150 });
     render_num_kills(gst);
 
-    if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->scrn_h/2})) {
+    if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->res_y/2})) {
         gst->running = 0;
     }
 
-    Vector2 btn_pos = (Vector2){ 100, gst->scrn_h/2+80 };
+    Vector2 btn_pos = (Vector2){ 100, gst->res_y/2+80 };
 
     gui_checkbox(gst, "SSAO Enabled", 20.0, btn_pos, &gst->ssao_enabled);
     btn_pos.y += 50.0;
@@ -224,6 +221,7 @@ void gui_render_menu_screen(struct state_t* gst) {
     btn_pos.y += 50.0;
 
 
+    /*
 
     if(gui_button(gst, "Toggle Fullscreen", 20.0, btn_pos)) {
         
@@ -234,9 +232,10 @@ void gui_render_menu_screen(struct state_t* gst) {
         ToggleFullscreen();
         
         if(!IsWindowFullscreen()) {
-            SetWindowSize(DEF_SCRN_W, DEF_SCRN_H);
+            SetWindowSize(DEF_res_x, DEF_res_y);
         }
     }
+    */
 
 
 }
@@ -246,7 +245,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
     struct powerup_shop_t* shop = &gst->player.powerup_shop;
    
     BeginShaderMode(gst->shaders[POWERUP_SHOP_BG_SHADER]);
-    DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 0, 0, 0, 255 });
+    DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 0, 0, 0, 255 });
     EndShaderMode();
 
     const float offer_btn_space = 50.0;
@@ -389,7 +388,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
     }
 
 
-    Vector2 ptext_pos = (Vector2){ gst->scrn_w-500, 20 };
+    Vector2 ptext_pos = (Vector2){ gst->res_x-500, 20 };
     for(int i = 0; i < NUM_POWERUPS; i++) {
         struct powerup_t* powerup = &gst->player.powerup_shop.powerups[i];
 
@@ -405,11 +404,11 @@ void gui_render_powerup_shop(struct state_t* gst) {
 
 void gui_render_devmenu(struct state_t* gst) {
     
-    //DrawRectangle(0, 0, gst->scrn_w, gst->scrn_h, (Color){ 10, 30, 30, 200 });
+    //DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 10, 30, 30, 200 });
     const char* menu_text = "[ Development menu ]";
     const float menu_text_fontsize = 20.0;
     DrawTextEx(gst->font, menu_text, 
-            (Vector2){ gst->scrn_w - MeasureText(menu_text, menu_text_fontsize)*2, 10 },
+            (Vector2){ gst->res_x - MeasureText(menu_text, menu_text_fontsize)*2, 10 },
             menu_text_fontsize, FONT_SPACING, TEXT_COLOR);
 
 
@@ -443,6 +442,7 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
 
+    gui_checkbox(gst, "Render player gun (for debug)", 20.0, btn_pos, &gst->player.render);
 
     /*
     if(gui_button(gst, "RenderDist++", 15.0, btn_pos)) {

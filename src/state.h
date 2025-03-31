@@ -20,8 +20,8 @@
 #define DEV_MODE 1
 
 
-#define DEF_SCRN_W 1500
-#define DEF_SCRN_H 800
+#define RESOLUTION_X 1500
+#define RESOLUTION_Y 800
 
 #define MAX_RENDERDIST 8000.0
 #define MIN_RENDERDIST 2200.0
@@ -140,6 +140,7 @@
 #define MAX_ALL_ENEMIES 64 // Total max enemies.
 #define MAX_ENEMY_MODELS 2
 
+#define NUM_BLOOM_DOWNSAMPLES 2
 
 
 //#define MAX_RENDER_CRITHITS 8
@@ -156,7 +157,6 @@
 
 // IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
 #define SSAO_KERNEL_SIZE 32
-
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -239,9 +239,6 @@ struct state_t {
 
     float         natural_item_spawn_timers[MAX_ITEM_TYPES];
 
-    int scrn_w; // Screen width
-    int scrn_h; // Screen height
-
     int rseed; // Seed for randomgen functions.
     int debug;
 
@@ -259,6 +256,10 @@ struct state_t {
 
     int has_audio;
     Sound sounds[MAX_SOUNDS];
+
+    // Resolution to render everything to
+    int res_x;
+    int res_y;
 
     struct gbuffer_t gbuffer;
    
@@ -290,7 +291,10 @@ struct state_t {
     float menu_slider_render_dist_v;
     Model skybox;
 
-    RenderTexture2D bloomtresh_downsample;
+
+    RenderTexture2D bloom_downsamples[NUM_BLOOM_DOWNSAMPLES];
+    //RenderTexture2D bloomtresh_downsample;
+    //RenderTexture2D bloomtresh_downsample_2;
 };
 
 

@@ -140,7 +140,6 @@ static void render_scene(struct state_t* gst, int renderpass) {
     // Enemies.
     // TODO: Instanced rendering for enemies.
 
-
     gst->num_enemies_rendered = 0;
 
     for(size_t i = 0; i < gst->num_enemies; i++) {
@@ -160,6 +159,8 @@ static void render_scene(struct state_t* gst, int renderpass) {
 
 
 static Vector3 test_cube_pos = (Vector3){0, 0, 0 };
+static Vector3 test_sphere_pos = (Vector3){0, 0, 0 };
+
 
 void state_render(struct state_t* gst) {
 
@@ -167,7 +168,7 @@ void state_render(struct state_t* gst) {
     // ------ Geometry data.
 
     if(gst->ssao_enabled && !gst->player.any_gui_open) {
-        rlEnableFramebuffer(gst->gbuffer.framebuffer);    
+        rlEnableFramebuffer(gst->gbuffer.framebuffer);
         rlClearColor(0, 0, 0, 0);
         rlClearScreenBuffers(); // Clear color and depth.
         rlDisableColorBlend();
@@ -192,7 +193,7 @@ void state_render(struct state_t* gst) {
 
         // Save camera view and projection matrix for postprocessing.
         gst->cam_view_matrix = GetCameraViewMatrix(&gst->player.cam);
-        gst->cam_proj_matrix = GetCameraProjectionMatrix(&gst->player.cam, (float)gst->scrn_w / (float)gst->scrn_h);
+        gst->cam_proj_matrix = GetCameraProjectionMatrix(&gst->player.cam, (float)gst->res_x / (float)gst->res_y);
 
         
         // Render debug info if needed. --------
@@ -231,11 +232,19 @@ void state_render(struct state_t* gst) {
             //DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
         // ------------
-
         render_scene(gst, RENDERPASS_RESULT);
+
         
         // Particle systems. (rendered only if needed)
         {
+
+            // Environment
+            render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
+            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
+            render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
+            render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 70, 60, 50, 255 });
+            render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
+ 
             render_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS], (Color){0});
             render_psystem(gst, &gst->psystems[ENEMY_WEAPON_PSYS], (Color){0});
             render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
@@ -244,15 +253,9 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
             render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
 
-
-            // Environment
-            render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
-            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
-            render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
-            render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 70, 60, 50, 255 });
-            render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
-            
+           
         }
+        
 
         // Water
         {
@@ -265,9 +268,12 @@ void state_render(struct state_t* gst) {
             rlEnableBackfaceCulling();
         }
 
+        /*
         Color cube_color = (Color){ 0, 0, 0, 255 };
         rainbow_palette(sin(gst->time), &cube_color.r, &cube_color.g, &cube_color.b);
         DrawCubeV(test_cube_pos, (Vector3){ 30, 30, 30 }, cube_color);
+
+        DrawSphere(test_sphere_pos, 10.0, (Color){ 80, 255, 80, 255 });
 
         RayCollision ray = raycast_terrain(&gst->terrain, test_cube_pos.x, test_cube_pos.z);
         test_cube_pos.y = ray.point.y;
@@ -275,7 +281,10 @@ void state_render(struct state_t* gst) {
         if(IsKeyDown(KEY_LEFT_CONTROL)) {
             test_cube_pos = gst->player.cam.position;
         }
-
+        if(IsKeyDown(KEY_X)) {
+            test_sphere_pos = gst->player.cam.position;
+        }
+        */
 
         // Player Gun FX
         {
@@ -305,17 +314,11 @@ void state_render(struct state_t* gst) {
 
             }
         }
-
-
-
-        // TODO:
-        //render_items(gst);
-
     }
     EndMode3D();
     EndTextureMode();
     
-    // Get bloom treshold texture.
+    // Get bloom treshold.
  
     BeginTextureMode(gst->bloomtresh_target);
     ClearBackground((Color){ 0, 0, 0, 255 });
@@ -336,20 +339,17 @@ void state_render(struct state_t* gst) {
     EndTextureMode();
 
 
-    // Down sample and blur bloom treshold.
+    // Downsample bloom treshold
 
-    BeginTextureMode(gst->bloomtresh_downsample);
+    BeginTextureMode(gst->bloom_downsamples[0]);
     ClearBackground((Color){ 0, 0, 0, 255 });
-    BeginShaderMode(gst->shaders[BLOOM_BLUR_SHADER]);
+    BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
     {
         int src_width = gst->bloomtresh_target.texture.width;
         int src_height = gst->bloomtresh_target.texture.height;
 
-        int dst_width = gst->bloomtresh_downsample.texture.width;
-        int dst_height = gst->bloomtresh_downsample.texture.height;
-
-        Vector2 size = (Vector2){ dst_width, dst_height };
-        shader_setu_vec2(gst, BLOOM_BLUR_SHADER, U_SCREEN_SIZE, &size);
+        int dst_width = gst->bloom_downsamples[0].texture.width;
+        int dst_height = gst->bloom_downsamples[0].texture.height;
 
         DrawTexturePro(gst->bloomtresh_target.texture,
                 (Rectangle){ 0, 0, src_width, src_height },
@@ -359,9 +359,32 @@ void state_render(struct state_t* gst) {
     }
     EndShaderMode();
     EndTextureMode();
-    
 
-    // Upscale blurred bloom treshold.
+    // Downsample more and apply blur.
+
+    BeginTextureMode(gst->bloom_downsamples[1]);
+    ClearBackground((Color){ 0, 0, 0, 255 });
+    BeginShaderMode(gst->shaders[BLOOM_BLUR_SHADER]);
+    {
+        int src_width = gst->bloom_downsamples[0].texture.width;
+        int src_height = gst->bloom_downsamples[0].texture.height;
+
+        int dst_width = gst->bloom_downsamples[1].texture.width;
+        int dst_height = gst->bloom_downsamples[1].texture.height;
+
+        Vector2 size = (Vector2){ dst_width, dst_height };
+        shader_setu_vec2(gst, BLOOM_BLUR_SHADER, U_SCREEN_SIZE, &size);
+
+        DrawTexturePro(gst->bloom_downsamples[0].texture,
+                (Rectangle){ 0, 0, src_width, src_height },
+                (Rectangle){ 0, 0, dst_width, dst_height },
+                (Vector2){0}, 0.0, WHITE
+                );
+    }
+    EndShaderMode();
+    EndTextureMode();
+
+    // Upsample blurred bloom treshold.
 
     BeginTextureMode(gst->bloomtresh_target);
     ClearBackground((Color){ 0, 0, 0, 255 });
@@ -369,12 +392,12 @@ void state_render(struct state_t* gst) {
         int dst_width = gst->bloomtresh_target.texture.width;
         int dst_height = gst->bloomtresh_target.texture.height;
 
-        int src_width = gst->bloomtresh_downsample.texture.width;
-        int src_height = gst->bloomtresh_downsample.texture.height;
+        int src_width = gst->bloom_downsamples[1].texture.width;
+        int src_height = gst->bloom_downsamples[1].texture.height;
 
-        DrawTexturePro(gst->bloomtresh_downsample.texture,
-                (Rectangle){ 0, 0, src_width, src_height },
-                (Rectangle){ 0, 0, dst_width, dst_height },
+        DrawTexturePro(gst->bloom_downsamples[1].texture,
+                (Rectangle){ 0, 0, src_width, -src_height },
+                (Rectangle){ 0, 0, dst_width, -dst_height },
                 (Vector2){0}, 0.0, WHITE
                 );
     }
@@ -399,7 +422,10 @@ void state_render(struct state_t* gst) {
         shader_setu_sampler(gst, SSAO_SHADER, U_GBUFNORM_TEX, gst->gbuffer.normal_tex);
         shader_setu_sampler(gst, SSAO_SHADER, U_GBUFDEPTH_TEX, gst->gbuffer.depth_tex);
         shader_setu_sampler(gst, SSAO_SHADER, U_SSAO_NOISE_TEX, gst->ssao_noise_tex.id);
-  
+        // Bloomtreshold texture is needed for the ssao because otherwise it could have ssao on top of very bright objects
+        // and that would not make much sense.
+        shader_setu_sampler(gst, SSAO_SHADER, U_BLOOMTRESH_TEX, gst->bloomtresh_target.texture.id);
+            
         shader_setu_matrix(gst, SSAO_SHADER, U_CAMVIEW_MATRIX, gst->cam_view_matrix);
         shader_setu_matrix(gst, SSAO_SHADER, U_CAMPROJ_MATRIX, gst->cam_proj_matrix);
   
@@ -409,7 +435,19 @@ void state_render(struct state_t* gst) {
                     &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
         
         }
+       
+        DrawTexturePro(gst->env_render_target.texture,
+                    (Rectangle){
+                        0, 0, gst->ssao_target.texture.width, -gst->ssao_target.texture.height
+                    },
+                    (Rectangle){
+                        0, 0, RESOLUTION_X, -RESOLUTION_Y
+                    },
+                    (Vector2){0}, 0.0, WHITE
+                    );
+     
 
+        /*
         // Render into fullscreen rectangle so it can be blurred in postprocessing.
         // to get rid of most noticable artifacts.
         DrawTextureRec(
@@ -422,6 +460,7 @@ void state_render(struct state_t* gst) {
                     (Vector2){ 0.0, 0.0 },
                     WHITE
                     );
+                    */
     }
     EndShaderMode();
     EndTextureMode();

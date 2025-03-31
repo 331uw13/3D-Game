@@ -4,7 +4,7 @@
 #include <rlgl.h>
 
 
-#define DISABLE_ERROR_MSG 1
+#define DISABLE_ERROR_MSG 0
 
 
 // NOTE: This must match order with '#define U_...' in 'shader_util.h'
@@ -22,7 +22,8 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_camproj_matrix\0",
     "u_gunfx_color\0",
     "u_ssao_enabled\0",
-    "u_anygui_open\0"
+    "u_anygui_open\0",
+    "u_bloomtresh_tex\0"
 };
 
 

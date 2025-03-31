@@ -26,7 +26,7 @@ void state_setup_gbuffer(struct state_t* gst) {
 
     gst->gbuffer.framebuffer = rlLoadFramebuffer();
    
-    printf("Creating gbuffer %ix%i\n", gst->scrn_w, gst->scrn_h);
+    printf("Creating gbuffer %ix%i\n", gst->res_x, gst->res_y);
     if(!gst->gbuffer.framebuffer) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Failed to create framebuffer\033[0m\n",
                 __func__);
@@ -38,25 +38,25 @@ void state_setup_gbuffer(struct state_t* gst) {
     // Use 32 bits per channel to avoid floating point precision loss.
     
     // Positions.
-    gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+    gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     
     // Normals.
-    gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+    gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     
     // Diffuse specular colors.
-    gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+    gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
 
     // Depth
-    gst->gbuffer.depth_tex = rlLoadTexture(NULL, gst->scrn_w, gst->scrn_h, 
+    gst->gbuffer.depth_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
 
 
 
 
-    gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->scrn_w, gst->scrn_h, 1);
+    gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->res_x, gst->res_y, 1);
 
 
     rlActiveDrawBuffers(4);
@@ -144,6 +144,7 @@ void state_delete_gbuffer(struct state_t* gst) {
     rlUnloadTexture(gst->gbuffer.position_tex);
     rlUnloadTexture(gst->gbuffer.normal_tex);
     rlUnloadTexture(gst->gbuffer.difspec_tex);
+    rlUnloadTexture(gst->gbuffer.depth_tex);
 }
 
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size) {
@@ -162,13 +163,16 @@ void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, siz
 
 void state_setup_render_targets(struct state_t* gst) {
 
-    gst->scrn_w = GetScreenWidth();
-    gst->scrn_h = GetScreenHeight();
+    gst->env_render_target = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->bloomtresh_target = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->ssao_target = LoadRenderTexture(gst->res_x, gst->res_y);
+   
 
-    gst->env_render_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    gst->bloomtresh_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    gst->ssao_target = LoadRenderTexture(gst->scrn_w, gst->scrn_h);
-    gst->bloomtresh_downsample = LoadRenderTexture(gst->scrn_w/1.5, gst->scrn_h/1.5);
+    gst->bloom_downsamples[0] = LoadRenderTexture(909, 485);
+    SetTextureFilter(gst->bloom_downsamples[0].texture, TEXTURE_FILTER_BILINEAR);
+    
+    gst->bloom_downsamples[1] = LoadRenderTexture(638, 340);
+    SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
 
 }
 
@@ -194,7 +198,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     // Update screen size.
 
     Vector2 screen_size = (Vector2) {
-        GetScreenWidth(), GetScreenHeight()
+        RESOLUTION_X, RESOLUTION_Y//GetScreenWidth(), GetScreenHeight()
     };
 
     shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &screen_size);
@@ -253,8 +257,6 @@ void state_update_frame(struct state_t* gst) {
         return;
     }
 
-    //printf("Enemies rendered: %i / %i\n", gst->num_enemies_rendered, gst->num_enemies);
-
 
     // Enemies.
     if(!gst->player.powerup_shop.open) {
@@ -262,7 +264,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        //update_enemy_spawn_systems(gst); 
+        update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -555,7 +557,7 @@ void state_setup_all_weapons(struct state_t* gst) {
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
         .prj_scale = 1.0,
-        .color = (Color){ 255, 20, 50, 200 },
+        .color = (Color){ 255, 20, 120, 200 },
         .overheat_temp = -1,
     };
 

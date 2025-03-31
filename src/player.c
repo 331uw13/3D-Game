@@ -15,7 +15,7 @@ static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
 }
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
- 
+    p->render = 1; 
     // -- Movement stats -----
     
     p->walkspeed = 20.0;
@@ -29,7 +29,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     // ------------------------
 
-    p->xp = 999999;
+    //p->xp = 999999;
     
 
     p->cam = (Camera){ 0 };
@@ -84,6 +84,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->powerup_shop.open = 0;
     p->powerup_shop.selected_index = -1;
     p->inventory.selected_index = 0;
+    p->holding_gun = 1;
 
     p->aim_idle_timer = 0.0;
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
@@ -519,6 +520,9 @@ void player_update(struct state_t* gst, struct player_t* p) {
 
 void render_player(struct state_t* gst, struct player_t* p) {
 
+    if(!p->render) {
+        return;
+    }
     if(!p->alive) {
         return;
     }
@@ -880,7 +884,7 @@ void render_player_stats(struct state_t* gst, struct player_t* p) {
     // * Full/Semi auto text
     {
         const float off = 5.0;
-        const Vector2 xp_text_pos = (Vector2) { 50.0, gst->scrn_h - 50.0 };
+        const Vector2 xp_text_pos = (Vector2) { 50.0, gst->res_y - 50.0 };
         const char* xp_text = TextFormat("XP: %i", p->xp);
         float font_size = 20.0;
         Vector2 measured = MeasureTextEx(gst->font, xp_text, font_size, FONT_SPACING);

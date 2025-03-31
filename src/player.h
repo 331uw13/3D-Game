@@ -36,6 +36,8 @@ struct state_t;
 
 struct player_t {
 
+    int render;
+
     Camera   cam;
     float cam_yaw;
     float cam_pitch;

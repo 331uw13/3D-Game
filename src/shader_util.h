@@ -22,6 +22,7 @@ typedef short uloc_t;
 #define U_GUNFX_COLOR 11
 #define U_SSAO_ENABLED 12
 #define U_ANYGUI_OPEN 13
+#define U_BLOOMTRESH_TEX 14
 
 #define U_NOTFOUND -1
 

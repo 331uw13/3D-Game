@@ -717,7 +717,6 @@ void update_enemy_spawn_systems(struct state_t* gst) {
 }
 
 void setup_default_enemy_spawn_settings(struct state_t* gst) {
-    int type;
 
     // --- ENEMY_LVL0 Defaults ---
     {

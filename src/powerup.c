@@ -128,7 +128,7 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
         
         case POWERUP_FASTER_FIRERATE:
             {
-                player->firerate -= 0.0125;
+                player->firerate -= 0.0135;
             }
             break;
     
@@ -162,7 +162,7 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
 
         case POWERUP_PROJECTILE_SPEED_BOOST:
             {
-                player->weapon.prj_speed += 160;
+                player->weapon.prj_speed += 200;
             }
             break;
 

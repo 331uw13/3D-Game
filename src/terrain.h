@@ -33,43 +33,12 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
     Vector3 b2;
 };
 
-/*
-// For each chunk.
-struct foliage_matrices_t {
-    Matrix tree_type0[TREE_TYPE0_MAX_PERCHUNK];
-    size_t num_tree_type0;
-    
-    Matrix tree_type1[TREE_TYPE1_MAX_PERCHUNK];
-    size_t num_tree_type1;
-    
-    Matrix rock_type0[ROCK_TYPE0_MAX_PERCHUNK];
-    size_t num_rock_type0;
-    
-};
-*/
 
 #define TF_TREE_TYPE0 0
 #define TF_TREE_TYPE1 1
 #define TF_ROCK_TYPE0 2
 #define MAX_FOLIAGE_TYPES 3
 
-/*
-// All foliage matrices from chunks go here each frame 
-// and they are rendered all at once.
-struct render_foliage_matrices {
-    Matrix* tree_type0;         // Matrices from all visible chunks.
-    size_t  tree_type0_size;    // How many elements was allocated for matrix array.
-    size_t  num_tree_type0;     // How many to render.
-    
-    Matrix* tree_type1;
-    size_t  tree_type1_size;
-    size_t  num_tree_type1;
-
-    Matrix* rock_type0;
-    size_t  rock_type0_size;
-    size_t  num_rock_type0;
-};
-*/
 
 // This data is not directly being used to render foliages from.
 //   When chunks are being generated
@@ -147,7 +116,6 @@ void generate_terrain(
         int    seed
         );
 
-//void generate_terrain_foliage(struct state_t* gst, struct terrain_t* terrain);
 
 void delete_terrain(struct terrain_t* terrain);
 void render_terrain(struct state_t* gst, struct terrain_t* terrain);

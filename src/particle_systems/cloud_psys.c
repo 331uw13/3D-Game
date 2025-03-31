@@ -59,14 +59,6 @@ void cloud_psys_init(
 
     part->lifetime = 0.0;
     part->scale = RSEEDRANDOMF(1.0, 5.0);
-
-
-    Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    Matrix rotation = MatrixRotateXYZ((Vector3){ 
-                RSEEDRANDOMF(0, 360)*DEG2RAD,
-                RSEEDRANDOMF(0, 360)*DEG2RAD,
-                RSEEDRANDOMF(0, 360)*DEG2RAD
-            });
 }
 
 

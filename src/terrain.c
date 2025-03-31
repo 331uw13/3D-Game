@@ -10,6 +10,8 @@
 
 #include "util.h"
 
+#include <rlgl.h>
+
 
 // -----------------------------------------------------------
 // NOTE: X and Z must be set accordingly with terrain X,Z positions and scaling.
@@ -68,7 +70,8 @@ static void _load_terrain_foliage_models(struct state_t* gst, struct terrain_t* 
     _load_foliage_model(gst, &terrain->foliage_models[TF_ROCK_TYPE0], "res/models/rock_type0.glb");
     terrain->foliage_models[TF_ROCK_TYPE0].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture
         = gst->textures[ROCK_TEXID];
-    
+   
+
     terrain->foliage_max_perchunk[TF_ROCK_TYPE0] = 16;
 
 }
@@ -745,54 +748,11 @@ void delete_terrain(struct terrain_t* terrain) {
 }
 
 
-
-static void copy_foliage_matrices_from_chunk(
-        Matrix*   to_render_array,
-        size_t    to_render_max_size,
-        size_t*   to_render_array_elements,
-        size_t*   to_render_array_index,
-        Matrix*      chunk_fmatrices,     // fmatrices = 'foliage matrices'
-        size_t       num_chunk_fmatrices
-) {
-    if(*to_render_array_index < to_render_max_size) {
-        memmove(
-                &to_render_array[*to_render_array_index],
-                chunk_fmatrices,
-                num_chunk_fmatrices * sizeof(Matrix)
-                );
-        *to_render_array_index += num_chunk_fmatrices;
-        *to_render_array_elements += num_chunk_fmatrices;
-    }
-}
-
-#include <rlgl.h>
-
-
 void render_terrain(
         struct state_t* gst,
         struct terrain_t* terrain
 ){
-
     terrain->num_visible_chunks = 0;
-    //terrain->material.shader = gst->shaders[terrain_shader_index];
-
-
-
-    /*
-    memset(terrain->rfmatrices.tree_type0, 0, terrain->rfmatrices.tree_type0_size * sizeof(Matrix));
-    terrain->rfmatrices.num_tree_type0 = 0;
-    size_t rf_tree_type0_index = 0; // Where to copy from next chunk?
-
-    memset(terrain->rfmatrices.tree_type1, 0, terrain->rfmatrices.tree_type1_size * sizeof(Matrix));
-    terrain->rfmatrices.num_tree_type1 = 0;
-    size_t rf_tree_type1_index = 0;
-
-
-    memset(terrain->rfmatrices.rock_type0, 0, terrain->rfmatrices.rock_type0_size * sizeof(Matrix));
-    terrain->rfmatrices.num_rock_type0 = 0;
-    size_t rf_rock_type0_index = 0;
-    */
-
 
     // Clear foliage render data from previous frame.
 
@@ -833,6 +793,7 @@ void render_terrain(
         terrain->num_visible_chunks++;
 
 
+        // Copy current foliage type matrices from chunk to bigger array of same type.
 
         for(size_t k = 0; k < MAX_FOLIAGE_TYPES; k++) {
             struct foliage_rdata_t*       f_rdata     = &terrain->foliage_rdata[k];
@@ -845,8 +806,6 @@ void render_terrain(
                 continue;
             }
          
-            //printf("%li / %li\n", f_rdata->next_index, f_rdata->matrices_size);
-
             memmove(
                     &f_rdata->matrices[f_rdata->next_index],
                     chunk_fdata->matrices,
@@ -874,6 +833,7 @@ void render_terrain(
 
         for(size_t mi = 0; mi < fmodel->meshCount; mi++) {
             size_t mat_index = CLAMP(mi, 0, fmodel->materialCount);
+
             DrawMeshInstanced(
                     fmodel->meshes[mi],
                     fmodel->materials[mat_index],

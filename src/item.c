@@ -106,6 +106,8 @@ void use_consumable_item(struct state_t* gst, struct item_t* item) {
     player_heal(gst, &gst->player, item->health_boost_when_used);
     gst->player.armor += item->armor_fix_value;
 
+    gst->player.armor = CLAMP(gst->player.armor, 0, gst->player.max_armor);
+
 }
 
 
