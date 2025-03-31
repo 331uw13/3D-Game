@@ -7,7 +7,7 @@ in vec2 fragTexCoord;
 in vec4 fragColor;
 
 uniform sampler2D texture0;
-uniform sampler2D bloomtresh_texture;
+uniform sampler2D u_bloomtresh_tex;
 uniform sampler2D ssao_texture;
 uniform sampler2D depth_texture;
 
@@ -44,28 +44,28 @@ float lerp(float t, float min, float max) {
 
     
     offset = vec2(0, 0) * texelsize;
-    vec3 c0 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c0 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
 
     offset = vec2(1, 0) * texelsize;
-    vec3 c1 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c1 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
     
     offset = vec2(-1, 0) * texelsize;
-    vec3 c2 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c2 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
     
     offset = vec2(0, 1) * texelsize;
-    vec3 c3 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c3 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
 
     offset = vec2(0, -1) * texelsize;
-    vec3 c4 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c4 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
     
     offset = vec2(1, 1) * texelsize;
-    vec3 c5 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c5 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
     
     offset = vec2(1, -1) * texelsize;
-    vec3 c6 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c6 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
     
     offset = vec2(-1, 1) * texelsize;
-    vec3 c7 = texture(bloomtresh_texture, fragTexCoord + offset).rgb;
+    vec3 c7 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
     
 
     vec3 res = (c0+c1+c2+c3+c4+c5+c6+c7) / 9.0;
@@ -85,7 +85,7 @@ float lerp(float t, float min, float max) {
     for(int x = -r; x <= r; x++) {
         for(int y = -r; y <= r; y++) {
             vec2 p = vec2(x, y) * BLOOM_POS_M;
-            result += BLOOM_ADD_M * texture(bloomtresh_texture, fragTexCoord + p * sf).rgb;
+            result += BLOOM_ADD_M * texture(u_bloomtresh_tex, fragTexCoord + p * sf).rgb;
         }     
     }
 
@@ -93,7 +93,7 @@ float lerp(float t, float min, float max) {
     for(int y = -r; y <= r; y++) {
         for(int x = -r; x <= r; x++) {
             vec2 p = vec2(x, y) * BLOOM_POS_M;
-            result += BLOOM_ADD_M * texture(bloomtresh_texture, fragTexCoord + p * sf).rgb;
+            result += BLOOM_ADD_M * texture(u_bloomtresh_tex, fragTexCoord + p * sf).rgb;
         }     
     }
 
@@ -108,13 +108,13 @@ void main()
 {
     //finalColor = texture(ssao_texture, fragTexCoord); return;
 
-    //finalColor = texture(bloomtresh_texture, fragTexCoord); return;
+    //finalColor = texture(u_bloomtresh_tex, fragTexCoord); return;
 
 
     vec2 texcoords = fragTexCoord;
     vec3 color = texture(texture0, texcoords).rgb;
 
-    vec3 bloom = texture(bloomtresh_texture, fragTexCoord).rgb;
+    vec3 bloom = texture(u_bloomtresh_tex, fragTexCoord).rgb;
     color += bloom;
     
 

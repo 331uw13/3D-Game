@@ -26,13 +26,13 @@ void main()
 
 
 
-    int size = 8;
+    int size = 10;
 
     for(int x = -size; x <= size; x++) {
         for(int y = -size; y <= size; y++) {
             vec2 off = vec2(float(x), float(y));
-            float weight = float(size+1)-length(off);
-
+            float weight = float(size+2.0)-1.2*length(off);
+            
             vec2 texelpos = fragTexCoord + off * texelsize;
             texelpos = clamp(texelpos, vec2(0.0), vec2(1.0));
             color += weight * texture(texture0, texelpos).rgb;
@@ -40,7 +40,8 @@ void main()
     }
 
 
-    color /= (float(size)*float(size));
+
+    color /= (float(size)*float(size))*3.35;
 
 
     finalColor = vec4(color, clamp(length(color), 0.0, 1.0));

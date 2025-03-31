@@ -5,9 +5,9 @@
 
 uniform sampler2D u_gbuf_pos_tex;
 uniform sampler2D u_gbuf_norm_tex;
-uniform sampler2D u_gbuf_difspec_tex; // (NOT CURRENTLY USED)
 uniform sampler2D u_gbuf_depth_tex;
 uniform sampler2D u_ssao_noise_tex;
+uniform sampler2D u_bloomtresh_tex;
 uniform vec3 ssao_kernel[SSAO_KERNEL_SIZE];
 uniform mat4 u_camview_matrix;
 uniform mat4 u_camproj_matrix;
@@ -36,6 +36,17 @@ float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
 void main() {
     float ao = 0.0;
 
+
+    // Very bright objects should not appear on top of ambient occlusion.
+    // Convert bloom treshold texture to gray scale and check if ssao should be applied.
+
+    vec3 bloomtresh = texture(u_bloomtresh_tex, fragTexCoord).rgb;
+    float bloom_scale = (bloomtresh.r + bloomtresh.g + bloomtresh.b)/3.0;
+    if(bloom_scale >= 0.076) {
+        finalColor = vec4(1.0);
+        return;
+    }
+
     vec2 noise_scale = vec2(u_screen_size.x/8.0, u_screen_size.y/8.0);
 
     // Data from geometry buffer.
@@ -58,7 +69,7 @@ void main() {
     const float max_depth = 1200.0;
 
     // map radius, closer should be less effect, further away more.
-    const float rad_near = 0.25;
+    const float rad_near = 0.65;
     const float rad_far = 2.5;
     float dt = (viewproj*vec4(frag_pos,1.0)).z;
 
@@ -95,7 +106,7 @@ void main() {
     
     // Fade ssao effect.
     float fade = (dt*dt)/(max_depth*max_depth);
-    ao += fade; 
+    ao += fade;
 
     finalColor = vec4(ao, ao, ao, 1.0);
 }
