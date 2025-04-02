@@ -48,20 +48,11 @@ void loop(struct state_t* gst) {
             BeginShaderMode(gst->shaders[POSTPROCESS_SHADER]);
             {
                 rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
-
-                // ----- TODO: Optimize this.
-
-                /*
-                SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
-                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
-                            "bloomtresh_texture"), gst->bloomtresh_target.texture);
-*/
-
                 shader_setu_sampler(gst, POSTPROCESS_SHADER, U_BLOOMTRESH_TEX, gst->bloomtresh_target.texture.id);
 
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
-                            "ssao_texture"), gst->ssao_target.texture);
+                            "ssao_texture"), gst->ssao_final.texture);
     
 
                 DrawTexturePro(gst->env_render_target.texture,
@@ -69,10 +60,11 @@ void loop(struct state_t* gst) {
                             0, 0, gst->env_render_target.texture.width, -gst->env_render_target.texture.height
                         },
                         (Rectangle){
-                            0, 0, gst->res_x, gst->res_y//RESOLUTION_X, -RESOLUTION_Y
+                            //0, 0, gst->res_x, gst->res_y
+                            0, 0, gst->screen_size.x, gst->screen_size.y
                         },
                         (Vector2){0}, 0.0, WHITE
-                        );    
+                        ); 
             }
             EndShaderMode();
 
@@ -185,9 +177,17 @@ void cleanup(struct state_t* gst) {
 
     UnloadTexture(gst->ssao_noise_tex);
     UnloadRenderTexture(gst->env_render_target);
+    UnloadRenderTexture(gst->env_render_downsample);
     UnloadRenderTexture(gst->bloomtresh_target);
     UnloadRenderTexture(gst->ssao_target);
+    UnloadRenderTexture(gst->ssao_final);
     state_delete_gbuffer(gst);
+
+    UnloadRenderTexture(gst->gbuf_pos_up);
+    UnloadRenderTexture(gst->gbuf_norm_up);
+    UnloadRenderTexture(gst->gbuf_depth_up);
+
+    UnloadTexture(gst->defnoise_tex);
 
     for(int i = 0; i < NUM_BLOOM_DOWNSAMPLES; i++) {
         UnloadRenderTexture(gst->bloom_downsamples[i]);
@@ -209,7 +209,7 @@ void cleanup(struct state_t* gst) {
 
 void first_setup(struct state_t* gst) {
 
-    InitWindow(RESOLUTION_X, RESOLUTION_Y, "3D-Game");
+    InitWindow(WINDOWSIZE_X, WINDOWSIZE_Y, "3D-Game");
     SetExitKey(-1);
     gst->font = LoadFont("res/Topaz-8.ttf");
 
@@ -217,11 +217,13 @@ void first_setup(struct state_t* gst) {
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_ERROR);
 
-    gst->res_x = GetScreenWidth();
-    gst->res_y = GetScreenHeight();
+    gst->screen_size = (Vector2){ GetScreenWidth(), GetScreenHeight() };
 
-    //gst->res_x = GetScreenWidth();
-    //gst->res_y = GetScreenHeight();
+    // We can probably get away with rendering everything smaller resolution.
+    // Also gives a little nice pixel effect
+    gst->res_x = gst->screen_size.x;
+    gst->res_y = gst->screen_size.y;
+
 
     gst->num_textures = 0;
     gst->num_textures = 0;
@@ -234,7 +236,7 @@ void first_setup(struct state_t* gst) {
     gst->menu_open = 0;
     gst->running = 1;
     gst->ssao_enabled = 1;
-    
+
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
     init_shaderutil(gst);
@@ -275,12 +277,16 @@ void first_setup(struct state_t* gst) {
     set_fog_settings(gst, &gst->fog);
 
 
+    state_gen_defnoise(gst);
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_weapons(gst);
     state_setup_all_sounds(gst);
     state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
+    
+    printf("Screen/Window size: %0.0fx%0.0f\n", gst->screen_size.x, gst->screen_size.y);
+    printf("Render resolution: %ix%i\n", gst->res_x, gst->res_y);
     
     state_setup_gbuffer(gst);
     state_setup_ssao(gst);
@@ -319,7 +325,6 @@ void first_setup(struct state_t* gst) {
     
     setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
-
 
     /*// Setup fog.
     gst->fog_density = 0.0;

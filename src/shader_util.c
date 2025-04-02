@@ -23,7 +23,9 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_gunfx_color\0",
     "u_ssao_enabled\0",
     "u_anygui_open\0",
-    "u_bloomtresh_tex\0"
+    "u_bloomtresh_tex\0",
+    "u_render_dist\0",
+    "u_defnoise_tex\0"
 };
 
 

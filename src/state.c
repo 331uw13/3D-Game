@@ -25,38 +25,39 @@ void state_setup_gbuffer(struct state_t* gst) {
     gst->gbuffer = (struct gbuffer_t) { 0 };
 
     gst->gbuffer.framebuffer = rlLoadFramebuffer();
-   
-    printf("Creating gbuffer %ix%i\n", gst->res_x, gst->res_y);
     if(!gst->gbuffer.framebuffer) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Failed to create framebuffer\033[0m\n",
                 __func__);
         return;
     }
 
+    gst->gbuffer.res_x = gst->res_x / 2;
+    gst->gbuffer.res_y = gst->res_y / 2;
+
+    printf("Creating gbuffer: %ix%i\n", gst->gbuffer.res_x, gst->gbuffer.res_y);
     rlEnableFramebuffer(gst->gbuffer.framebuffer);
+    
 
     // Use 32 bits per channel to avoid floating point precision loss.
     
     // Positions.
-    gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
+    gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     
     // Normals.
-    gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
+    gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     
-    // Diffuse specular colors.
-    gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
+    // Diffuse specular colors. (This is not currently used.)
+    gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
 
-    // Depth
-    gst->gbuffer.depth_tex = rlLoadTexture(NULL, gst->res_x, gst->res_y, 
+    // Depth.
+    gst->gbuffer.depth_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
                 RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
 
 
-
-
-    gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->res_x, gst->res_y, 1);
+    gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->gbuffer.res_x, gst->gbuffer.res_y, 1);
 
 
     rlActiveDrawBuffers(4);
@@ -84,12 +85,13 @@ void state_setup_gbuffer(struct state_t* gst) {
                 __func__);
     }
 
+    
 }
+
 
 void state_setup_ssao(struct state_t* gst) {
 
     Shader shader = gst->shaders[POSTPROCESS_SHADER];
-    
     for(size_t i = 0; i < SSAO_KERNEL_SIZE; i++) {
 
         // Get scale factor to move points closer to the center.
@@ -99,15 +101,15 @@ void state_setup_ssao(struct state_t* gst) {
         Vector3 sample = (Vector3) {
             RSEEDRANDOMF(-1.0, 1.0) * scale,
             RSEEDRANDOMF(-1.0, 1.0) * scale,
-            RSEEDRANDOMF( 0.0, 1.0) * scale // 0.0 - 1.0 for z to because we want hemisphere sample kernel.
+            RSEEDRANDOMF(-1.0, 1.0) * scale
         };
   
 
         gst->ssao_kernel[i] = sample;
     }
 
-    int width = 32;
-    int height = 32;
+    int width = 256;
+    int height = 256;
     Color *pixels = (Color *)malloc(width*height*sizeof(Color));
 
     for (int i = 0; i < width*height; i++) {
@@ -163,17 +165,27 @@ void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, siz
 
 void state_setup_render_targets(struct state_t* gst) {
 
-    gst->env_render_target = LoadRenderTexture(gst->res_x, gst->res_y);
-    gst->bloomtresh_target = LoadRenderTexture(gst->res_x, gst->res_y);
-    gst->ssao_target = LoadRenderTexture(gst->res_x, gst->res_y);
-   
+    gst->env_render_target     = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->bloomtresh_target     = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->env_render_downsample = LoadRenderTexture(gst->gbuffer.res_x, gst->gbuffer.res_y);
+    
+    gst->ssao_final       = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->ssao_target      = LoadRenderTexture(gst->gbuffer.res_x, gst->gbuffer.res_y);
+
+    gst->gbuf_pos_up = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->gbuf_norm_up = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->gbuf_depth_up = LoadRenderTexture(gst->res_x, gst->res_y);
+
+    SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
 
     gst->bloom_downsamples[0] = LoadRenderTexture(909, 485);
     SetTextureFilter(gst->bloom_downsamples[0].texture, TEXTURE_FILTER_BILINEAR);
     
     gst->bloom_downsamples[1] = LoadRenderTexture(638, 340);
     SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
+   
 
+    SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
 }
 
 static void load_texture(struct state_t* gst, const char* filepath, int texid) {
@@ -197,14 +209,13 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
     // Update screen size.
 
-    Vector2 screen_size = (Vector2) {
-        RESOLUTION_X, RESOLUTION_Y//GetScreenWidth(), GetScreenHeight()
+    Vector2 resolution = (Vector2) {
+        gst->res_x, gst->res_y
     };
-
-    shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &screen_size);
-    shader_setu_vec2(gst, POWERUP_SHOP_BG_SHADER,  U_SCREEN_SIZE, &screen_size);
-    shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &screen_size);
     
+    shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &resolution);
+    shader_setu_vec2(gst, POWERUP_SHOP_BG_SHADER,  U_SCREEN_SIZE, &resolution);
+    shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &resolution);
     
 
     // Update time
@@ -220,22 +231,11 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
 
     // Update misc.
-    
+   
+    shader_setu_float(gst, SSAO_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_SSAO_ENABLED, &gst->ssao_enabled);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
-    /*
-    {
-        float blur_effect = 0.62;
-        if(gst->player.any_gui_open) {
-            blur_effect = 0.1;
-        }
-
-        SetShaderValue(gst->shaders[POSTPROCESS_SHADER], 
-                GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "blur_effect"),
-                &blur_effect, SHADER_UNIFORM_FLOAT);
-
-    }
-    */
+   
 
 }
 
@@ -264,7 +264,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        update_enemy_spawn_systems(gst); 
+        //update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -519,6 +519,14 @@ void state_setup_all_shaders(struct state_t* gst) {
         );
     }
 
+    // --- Shader for upsampling ---
+    {
+        Shader* shader = &gst->shaders[SSAO_BLUR_SHADER];
+        *shader = LoadShader(
+            "res/shaders/default.vs", 
+            "res/shaders/ssao_blur.fs"
+        );
+    }
 
     SetTraceLogLevel(LOG_NONE);
 }
@@ -1227,7 +1235,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
             * gst->terrain.foliage_max_perchunk[i];
 
         f_rdata->matrices = malloc(f_rdata->matrices_size * sizeof *f_rdata->matrices);
-    
+   
         printf("\033[35m(%p)\033[0m\n", f_rdata->matrices);
     }
 
@@ -1240,5 +1248,62 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     }
 
 }
+
+void resample_texture(struct state_t* gst, 
+        RenderTexture2D to, RenderTexture2D from,
+        int src_width, int src_height, int dst_width,
+        int dst_height, int shader_index
+){
+
+    BeginTextureMode(to);
+    ClearBackground((Color){0, 0, 0, 255});
+    if(shader_index >= 0) {
+        BeginShaderMode(gst->shaders[shader_index]);
+    }
+
+    DrawTexturePro(
+            from.texture,
+            (Rectangle){0, 0, src_width, -src_height },
+            (Rectangle){0, 0, dst_width, -dst_height },
+            (Vector2){0}, 0.0, WHITE
+            );
+
+    if(shader_index >= 0) {
+        EndShaderMode();
+    }
+    EndTextureMode();
+}
+
+void state_gen_defnoise(struct state_t* gst) {
+
+    int width = 256;
+    int height = 256;
+    Color *pixels = (Color *)malloc(width*height*sizeof(Color));
+
+    for (int i = 0; i < width*height; i++) {
+        pixels[i] = (Color) {
+            GetRandomValue(0, 255),
+            GetRandomValue(0, 255),
+            GetRandomValue(0, 255),
+            255
+        };
+    }
+
+    Image image = (Image) {
+        .data = pixels,
+        .width = width,
+        .height = height,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
+        .mipmaps = 1
+    };
+
+    gst->defnoise_tex = LoadTextureFromImage(image);
+
+    free(pixels);
+
+
+    printf("%i\n", gst->defnoise_tex.id);
+}
+
 
 

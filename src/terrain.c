@@ -194,7 +194,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation    = MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI));
 
-        chunk_fdata->matrices[i] = MatrixMultiply(rotation, translation);
+        chunk_fdata->matrices[chunk_fdata->num_foliage] = MatrixMultiply(rotation, translation);
         chunk_fdata->num_foliage++;
     }
 
@@ -215,7 +215,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation    = MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI));
 
-        chunk_fdata->matrices[i] = MatrixMultiply(rotation, translation);
+        chunk_fdata->matrices[chunk_fdata->num_foliage] = MatrixMultiply(rotation, translation);
         chunk_fdata->num_foliage++;
     }
 
@@ -236,7 +236,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         Matrix rotation    = MatrixRotateXYZ(
                                 (Vector3){ RSEEDRANDOMF(-M_PI, M_PI), RSEEDRANDOMF(-M_PI, M_PI), RSEEDRANDOMF(-M_PI, M_PI) });
 
-        chunk_fdata->matrices[i] = MatrixMultiply(rotation, translation);
+        chunk_fdata->matrices[chunk_fdata->num_foliage] = MatrixMultiply(rotation, translation);
         chunk_fdata->num_foliage++;
     }
 
@@ -806,6 +806,7 @@ void render_terrain(
                 continue;
             }
          
+
             memmove(
                     &f_rdata->matrices[f_rdata->next_index],
                     chunk_fdata->matrices,
@@ -822,6 +823,7 @@ void render_terrain(
     }
 
     // Render foliage.
+
 
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
         Model* fmodel = &terrain->foliage_models[i];

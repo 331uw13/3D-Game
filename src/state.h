@@ -20,6 +20,9 @@
 #define DEV_MODE 1
 
 
+#define WINDOWSIZE_X 1500
+#define WINDOWSIZE_Y 800
+
 #define RESOLUTION_X 1500
 #define RESOLUTION_Y 800
 
@@ -95,7 +98,8 @@
 #define GBUFFER_INSTANCE_SHADER 14
 #define SSAO_SHADER 15
 #define BLOOM_BLUR_SHADER 16
-#define MAX_SHADERS 17
+#define SSAO_BLUR_SHADER 17
+#define MAX_SHADERS 18
 // ...
  
 
@@ -156,8 +160,7 @@
 
 
 // IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
-#define SSAO_KERNEL_SIZE 32
-
+#define SSAO_KERNEL_SIZE 42
 // Critical hit marker.
 struct crithit_marker_t {
     Vector3 position;
@@ -175,6 +178,9 @@ struct gbuffer_t {
 
     unsigned int framebuffer;
     unsigned int depthbuffer;
+
+    int res_x;
+    int res_y;
 };
 
 
@@ -206,6 +212,7 @@ struct state_t {
 
     struct fog_t fog;
     
+    Texture defnoise_tex;
 
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
@@ -260,28 +267,30 @@ struct state_t {
     // Resolution to render everything to
     int res_x;
     int res_y;
+    //int low_res_x;
+    //int low_res_y;
+    Vector2 screen_size;
 
     struct gbuffer_t gbuffer;
    
     // Everything is rendered to this texture
     // and then post processed.
     RenderTexture2D env_render_target;
-
+    RenderTexture2D env_render_downsample;
+    
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
-
 
     int ssao_enabled;
     Texture ssao_noise_tex;
     Matrix cam_view_matrix;
     Matrix cam_proj_matrix;
     Vector3 ssao_kernel[SSAO_KERNEL_SIZE];
+    int ssao_kernel_type;
 
-    // Screen space ambient occlusion is rendered into this texture
-    // and later blurred in post processing.
     RenderTexture2D ssao_target;
-
+    RenderTexture2D ssao_final;
 
     Color render_bg_color;
     int running;
@@ -291,10 +300,12 @@ struct state_t {
     float menu_slider_render_dist_v;
     Model skybox;
 
+    RenderTexture2D gbuf_pos_up;
+    RenderTexture2D gbuf_norm_up;
+    RenderTexture2D gbuf_depth_up;
 
     RenderTexture2D bloom_downsamples[NUM_BLOOM_DOWNSAMPLES];
-    //RenderTexture2D bloomtresh_downsample;
-    //RenderTexture2D bloomtresh_downsample_2;
+
 };
 
 
@@ -303,6 +314,7 @@ void state_setup_ssao(struct state_t* gst);
 void state_delete_gbuffer(struct state_t* gst);
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
 void state_setup_grass(struct state_t* gst);
+void state_gen_defnoise(struct state_t* gst); // Generate default noise texture for everything, adds littlebit detail
 
 void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);
@@ -310,8 +322,13 @@ void state_update_frame(struct state_t* gst);
 
 void set_fog_settings(struct state_t* gst, struct fog_t* fog);
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
-
 void set_render_dist(struct state_t* gst, float new_dist);
+
+// 'shader_index' can be set to negative value so its not used.
+void resample_texture(struct state_t* gst,
+        RenderTexture2D to, RenderTexture2D from,
+        int src_width, int src_height,
+        int dst_width, int dst_height, int shader_index);
 
 // Initialization.
 void state_setup_all_shaders(struct state_t* gst);

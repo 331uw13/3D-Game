@@ -10,7 +10,7 @@
 struct state_t;
 
 
-#define CHUNK_SIZE 64
+#define CHUNK_SIZE 80
 
 #define WATER_INITIAL_YLEVEL -230 // NOTE: This must be same as in 'res/shaders/default.fs'
 

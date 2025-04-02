@@ -675,7 +675,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
     // For noclip.
     if(p->noclip) {
-        p->speed *= 20.0;
+        p->speed *= 30.0;
         p->onground = 0;
     }
 

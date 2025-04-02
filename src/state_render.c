@@ -172,6 +172,9 @@ void state_render(struct state_t* gst) {
         rlClearColor(0, 0, 0, 0);
         rlClearScreenBuffers(); // Clear color and depth.
         rlDisableColorBlend();
+        rlViewport(0, 0, gst->gbuffer.res_x, gst->gbuffer.res_y);
+        rlSetFramebufferWidth(gst->gbuffer.res_x);
+        rlSetFramebufferHeight(gst->gbuffer.res_y);
         BeginMode3D(gst->player.cam);
         {
             rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
@@ -190,7 +193,7 @@ void state_render(struct state_t* gst) {
     ClearBackground(gst->render_bg_color);
     BeginMode3D(gst->player.cam);
     {
-
+    
         // Save camera view and projection matrix for postprocessing.
         gst->cam_view_matrix = GetCameraViewMatrix(&gst->player.cam);
         gst->cam_proj_matrix = GetCameraProjectionMatrix(&gst->player.cam, (float)gst->res_x / (float)gst->res_y);
@@ -268,7 +271,6 @@ void state_render(struct state_t* gst) {
             rlEnableBackfaceCulling();
         }
 
-        /*
         Color cube_color = (Color){ 0, 0, 0, 255 };
         rainbow_palette(sin(gst->time), &cube_color.r, &cube_color.g, &cube_color.b);
         DrawCubeV(test_cube_pos, (Vector3){ 30, 30, 30 }, cube_color);
@@ -284,7 +286,6 @@ void state_render(struct state_t* gst) {
         if(IsKeyDown(KEY_X)) {
             test_sphere_pos = gst->player.cam.position;
         }
-        */
 
         // Player Gun FX
         {
@@ -311,7 +312,6 @@ void state_render(struct state_t* gst) {
                         );
 
                 p->gunfx_timer += gst->dt*13.0;
-
             }
         }
     }
@@ -405,19 +405,31 @@ void state_render(struct state_t* gst) {
 
 
 
-
     if(!gst->ssao_enabled || gst->player.any_gui_open) {
         return;
     }
-    // Screen space ambient occlusion.
-    
+
+    // SSAO.
+
+    // Downsample environment render target for ssao.
+    // To save frame time ssao can be done in lower resolution.
+
+    resample_texture(gst,
+            gst->env_render_downsample,
+            gst->env_render_target,
+            gst->res_x,
+            gst->res_y,
+            gst->gbuffer.res_x,
+            gst->gbuffer.res_y,
+            -1
+            );
+   
     BeginTextureMode(gst->ssao_target);
     ClearBackground((Color){ 255, 255, 255, 255 });
     BeginShaderMode(gst->shaders[SSAO_SHADER]);
     {
         const Shader ssao_shader = gst->shaders[SSAO_SHADER];
         rlEnableShader(ssao_shader.id);
-
         shader_setu_sampler(gst, SSAO_SHADER, U_GBUFPOS_TEX, gst->gbuffer.position_tex);
         shader_setu_sampler(gst, SSAO_SHADER, U_GBUFNORM_TEX, gst->gbuffer.normal_tex);
         shader_setu_sampler(gst, SSAO_SHADER, U_GBUFDEPTH_TEX, gst->gbuffer.depth_tex);
@@ -425,7 +437,7 @@ void state_render(struct state_t* gst) {
         // Bloomtreshold texture is needed for the ssao because otherwise it could have ssao on top of very bright objects
         // and that would not make much sense.
         shader_setu_sampler(gst, SSAO_SHADER, U_BLOOMTRESH_TEX, gst->bloomtresh_target.texture.id);
-            
+        
         shader_setu_matrix(gst, SSAO_SHADER, U_CAMVIEW_MATRIX, gst->cam_view_matrix);
         shader_setu_matrix(gst, SSAO_SHADER, U_CAMPROJ_MATRIX, gst->cam_proj_matrix);
   
@@ -435,36 +447,35 @@ void state_render(struct state_t* gst) {
                     &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
         
         }
-       
-        DrawTexturePro(gst->env_render_target.texture,
+
+        DrawTexturePro(gst->env_render_downsample.texture,
                     (Rectangle){
                         0, 0, gst->ssao_target.texture.width, -gst->ssao_target.texture.height
                     },
                     (Rectangle){
-                        0, 0, RESOLUTION_X, -RESOLUTION_Y
+                        0, 0, gst->ssao_target.texture.width, -gst->ssao_target.texture.height
                     },
                     (Vector2){0}, 0.0, WHITE
                     );
-     
-
-        /*
-        // Render into fullscreen rectangle so it can be blurred in postprocessing.
-        // to get rid of most noticable artifacts.
-        DrawTextureRec(
-                    gst->env_render_target.texture,
-                    (Rectangle) { 
-                        0.0, 0.0, 
-                        (float)gst->env_render_target.texture.width,
-                        -(float)gst->env_render_target.texture.height
-                    },
-                    (Vector2){ 0.0, 0.0 },
-                    WHITE
-                    );
-                    */
     }
     EndShaderMode();
     EndTextureMode();
 
-}
 
+    // Upsample ssao and apply blur.
+
+    Vector2 screen_size = (Vector2){ gst->res_x, gst->res_y };
+    shader_setu_sampler(gst, SSAO_BLUR_SHADER, U_GBUFPOS_TEX, gst->gbuffer.position_tex);
+    shader_setu_vec2(gst, SSAO_BLUR_SHADER, U_SCREEN_SIZE, &screen_size);
+
+    resample_texture(gst,
+            gst->ssao_final,
+            gst->ssao_target, 
+            gst->gbuffer.res_x,
+            gst->gbuffer.res_y,
+            gst->res_x,
+            gst->res_y,
+            SSAO_BLUR_SHADER);
+
+}
 
