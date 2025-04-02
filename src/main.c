@@ -187,7 +187,6 @@ void cleanup(struct state_t* gst) {
     UnloadRenderTexture(gst->gbuf_norm_up);
     UnloadRenderTexture(gst->gbuf_depth_up);
 
-    UnloadTexture(gst->defnoise_tex);
 
     for(int i = 0; i < NUM_BLOOM_DOWNSAMPLES; i++) {
         UnloadRenderTexture(gst->bloom_downsamples[i]);
@@ -264,20 +263,7 @@ void first_setup(struct state_t* gst) {
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
 
-    // Setup fog.
-    gst->fog = (struct fog_t) {
-        .mode = FOG_MODE_TORENDERDIST,
-        //.color_near = (Color){ 50, 170, 200 },
-        //.color_far = (Color){ 80, 50, 70 },
-        .color_near = (Color){ 10, 20, 50 },
-        .color_far = (Color){ 30, 10, 40 },
-        .density = 0.0 // Density is ignored when fog mode is TORENDERDIST
-    };
 
-    set_fog_settings(gst, &gst->fog);
-
-
-    state_gen_defnoise(gst);
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_weapons(gst);
@@ -326,13 +312,6 @@ void first_setup(struct state_t* gst) {
     setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
 
-    /*// Setup fog.
-    gst->fog_density = 0.0;
-    gst->fog_color_near = (Color){ 50, 170, 200 };
-    gst->fog_color_far = (Color){ 80, 50, 70 };
-    update_fog_settings(gst);
-    */
-    // Initialize powerup shop.
     set_powerup_defaults(gst, &gst->player.powerup_shop);
     update_powerup_shop_offers(gst);
 
@@ -370,7 +349,7 @@ void first_setup(struct state_t* gst) {
         .enabled = 1,
         .color = (Color){ 240, 210, 200, 255 },
         .position = (Vector3){ -1, 1, -1 },
-        .strength = 0.4,
+        .strength = 0.2,
         .index = SUN_LIGHT_ID
     };
 
@@ -381,6 +360,17 @@ void first_setup(struct state_t* gst) {
         .radius = 2.0,
         .index = PLAYER_GUN_LIGHT_ID
     }; // Player's gun light is updated from 'src/player.c'
+
+
+    // Setup fog.
+    gst->fog = (struct fog_t) {
+        .mode = FOG_MODE_TORENDERDIST,
+        .color_top = (Color){ 5, 0, 10 },
+        .color_bottom = (Color){ 60, 30, 80 },
+        .density = 0.0 // Density is ignored when fog mode is TORENDERDIST
+    };
+
+
 
 
     set_light(gst, &SUN, LIGHTS_UBO);

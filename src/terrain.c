@@ -651,12 +651,12 @@ void generate_terrain(
     terrain->transform = MatrixTranslate(terrain_pos, 0, terrain_pos);
     terrain->material = LoadMaterialDefault();
     terrain->material.shader = gst->shaders[DEFAULT_SHADER];
-    terrain->material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[MOSS_TEXID];
+    terrain->material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[TERRAIN_TEXID];
 
 
     // Create plane for water
-    const float waterplane_size = (CHUNK_SIZE * (1+terrain->num_max_visible_chunks/4)) * terrain->scaling;
-    terrain->waterplane = LoadModelFromMesh(GenMeshPlane(waterplane_size, waterplane_size, 32, 32));
+    //const float waterplane_size = (CHUNK_SIZE * (1+terrain->num_max_visible_chunks/4)) * terrain->scaling;
+    terrain->waterplane = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     terrain->waterplane.materials[0] = LoadMaterialDefault();
     terrain->waterplane.materials[0].shader = gst->shaders[WATER_SHADER];
 

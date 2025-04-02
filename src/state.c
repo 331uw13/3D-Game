@@ -205,6 +205,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst, WATER_SHADER,        U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, FOLIAGE_SHADER,      U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, FOG_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, SKY_SHADER,          U_CAMPOS, &gst->player.cam.position);
 
 
     // Update screen size.
@@ -235,8 +236,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, SSAO_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_SSAO_ENABLED, &gst->ssao_enabled);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
-   
-
+  
 }
 
 
@@ -340,7 +340,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         */
     }
 
-    // --- Setup POWERUP_SHOP_BG_SHADER ---
+    // --- POWERUP_SHOP_BG_SHADER ---
     {
         Shader* shader = &gst->shaders[POWERUP_SHOP_BG_SHADER];
         load_shader(
@@ -348,7 +348,7 @@ void state_setup_all_shaders(struct state_t* gst) {
                 "res/shaders/powerup_shop_bg.fs", shader);
     }
 
-    // --- Setup PRJ_ENVHIT_PSYS_SHADER ---
+    // --- PRJ_ENVHIT_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[PRJ_ENVHIT_PSYS_SHADER];
         load_shader(
@@ -361,7 +361,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
  
 
-    // --- Setup PLAYER_WEAPON_PSYS_SHADER ---
+    // --- PLAYER_WEAPON_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[BASIC_WEAPON_PSYS_SHADER];
         load_shader(
@@ -375,7 +375,7 @@ void state_setup_all_shaders(struct state_t* gst) {
  
 
 
-    // --- Setup EXPLOSION_PSYS_SHADER ---
+    // --- EXPLOSION_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[EXPLOSION_PSYS_SHADER];
         load_shader(
@@ -388,7 +388,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
-    // --- Setup FOLIAGE_SHADER ---
+    // --- FOLIAGE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOLIAGE_SHADER];
         load_shader(
@@ -402,7 +402,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         //gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
-    // --- Setup FOG_EFFECT_PARTICLE_SHADER ---
+    // --- FOG_EFFECT_PARTICLE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOG_PARTICLE_SHADER];
         load_shader(
@@ -415,7 +415,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
     
-    // --- Setup Water Shader ---
+    // --- WATER_SHADER ---
     {
         Shader* shader = &gst->shaders[WATER_SHADER];
         load_shader(
@@ -424,12 +424,20 @@ void state_setup_all_shaders(struct state_t* gst) {
         
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
-       
-        //gst->fs_unilocs[WATER_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
 
+    // --- Setup Sky Shader ---
+    {
+        Shader* shader = &gst->shaders[SKY_SHADER];
+        load_shader(
+                "res/shaders/default.vs",
+                "res/shaders/sky.fs", shader);
+        
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+    }
 
-    // --- Setup Bloom Treshold Shader ---
+    // --- BLOOM_TRESHOLD_SHADER ---
     {
         Shader* shader = &gst->shaders[BLOOM_TRESHOLD_SHADER];
         *shader = LoadShader(
@@ -438,7 +446,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         );
     }
 
-    // --- Setup Bloom Treshold Shader ---
+    // --- BLOOM_BLUR_SHADER ---
     {
         Shader* shader = &gst->shaders[BLOOM_BLUR_SHADER];
         *shader = LoadShader(
@@ -449,18 +457,16 @@ void state_setup_all_shaders(struct state_t* gst) {
 
 
 
-    // --- Setup Gun FX Shader ---
+    // --- GUNFX_SHADER (for player) ---
     {
         Shader* shader = &gst->shaders[GUNFX_SHADER];
         *shader = LoadShader(
             "res/shaders/default.vs", /* use raylibs default vertex shader */ 
             "res/shaders/player_gunfx.fs"
         );
-        
-        //gst->fs_unilocs[GUNFX_SHADER_COLOR_FS_UNILOC] = GetShaderLocation(*shader, "player_gun_color");
     }
 
-    // --- Setup Enemy Gun FX Shader ---
+    // --- ENEMY_GUNFX_SHADER ---
     {
         Shader* shader = &gst->shaders[ENEMY_GUNFX_SHADER];
         *shader = LoadShader(
@@ -473,6 +479,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
 
+    // --- PLAYER_HIT_SHADER ---
     {
         Shader* shader = &gst->shaders[PLAYER_HIT_SHADER];
         load_shader(
@@ -487,7 +494,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
-    // --- Setup gbuffer shader ---
+    // --- GBUFFER_SHADER ---
     {
         Shader* shader = &gst->shaders[GBUFFER_SHADER];
         *shader = LoadShader(
@@ -496,7 +503,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         );
     }
 
-    // --- Setup gbuffer for instanced rendering ---
+    // --- GBUFFER_INSTANCE_SHADER ---
     {
         Shader* shader = &gst->shaders[GBUFFER_INSTANCE_SHADER];
         *shader = LoadShader(
@@ -510,7 +517,7 @@ void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
-    // --- Setup ssao shader ---
+    // --- SSAO_SHADER ---
     {
         Shader* shader = &gst->shaders[SSAO_SHADER];
         *shader = LoadShader(
@@ -519,7 +526,7 @@ void state_setup_all_shaders(struct state_t* gst) {
         );
     }
 
-    // --- Shader for upsampling ---
+    // --- SSAO_BLUR_SHADER ---
     {
         Shader* shader = &gst->shaders[SSAO_BLUR_SHADER];
         *shader = LoadShader(
@@ -803,9 +810,8 @@ void state_setup_all_psystems(struct state_t* gst) {
                 (Vector3){0}, (Vector3){0}, (Color){0},
                 NULL, NO_EXTRADATA, NO_IDB);
     }
-
-
 }
+
 
 void state_setup_all_textures(struct state_t* gst) {
 
@@ -821,7 +827,7 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
     load_texture(gst, "res/textures/leaf.jpg", LEAF_TEXID);
     load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
-    load_texture(gst, "res/textures/moss2.png", MOSS_TEXID);
+    load_texture(gst, "res/textures/moss2.png", TERRAIN_TEXID);
     load_texture(gst, "res/textures/grass.png", GRASS_TEXID);
     load_texture(gst, "res/textures/gun_fx.png", GUNFX_TEXID);
     load_texture(gst, "res/textures/apple_inv.png", APPLE_INV_TEXID);
@@ -834,12 +840,16 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/enemy_lvl1.png", ENEMY_LVL1_TEXID);
     
     SetTraceLogLevel(LOG_NONE);
+    
 
    
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
-    SetTextureWrap(gst->textures[MOSS_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
+    SetTextureWrap(gst->textures[TERRAIN_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[GRASS_TEXID], TEXTURE_WRAP_CLAMP);
+
+
+
 }
 
 
@@ -982,24 +992,17 @@ void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
 void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
     glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FOG_UBO]);
 
-    gst->render_bg_color = (Color) {
-        fog->color_far.r * 0.6,
-        fog->color_far.g * 0.6,
-        fog->color_far.b * 0.6,
-        255
-    };
-
-    float near_color4f[4] = {
-        (float)fog->color_near.r / 255.0,
-        (float)fog->color_near.g / 255.0,
-        (float)fog->color_near.b / 255.0,
+    float top_color4f[4] = {
+        (float)fog->color_top.r / 255.0,
+        (float)fog->color_top.g / 255.0,
+        (float)fog->color_top.b / 255.0,
         1.0
     };
 
-    float far_color4f[4] = {
-        (float)fog->color_far.r / 255.0,
-        (float)fog->color_far.g / 255.0,
-        (float)fog->color_far.b / 255.0,
+    float bottom_color4f[4] = {
+        (float)fog->color_bottom.r / 255.0,
+        (float)fog->color_bottom.g / 255.0,
+        (float)fog->color_bottom.b / 255.0,
         1.0
     };
 
@@ -1007,7 +1010,7 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
 
 
     if(fog->mode == FOG_MODE_TORENDERDIST) {
-        float test = 1.0 / (gst->render_dist-1000.0);
+        float test = 1.0 / (gst->render_dist-gst->render_dist/3);
         test = pow(test, exp(test));
         settings[0] = test;
     }
@@ -1024,10 +1027,10 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, settings);
 
     offset = 16;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, near_color4f);
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, top_color4f);
 
     offset = 32;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, far_color4f);
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, bottom_color4f);
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -1241,7 +1244,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
 
 
     // Strech water plane to match render distance.
-    gst->terrain.waterplane.transform = MatrixScale(gst->render_dist, 1.0, gst->render_dist);
+    gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);
 
     if(gst->fog.mode == FOG_MODE_TORENDERDIST) {
         set_fog_settings(gst, &gst->fog);
@@ -1273,37 +1276,4 @@ void resample_texture(struct state_t* gst,
     }
     EndTextureMode();
 }
-
-void state_gen_defnoise(struct state_t* gst) {
-
-    int width = 256;
-    int height = 256;
-    Color *pixels = (Color *)malloc(width*height*sizeof(Color));
-
-    for (int i = 0; i < width*height; i++) {
-        pixels[i] = (Color) {
-            GetRandomValue(0, 255),
-            GetRandomValue(0, 255),
-            GetRandomValue(0, 255),
-            255
-        };
-    }
-
-    Image image = (Image) {
-        .data = pixels,
-        .width = width,
-        .height = height,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
-        .mipmaps = 1
-    };
-
-    gst->defnoise_tex = LoadTextureFromImage(image);
-
-    free(pixels);
-
-
-    printf("%i\n", gst->defnoise_tex.id);
-}
-
-
 

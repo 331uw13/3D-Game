@@ -51,7 +51,7 @@
 #define TREEBARK_TEXID 7
 #define LEAF_TEXID 8
 #define ROCK_TEXID 9
-#define MOSS_TEXID 10
+#define TERRAIN_TEXID 10
 #define GRASS_TEXID 11
 #define GUNFX_TEXID 12
 #define APPLE_INV_TEXID 13
@@ -99,7 +99,8 @@
 #define SSAO_SHADER 15
 #define BLOOM_BLUR_SHADER 16
 #define SSAO_BLUR_SHADER 17
-#define MAX_SHADERS 18
+#define SKY_SHADER 18
+#define MAX_SHADERS 19
 // ...
  
 
@@ -194,9 +195,9 @@ struct gbuffer_t {
 
 struct fog_t {
     float density;
-    Color color_near;
-    Color color_far;
     int mode;
+    Color color_top;
+    Color color_bottom;
 };
 
 
@@ -212,8 +213,6 @@ struct state_t {
 
     struct fog_t fog;
     
-    Texture defnoise_tex;
-
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
 

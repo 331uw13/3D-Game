@@ -17,6 +17,8 @@ int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader
     struct file_t vertex_file    = { .data = NULL, .size = 0 };
 
 
+    printf("\033[36m-> Compile and link\033[90m (fragment)\033[34m'%s'\033[90m (vertex)\033[34m'%s'\033[0m\n",
+            fs_filename, vs_filename);
 
     // Errors are reported from functions.
 

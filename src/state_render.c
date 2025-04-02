@@ -77,16 +77,19 @@ static void _state_render_crithit_markers(struct state_t* gst) {
 void prepare_renderpass(struct state_t* gst, int renderpass) {
     
     int rp_shader_i;
+    int rp_shader_skybox_i;
     int rp_shader_foliage_i;
 
     if(renderpass == RENDERPASS_RESULT) {
         rp_shader_i = DEFAULT_SHADER;
         rp_shader_foliage_i = FOLIAGE_SHADER;
+        rp_shader_skybox_i = SKY_SHADER;
     }
     else
     if(renderpass == RENDERPASS_GBUFFER) {
         rp_shader_i = GBUFFER_SHADER;
         rp_shader_foliage_i = GBUFFER_INSTANCE_SHADER;
+        rp_shader_skybox_i = GBUFFER_SHADER;
     }
 
 
@@ -114,7 +117,7 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
 
     
     // Prepare "skybox"
-    gst->skybox.materials[0].shader = gst->shaders[rp_shader_i];
+    gst->skybox.materials[0].shader = gst->shaders[rp_shader_skybox_i];
 
     // Prepare items.
     for(size_t i = 0; i < MAX_ITEM_MODELS; i++) {
@@ -265,12 +268,13 @@ void state_render(struct state_t* gst) {
             rlDisableBackfaceCulling();
             DrawModel(gst->terrain.waterplane, 
                     (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
-                    1.0,
+                    gst->render_dist*2,
                     (Color){ 255, 255, 255, 255 });
             
             rlEnableBackfaceCulling();
         }
 
+        /*
         Color cube_color = (Color){ 0, 0, 0, 255 };
         rainbow_palette(sin(gst->time), &cube_color.r, &cube_color.g, &cube_color.b);
         DrawCubeV(test_cube_pos, (Vector3){ 30, 30, 30 }, cube_color);
@@ -286,6 +290,7 @@ void state_render(struct state_t* gst) {
         if(IsKeyDown(KEY_X)) {
             test_sphere_pos = gst->player.cam.position;
         }
+        */
 
         // Player Gun FX
         {
