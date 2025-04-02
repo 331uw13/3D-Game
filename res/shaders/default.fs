@@ -9,13 +9,11 @@ in vec3 fragNormal;
 
 // Input uniform values
 uniform sampler2D texture0;
-uniform sampler2D depth_texture;
 uniform vec4 colDiffuse;
 uniform float u_waterlevel;
 uniform float terrain_lowest_point;
 uniform float u_time;
 uniform vec3 u_campos;
-
 
 // Output fragment color
 out vec4 finalColor;
@@ -37,15 +35,15 @@ float mapt(float t, float src_min, float src_max, float dst_min, float dst_max) 
 void main()
 {
 
-    vec4 texelColor = texture(texture0, fragTexCoord);
+    vec4 texel_color = texture(texture0, fragTexCoord);
     vec3 normal = normalize(fragNormal);
     vec3 view_dir = normalize(u_campos - fragPosition);
 
   
     compute_lights(view_dir);
 
-    finalColor = (texelColor * ((colDiffuse + vec4(g_lightspecular, 1.0)) * vec4(g_lightcolor,1.0)));
-    finalColor.xyz += texelColor.xyz * AMBIENT;
+    finalColor = (texel_color * ((colDiffuse + vec4(g_lightspecular, 1.0)) * vec4(g_lightcolor,1.0)));
+    finalColor.xyz += texel_color.xyz * AMBIENT;
 
 
     vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
@@ -89,7 +87,6 @@ void main()
                 lerp(t, to.z, from.z)
                 );
     }
-
 
 
 

@@ -32,91 +32,38 @@ float lerp(float t, float min, float max) {
 
 #include "res/shaders/voronoi.glsl"
 
-#define BLOOM_SAMPLES 30.0
-#define BLOOM_POS_M 0.5
-#define BLOOM_ADD_M 0.6
-
-//vec3 get_bloom() {
-   
-    /*
-    vec2 texelsize = 1.0/(u_screen_size*0.35);
-    vec2 offset;
-
-    
-    offset = vec2(0, 0) * texelsize;
-    vec3 c0 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-
-    offset = vec2(1, 0) * texelsize;
-    vec3 c1 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-    
-    offset = vec2(-1, 0) * texelsize;
-    vec3 c2 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-    
-    offset = vec2(0, 1) * texelsize;
-    vec3 c3 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-
-    offset = vec2(0, -1) * texelsize;
-    vec3 c4 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-    
-    offset = vec2(1, 1) * texelsize;
-    vec3 c5 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-    
-    offset = vec2(1, -1) * texelsize;
-    vec3 c6 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-    
-    offset = vec2(-1, 1) * texelsize;
-    vec3 c7 = texture(u_bloomtresh_tex, fragTexCoord + offset).rgb;
-    
-
-    vec3 res = (c0+c1+c2+c3+c4+c5+c6+c7) / 9.0;
-
-    return res;
-    */
-    /*
-    vec3 result = vec3(0);
-    vec2 size = u_screen_size * 0.365;
-    vec2 sf = 1.0/(size * 2.0);
-    const int r = 4;
 
 
-    // TODO: Apply bloom based on depth.
-    // Issue: stuff blurred further away looks kind of bad
 
-    for(int x = -r; x <= r; x++) {
-        for(int y = -r; y <= r; y++) {
-            vec2 p = vec2(x, y) * BLOOM_POS_M;
-            result += BLOOM_ADD_M * texture(u_bloomtresh_tex, fragTexCoord + p * sf).rgb;
-        }     
-    }
+vec3 color_lerp(float t, vec3 a, vec3 b) {
+    return vec3(
+            lerp(t, a.r, b.r),
+            lerp(t, a.g, b.g),
+            lerp(t, a.b, b.b)
+            );
+}
 
+vec3 blur_ssao() {
 
-    for(int y = -r; y <= r; y++) {
-        for(int x = -r; x <= r; x++) {
-            vec2 p = vec2(x, y) * BLOOM_POS_M;
-            result += BLOOM_ADD_M * texture(u_bloomtresh_tex, fragTexCoord + p * sf).rgb;
-        }     
-    }
-
-
-    return (result / BLOOM_SAMPLES) * colDiffuse.rgb;
-    */
-//}
+    vec3 current = texture(ssao_texture, fragTexCoord).rgb;
+    return current;
+}
 
 
 
 void main()
 {
+    
+    //finalColor.rgb = blur_ssao(); finalColor.w = 1.0; return;
     //finalColor = texture(ssao_texture, fragTexCoord); return;
-
     //finalColor = texture(u_bloomtresh_tex, fragTexCoord); return;
 
 
-    vec2 texcoords = fragTexCoord;
-    vec3 color = texture(texture0, texcoords).rgb;
-
+    // Apply bloom.
+    vec3 color = texture(texture0, fragTexCoord).rgb;
     vec3 bloom = texture(u_bloomtresh_tex, fragTexCoord).rgb;
     color += bloom;
-    
+
 
     if(u_anygui_open == 1) {
         vec2 texelsize = 1.0/(u_screen_size*0.5);
@@ -138,15 +85,14 @@ void main()
     finalColor.xyz = color;
     
 
-
     if(u_ssao_enabled == 1 && u_anygui_open == 0) {
-        vec3 ao_col = color * texture(ssao_texture, fragTexCoord).rgb;
-        finalColor = vec4(ao_col, 1.0);
+        finalColor = vec4(color * texture(ssao_texture, fragTexCoord).rgb, 1.0);
     }
 
     finalColor.z += 0.025;
     // Gamma correction.
     finalColor.xyz = pow(finalColor.xyz, vec3(0.6));
+
 }
 
 

@@ -18,7 +18,7 @@ void main() {
 
 
     float near = 0.01;
-    float far = 3000.0;
+    float far = 300.0;
     float ndc = gl_FragCoord.z * 2.0 - 1.0;
     float ld = (2.0 * near * far) / (far + near - ndc * (far - near));
     gDepth = vec4(ld)/far;

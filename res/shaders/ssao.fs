@@ -1,7 +1,7 @@
 #version 430
 
 // IMPORTANT NOTE: This must be same as in 'src/state.h'
-#define SSAO_KERNEL_SIZE 32
+#define SSAO_KERNEL_SIZE 42
 
 uniform sampler2D u_gbuf_pos_tex;
 uniform sampler2D u_gbuf_norm_tex;
@@ -13,6 +13,7 @@ uniform mat4 u_camview_matrix;
 uniform mat4 u_camproj_matrix;
 uniform vec3 cam_pos;
 uniform vec2 u_screen_size;
+uniform float u_render_dist;
 
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -22,7 +23,7 @@ out vec4 finalColor;
 
 float ld(float depth) {
     float near = 0.01;     // NOTE: Remember to edit 'res/shaders/gbuffer.fs'
-    float far = 3000.0;    //       if changing these values.
+    float far = 300.0;    //       if changing these values.
     float ndc = depth * 2.0 - 1.0;
     return (2.0 * near * far) / (far + near - ndc * (far - near)) / far;
 }
@@ -36,18 +37,16 @@ float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
 void main() {
     float ao = 0.0;
 
-
     // Very bright objects should not appear on top of ambient occlusion.
     // Convert bloom treshold texture to gray scale and check if ssao should be applied.
-
     vec3 bloomtresh = texture(u_bloomtresh_tex, fragTexCoord).rgb;
     float bloom_scale = (bloomtresh.r + bloomtresh.g + bloomtresh.b)/3.0;
     if(bloom_scale >= 0.076) {
         finalColor = vec4(1.0);
         return;
     }
-
-    vec2 noise_scale = vec2(u_screen_size.x/8.0, u_screen_size.y/8.0);
+    
+    vec2 noise_scale = vec2(u_screen_size.x/10.0, u_screen_size.y/10.0);
 
     // Data from geometry buffer.
     vec3 frag_pos   = texture(u_gbuf_pos_tex, fragTexCoord).xyz;
@@ -66,10 +65,10 @@ void main() {
     
     float depth = texture(u_gbuf_depth_tex, fragTexCoord).x;
 
-    const float max_depth = 1200.0;
+    const float max_depth = u_render_dist;
 
     // map radius, closer should be less effect, further away more.
-    const float rad_near = 0.65;
+    const float rad_near = 0.25;
     const float rad_far = 2.5;
     float dt = (viewproj*vec4(frag_pos,1.0)).z;
 
@@ -92,12 +91,12 @@ void main() {
         offset.xyz /= offset.w;
         offset.xyz = offset.xyz * 0.5 + 0.5;
 
-        offset = clamp(offset, vec4(0.0), vec4(1.0));
+        //offset = clamp(offset, vec4(0.0), vec4(1.0));
         float sample_depth = texture(u_gbuf_depth_tex, offset.xy).x;
 
         // Range check.
         float tr = ld(frag_pos.z);
-        float rc = smoothstep(0.0, 1.0, radius/abs(tr - sample_depth));
+        float rc = smoothstep(0.0, 1.0, radius/abs(tr*tr - sample_depth*sample_depth));
 
         ao += ((sample_depth >= depth-ld(0.001)) ? 1.0 : 0.0) * rc;
     }
@@ -105,7 +104,7 @@ void main() {
     ao /= float(SSAO_KERNEL_SIZE);
     
     // Fade ssao effect.
-    float fade = (dt*dt)/(max_depth*max_depth);
+    float fade = (dt*dt*dt)/(max_depth*max_depth*dt);
     ao += fade;
 
     finalColor = vec4(ao, ao, ao, 1.0);

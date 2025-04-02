@@ -27,6 +27,7 @@ void main()
 
 
     int size = 10;
+    float weight_sum = 0.0;
 
     for(int x = -size; x <= size; x++) {
         for(int y = -size; y <= size; y++) {
@@ -36,10 +37,10 @@ void main()
             vec2 texelpos = fragTexCoord + off * texelsize;
             texelpos = clamp(texelpos, vec2(0.0), vec2(1.0));
             color += weight * texture(texture0, texelpos).rgb;
+        
+            weight_sum += weight;
         }
     }
-
-
 
     color /= (float(size)*float(size))*3.35;
 
