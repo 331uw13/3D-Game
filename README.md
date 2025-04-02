@@ -34,7 +34,7 @@
 * Projectile speed boost
 * Bigger projectiles
 * FMJ Projectile ability (projectiles go trough enemies)
-* Gravity projectiles (player also takes damage when fired)
+* Gravity projectiles (projectiles gravitate towards enemies, player also takes damage when fired)
 -------------
 ### Compiling the game.
 > [!NOTE]
