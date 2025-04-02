@@ -39,7 +39,7 @@ void main()
     col += (v * 0.25) * vec3(0.0, 0.3,0.3);
 
     float dist = length(u_campos - fragPosition);
-    col = get_fog(col, dist);
+    col = get_fog(col, dist, _YLEVEL);
 
     finalColor = vec4(col, 1.0);
 }

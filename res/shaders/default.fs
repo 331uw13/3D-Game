@@ -9,6 +9,8 @@ in vec3 fragNormal;
 
 // Input uniform values
 uniform sampler2D texture0;
+uniform sampler2D u_defnoise_tex;
+
 uniform vec4 colDiffuse;
 uniform float u_waterlevel;
 uniform float terrain_lowest_point;
@@ -23,13 +25,6 @@ out vec4 finalColor;
 
 
 
-float lerp(float t, float min, float max) {
-    return min + t * (max - min);
-}
-
-float mapt(float t, float src_min, float src_max, float dst_min, float dst_max) {
-    return (t - src_min) * (dst_max - dst_min) / (src_max - src_min) + dst_min;
-}
 
 
 void main()
@@ -39,6 +34,8 @@ void main()
     vec3 normal = normalize(fragNormal);
     vec3 view_dir = normalize(u_campos - fragPosition);
 
+    //float noise = voronoi3d(fragPosition*0.01).y * abs(voronoi3d(fragPosition*0.0002).x);
+    //texel_color.rgb += vec3(1.0, 0.3, 0.3) * noise;
   
     compute_lights(view_dir);
 
@@ -64,9 +61,9 @@ void main()
         vec3 from = vec3(0.0, 0.3, 0.4);
 
         finalColor.xyz += 0.5*vec3(
-                lerp(t, to.x, from.x),
-                lerp(t, to.y, from.y),
-                lerp(t, to.z, from.z)
+                _lerp(t, to.x, from.x),
+                _lerp(t, to.y, from.y),
+                _lerp(t, to.z, from.z)
                 ) * t;
     }
     else
@@ -82,17 +79,16 @@ void main()
         vec3 to = vec3(0.0, 0.3, 0.4);
 
         finalColor.xyz += 0.5*vec3(
-                lerp(t, to.x, from.x),
-                lerp(t, to.y, from.y),
-                lerp(t, to.z, from.z)
+                _lerp(t, to.x, from.x),
+                _lerp(t, to.y, from.y),
+                _lerp(t, to.z, from.z)
                 );
     }
 
 
 
     float dist = length(u_campos - fragPosition);
-    finalColor.xyz = get_fog(finalColor.rgb, dist);
-
+    finalColor.xyz = get_fog(finalColor.rgb, dist, _YLEVEL);
 }
 
 

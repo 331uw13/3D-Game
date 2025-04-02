@@ -56,7 +56,7 @@ void main()
 
 
     float dist = length(u_campos - fragPosition);
-    finalColor.xyz = get_fog(finalColor.rgb, dist);
+    finalColor.xyz = get_fog(finalColor.rgb, dist, _YLEVEL);
 
     finalColor.w = 0.46;
 }

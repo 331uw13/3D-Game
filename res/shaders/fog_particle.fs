@@ -23,7 +23,7 @@ void main()
    
     col = psystem_color.rgb;
     float dist = length(u_campos - fragPosition);
-    col = get_fog(col, dist);
+    col = get_fog(col, dist, _YLEVEL);
 
     finalColor = vec4(col, psystem_color.w);
 }
