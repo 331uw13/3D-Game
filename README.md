@@ -40,10 +40,13 @@
 > [!NOTE]
 > Raylib must be installed on your system.
 >
-> Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux
+> For Linux: Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux
+>
+> For Windows: Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-Windows
+
+#### Windows/Linux/macOS
 ```bash
 git clone https://github.com/331uw13/3D-Game.git
 cd 3D-Game
-chmod +x build.sh
-./build.sh
+make
 ```

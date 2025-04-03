@@ -1,101 +1,20 @@
 #include <stdio.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
 
 #include "glsl_preproc.h"
+#include "platform.h"
 
 // https://github.com/331uw13/CustomGLSLPreprocessor
-
-
-int read_file(struct file_t* file, const char* filename) {
-    int result = 0;
-
-    file->data = NULL;
-    file->size = 0;
-    file->ok = 0;
-    
-    if(access(filename, F_OK)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': File \"%s\" Not Found!\033[0m\n",
-                __func__, filename);
-        goto error;
-    }
-
-
-    int fd = open(filename, O_RDONLY);
-    if(fd <= 0) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': (open) \"%s\" %s\033[0m\n",
-                __func__, filename, strerror(errno));
-        goto error;
-    }
-
-    struct stat sb;    
-    if(fstat(fd, &sb) == -1) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': (fstat) \"%s\" %s\033[0m\n",
-                __func__, filename, strerror(errno));
-        goto error_and_close;
-    }
-
-
-    char* ptr = NULL;
-    ptr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if(!ptr) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': (mmap) \"%s\" %s\033[0m\n",
-                __func__, filename, strerror(errno));
-        goto error_and_close;
-    }
-
-    //printf("'%s' Read '%s'\n", __FILE__, filename);
-
-
-    file->data = NULL;
-    file->data = malloc(sb.st_size+1);
-    memset(file->data, 0, sb.st_size+1);
-    memmove(file->data, ptr, sb.st_size);
-
-
-    //printf("\033[90m%s\033[0m\n", file->data);
-
-
-    file->size = sb.st_size;
-    file->ok = FILEOK;
-    
-
-    result = 1;
-    munmap(ptr, sb.st_size);
-
-error_and_close:
-    close(fd);
-
-error:
-    return result;
-}
-
-
-void close_file(struct file_t* file) {
-    if(!file) {
-        return;
-    }
-    if(!file->data) {
-        return;
-    }
-
-    free(file->data);
-}
-
 
 static char* copypaste_content(
         char* code, 
         size_t* code_size,
         size_t includetag_index,   // Begin of #include "..."
         size_t includetag_end_index, // End of #include "..."
-        struct file_t* include_file
+        platform_file_t* include_file
 ){
-
     // Allocate memory to hold both files content.
     char* new_data = NULL;
     const size_t new_size = *code_size + include_file->size;
@@ -109,17 +28,14 @@ static char* copypaste_content(
 
     memset(new_data, 0, new_size);
 
-    // Copy eveything at the begining of data until 'index' (where "#include" was found).
-
+    // Copy everything at the beginning of data until 'index' (where "#include" was found).
     memmove(
             new_data,
             code,
             includetag_index
             );
 
-
     // Copy 'include_file' content to index.
-
     memmove(
             new_data + includetag_index,
             include_file->data,
@@ -127,13 +43,11 @@ static char* copypaste_content(
             );
 
     // Copy rest of the file to 'index + include_file->size'.
-
     memmove(
             new_data + (includetag_index + include_file->size),
             code + includetag_end_index,
             *code_size - includetag_end_index
             );
-
 
     *code_size += include_file->size;
 
@@ -141,13 +55,10 @@ error:
     return new_data;
 }
 
-
 #define INCLUDETAG "#include"
 #define PREPROC_TMPBUF_SIZE 64
 
-
-char* preproc_glsl(struct file_t* file, size_t* size_out) {
-
+char* preproc_glsl(platform_file_t* file, size_t* size_out) { 
     // Create copy of file's data to prevent double free.
     char* code = NULL;
     code = malloc(file->size);
@@ -158,7 +69,6 @@ char* preproc_glsl(struct file_t* file, size_t* size_out) {
     }
 
     memmove(code, file->data, file->size);
-
 
     size_t code_size = file->size;
 
@@ -196,7 +106,6 @@ discard_tmpbuf:
                 continue;
             }
 
-
             if(reading_totmp) {
                 if(tmpbuf_i >= PREPROC_TMPBUF_SIZE) {
                     goto discard_tmpbuf;
@@ -216,7 +125,6 @@ discard_tmpbuf:
             continue;
         }
 
-
         // Include tag is found. continue to read filename.
         // Start to read into 'tmpbuf' when " is found until another
         // or PREPROC_TMPBUF_SIZE is reached.
@@ -227,15 +135,14 @@ discard_tmpbuf:
                 continue;
             }            
 
-
             // Another " character was found. try to read the file content
             // and copy paste it in.
+            platform_file_t include_file = { 0 };
+            platform_init_file(&include_file);
 
-            struct file_t include_file = { .data = NULL, .size = 0, .ok = 0 };
-            if(!read_file(&include_file, tmpbuf)) {
+            if(!platform_read_file(&include_file, tmpbuf)) { 
                 goto error;
             }
-
 
             char* ptr = copypaste_content(
                     code,       // Current code.
@@ -243,18 +150,18 @@ discard_tmpbuf:
                     includetag_index, // Where #include "..." begins
                     i+1,            // Where #include "..." ends  +1 for last quatation mark.
                     &include_file
-                    );
+                    ); 
             if(!ptr) {
+                platform_close_file(&include_file); 
                 goto error;
             }
-
 
             free(code);
             code = ptr;
 
             i -= includetag_index;
 
-            close_file(&include_file);
+            platform_close_file(&include_file);
     
             includetag_found = 0;
             reading_totmp = 0;

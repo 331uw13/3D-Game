@@ -36,10 +36,10 @@ void* m_resize_array(void* ptr, size_t esizeb, size_t ptrsize, size_t newsize, l
 
     if((ptrsize < newsize) && (ptr != NULL)) {
         size_t amemsize = find_next_size(ptrsize, newsize);
-        result = reallocarray(ptr, esizeb, amemsize);
+        result = m_safe_reallocarray(ptr, amemsize, esizeb);
         if(result == NULL) {
             fprintf(stderr, 
-                    "\033[31m[ERROR]\033[0m %s | %s: 'reallocarray(ptr, esizeb, amemsize)' failed.\n"
+                    "\033[31m[ERROR]\033[0m %s | %s: 'm_safe_reallocarray(ptr, amemsize, esizeb)' failed.\n"
                     "ptr = %p | esizeb = %li | amemsize = %li\n"
                     "(errno:%i) %s\n",
                     __FILE__, __func__, ptr, esizeb, amemsize, errno, strerror(errno));
@@ -71,6 +71,14 @@ void* m_resize_array(void* ptr, size_t esizeb, size_t ptrsize, size_t newsize, l
 
 error:
     return result;
+}
+
+void *m_safe_reallocarray(void *ptr, size_t nmemb, size_t size) {
+    if (size && nmemb > SIZE_MAX / size) {
+        errno = ENOMEM;
+        return NULL;
+    }
+    return realloc(ptr, nmemb * size);
 }
 
 
