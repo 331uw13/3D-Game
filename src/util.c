@@ -5,6 +5,7 @@
 #include "util.h"
 #include "state.h"
 #include "glsl_preproc.h"
+#include "platform.h"
 
 #define _2PI 6.28318
 
@@ -13,19 +14,21 @@
 int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader) {
     int result = 0;
     
-    struct file_t fragment_file  = { .data = NULL, .size = 0 };
-    struct file_t vertex_file    = { .data = NULL, .size = 0 };
+    platform_file_t fragment_file = { 0 };
+    platform_file_t vertex_file = { 0 };
 
+    platform_init_file(&fragment_file);
+    platform_init_file(&vertex_file);
 
     printf("\033[36m-> Compile and link\033[90m (fragment)\033[34m'%s'\033[90m (vertex)\033[34m'%s'\033[0m\n",
             fs_filename, vs_filename);
 
     // Errors are reported from functions.
 
-    if(!read_file(&vertex_file, vs_filename)) {
+    if(!platform_read_file(&vertex_file, vs_filename)) {
         goto error;
     }
-    if(!read_file(&fragment_file, fs_filename)) {
+    if(!platform_read_file(&fragment_file, fs_filename)) {
         goto error_and_close;
     }
 
@@ -42,8 +45,8 @@ int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader
     result = 1;
 
 error_and_close:
-    close_file(&vertex_file);
-    close_file(&fragment_file);
+    platform_close_file(&vertex_file);
+    platform_close_file(&fragment_file);
 
 error:
     return result;

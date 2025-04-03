@@ -1,0 +1,35 @@
+# Build outputs
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.so
+*.dll
+*.a
+*.lib
+*.dylib
+game.exe
+
+# Cache and temporary files
+.cache/
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# Debug files
+debug/
+*.debug
+*.pdb
+*.idb
+*.ilk
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 
