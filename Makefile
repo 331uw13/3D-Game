@@ -10,10 +10,8 @@ SRCS := $(filter-out src/platform/platform_%.c,$(shell find src -name "*.c"))
 ifeq ($(OS),Windows_NT)
     TARGET := $(TARGET_NAME).exe
     PLATFORM_SRC = src/platform/platform_win.c
-    CFLAGS += -DPLATFORM_DESKTOP
-    
+  
     LIBS += -lraylib -lopengl32 -lgdi32 -lwinmm -static
-    RM = del /Q
     TARGET_PATH = $(subst /,\,$(TARGET))
     define CLEAN_CMD
 	@rm -f $(TARGET_PATH) 2>/dev/null || true
@@ -24,7 +22,6 @@ else
     # Assume Unix-like (Linux, macOS)
     TARGET := $(TARGET_NAME)
     PLATFORM_SRC = src/platform/platform_unix.c
-    CFLAGS += -DPLATFORM_DESKTOP
 
     LIBS += -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 # TODO: should link x11 in mac? 
     RM = rm -f
