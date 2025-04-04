@@ -38,10 +38,10 @@ void weapon_psys_prj_update(
         return;
     }
 
+    call_prjmods_update(gst, psys, part);
 
 
-
-   
+    /*
     if((gst->player.powerup_levels[POWERUP_GRAVITY_PROJECTILES] > 0.0)
     && (weapon->gid == PLAYER_WEAPON_GID)) {
 
@@ -92,51 +92,8 @@ void weapon_psys_prj_update(
 
             part->velocity = Vector3Scale(part->velocity, pow(0.999, gst->dt*TARGET_FPS));
         }
-
-
-        /*
-        // Projectiles gravitate towards enemies.
-        if(weapon->gid == PLAYER_WEAPON_GID) {
-
-            short* prj_ent_target     = part->user_p[PWRUP_PRJ_GRAVITY_POINT_P];
-            short* has_gravity_target = &part->user_i[PWRUP_PRJ_HAS_GRAVITY_TARGET_I];
-            
-            if(!*has_gravity_target) {
-                
-                float closest = 99999999;
-                //Vector3 point;
-
-                for(size_t i = 0; i < gst->num_enemies; i++) {
-                    float pdiste = Vector3Distance(gst->enemies[i].position, part->position);
-                    if(!gst->enemies[i].alive) {
-                        continue;
-                    }
-
-                    if(closest > pdiste) {
-                        closest = pdiste;
-                        //point = gst->enemies[i].position;
-                        *has_gravity_target = 1;
-                        part->user_p[PWRUP_PRJ_GRAVITY_POINT_P] = &gst->enemies[i].position;
-                        prj_gravity_point = gst->enemies[i].position;
-                    }
-                }
-            }
-
-            if(*has_gravity_target) {
-                float ent_mass = 20.0;
-                float part_mass = 0.5;
-
-                float dist = Vector3Distance(*prj_gravity_point, part->position);
-                Vector3 dir = Vector3Subtract(*prj_gravity_point, part->position);
-                float mag = ((ent_mass * part_mass)*0.2) / (dist * dist);
-
-                dir = Vector3Scale(dir, mag);
-
-                part->velocity = Vector3Add(part->velocity, dir);
-            }
-        }
-        */
     }
+    */
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
@@ -176,6 +133,7 @@ void weapon_psys_prj_update(
 
     if(t_hit.point.y >= part->position.y) {
         env_hit = 1;
+        call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
 
@@ -211,7 +169,8 @@ void weapon_psys_prj_update(
                 enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, 0.35);
                 env_hit = 1;
 
-
+                call_prjmods_enemy_hit(gst, psys, part, enemy);
+                /*
                 const int sharper_prj_level = round(gst->player.powerup_levels[POWERUP_FMJPRJ_ABILITY]);
                 if((sharper_prj_level > 0) && (part->user_i[PWRUP_ENT_PASSED_I] < sharper_prj_level)) {
                     env_hit = 0;
@@ -222,6 +181,7 @@ void weapon_psys_prj_update(
                     part->position.z += part->velocity.z * (hitbox->size.z*1.5);
                     part->user_i[PWRUP_ENT_PASSED_I]++;
                 }
+                */
             }
         }
     }
@@ -303,4 +263,5 @@ void weapon_psys_prj_init(
             (Vector3){0}, (Vector3){0}, (Color){0},
             part, HAS_EXTRADATA, NO_IDB);
 
+    call_prjmods_init(gst, psys, part);
 }

@@ -8,6 +8,7 @@
 #include "item.h"
 #include "powerup.h"
 #include "enemy.h"
+#include "projectile_mod/prjmod.h"
 
 struct state_t;
 
@@ -33,6 +34,7 @@ struct state_t;
 #define DISABLE_AIM_WHEN_RELEASED 0
 #define DISABLE_AIM_WHEN_MOUSERIGHT 1
 
+#define MAX_PRJMOD_INDICES 64
 
 struct player_t {
 
@@ -141,6 +143,10 @@ struct player_t {
     float health_normalized;
 
     int kills[MAX_ENEMY_TYPES];
+
+    struct prjmod_t* prjmods;
+    size_t num_prjmods;
+    long int prjmod_indices[MAX_PRJMOD_INDICES];
 
     struct weapon_t  weapon; // Weapon stats.
     //struct psystem_t weapon_psys;

@@ -190,7 +190,7 @@ void state_setup_render_targets(struct state_t* gst) {
 
 static void load_texture(struct state_t* gst, const char* filepath, int texid) {
     if(texid >= MAX_TEXTURES) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Texture id is invalid. (%i) for '%s'\033[0m\n",
+        fprintf(stderr, "\033[31m(ERROR) '%s': Texture id is invalid. (%i) for '%s' (out of bounds?)\033[0m\n",
                 __func__, texid, filepath);
         return;
     }
@@ -285,7 +285,7 @@ void state_update_frame(struct state_t* gst) {
     update_items(gst);
     update_decay_lights(gst);
     update_inventory(gst, &gst->player);
-    
+    update_npc(gst, &gst->npc);
     player_update(gst, &gst->player);
 
     // Update xp level.
@@ -838,6 +838,8 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/player_skin.png", PLAYER_SKIN_TEXID);
     load_texture(gst, "res/textures/gun_metal.png", METAL2_TEXID);
     load_texture(gst, "res/textures/enemy_lvl1.png", ENEMY_LVL1_TEXID);
+    load_texture(gst, "res/textures/mushroom_body.png", MUSHROOM_BODY_TEXID);
+    load_texture(gst, "res/textures/mushroom_hat.png", MUSHROOM_HAT_TEXID);
     
     SetTraceLogLevel(LOG_NONE);
     

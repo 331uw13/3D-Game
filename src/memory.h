@@ -21,10 +21,11 @@ void* m_resize_array
       (void* ptr, size_t esizeb, size_t ptrsize, size_t newsize, long int* nsize_ptr);
 
 
-#endif
 
 
 // safe reallocarray function
 // windows don't have reallocarray this wrapper is used to avoid
 // overflow in multiplication
 void *m_safe_reallocarray(void *ptr, size_t nmemb, size_t size);
+
+#endif

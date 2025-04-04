@@ -143,3 +143,8 @@ float get_volume_dist(Vector3 player_pos, Vector3 sound_pos) {
             0.0, MAX_VOLUME_DIST);
     return CLAMP(1.0 - (dst / MAX_VOLUME_DIST), 0.0, 0.6);
 }
+
+// https://easings.net
+float inout_cubic(float x) {
+    return x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2;
+}

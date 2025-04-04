@@ -167,7 +167,7 @@ void cleanup(struct state_t* gst) {
    
     delete_terrain(&gst->terrain);
     delete_player(&gst->player);
-
+    delete_prjmods(gst);
     state_delete_all_textures(gst);
     state_delete_all_shaders(gst);
     state_delete_all_psystems(gst);
@@ -187,6 +187,7 @@ void cleanup(struct state_t* gst) {
     UnloadRenderTexture(gst->gbuf_norm_up);
     UnloadRenderTexture(gst->gbuf_depth_up);
 
+    delete_npc(&gst->npc);
 
     for(int i = 0; i < NUM_BLOOM_DOWNSAMPLES; i++) {
         UnloadRenderTexture(gst->bloom_downsamples[i]);
@@ -271,13 +272,12 @@ void first_setup(struct state_t* gst) {
     state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
     
-    printf("Screen/Window size: %0.0fx%0.0f\n", gst->screen_size.x, gst->screen_size.y);
-    printf("Render resolution: %ix%i\n", gst->res_x, gst->res_y);
+    printf("Screen size: %0.0fx%0.0f\n", gst->screen_size.x, gst->screen_size.y);
     
     state_setup_gbuffer(gst);
     state_setup_ssao(gst);
     state_setup_render_targets(gst);
-
+    setup_npc(gst, &gst->npc);
 
     gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
     gst->skybox.materials[0] = LoadMaterialDefault();

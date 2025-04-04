@@ -14,7 +14,7 @@
 #include "item.h"
 #include "gui.h"
 #include "shader_util.h"
-
+#include "npc.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -62,7 +62,9 @@
 #define PLAYER_HANDS_TEXID 18
 #define METAL2_TEXID 19
 #define ENEMY_LVL1_TEXID 20
-#define MAX_TEXTURES 21
+#define MUSHROOM_HAT_TEXID 21
+#define MUSHROOM_BODY_TEXID 22
+#define MAX_TEXTURES 23
 // ...
 
 
@@ -216,8 +218,6 @@ struct state_t {
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
 
-    // REMOVE THIS:
-
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
 
@@ -227,6 +227,8 @@ struct state_t {
 
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
+
+    struct npc_t npc;
 
     //struct spawn_system_t spawnsys;
     struct ent_spawnsys_t enemy_spawn_systems[MAX_ENEMY_TYPES];

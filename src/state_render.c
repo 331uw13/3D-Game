@@ -76,16 +76,10 @@ static void _state_render_crithit_markers(struct state_t* gst) {
 
 void prepare_renderpass(struct state_t* gst, int renderpass) {
     
-    int rp_shader_i;
-    int rp_shader_skybox_i;
-    int rp_shader_foliage_i;
+    int rp_shader_i = DEFAULT_SHADER;
+    int rp_shader_skybox_i = SKY_SHADER;
+    int rp_shader_foliage_i = FOLIAGE_SHADER;
 
-    if(renderpass == RENDERPASS_RESULT) {
-        rp_shader_i = DEFAULT_SHADER;
-        rp_shader_foliage_i = FOLIAGE_SHADER;
-        rp_shader_skybox_i = SKY_SHADER;
-    }
-    else
     if(renderpass == RENDERPASS_GBUFFER) {
         rp_shader_i = GBUFFER_SHADER;
         rp_shader_foliage_i = GBUFFER_INSTANCE_SHADER;
@@ -99,7 +93,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
             gst->enemy_models[i].materials[0].shader = gst->shaders[rp_shader_i];
         }
     }
-
 
     // Prepare terrain and foliage.
     gst->terrain.material.shader = gst->shaders[rp_shader_i];
@@ -123,6 +116,12 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     for(size_t i = 0; i < MAX_ITEM_MODELS; i++) {
         gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
     }
+
+
+    // Prepare npc
+
+    gst->npc.model.materials[0].shader = gst->shaders[rp_shader_i];
+    gst->npc.model.materials[1].shader = gst->shaders[rp_shader_i];
 }
 
 
@@ -157,6 +156,8 @@ static void render_scene(struct state_t* gst, int renderpass) {
     render_terrain(gst, &gst->terrain);
     render_player(gst, &gst->player);
     render_items(gst);
+
+    render_npc(gst, &gst->npc);
 }
 
 

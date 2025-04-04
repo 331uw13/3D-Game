@@ -7,7 +7,7 @@
 #include "util.h"
 
 #include "particle_systems/weapon_psys.h"
-
+#include "projectile_mod/prjmod_test.h"
 
 
 static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
@@ -115,6 +115,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         .can_be_dropped = 0,
         .inv_tex = LoadTexture("res/textures/gun_inv.png")
     };
+    inv_add_item(gst, p, &p->gun_item);
 
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
@@ -134,7 +135,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         p->inventory.items[i] = NULL;
     }
 
-    inv_add_item(gst, p, &p->gun_item);
+    for(size_t i = 0; i < MAX_PRJMOD_INDICES; i++) {
+        p->prjmod_indices[i] = -1;
+    }
 
 
     // Calculate matrices for when player is aiming and not aiming.
@@ -153,6 +156,18 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         p->gunmodel_aim_offset_m 
             = MatrixTranslate(0.3, 0.3, -0.6);
     }
+
+
+    struct prjmod_t prjmod_test = (struct prjmod_t) {
+        .enemy_hit_callback  = prjmod_test__enemy_hit,
+        .env_hit_callback    = prjmod_test__env_hit,
+        .init_callback       = prjmod_test__init,
+        .update_callback     = prjmod_test__update,
+    };
+
+    add_prjmod(gst, &prjmod_test, PRJMOD_TEST_ID);
+
+    
 }
 
 void delete_player(struct player_t* p) {

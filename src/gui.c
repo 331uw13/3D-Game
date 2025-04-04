@@ -5,6 +5,8 @@
 #include "state.h"
 #include "util.h"
 
+#include "projectile_mod/prjmod_test.h"
+#include "projectile_mod/prjmod_fmj_ability.h"
 
 #define EXTRA_OFF_H 10.0    // How much extra space for Height
 #define EXTRA_OFF_W 30.0   // How much extra space for Width
@@ -421,10 +423,21 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
 
+    if(gui_button(gst, "Spawn NPC", 15.0, btn_pos)) {
+        gst->npc.position = (Vector3){
+            gst->player.position.x + RSEEDRANDOMF(-30, 30),
+            0,
+            gst->player.position.z + RSEEDRANDOMF(-30, 30)
+        };
+        gst->npc.active = 1;
+    }
+    btn_pos.y += btn_y_inc;
+
+
 
     const float spawn_rad = 300.0;
 
-    if(gui_button(gst, "Enemy LVL0", 15.0, btn_pos)) {
+    if(gui_button(gst, "Spawn Enemy LVL0", 15.0, btn_pos)) {
         spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, (Vector3){
                     gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
                     0,
@@ -433,7 +446,7 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
 
-    if(gui_button(gst, "Enemy LVL1", 15.0, btn_pos)) {
+    if(gui_button(gst, "Spawn Enemy LVL1", 15.0, btn_pos)) {
         spawn_enemy(gst, ENEMY_LVL1, ENT_FRIENDLY, (Vector3){
                     gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
                     0,
@@ -442,7 +455,51 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
 
-    gui_checkbox(gst, "Render player gun (for debug)", 20.0, btn_pos, &gst->player.render);
+
+
+    if(gui_button(gst, "add_prjmod id 0(test)", 15.0, btn_pos)) {
+        struct prjmod_t mod = (struct prjmod_t) {
+            .init_callback = prjmod_test__init,
+            .update_callback = prjmod_test__update,
+            .enemy_hit_callback = prjmod_test__enemy_hit,
+            .env_hit_callback = prjmod_test__env_hit
+        };
+        add_prjmod(gst, &mod, PRJMOD_TEST_ID);
+    }
+    btn_pos.y += btn_y_inc;
+
+    if(gui_button(gst, "add_prjmod id 1(fmj ability)", 15.0, btn_pos)) { 
+        struct prjmod_t mod = (struct prjmod_t) {
+            .init_callback = prjmod_fmj__init,
+            .update_callback = prjmod_fmj__update,
+            .enemy_hit_callback = prjmod_fmj__enemy_hit,
+            .env_hit_callback = prjmod_fmj__env_hit
+        };
+        add_prjmod(gst, &mod, PRJMOD_FMJ_ABILITY_ID);
+    }
+    btn_pos.y += btn_y_inc;
+
+
+    if(gui_button(gst, "rem_prjmod id 0(test)", 15.0, btn_pos)) {
+        rem_prjmod(gst, PRJMOD_TEST_ID);
+    }
+    btn_pos.y += btn_y_inc;
+
+    if(gui_button(gst, "rem_prjmod id 1(fmj ability)", 15.0, btn_pos)) {
+        rem_prjmod(gst, PRJMOD_FMJ_ABILITY_ID);
+    }
+    btn_pos.y += btn_y_inc;
+
+    /*
+
+    // FOR TESTING
+    if(IsKeyPressed(KEY_B)) {
+        rem_prjmod(gst, PRJMOD_TEST_ID);
+    }
+    if(IsKeyPressed(KEY_L)) {
+    }
+       */
+    //gui_checkbox(gst, "Render player gun (for debug)", 20.0, btn_pos, &gst->player.render);
 
     /*
     if(gui_button(gst, "RenderDist++", 15.0, btn_pos)) {
