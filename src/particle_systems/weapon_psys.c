@@ -1,16 +1,13 @@
-#include "weapon_psys.h"
-#include <raymath.h>
 #include <stdio.h>
+
+#include "weapon_psys.h"
+
+
 #include "../state.h"
 #include "../util.h"
 #include "../enemy.h"
 
-
-// For player's powerups.
-
-#define PWRUP_ENT_PASSED_I 0             // For: 'particle->user_i' Used by 'POWERUP_FMJPRJ_ABILITY'
-#define PWRUP_PRJ_HAS_GRAVITY_TARGET_I 1 // For: 'partilce->user_i' Used by 'POWERUP_GRAVITY_PROJECTILES'
-#define PWRUP_PRJ_GRAVITY_TARGET_I 0     // For: 'particle->user_i' Used by 'POWERUP_GRAVITY_PROJECTILES'
+#include <raymath.h>
 
 
 static void disable_projectile(struct state_t* gst, struct particle_t* part) {
@@ -38,7 +35,6 @@ void weapon_psys_prj_update(
         return;
     }
 
-    call_prjmods_update(gst, psys, part);
 
 
     /*
@@ -94,6 +90,8 @@ void weapon_psys_prj_update(
         }
     }
     */
+    
+    call_prjmods_update(gst, psys, part);
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
@@ -125,14 +123,14 @@ void weapon_psys_prj_update(
 
 
 
-    int env_hit = 0;
+    int disable_prj = 0;
 
     // Check collision with terrain
 
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
 
     if(t_hit.point.y >= part->position.y) {
-        env_hit = 1;
+        disable_prj = 1;
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
@@ -165,15 +163,18 @@ void weapon_psys_prj_update(
 
             struct hitbox_t* hitbox = check_collision_hitboxes(&part_boundingbox, enemy);
             if(hitbox) {
-                float damage = get_weapon_damage(weapon);
-                enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, 0.35);
-                env_hit = 1;
-
-                call_prjmods_enemy_hit(gst, psys, part, enemy);
+                int cancel_defdamage = 0;
+                disable_prj = call_prjmods_enemy_hit(gst, psys, part, enemy, hitbox, &cancel_defdamage);
+                
+                if(!cancel_defdamage) {
+                    float damage = get_weapon_damage(weapon);
+                    float knockback = 0.35;
+                    enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, knockback);
+                }
                 /*
                 const int sharper_prj_level = round(gst->player.powerup_levels[POWERUP_FMJPRJ_ABILITY]);
                 if((sharper_prj_level > 0) && (part->user_i[PWRUP_ENT_PASSED_I] < sharper_prj_level)) {
-                    env_hit = 0;
+                    disable_prj = 0;
                     // Skip the current hitbox that was hit.
                     // because the particle will not be disabled now.
                     part->position.x += part->velocity.x * (hitbox->size.x*1.5);
@@ -191,11 +192,11 @@ void weapon_psys_prj_update(
 
         if(CheckCollisionBoxes(part_boundingbox, get_player_boundingbox(&gst->player))) {
             player_damage(gst, &gst->player, get_weapon_damage(weapon));
-            env_hit = 1;
+            disable_prj = 1;
         }
     }
 
-    if(env_hit) {
+    if(disable_prj) {
         add_particles(gst,
                 &gst->psystems[PROJECTILE_ENVHIT_PSYS],
                 1,

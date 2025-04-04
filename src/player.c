@@ -14,10 +14,9 @@ static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
     *acc_mod = CLAMP(*acc_mod, 0.0, WEAPON_ACCURACY_MAX - acc_control);
 }
 
-void init_player_struct(struct state_t* gst, struct player_t* p) {
-    p->render = 1; 
-    // -- Movement stats -----
-    
+static void set_player_default_stats(struct player_t* p) {
+
+    // Movement
     p->walkspeed = 20.0;
     p->run_speed_mult = 1.85;
     p->air_speed_mult = 1.5;
@@ -27,9 +26,39 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->air_friction = 0.001;
     p->dash_speed = 400.0;
     p->dash_timer_max = 4.0;
-    // ------------------------
 
-    //p->xp = 999999;
+    // Armor and health
+
+    p->max_health = 300.0;
+    p->health = p->max_health;
+
+
+    // Weapon stuff
+    
+    p->accuracy_modifier = 0.0;
+    p->accuracy_control = 0.0;
+    p->firerate = 0.1;
+
+    for(size_t i = 0; i < MAX_POWERUP_TYPES; i++) {
+        p->powerup_levels[i] = 0.0;
+    }
+
+    // Misc
+
+    // (skip first because it is the gun.)
+    for(size_t i = 1; i < INV_SIZE; i++) {
+        p->inventory.items[i] = NULL;
+    }
+
+    for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
+        p->kills[i] = 0;
+    }
+
+    p->xp = 0;
+}
+
+void init_player_struct(struct state_t* gst, struct player_t* p) {
+    p->render = 1; 
     
 
     p->cam = (Camera){ 0 };
@@ -62,7 +91,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->speed = 0.0;
     p->onground = 1;
     p->num_jumps_inair = 0;
-    p->max_jumps = 2;
 
     p->gun_draw_timer = 0.0;
     p->gun_draw_speed = 8.3;
@@ -72,13 +100,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->recoil_strength = 0.0;
     p->recoil_in_progress = 0;
 
-    p->max_health = 300.0;
-    p->health = p->max_health;
     p->alive = 1;
-    p->accuracy_modifier = 0.0;
-    p->accuracy_control = 0.0;
     p->time_from_last_shot = 0.0;
-    p->firerate = 0.1;
     p->firerate_timer = 0.0;
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->powerup_shop.open = 0;
@@ -108,15 +131,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
        
 
 
-    p->gun_item = (struct item_t) {
-        .rarity = ITEM_SPECIAL,
-        .type = -1,
-        .consumable = 0,
-        .can_be_dropped = 0,
-        .inv_tex = LoadTexture("res/textures/gun_inv.png")
-    };
-    inv_add_item(gst, p, &p->gun_item);
-
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
     p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
@@ -127,18 +141,19 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         p->kills[i] = 0;
     }
 
-    for(size_t i = 0; i < NUM_POWERUPS; i++) {
-        p->powerup_levels[i] = 0;
-    }
-
-    for(size_t i = 0; i < INV_SIZE; i++) {
-        p->inventory.items[i] = NULL;
-    }
-
     for(size_t i = 0; i < MAX_PRJMOD_INDICES; i++) {
         p->prjmod_indices[i] = -1;
     }
 
+
+    p->gun_item = (struct item_t) {
+        .rarity = ITEM_SPECIAL,
+        .type = -1,
+        .consumable = 0,
+        .can_be_dropped = 0,
+        .inv_tex = LoadTexture("res/textures/gun_inv.png")
+    };
+    inv_add_item(gst, p, &p->gun_item);
 
     // Calculate matrices for when player is aiming and not aiming.
     
@@ -157,17 +172,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             = MatrixTranslate(0.3, 0.3, -0.6);
     }
 
+    set_player_default_stats(p);
 
-    struct prjmod_t prjmod_test = (struct prjmod_t) {
-        .enemy_hit_callback  = prjmod_test__enemy_hit,
-        .env_hit_callback    = prjmod_test__env_hit,
-        .init_callback       = prjmod_test__init,
-        .update_callback     = prjmod_test__update,
-    };
-
-    add_prjmod(gst, &prjmod_test, PRJMOD_TEST_ID);
-
-    
 }
 
 void delete_player(struct player_t* p) {
@@ -376,7 +382,6 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     if(p->alive) {
         return;
     }
-    p->health = p->max_health;
     p->alive = 1;
     p->is_aiming = 0;
     p->ready_to_shoot = 0;
@@ -384,16 +389,16 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     p->velocity = (Vector3){0, 0, 0};
     p->ext_force_vel = (Vector3){0, 0, 0};
     p->ext_force_acc = (Vector3){0, 0, 0};
-    p->xp = 0;
-    
-    for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
-        p->kills[i] = 0;
-    }
    
+    set_player_default_stats(p);
+
+
     for(size_t i = 0; i < gst->num_enemies; i++) {
         gst->enemies[i].alive = 0;
     }
 
+
+    delete_prjmods(gst);
     setup_default_enemy_spawn_settings(gst);
 
     DisableCursor();

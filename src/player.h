@@ -15,6 +15,8 @@ struct state_t;
 
 #define ABS_MAX_ARMOR 20
 #define ABS_MAX_HEALTH 1000
+
+#define MAX_DEFAULT_HEALTH 200
 #define MAX_DEFAULT_ARMOR  3
 #define DEFAULT_ARMOR_DAMAGE_DAMPEN 0.765
 
@@ -77,7 +79,7 @@ struct player_t {
     int      is_aiming;
     int      alive;
 
-    int powerup_levels[NUM_POWERUPS];
+    int powerup_levels[MAX_POWERUP_TYPES];
 
     float armor;
     float max_armor;

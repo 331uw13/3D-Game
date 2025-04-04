@@ -12,12 +12,7 @@ struct state_t;
 struct psystem_t;
 struct particle_t;
 struct enemy_t;
-
-// "Return flag" should be returned from functions
-// for 'weapon_psys_prj_update' to know what to do next.
-#define PRJMOD_RF_NONE 0       // Projectile is disabled after it hit something.
-#define PRJMOD_RF_NODISABLE 1  // Projectile is not disabled after it hit something.
-// (more can be added here if needed..)
+struct hitbox_t;
 
 // NOTE:
 //  When calling 'add_prjmod()', it will return index where it was created
@@ -30,21 +25,22 @@ struct enemy_t;
 
 
 struct prjmod_t {
-    
-    // Set to positive number if you want to handle damage to enemies by yourself
-    int cancel_damage;
 
-    // NOTE: Function pointers may be set to NULL if they are not used.
+    // NOTE:
+    //  * Function pointers may be set to NULL if they are not used.
+    //  * If 'enemy_hit' function return value is positive number  projectile is disabled after hit.
 
     int(*enemy_hit_callback)( // (Called after enemy hit was handled).
             struct state_t*,
             struct psystem_t*,  // Projectile's particle system.
             struct particle_t*, // Current projectile.
-            struct enemy_t*
+            struct enemy_t*,
+            struct hitbox_t*,
+            int* // Cancel default damage?
             );
 
     // Environment hit.
-    int(*env_hit_callback)(
+    void(*env_hit_callback)(
             struct state_t*,
             struct psystem_t*,
             struct particle_t*,
@@ -52,20 +48,20 @@ struct prjmod_t {
             );
 
     // Called once when projectile is initialized.
-    int(*init_callback)(
+    void(*init_callback)(
             struct state_t*,
             struct psystem_t*,
             struct particle_t*
             );
 
     // Called every frame when projectile is updated.
-    int(*update_callback)(
+    void(*update_callback)(
             struct state_t*,
             struct psystem_t*,
             struct particle_t*
             );
 
-    size_t  index;  // Index in 'player.prjmods' array
+    long int id;
 };
 
 struct prjmod_index_t {
@@ -81,8 +77,9 @@ void   delete_prjmods(struct state_t* gst);
 
 void   call_prjmods_update    (struct state_t* gst, struct psystem_t* psys, struct particle_t* part);
 void   call_prjmods_init      (struct state_t* gst, struct psystem_t* psys, struct particle_t* part);
-void   call_prjmods_enemy_hit (struct state_t* gst, struct psystem_t* psys, struct particle_t* part, struct enemy_t* ent);
 void   call_prjmods_env_hit   (struct state_t* gst, struct psystem_t* psys, struct particle_t* part, Vector3 normal);
+int    call_prjmods_enemy_hit (struct state_t* gst, struct psystem_t* psys, struct particle_t* part, 
+        struct enemy_t* ent, struct hitbox_t* hitbox, int* cancel_defdamage);
 
 #endif
 

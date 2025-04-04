@@ -33,6 +33,7 @@ size_t add_prjmod(struct state_t* gst, struct prjmod_t* prjmod, size_t id) {
     struct prjmod_t* ptr = &gst->player.prjmods[prjmod_index];
     memmove(ptr, prjmod, sizeof *ptr);
 
+    ptr->id = id;
     gst->player.prjmod_indices[id] = (long int)prjmod_index; 
     gst->player.num_prjmods++;
 
@@ -72,7 +73,12 @@ void rem_prjmod(struct state_t* gst, size_t prjmod_id) {
     }
 
 
-    if(prjmod_index > 0 && (prjmod_index+1 < gst->player.num_prjmods)) {
+    for(size_t i = prjmod_index; i < gst->player.num_prjmods-1; i++) {
+        gst->player.prjmods[i] = gst->player.prjmods[i+1];
+        gst->player.prjmod_indices[gst->player.prjmods[i].id]--;
+    }
+    /*
+    if(prjmod_index > 0 && (prjmod_index+1 < (long int)gst->player.num_prjmods)) {
         memmove(
                 &gst->player.prjmods[prjmod_index-1],
                 &gst->player.prjmods[prjmod_index],
@@ -86,18 +92,20 @@ void rem_prjmod(struct state_t* gst, size_t prjmod_id) {
                 &gst->player.prjmods[0],
                 &gst->player.prjmods[1],
                 (gst->player.num_prjmods - 1) * sizeof *gst->player.prjmods
-
                 );
     }
+    */
 
     gst->player.prjmod_indices[prjmod_id] = -1;
 
-    // Indices have been shifted.
+    /*
+    // Shift indices.
     for(size_t i = 0; i < gst->player.num_prjmods; i++) {
         if(gst->player.prjmod_indices[i] > 0) {
             gst->player.prjmod_indices[i]--;
         }
     }
+    */
     gst->player.num_prjmods--;
 
     printf("Removed prjmod %li from index %li\n", prjmod_id, prjmod_index);
@@ -111,7 +119,7 @@ void delete_prjmods(struct state_t* gst) {
 
     free(gst->player.prjmods);
     gst->player.prjmods = NULL;
-
+    gst->player.num_prjmods = 0;
     printf("\033[35m -> Deleted Projectile modifiers\033[0m\n");
 }
 
@@ -136,14 +144,6 @@ void call_prjmods_init(struct state_t* gst, struct psystem_t* psys, struct parti
     }
 }
 
-void call_prjmods_enemy_hit(struct state_t* gst, struct psystem_t* psys, struct particle_t* part, struct enemy_t* ent) {
-    for(size_t i = 0; i < gst->player.num_prjmods; i++) {
-        struct prjmod_t* prjmod = &gst->player.prjmods[i];
-        if(prjmod->enemy_hit_callback) {
-            prjmod->enemy_hit_callback(gst, psys, part, ent);
-        }
-    }
-}
 
 void call_prjmods_env_hit(struct state_t* gst, struct psystem_t* psys, struct particle_t* part, Vector3 normal) {
     for(size_t i = 0; i < gst->player.num_prjmods; i++) {
@@ -154,3 +154,14 @@ void call_prjmods_env_hit(struct state_t* gst, struct psystem_t* psys, struct pa
     }
 }
 
+int call_prjmods_enemy_hit(struct state_t* gst, struct psystem_t* psys, struct particle_t* part, 
+        struct enemy_t* ent, struct hitbox_t* hitbox, int* cancel_defdamage) {
+    int disable_prj = 1;
+    for(size_t i = 0; i < gst->player.num_prjmods; i++) {
+        struct prjmod_t* prjmod = &gst->player.prjmods[i];
+        if(prjmod->enemy_hit_callback) {
+            disable_prj = prjmod->enemy_hit_callback(gst, psys, part, ent, hitbox, cancel_defdamage);
+        }
+    }
+    return disable_prj;
+}

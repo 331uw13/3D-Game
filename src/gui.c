@@ -7,6 +7,7 @@
 
 #include "projectile_mod/prjmod_test.h"
 #include "projectile_mod/prjmod_fmj_ability.h"
+#include "projectile_mod/prjmod_gravity.h"
 
 #define EXTRA_OFF_H 10.0    // How much extra space for Height
 #define EXTRA_OFF_W 30.0   // How much extra space for Width
@@ -391,7 +392,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
 
 
     Vector2 ptext_pos = (Vector2){ gst->res_x-500, 20 };
-    for(int i = 0; i < NUM_POWERUPS; i++) {
+    for(int i = 0; i < MAX_POWERUP_TYPES; i++) {
         struct powerup_t* powerup = &gst->player.powerup_shop.powerups[i];
 
         DrawTextEx(gst->font,
@@ -415,13 +416,15 @@ void gui_render_devmenu(struct state_t* gst) {
 
 
     const float btn_y_inc = 34.0;
-    Vector2 btn_pos = (Vector2){ 80, 150 };
+    const float space_y = 20.0;
+    Vector2 btn_pos = (Vector2){ 100, 150 };
 
 
     if(gui_button(gst, "Telport to zero", 15.0, btn_pos)) {
         gst->player.cam.position = (Vector3){ 0, 0, 0 };
     }
     btn_pos.y += btn_y_inc;
+    btn_pos.y += space_y;
 
     if(gui_button(gst, "Spawn NPC", 15.0, btn_pos)) {
         gst->npc.position = (Vector3){
@@ -456,6 +459,7 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
+    btn_pos.y += space_y;
 
     if(gui_button(gst, "add_prjmod id 0(test)", 15.0, btn_pos)) {
         struct prjmod_t mod = (struct prjmod_t) {
@@ -476,8 +480,22 @@ void gui_render_devmenu(struct state_t* gst) {
             .env_hit_callback = prjmod_fmj__env_hit
         };
         add_prjmod(gst, &mod, PRJMOD_FMJ_ABILITY_ID);
+        gst->player.powerup_levels[POWERUP_FMJPRJ_ABILITY] = 2.0;
     }
     btn_pos.y += btn_y_inc;
+
+    if(gui_button(gst, "add_prjmod id 2(gravity prj)", 15.0, btn_pos)) { 
+        struct prjmod_t mod = (struct prjmod_t) {
+            .init_callback      = prjmod_gravity__init,
+            .update_callback    = prjmod_gravity__update,
+            .enemy_hit_callback = prjmod_gravity__enemy_hit,
+            .env_hit_callback   = prjmod_gravity__env_hit
+        };
+        add_prjmod(gst, &mod, PRJMOD_GRAVITY_PRJ_ID);
+    }
+    btn_pos.y += btn_y_inc;
+
+    btn_pos.y += space_y/2;
 
 
     if(gui_button(gst, "rem_prjmod id 0(test)", 15.0, btn_pos)) {
@@ -490,27 +508,11 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
 
-    /*
-
-    // FOR TESTING
-    if(IsKeyPressed(KEY_B)) {
-        rem_prjmod(gst, PRJMOD_TEST_ID);
-    }
-    if(IsKeyPressed(KEY_L)) {
-    }
-       */
-    //gui_checkbox(gst, "Render player gun (for debug)", 20.0, btn_pos, &gst->player.render);
-
-    /*
-    if(gui_button(gst, "RenderDist++", 15.0, btn_pos)) {
-        set_render_dist(gst, gst->render_dist+200);
+    if(gui_button(gst, "rem_prjmod id 2(graivty prj)", 15.0, btn_pos)) {
+        rem_prjmod(gst, PRJMOD_GRAVITY_PRJ_ID);
     }
     btn_pos.y += btn_y_inc;
-    
-    if(gui_button(gst, "RenderDist--", 15.0, btn_pos)) {
-        set_render_dist(gst, gst->render_dist-200);
-    }
-    btn_pos.y += btn_y_inc;
-    */
+
+
 }
 

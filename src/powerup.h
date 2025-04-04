@@ -46,7 +46,7 @@
 #define POWERUP_GRAVITY_PROJECTILES 11
 
 
-#define NUM_POWERUPS 12
+#define MAX_POWERUP_TYPES 12
 #define NUM_POWERUP_OFFERS 4
 
 struct powerup_t {
@@ -64,7 +64,7 @@ struct powerup_shop_t {
     int selected_index; // If set to negative value, nothing is selected.
     struct powerup_t offers[NUM_POWERUP_OFFERS];
 
-    struct powerup_t powerups[NUM_POWERUPS];
+    struct powerup_t powerups[MAX_POWERUP_TYPES];
 };
 
 struct state_t;

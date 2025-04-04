@@ -206,7 +206,7 @@ void update_powerup_shop_offers(struct state_t* gst) {
     struct powerup_shop_t* shop = &gst->player.powerup_shop;
 
     for(int i = 0; i < NUM_POWERUP_OFFERS; i++) {
-        int powerup_type = GetRandomValue(0, NUM_POWERUPS-1);
+        int powerup_type = GetRandomValue(0, MAX_POWERUP_TYPES-1);
         shop->offers[i] = shop->powerups[powerup_type];
     }
     gst->player.powerup_shop.selected_index = -1;
