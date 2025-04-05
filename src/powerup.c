@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "powerup.h"
 #include "state.h"
 
+#include "projectile_mod/prjmod_fmj_ability.h"
+#include "projectile_mod/prjmod_gravity.h"
+#include "projectile_mod/prjmod_cloudburst.h"
 
 
 #include "util.h"
@@ -97,6 +101,22 @@ void set_powerup_defaults(struct state_t* gst, struct powerup_shop_t* shop) {
         .max_level = 1,
         .name = "Gravity projectiles\0"
     };
+
+    shop->powerups[POWERUP_RECOIL_CONTROL] = (struct powerup_t) {
+        .type = POWERUP_RECOIL_CONTROL,
+        .xp_cost = 135,
+        .xp_cost_mult = 2.25,
+        .max_level = 4,
+        .name = "Better recoil control\0"
+    };
+
+    shop->powerups[POWERUP_PRJ_CLOUDBURST] = (struct powerup_t) {
+        .type = POWERUP_PRJ_CLOUDBURST,
+        .xp_cost = 1000,
+        .xp_cost_mult = 1.0,
+        .max_level = 1,
+        .name = "Projectile cloudburst\0"
+    };
 }
 
 void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_type) {
@@ -117,8 +137,6 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
     player->powerup_levels[powerup_type]++;
 
     switch(powerup_type) {
-
-        // Common powerups
 
         case POWERUP_ACCURACY_BOOST:
             {
@@ -156,7 +174,7 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
 
         case POWERUP_DAMAGE_BOOST:
             {
-                player->weapon.damage += 7.525;
+                player->weapon.damage += 5.5;
             }
             break;
 
@@ -166,7 +184,6 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
             }
             break;
 
-            // Rare powerups
         case POWERUP_BURST_FIRE:
             {
             }
@@ -183,7 +200,11 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
             break;
 
 
-        // Special powerups
+        case POWERUP_RECOIL_CONTROL:
+            {
+                player->recoil_control += 0.175;
+            }
+            break;
         
         case POWERUP_HEALTH_REGEN:
             {
@@ -191,24 +212,79 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
             break;
 
         case POWERUP_FMJPRJ_ABILITY:
-            {
-                // ( Only powerup level is used )
+            if(!prjmod_exists(gst, PRJMOD_FMJ_ABILITY_ID)) {
+                struct prjmod_t mod = (struct prjmod_t) {
+                    .init_callback = prjmod_fmj__init,
+                    .update_callback = prjmod_fmj__update,
+                    .enemy_hit_callback = prjmod_fmj__enemy_hit,
+                    .env_hit_callback = prjmod_fmj__env_hit
+                };
+                add_prjmod(gst, &mod, PRJMOD_FMJ_ABILITY_ID);
             }
             break;
 
+        case POWERUP_GRAVITY_PROJECTILES:
+            if(!prjmod_exists(gst, PRJMOD_GRAVITY_PRJ_ID)) {
+                struct prjmod_t mod = (struct prjmod_t) {
+                    .init_callback      = prjmod_gravity__init,
+                    .update_callback    = prjmod_gravity__update,
+                    .enemy_hit_callback = prjmod_gravity__enemy_hit,
+                    .env_hit_callback   = prjmod_gravity__env_hit
+                };
+                add_prjmod(gst, &mod, PRJMOD_GRAVITY_PRJ_ID);
+            }
+            break;
 
+        case POWERUP_PRJ_CLOUDBURST:
+            if(!prjmod_exists(gst, PRJMOD_CLOUDBURST_ID)) {
+                struct prjmod_t mod = (struct prjmod_t) {
+                    .init_callback      = prjmod_cloudburst__init,
+                    .update_callback    = prjmod_cloudburst__update,
+                    .enemy_hit_callback = prjmod_cloudburst__enemy_hit,
+                    .env_hit_callback   = prjmod_cloudburst__env_hit
+                };
+                add_prjmod(gst, &mod, PRJMOD_CLOUDBURST_ID);
+            }
+            break;
     }
 
 }
 
+static int get_new_offer_type(struct powerup_shop_t* shop) {
+    int offer_type = 0;
+
+    int attemps = 0;
+    const int max_attemps = 1000;
+    while(attemps < max_attemps) {
+        offer_type = GetRandomValue(0, MAX_POWERUP_TYPES-1);
+        int offer_is_new = 1;
+
+        for(int i = 0; i < NUM_POWERUP_OFFERS; i++) {
+            if(shop->prev_offers[i].type == offer_type) {
+                offer_is_new = 0;
+                break;
+            }
+        }
+
+        if(offer_is_new) {
+            break;
+        }
+
+        printf("'%s': offer was not new, retrying\n", __func__);
+    }
+
+    return offer_type;
+}
 
 void update_powerup_shop_offers(struct state_t* gst) {
     struct powerup_shop_t* shop = &gst->player.powerup_shop;
 
+
     for(int i = 0; i < NUM_POWERUP_OFFERS; i++) {
-        int powerup_type = GetRandomValue(0, MAX_POWERUP_TYPES-1);
-        shop->offers[i] = shop->powerups[powerup_type];
+        shop->offers[i] = shop->powerups[get_new_offer_type(shop)];
     }
+    
+    memmove(shop->prev_offers, shop->offers, sizeof *shop->offers);
     gst->player.powerup_shop.selected_index = -1;
 }
 

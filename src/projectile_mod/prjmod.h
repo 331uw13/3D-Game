@@ -22,7 +22,7 @@ struct hitbox_t;
 #define PRJMOD_TEST_ID 0
 #define PRJMOD_FMJ_ABILITY_ID 1
 #define PRJMOD_GRAVITY_PRJ_ID 2
-
+#define PRJMOD_CLOUDBURST_ID 3
 
 struct prjmod_t {
 
@@ -73,7 +73,9 @@ struct prjmod_index_t {
 // Returns the index where the prjmod was added in 'player.prjmods' array
 size_t add_prjmod(struct state_t* gst, struct prjmod_t* prjmod, size_t prjmod_id);
 void   rem_prjmod(struct state_t* gst, size_t prjmod_id);
+int    prjmod_exists(struct state_t* gst, size_t prjmod_id);
 void   delete_prjmods(struct state_t* gst);
+
 
 void   call_prjmods_update    (struct state_t* gst, struct psystem_t* psys, struct particle_t* part);
 void   call_prjmods_init      (struct state_t* gst, struct psystem_t* psys, struct particle_t* part);

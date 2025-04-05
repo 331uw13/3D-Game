@@ -77,40 +77,29 @@ void rem_prjmod(struct state_t* gst, size_t prjmod_id) {
         gst->player.prjmods[i] = gst->player.prjmods[i+1];
         gst->player.prjmod_indices[gst->player.prjmods[i].id]--;
     }
-    /*
-    if(prjmod_index > 0 && (prjmod_index+1 < (long int)gst->player.num_prjmods)) {
-        memmove(
-                &gst->player.prjmods[prjmod_index-1],
-                &gst->player.prjmods[prjmod_index],
-                (gst->player.num_prjmods - prjmod_index) * sizeof *gst->player.prjmods
-                );
-    }
-    else
-    if(prjmod_index == 0) {
-        // Removing first element. Shift all elements from right to begining.
-        memmove(
-                &gst->player.prjmods[0],
-                &gst->player.prjmods[1],
-                (gst->player.num_prjmods - 1) * sizeof *gst->player.prjmods
-                );
-    }
-    */
-
     gst->player.prjmod_indices[prjmod_id] = -1;
-
-    /*
-    // Shift indices.
-    for(size_t i = 0; i < gst->player.num_prjmods; i++) {
-        if(gst->player.prjmod_indices[i] > 0) {
-            gst->player.prjmod_indices[i]--;
-        }
-    }
-    */
     gst->player.num_prjmods--;
 
     printf("Removed prjmod %li from index %li\n", prjmod_id, prjmod_index);
 
 }
+
+int prjmod_exists(struct state_t* gst, size_t prjmod_id) {
+    int result = 0;
+
+    if(prjmod_id >= MAX_PRJMOD_INDICES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid id\033[0m\n",
+                __func__);
+        goto error;
+    }
+
+    long int prjmod_index = gst->player.prjmod_indices[prjmod_id];
+
+    result = (prjmod_index >= 0);
+error:
+    return result;
+}
+
 
 void delete_prjmods(struct state_t* gst) {
     if(!gst->player.prjmods) {
@@ -124,7 +113,6 @@ void delete_prjmods(struct state_t* gst) {
 }
 
 
-// TODO: this could be cleaned up a bit.
 
 void call_prjmods_update(struct state_t* gst, struct psystem_t* psys, struct particle_t* part) {
     for(size_t i = 0; i < gst->player.num_prjmods; i++) {
@@ -143,7 +131,6 @@ void call_prjmods_init(struct state_t* gst, struct psystem_t* psys, struct parti
         }
     }
 }
-
 
 void call_prjmods_env_hit(struct state_t* gst, struct psystem_t* psys, struct particle_t* part, Vector3 normal) {
     for(size_t i = 0; i < gst->player.num_prjmods; i++) {

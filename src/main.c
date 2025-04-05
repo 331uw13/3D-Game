@@ -236,7 +236,7 @@ void first_setup(struct state_t* gst) {
     gst->menu_open = 0;
     gst->running = 1;
     gst->ssao_enabled = 1;
-
+    gst->xp_update_done = 1;
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
     init_shaderutil(gst);

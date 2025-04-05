@@ -12,6 +12,12 @@ struct state_t;
 #define PSYS_NO_COLOR_VBO 0xFFFF
 
 
+#define PSYS_MAX_USER_I 16
+#define PSYS_MAX_USER_F 8
+#define PSYS_MAX_USER_V 4
+#define PSYS_MAX_USER_P 4
+
+
 struct particle_t {
     
     Vector3 velocity;
@@ -48,10 +54,10 @@ struct particle_t {
     int has_light;
     int last_update;
 
-    short   user_i[16];
-    float   user_f[4];
-    Vector3 user_v[4];
-    void*   user_p[4];
+    short   user_i[PSYS_MAX_USER_I];
+    float   user_f[PSYS_MAX_USER_F];
+    Vector3 user_v[PSYS_MAX_USER_V];
+    void*   user_p[PSYS_MAX_USER_P];
 
     int idb; // Behaviour ID.
 };
@@ -121,6 +127,12 @@ struct psystem_t {
     size_t color_vbo_size;
     unsigned int color_vbo;
 
+
+    short   user_i[PSYS_MAX_USER_I];
+    float   user_f[PSYS_MAX_USER_F];
+    Vector3 user_v[PSYS_MAX_USER_V];
+    void*   user_p[PSYS_MAX_USER_P];
+    
 };
 
 
@@ -150,7 +162,8 @@ void psystem_set_idb(struct psystem_t* psys, int id, size_t num);
 void update_psystem(struct state_t* gst, struct psystem_t* psys);
 void render_psystem(struct state_t* gst, struct psystem_t* psys, Color global_psys_color);
 
-void add_particles(
+// Pointer to particle that has been added is only returned if n is 1
+struct particle_t* add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
         size_t n, /* Particles to be added */

@@ -5,10 +5,6 @@
 #include "state.h"
 #include "util.h"
 
-#include "projectile_mod/prjmod_test.h"
-#include "projectile_mod/prjmod_fmj_ability.h"
-#include "projectile_mod/prjmod_gravity.h"
-
 #define EXTRA_OFF_H 10.0    // How much extra space for Height
 #define EXTRA_OFF_W 30.0   // How much extra space for Width
 
@@ -246,11 +242,14 @@ void gui_render_menu_screen(struct state_t* gst) {
 
 void gui_render_powerup_shop(struct state_t* gst) {
     struct powerup_shop_t* shop = &gst->player.powerup_shop;
-   
+  
+    /*
     BeginShaderMode(gst->shaders[POWERUP_SHOP_BG_SHADER]);
     DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 0, 0, 0, 255 });
     EndShaderMode();
-
+    */
+    
+    DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 52, 32, 10, 150 });
     const float offer_btn_space = 50.0;
 
     Vector2 shop_size = (Vector2) {
@@ -302,11 +301,12 @@ void gui_render_powerup_shop(struct state_t* gst) {
         const float offer_font_size = 20.0;
         const float space_xpcost_text = 180.0;
         Vector2 name_size = MeasureTextEx(gst->font, powerup->name, offer_font_size, FONT_SPACING);
-        
+
+        int max_level = (gst->player.powerup_levels[powerup->type] >= powerup->max_level);
         int can_afford = 
-               (gst->xp_value_add == 0)
+               (gst->xp_update_done)
             && (powerup->xp_cost <= gst->player.xp)
-            && (gst->player.powerup_levels[powerup->type] < powerup->max_level);
+            && !max_level;
 
 
         Color ln_color = unavailable_color;
@@ -330,7 +330,7 @@ void gui_render_powerup_shop(struct state_t* gst) {
                 ln_color);
 
         DrawTextEx(gst->font,
-                TextFormat("%i", powerup->xp_cost),
+                max_level ? "(Max)" : TextFormat("%i", powerup->xp_cost),
                 (Vector2){
                     shop_pos.x - 5,
                     offer_btn_y
@@ -459,59 +459,6 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
-    btn_pos.y += space_y;
-
-    if(gui_button(gst, "add_prjmod id 0(test)", 15.0, btn_pos)) {
-        struct prjmod_t mod = (struct prjmod_t) {
-            .init_callback = prjmod_test__init,
-            .update_callback = prjmod_test__update,
-            .enemy_hit_callback = prjmod_test__enemy_hit,
-            .env_hit_callback = prjmod_test__env_hit
-        };
-        add_prjmod(gst, &mod, PRJMOD_TEST_ID);
-    }
-    btn_pos.y += btn_y_inc;
-
-    if(gui_button(gst, "add_prjmod id 1(fmj ability)", 15.0, btn_pos)) { 
-        struct prjmod_t mod = (struct prjmod_t) {
-            .init_callback = prjmod_fmj__init,
-            .update_callback = prjmod_fmj__update,
-            .enemy_hit_callback = prjmod_fmj__enemy_hit,
-            .env_hit_callback = prjmod_fmj__env_hit
-        };
-        add_prjmod(gst, &mod, PRJMOD_FMJ_ABILITY_ID);
-        gst->player.powerup_levels[POWERUP_FMJPRJ_ABILITY] = 2.0;
-    }
-    btn_pos.y += btn_y_inc;
-
-    if(gui_button(gst, "add_prjmod id 2(gravity prj)", 15.0, btn_pos)) { 
-        struct prjmod_t mod = (struct prjmod_t) {
-            .init_callback      = prjmod_gravity__init,
-            .update_callback    = prjmod_gravity__update,
-            .enemy_hit_callback = prjmod_gravity__enemy_hit,
-            .env_hit_callback   = prjmod_gravity__env_hit
-        };
-        add_prjmod(gst, &mod, PRJMOD_GRAVITY_PRJ_ID);
-    }
-    btn_pos.y += btn_y_inc;
-
-    btn_pos.y += space_y/2;
-
-
-    if(gui_button(gst, "rem_prjmod id 0(test)", 15.0, btn_pos)) {
-        rem_prjmod(gst, PRJMOD_TEST_ID);
-    }
-    btn_pos.y += btn_y_inc;
-
-    if(gui_button(gst, "rem_prjmod id 1(fmj ability)", 15.0, btn_pos)) {
-        rem_prjmod(gst, PRJMOD_FMJ_ABILITY_ID);
-    }
-    btn_pos.y += btn_y_inc;
-
-    if(gui_button(gst, "rem_prjmod id 2(graivty prj)", 15.0, btn_pos)) {
-        rem_prjmod(gst, PRJMOD_GRAVITY_PRJ_ID);
-    }
-    btn_pos.y += btn_y_inc;
 
 
 }

@@ -14,7 +14,6 @@ void prjmod_fmj__init(struct state_t* gst, struct psystem_t* psys, struct partic
 }
 
 void prjmod_fmj__update(struct state_t* gst, struct psystem_t* psys, struct particle_t* part) {
-
 }
 
 

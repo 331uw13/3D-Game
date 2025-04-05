@@ -215,7 +215,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
     };
     
     shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &resolution);
-    shader_setu_vec2(gst, POWERUP_SHOP_BG_SHADER,  U_SCREEN_SIZE, &resolution);
     shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &resolution);
     
 
@@ -224,7 +223,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, FOLIAGE_SHADER,         U_TIME, &gst->time);
     shader_setu_float(gst, POSTPROCESS_SHADER,     U_TIME, &gst->time);
     shader_setu_float(gst, WATER_SHADER,           U_TIME, &gst->time);
-    shader_setu_float(gst, POWERUP_SHOP_BG_SHADER, U_TIME, &gst->time);
 
     // Update water level
     shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
@@ -288,22 +286,28 @@ void state_update_frame(struct state_t* gst) {
     update_npc(gst, &gst->npc);
     player_update(gst, &gst->player);
 
-    // Update xp level.
-    if(gst->xp_value_add != 0) {
+
+    if(!gst->xp_update_done) {
+        
         gst->xp_update_timer += gst->dt;
-
         if(gst->xp_update_timer >= 0.001) {
-            gst->xp_update_timer = 0.0;
-
-            if(gst->xp_value_add > 0) {
-                gst->player.xp++;
-                gst->xp_value_add--;
+           
+            if(gst->xp_update_target < gst->player.xp) {
+                gst->player.xp -= gst->xp_update_add;
+                if(gst->player.xp <= gst->xp_update_target) {
+                    gst->player.xp = gst->xp_update_target;
+                    gst->xp_update_done = 1;
+                }
             }
             else {
-                gst->player.xp--;
-                gst->xp_value_add++;
+                gst->player.xp += gst->xp_update_add;
+                if(gst->player.xp >= gst->xp_update_target) {
+                    gst->player.xp = gst->xp_update_target;
+                    gst->xp_update_done = 1;
+                }
             }
         }
+
     }
 }
 
@@ -338,14 +342,6 @@ void state_setup_all_shaders(struct state_t* gst) {
         gst->fs_unilocs[POSTPROCESS_CAMTARGET_FS_UNILOC] = GetShaderLocation(*shader, "cam_target");
         gst->fs_unilocs[POSTPROCESS_CAMPOS_FS_UNILOC] = GetShaderLocation(*shader, "cam_pos");
         */
-    }
-
-    // --- POWERUP_SHOP_BG_SHADER ---
-    {
-        Shader* shader = &gst->shaders[POWERUP_SHOP_BG_SHADER];
-        load_shader(
-                "res/shaders/default.vs",
-                "res/shaders/powerup_shop_bg.fs", shader);
     }
 
     // --- PRJ_ENVHIT_PSYS_SHADER ---
@@ -874,6 +870,7 @@ void state_setup_all_sounds(struct state_t* gst) {
     gst->sounds[PLAYER_HIT_SOUND] = LoadSound("res/audio/playerhit.wav");
     gst->sounds[ENEMY_EXPLOSION_SOUND] = LoadSound("res/audio/enemy_explosion.wav");
     gst->sounds[POWERUP_SOUND] = LoadSound("res/audio/powerup.wav");
+    gst->sounds[CLOUDBURST_SOUND] = LoadSound("res/audio/cloudburst.wav");
     
 
     SetMasterVolume(30.0);
@@ -1012,7 +1009,7 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
 
 
     if(fog->mode == FOG_MODE_TORENDERDIST) {
-        float test = 1.0 / (gst->render_dist-gst->render_dist/3);
+        float test = 1.0 / (gst->render_dist-gst->render_dist/2.0);
         test = pow(test, exp(test));
         settings[0] = test;
     }

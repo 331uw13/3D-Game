@@ -103,6 +103,20 @@ void create_psystem(
     psys->halt = 0;
     psys->first_render = 1;
     psys->enabled = 1;
+
+
+    for(size_t i = 0; i < PSYS_MAX_USER_I; i++) {
+        psys->user_i[i] = 0;
+    }
+    for(size_t i = 0; i < PSYS_MAX_USER_F; i++) {
+        psys->user_f[i] = 0;
+    }
+    for(size_t i = 0; i < PSYS_MAX_USER_V; i++) {
+        psys->user_v[i] = (Vector3){0};
+    }
+    for(size_t i = 0; i < PSYS_MAX_USER_P; i++) {
+        psys->user_p[i] = NULL;
+    }
 }
 
 void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys) {
@@ -319,7 +333,7 @@ static struct particle_t* _add_particle(struct psystem_t* psys) {
     return p;
 }
 
-void add_particles(
+struct particle_t* add_particles(
         struct state_t* gst,
         struct psystem_t* psys,
         size_t n, /* particles to be added */
@@ -331,6 +345,7 @@ void add_particles(
         int idb
         )
 {
+    struct particle_t* first_part = NULL;
 
     for(size_t i = 0; i < n; i++) {
         struct particle_t* p = _add_particle(psys);
@@ -349,9 +364,13 @@ void add_particles(
                 extradata_ptr,
                 (has_extradata && extradata_ptr)
                 );
+        if(n == 1) {
+            first_part = p;
+        }
     }
 
     psys->num_alive_parts = n;
+    return first_part;
 }
 
 void disable_particle(struct state_t* gst, struct particle_t* p) {

@@ -146,16 +146,23 @@ struct player_t {
 
     int kills[MAX_ENEMY_TYPES];
 
+    // Some powerups may change player's projectile behaviour.
     struct prjmod_t* prjmods;
     size_t num_prjmods;
     long int prjmod_indices[MAX_PRJMOD_INDICES];
 
-    struct weapon_t  weapon; // Weapon stats.
-    //struct psystem_t weapon_psys;
-    float accuracy_modifier; // Used to decrease accuracy if shooting rapidly.
-    float accuracy_control; // 'WEAPON_ACCURACY_MIN' to 'WEAPON_ACCURACY_MAX'. 
-                            //  higher number means better accuracy control
+    // Weapon stats.
+    struct weapon_t weapon;
     
+    // Used to decrease accuracy if shooting rapidly.
+    // Range: WEAPON_ACCURACY_MIN - WEAPON_ACCURACY_MAX
+    float accuracy_modifier;
+    
+    // How fast the accuracy will decrease if shooting rapidly?
+    // Range: 0.0 - 1.0
+    float recoil_control;
+
+
     float time_from_last_shot;
 
     float gunfx_timer;

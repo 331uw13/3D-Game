@@ -43,11 +43,17 @@
 // Projectiles go through enemies.
 #define POWERUP_FMJPRJ_ABILITY 10
 
+// Projectiles gravitate towards enemies.
 #define POWERUP_GRAVITY_PROJECTILES 11
 
+#define POWERUP_RECOIL_CONTROL 12
 
-#define MAX_POWERUP_TYPES 12
-#define NUM_POWERUP_OFFERS 4
+// Projectiles fall from the sky sometimes.
+#define POWERUP_PRJ_CLOUDBURST 13
+
+
+#define MAX_POWERUP_TYPES 14
+#define NUM_POWERUP_OFFERS 5 
 
 struct powerup_t {
     int type;
@@ -62,8 +68,9 @@ struct powerup_t {
 struct powerup_shop_t {
     int open;
     int selected_index; // If set to negative value, nothing is selected.
-    struct powerup_t offers[NUM_POWERUP_OFFERS];
-
+    struct powerup_t      offers[NUM_POWERUP_OFFERS];
+    struct powerup_t prev_offers[NUM_POWERUP_OFFERS]; // Save previous offers so they cant be the same.
+    
     struct powerup_t powerups[MAX_POWERUP_TYPES];
 };
 

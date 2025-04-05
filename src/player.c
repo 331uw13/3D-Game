@@ -9,10 +9,8 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
+#define NOCLIP_SPEED 10
 
-static void _clamp_accuracy_modifier(float* acc_mod, float acc_control) {
-    *acc_mod = CLAMP(*acc_mod, 0.0, WEAPON_ACCURACY_MAX - acc_control);
-}
 
 static void set_player_default_stats(struct player_t* p) {
 
@@ -36,7 +34,7 @@ static void set_player_default_stats(struct player_t* p) {
     // Weapon stuff
     
     p->accuracy_modifier = 0.0;
-    p->accuracy_control = 0.0;
+    p->recoil_control = 0.0;
     p->firerate = 0.1;
 
     for(size_t i = 0; i < MAX_POWERUP_TYPES; i++) {
@@ -54,13 +52,12 @@ static void set_player_default_stats(struct player_t* p) {
         p->kills[i] = 0;
     }
 
-    p->xp = 0;
+    p->xp = 9999999;
 }
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->render = 1; 
     
-
     p->cam = (Camera){ 0 };
     p->cam.position = gst->terrain.valid_player_spawnpoint;
     p->cam.target = (Vector3){ 0, 0, 0 };
@@ -221,9 +218,10 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     p->recoil_in_progress = 1;
 
     p->time_from_last_shot = 0.0;
-    p->accuracy_modifier += 0.45;
+    p->accuracy_modifier += 0.45 * (1.0-p->recoil_control);
 
-    _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
+    p->accuracy_modifier = CLAMP(p->accuracy_modifier, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX);
+    //_clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
 
 
     p->gun_light.strength += 0.025;
@@ -300,8 +298,14 @@ void player_heal(struct state_t* gst, struct player_t* p, float heal) {
 }
 
 void player_add_xp(struct state_t* gst, int xp) {
-    gst->xp_value_add += xp;
     gst->xp_update_timer = 0.0;
+    gst->xp_update_target = gst->player.xp + xp;
+    gst->xp_update_done = 0;
+
+    int value_add = round(map(fabs((float)xp), 0, 10000, 1.0, 10.0));
+    gst->xp_update_add = value_add;
+
+    //printf("'%s': %i, add=%i, target=%i\n", __func__, xp, value_add, gst->xp_update_target);
 }
 
 void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force) {
@@ -457,7 +461,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
     // TODO: "player->weapon_control" variable for this time?
     if(p->time_from_last_shot > 0.15) {
         p->accuracy_modifier -= gst->dt * 20.0;
-        _clamp_accuracy_modifier(&p->accuracy_modifier, p->accuracy_control);
+        p->accuracy_modifier = CLAMP(p->accuracy_modifier, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX);
     
         p->gun_light.strength -= gst->dt*0.5;
         p->gun_light.strength = CLAMP(p->gun_light.strength, 0.35, 1.0);
@@ -695,7 +699,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
     // For noclip.
     if(p->noclip) {
-        p->speed *= 30.0;
+        p->speed *= NOCLIP_SPEED;
         p->onground = 0;
     }
 

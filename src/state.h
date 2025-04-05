@@ -78,7 +78,8 @@
 #define PLAYER_HIT_SOUND 6
 #define ENEMY_EXPLOSION_SOUND 7
 #define POWERUP_SOUND 8
-#define MAX_SOUNDS 9
+#define CLOUDBURST_SOUND 9
+#define MAX_SOUNDS 10
 //...
 
 
@@ -93,16 +94,15 @@
 #define WATER_SHADER 7
 #define GUNFX_SHADER 8
 #define ENEMY_GUNFX_SHADER 9
-#define POWERUP_SHOP_BG_SHADER 10
-#define EXPLOSION_PSYS_SHADER 11
-#define PLAYER_HIT_SHADER 12
-#define GBUFFER_SHADER 13
-#define GBUFFER_INSTANCE_SHADER 14
-#define SSAO_SHADER 15
-#define BLOOM_BLUR_SHADER 16
-#define SSAO_BLUR_SHADER 17
-#define SKY_SHADER 18
-#define MAX_SHADERS 19
+#define EXPLOSION_PSYS_SHADER 10
+#define PLAYER_HIT_SHADER 11
+#define GBUFFER_SHADER 12
+#define GBUFFER_INSTANCE_SHADER 13
+#define SSAO_SHADER 14
+#define BLOOM_BLUR_SHADER 15
+#define SSAO_BLUR_SHADER 16
+#define SKY_SHADER 17
+#define MAX_SHADERS 18
 // ...
  
 
@@ -258,9 +258,11 @@ struct state_t {
     float  crithit_marker_maxlifetime;
     */
 
-    int xp_value_add;
+    int xp_update_done;
+    int xp_update_target;
+    int xp_update_add;
     float xp_update_timer;
-
+    float xp_value_f;
 
     int has_audio;
     Sound sounds[MAX_SOUNDS];
