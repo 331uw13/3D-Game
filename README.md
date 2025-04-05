@@ -10,9 +10,9 @@
 ---------------------
 
 ![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-64404.png?raw=true)
-![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-98808.png?raw=true)
+![image](https://github.com/331uw13/3D-Game/blob/main/screenshots/screenshot-61626.png?raw=true)
 
-* Gain XP by shooting enemy robots and upgrade your powerups.  (Some powerups are not yet implemented)
+* Gain XP by shooting enemy robots and upgrade your powerups.  **(Some powerups are not yet implemented)**
 
 * Enemies may drop metal pieces which can be used to fix armor.
 
@@ -34,6 +34,8 @@
 * Bigger projectiles
 * FMJ Projectile ability (projectiles go trough enemies)
 * Gravity projectiles (projectiles gravitate towards enemies)
+* Better recoil control
+* Projectile cloudburst (projectiles fall from the sky sometimes when something was hit)
 -------------
 ### Compiling the game.
 > [!NOTE]
