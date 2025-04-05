@@ -5,7 +5,6 @@
 
 > [!WARNING]
 > The game is not ready and __may__ run poorly because it is not yet optimized well.
-> Also 'res/shaders/powerup_shop_bg.fs' shader can be really slow on older hardware(because of the raymarching algorithm). It is in the todo list to optimize it
 > Try changing render settings from the menu
 
 ---------------------
