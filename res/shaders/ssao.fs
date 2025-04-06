@@ -1,19 +1,20 @@
 #version 430
 
 // IMPORTANT NOTE: This must be same as in 'src/state.h'
-#define SSAO_KERNEL_SIZE 42
+#define MAX_SSAO_KERNEL_SIZE 128
 
 uniform sampler2D u_gbuf_pos_tex;
 uniform sampler2D u_gbuf_norm_tex;
 uniform sampler2D u_gbuf_depth_tex;
 uniform sampler2D u_ssao_noise_tex;
 uniform sampler2D u_bloomtresh_tex;
-uniform vec3 ssao_kernel[SSAO_KERNEL_SIZE];
+uniform vec3 ssao_kernel[MAX_SSAO_KERNEL_SIZE];
 uniform mat4 u_camview_matrix;
 uniform mat4 u_camproj_matrix;
 uniform vec3 cam_pos;
 uniform vec2 u_screen_size;
 uniform float u_render_dist;
+uniform int u_ssao_kernel_samples;
 
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -81,7 +82,7 @@ void main() {
     float radius = map(clamp(dt, 0.0, tmax), 0.0, tmax, rad_near, rad_far);
 
 
-    for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
+    for(int i = 0; i < u_ssao_kernel_samples; i++) {
         vec3 sample_pos = TBN * ssao_kernel[i]; // Transform tangent space to view space.
         sample_pos = frag_pos + sample_pos * radius * 2.0;
 
@@ -101,7 +102,7 @@ void main() {
         ao += ((sample_depth >= depth-ld(0.001)) ? 1.0 : 0.0) * rc;
     }
 
-    ao /= float(SSAO_KERNEL_SIZE);
+    ao /= float(u_ssao_kernel_samples);
     
     // Fade ssao effect.
     float fade = (dt*dt*dt)/(max_depth*max_depth*dt);
