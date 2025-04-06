@@ -66,7 +66,7 @@ void main() {
     
     float depth = texture(u_gbuf_depth_tex, fragTexCoord).x;
 
-    const float max_depth = u_render_dist;
+    const float max_depth = u_render_dist/2;
 
     // map radius, closer should be less effect, further away more.
     const float rad_near = 0.25;

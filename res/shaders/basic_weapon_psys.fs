@@ -27,5 +27,5 @@ void main()
 
     v *= v;
 
-    finalColor = vec4(col*1.25, v);
+    finalColor = vec4(col*1.25, v*0.5+0.5);
 }

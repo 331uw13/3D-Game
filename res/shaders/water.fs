@@ -30,10 +30,6 @@ float lerp(float t, float min, float max) {
 
 void main()
 {
-
-    // Texel color fetching from texture sampler
-    //vec4 texelColor = texture(texture0, fragTexCoord);
-    
     vec4 texelColor = vec4(0.0, 0.8, 1.0, 1.0);
 
     float v = voronoi3d(fragPosition.xyz*0.005 + vec3(sin(u_time)*0.1, u_time*0.35, cos(u_time)*0.1)).x;
@@ -58,5 +54,5 @@ void main()
     float dist = length(u_campos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist, _YLEVEL);
 
-    finalColor.w = 0.46;
+    finalColor.w = 1.0;
 }

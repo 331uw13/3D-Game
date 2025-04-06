@@ -53,46 +53,31 @@ vec3 blur_ssao() {
 
 void main()
 {
-    
-    //finalColor.rgb = blur_ssao(); finalColor.w = 1.0; return;
-    //finalColor = texture(ssao_texture, fragTexCoord); return;
-    //finalColor = texture(u_bloomtresh_tex, fragTexCoord); return;
-
-
-    // Apply bloom.
-    vec3 color = texture(texture0, fragTexCoord).rgb;
-    vec3 bloom = texture(u_bloomtresh_tex, fragTexCoord).rgb;
-    color += bloom;
-
-
+    vec4 color = texture(texture0, fragTexCoord);
+    color.rgb += texture(u_bloomtresh_tex, fragTexCoord).rgb;
+ 
     if(u_anygui_open == 1) {
         vec2 texelsize = 1.0/(u_screen_size*0.5);
         const int r = 3;
         for(int x = -r; x <= r; x++) {
             for(int y = -r; y <= r; y++) {
                 vec2 off = vec2(float(x), float(y)) * texelsize;
-                color += texture(texture0, fragTexCoord+off).xyz;
+                color.rgb += texture(texture0, fragTexCoord+off).xyz;
             }
         }
 
-        color /= (3.0*3.0);
+        color.rgb /= (3.0*3.0);
         
         float lines = sin(gl_FragCoord.y*0.5 + u_time*10.0) * 0.5 +0.5;
         lines *= lines;
-        color *= (lines * vec3(0.1, 0.15, 0.1)+0.1) * 0.76;
+        color.rgb *= (lines * vec3(0.1, 0.15, 0.1)+0.1) * 0.76;
     }
 
-    finalColor.xyz = color;
-    
-
+    color.rgb = pow(color.rgb, vec3(0.6));
     if(u_ssao_enabled == 1 && u_anygui_open == 0) {
-        finalColor = vec4(color * texture(ssao_texture, fragTexCoord).rgb, 1.0);
+        color.rgb *= texture(ssao_texture, fragTexCoord).rgb;
     }
-
-    finalColor.z += 0.025;
-    // Gamma correction.
-    finalColor.xyz = pow(finalColor.xyz, vec3(0.6));
-
+    finalColor = color;
 }
 
 

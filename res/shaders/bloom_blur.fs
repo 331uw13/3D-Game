@@ -42,7 +42,7 @@ void main()
         }
     }
 
-    color /= (float(size)*float(size))*3.35;
+    color /= (float(size)*float(size))*4.75;
 
 
     finalColor = vec4(color, clamp(length(color), 0.0, 1.0));
