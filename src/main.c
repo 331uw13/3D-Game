@@ -297,7 +297,6 @@ int read_config(struct state_t* gst) {
     // ssao enabled?
     if(read_cfgvar(&cfgfile, "ssao_enabled", buf, CFGBUF_SIZE)) {
         gst->ssao_enabled = cfgbool_to_int(buf);
-        printf("%i\n", gst->ssao_enabled);
     }
 
     result = 1;
@@ -317,6 +316,19 @@ void first_setup(struct state_t* gst) {
     InitWindow(gst->cfg.resolution_x, gst->cfg.resolution_y, "3D-Game");
     SetExitKey(-1);
     gst->font = LoadFont("res/Topaz-8.ttf");
+
+    if(gst->cfg.fullscreen) {
+        int monitor = GetCurrentMonitor();
+        int mon_w = GetMonitorWidth(monitor);
+        int mon_h = GetMonitorHeight(monitor);
+
+        printf("'%s': Changing resolution to %ix%i because fullscreen is enabled\n",
+                __func__, mon_w, mon_h);
+
+        ToggleBorderlessWindowed();
+        SetWindowSize(mon_w, mon_h);
+    }
+
 
     DisableCursor();
     SetTargetFPS(TARGET_FPS);
