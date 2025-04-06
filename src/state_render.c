@@ -124,8 +124,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     gst->npc.model.materials[1].shader = gst->shaders[rp_shader_i];
 }
 
-
-
 static void render_scene(struct state_t* gst, int renderpass) {
 
     prepare_renderpass(gst, renderpass);
@@ -161,7 +159,6 @@ static void render_scene(struct state_t* gst, int renderpass) {
 }
 
 
-
 static Vector3 test_cube_pos = (Vector3){0, 0, 0 };
 static Vector3 test_sphere_pos = (Vector3){0, 0, 0 };
 
@@ -189,7 +186,6 @@ void state_render(struct state_t* gst) {
         rlClearScreenBuffers();
         rlEnableColorBlend();
     }
-
    
     //  ------ Final pass.
 
@@ -241,6 +237,17 @@ void state_render(struct state_t* gst) {
         // ------------
         render_scene(gst, RENDERPASS_RESULT);
 
+
+        // Water
+        {
+            rlDisableBackfaceCulling();
+            DrawModel(gst->terrain.waterplane, 
+                    (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
+                    gst->render_dist*2,
+                    (Color){ 255, 255, 255, 255 });
+            
+            rlEnableBackfaceCulling();
+        }
         
         // Particle systems. (rendered only if needed)
         {
@@ -263,17 +270,6 @@ void state_render(struct state_t* gst) {
            
         }
         
-
-        // Water
-        {
-            rlDisableBackfaceCulling();
-            DrawModel(gst->terrain.waterplane, 
-                    (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
-                    gst->render_dist*2,
-                    (Color){ 255, 255, 255, 255 });
-            
-            rlEnableBackfaceCulling();
-        }
 
         /*
         Color cube_color = (Color){ 0, 0, 0, 255 };
@@ -302,9 +298,10 @@ void state_render(struct state_t* gst) {
             
  
                 p->gunfx_model.transform = p->gunmodel.transform;
-                
+               
+                // Offset and rotate plane.
                 p->gunfx_model.transform 
-                    = MatrixMultiply(MatrixTranslate(0.28, -0.125, -3.5), p->gunfx_model.transform);
+                    = MatrixMultiply(MatrixTranslate(0.35, -0.176, -4.0), p->gunfx_model.transform);
                 p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
 
                 float st = lerp(p->gunfx_timer, 2.0, 0.0);
@@ -317,7 +314,7 @@ void state_render(struct state_t* gst) {
                         p->gunfx_model.transform
                         );
 
-                p->gunfx_timer += gst->dt*13.0;
+                p->gunfx_timer += gst->dt*7.0;
             }
         }
     }
@@ -408,7 +405,6 @@ void state_render(struct state_t* gst) {
                 );
     }
     EndTextureMode();
-
 
 
     if(!gst->ssao_enabled || gst->player.any_gui_open) {

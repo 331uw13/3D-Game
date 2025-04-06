@@ -57,7 +57,7 @@ void prj_trail_psys_init(
     part->position.y += tofollow_part->velocity.y*6;
     part->position.z += tofollow_part->velocity.z*6;
     part->extradata = extradata;
-    part->max_lifetime = RSEEDRANDOMF(0.05, 0.0865);
+    part->max_lifetime = RSEEDRANDOMF(0.001, 0.1);
     part->lifetime = part->max_lifetime;
 }
 

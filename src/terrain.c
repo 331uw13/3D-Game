@@ -70,9 +70,14 @@ static void _load_terrain_foliage_models(struct state_t* gst, struct terrain_t* 
     _load_foliage_model(gst, &terrain->foliage_models[TF_ROCK_TYPE0], "res/models/rock_type0.glb");
     terrain->foliage_models[TF_ROCK_TYPE0].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture
         = gst->textures[ROCK_TEXID];
-   
 
     terrain->foliage_max_perchunk[TF_ROCK_TYPE0] = 16;
+
+
+    _load_foliage_model(gst, &terrain->foliage_models[TF_MUSHROOM_TYPE0], "res/models/mushroom.glb");
+    terrain->foliage_models[TF_MUSHROOM_TYPE0].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture
+        = gst->textures[TERRAIN_MUSHROOM_TEXID];
+    terrain->foliage_max_perchunk[TF_MUSHROOM_TYPE0] = 50;
 
 }
 
@@ -240,6 +245,32 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         chunk_fdata->num_foliage++;
     }
 
+
+    // Mushrooms
+
+    chunk_fdata = &chunk->foliage_data[TF_MUSHROOM_TYPE0];
+    for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
+   
+        float x = RSEEDRANDOMF(x_min, x_max);
+        float z = RSEEDRANDOMF(z_min, z_max);
+       
+        float noise = perlin_noise_2D(x*0.00025, z*0.00025);
+        
+        if(noise < 0.0) {
+            continue;
+        }
+
+        RayCollision ray = raycast_terrain(terrain, x, z);
+        if(ray.point.y < terrain->water_ylevel) {
+            continue;
+        }
+
+
+        Matrix translation = MatrixTranslate(x, ray.point.y, z);
+        Matrix rotation    = MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI));
+        chunk_fdata->matrices[chunk_fdata->num_foliage] = MatrixMultiply(rotation, translation);
+        chunk_fdata->num_foliage++;
+    }
 
 
 }

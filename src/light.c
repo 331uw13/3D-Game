@@ -97,7 +97,7 @@ void add_decay_light(struct state_t* gst, struct light_t* light, float decay_tim
 
     if(!dlight) {
         disable_light(gst, light, light->ubo_index);
-        fprintf(stderr, "\033[35m(WARNING) '%s': Too many lights decaying. The array should be resized!\033[0m\n",
+        fprintf(stderr, "\033[35m(WARNING) '%s': Too many lights decaying.\033[0m\n",
                 __func__);
         return;
     }

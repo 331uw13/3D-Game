@@ -34,7 +34,7 @@ void enemy_gunfx_psys_update(
         part->scale += gst->dt;
     }
 
-    float st = lerp(part->scale / duration, 15.0, 0.0);
+    float st = lerp(part->scale / duration, 32.0, 0.0);
     Matrix scale_matrix = MatrixScale(st, st, st);
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     

@@ -242,7 +242,7 @@ void gui_render_menu_screen(struct state_t* gst) {
 
 void gui_render_powerup_shop(struct state_t* gst) {
     struct powerup_shop_t* shop = &gst->player.powerup_shop;
-  
+ 
     /*
     BeginShaderMode(gst->shaders[POWERUP_SHOP_BG_SHADER]);
     DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 0, 0, 0, 255 });
@@ -424,6 +424,11 @@ void gui_render_devmenu(struct state_t* gst) {
         gst->player.cam.position = (Vector3){ 0, 0, 0 };
     }
     btn_pos.y += btn_y_inc;
+    if(gui_button(gst, "Kill player", 15.0, btn_pos)) {
+        player_damage(gst, &gst->player, 99999999);
+        gst->devmenu_open = 0;
+    }
+    btn_pos.y += btn_y_inc;
     btn_pos.y += space_y;
 
     if(gui_button(gst, "Spawn NPC", 15.0, btn_pos)) {
@@ -440,25 +445,29 @@ void gui_render_devmenu(struct state_t* gst) {
 
     const float spawn_rad = 300.0;
 
-    if(gui_button(gst, "Spawn Enemy LVL0", 15.0, btn_pos)) {
-        spawn_enemy(gst, ENEMY_LVL0, ENT_FRIENDLY, (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
-                    0,
-                    gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
-                });
+    for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
+        if(gui_button(gst, TextFormat("Spawn Enemy LVL%i (friendly)", i), 15.0, btn_pos)) {
+            spawn_enemy(gst, i, ENT_FRIENDLY, (Vector3){
+                        gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
+                        0,
+                        gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
+                    });
+        }
+        btn_pos.y += btn_y_inc;
     }
-    btn_pos.y += btn_y_inc;
 
-    if(gui_button(gst, "Spawn Enemy LVL1", 15.0, btn_pos)) {
-        spawn_enemy(gst, ENEMY_LVL1, ENT_FRIENDLY, (Vector3){
-                    gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
-                    0,
-                    gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
-                });
+    btn_pos.y += space_y;
+
+    for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
+        if(gui_button(gst, TextFormat("Spawn Enemy LVL%i (hostile)", i), 15.0, btn_pos)) {
+            spawn_enemy(gst, i, ENT_HOSTILE, (Vector3){
+                        gst->player.position.x + RSEEDRANDOMF(-spawn_rad+100, spawn_rad+100),
+                        0,
+                        gst->player.position.z + RSEEDRANDOMF(-spawn_rad+100, spawn_rad+100)
+                    });
+        }
+        btn_pos.y += btn_y_inc;
     }
-    btn_pos.y += btn_y_inc;
-
-
 
 
 }

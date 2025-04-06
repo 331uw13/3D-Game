@@ -64,11 +64,6 @@ struct prjmod_t {
     long int id;
 };
 
-struct prjmod_index_t {
-    long int unique_id;
-    size_t   index;
-};
-
 
 // Returns the index where the prjmod was added in 'player.prjmods' array
 size_t add_prjmod(struct state_t* gst, struct prjmod_t* prjmod, size_t prjmod_id);

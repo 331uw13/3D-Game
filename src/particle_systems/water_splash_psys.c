@@ -37,6 +37,7 @@ void water_splash_psys_init(
         void* extradata, int has_extradata
 ){
 
+    part->color = (Color){ 100, 120, 150, 255 };
     origin.x += 2.0*sin(part->index);
     origin.z += 2.0*cos(part->index);
     part->position = origin;

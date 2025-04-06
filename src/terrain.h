@@ -37,7 +37,8 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
 #define TF_TREE_TYPE0 0
 #define TF_TREE_TYPE1 1
 #define TF_ROCK_TYPE0 2
-#define MAX_FOLIAGE_TYPES 3
+#define TF_MUSHROOM_TYPE0 3
+#define MAX_FOLIAGE_TYPES 4
 
 
 // This data is not directly being used to render foliages from.

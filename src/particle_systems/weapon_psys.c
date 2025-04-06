@@ -43,8 +43,10 @@ void weapon_psys_prj_update(
 
     }
     */
-    
-    call_prjmods_update(gst, psys, part);
+   
+    if(psys->groupid == PSYS_GROUPID_PLAYER) {
+        call_prjmods_update(gst, psys, part);
+    }
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
@@ -201,5 +203,7 @@ void weapon_psys_prj_init(
             (Vector3){0}, (Vector3){0}, (Color){0},
             part, HAS_EXTRADATA, NO_IDB);
 
-    call_prjmods_init(gst, psys, part);
+    if(psys->groupid == PSYS_GROUPID_PLAYER) {
+        call_prjmods_init(gst, psys, part);
+    }
 }

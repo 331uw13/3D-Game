@@ -55,17 +55,17 @@
 #define ROCK_TEXID 9
 #define TERRAIN_TEXID 10
 #define GRASS_TEXID 11
-#define GUNFX_TEXID 12
-#define APPLE_INV_TEXID 13
-#define APPLE_TEXID 14
-#define METALPIECE_INV_TEXID 15
-#define METALPIECE_TEXID 16
-#define PLAYER_SKIN_TEXID 17
-#define PLAYER_HANDS_TEXID 18
-#define METAL2_TEXID 19
-#define ENEMY_LVL1_TEXID 20
-#define MUSHROOM_HAT_TEXID 21
-#define MUSHROOM_BODY_TEXID 22
+#define APPLE_INV_TEXID 12
+#define APPLE_TEXID 13
+#define METALPIECE_INV_TEXID 14
+#define METALPIECE_TEXID 15
+#define PLAYER_SKIN_TEXID 16
+#define PLAYER_HANDS_TEXID 17
+#define METAL2_TEXID 18
+#define ENEMY_LVL1_TEXID 19
+#define MUSHROOM_HAT_TEXID 20
+#define MUSHROOM_BODY_TEXID 21
+#define TERRAIN_MUSHROOM_TEXID 22
 #define MAX_TEXTURES 23
 // ...
 
@@ -289,7 +289,7 @@ struct state_t {
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
-
+        
     int ssao_enabled;
     Texture ssao_noise_tex;
     Matrix cam_view_matrix;

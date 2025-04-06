@@ -9,7 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
-#define NOCLIP_SPEED 5
+#define NOCLIP_SPEED 25
 
 
 static void set_player_default_stats(struct player_t* p) {
@@ -64,6 +64,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
+
+    p->reflect_cam = p->cam;
+    p->reflect_cam.up = (Vector3){ 0.0, -1.0, 0.0 };
 
     printf("Spawn point: %0.2f, %0.2f, %0.2f\n", 
             p->cam.position.x, p->cam.position.y, p->cam.position.z);
@@ -131,7 +134,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
     p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
-    p->gunfx_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[GUNFX_TEXID];
     p->gunfx_timer = 1.0;
 
     for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
@@ -807,9 +809,6 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     Vector3 up = Vector3Scale(GetCameraUp(&p->cam), scale_up);
     p->cam.target = Vector3Add(p->cam.target, up);
     p->cam.position.y = p->position.y;
-
-
-
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {

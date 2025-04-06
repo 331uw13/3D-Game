@@ -37,7 +37,6 @@ size_t add_prjmod(struct state_t* gst, struct prjmod_t* prjmod, size_t id) {
     gst->player.prjmod_indices[id] = (long int)prjmod_index; 
     gst->player.num_prjmods++;
 
-    printf("%li\n", gst->player.num_prjmods);
     printf("'%s': prjmod_index=%li id=%li arraysize=%li\n",
             __func__, 
             prjmod_index, id, gst->player.num_prjmods);
@@ -104,6 +103,10 @@ error:
 void delete_prjmods(struct state_t* gst) {
     if(!gst->player.prjmods) {
         return;
+    }
+
+    for(size_t i = 0; i < MAX_PRJMOD_INDICES; i++) {
+        gst->player.prjmod_indices[i] = -1;
     }
 
     free(gst->player.prjmods);

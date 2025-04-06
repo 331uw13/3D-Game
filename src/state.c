@@ -185,7 +185,7 @@ void state_setup_render_targets(struct state_t* gst) {
     gst->env_render_target     = LoadRenderTexture(gst->res_x, gst->res_y);
     gst->bloomtresh_target     = LoadRenderTexture(gst->res_x, gst->res_y);
     gst->env_render_downsample = LoadRenderTexture(gst->gbuffer.res_x, gst->gbuffer.res_y);
-    
+
     gst->ssao_final       = LoadRenderTexture(gst->res_x, gst->res_y);
     gst->ssao_target      = LoadRenderTexture(gst->gbuffer.res_x, gst->gbuffer.res_y);
 
@@ -759,6 +759,7 @@ void state_setup_all_psystems(struct state_t* gst) {
 
         psystem->particle_mesh = GenMeshSphere(0.45, 8, 8);
         psystem->userptr = &gst->player.weapon;
+        setup_psystem_color_vbo(gst, psystem);
     }
 
     // Create EXPLOSION_PSYS.
@@ -796,9 +797,6 @@ void state_setup_all_psystems(struct state_t* gst) {
 
         //psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
         psystem->particle_mesh = GenMeshPlane(1.0, 1.0, 1, 1);
-        psystem->particle_material.maps[MATERIAL_MAP_DIFFUSE].texture 
-            = gst->textures[GUNFX_TEXID];
-    
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -842,7 +840,6 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
     load_texture(gst, "res/textures/moss2.png", TERRAIN_TEXID);
     load_texture(gst, "res/textures/grass.png", GRASS_TEXID);
-    load_texture(gst, "res/textures/gun_fx.png", GUNFX_TEXID);
     load_texture(gst, "res/textures/apple_inv.png", APPLE_INV_TEXID);
     load_texture(gst, "res/textures/apple.png", APPLE_TEXID);
     load_texture(gst, "res/textures/blue_metal.png", METALPIECE_TEXID);
@@ -853,6 +850,7 @@ void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/enemy_lvl1.png", ENEMY_LVL1_TEXID);
     load_texture(gst, "res/textures/mushroom_body.png", MUSHROOM_BODY_TEXID);
     load_texture(gst, "res/textures/mushroom_hat.png", MUSHROOM_HAT_TEXID);
+    load_texture(gst, "res/textures/terrain_mushroom.png", TERRAIN_MUSHROOM_TEXID);
     
     SetTraceLogLevel(LOG_NONE);
     

@@ -4,8 +4,7 @@
 #include <rlgl.h>
 
 
-#define DISABLE_ERROR_MSG 0
-
+#define DISABLE_ERROR_MSG 1
 
 // NOTE: This must match order with '#define U_...' in 'shader_util.h'
 static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {

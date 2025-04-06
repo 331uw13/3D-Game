@@ -30,18 +30,16 @@ void loop(struct state_t* gst) {
                     " Change it in config file.\n (Also the config file doesnt exists yet)\033[0m\n");
         }
 
+            
       
         state_update_frame(gst);
         state_update_shader_uniforms(gst);
         state_render(gst);
 
 
-
         BeginDrawing();
         {
             ClearBackground(BLACK);
-
-
 
             // Finally post process everything.
             //
@@ -53,7 +51,8 @@ void loop(struct state_t* gst) {
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_final.texture);
-    
+   
+
 
                 DrawTexturePro(gst->env_render_target.texture,
                         (Rectangle){
@@ -164,7 +163,6 @@ void loop(struct state_t* gst) {
 
 void cleanup(struct state_t* gst) {
     
-   
     delete_terrain(&gst->terrain);
     delete_player(&gst->player);
     delete_prjmods(gst);
@@ -283,7 +281,7 @@ int read_config(struct state_t* gst) {
 
     if(read_cfgvar(&cfgfile, "ssao_kernel_samples", buf, CFGBUF_SIZE)) {
         int num_samples = CLAMP(atoi(buf), 8, MAX_SSAO_KERNEL_SIZE);
-        if(num_samples > 0) {
+        if(num_samples > 0 && num_samples) {
             gst->cfg.ssao_kernel_samples = num_samples;
             printf("'%s': Using %i ssao kernel samples\n", __func__, num_samples);
         }

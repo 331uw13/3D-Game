@@ -133,13 +133,14 @@ void handle_userinput(struct state_t* gst) {
         toggle_gui(&gst->devmenu_open);
     }
 
-
+    /*
     if(IsKeyPressed(KEY_FOUR)) {
         SetTargetFPS(500);
     }
     if(IsKeyPressed(KEY_FIVE)) {
         SetTargetFPS(28);
     }
+    */
 
 }
 

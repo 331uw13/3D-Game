@@ -17,7 +17,7 @@ void projectile_envhit_psys_update(
         part->scale += gst->dt;
     }
 
-    float st = lerp(part->scale / scale_duration, 0.0, 12.0);
+    float st = lerp(part->scale / scale_duration, 0.0, 20.0);
 
     Matrix scale_matrix = MatrixScale(st, st, st);
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
