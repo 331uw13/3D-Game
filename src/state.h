@@ -15,13 +15,15 @@
 #include "gui.h"
 #include "shader_util.h"
 #include "npc.h"
+#include "config.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
 
 
-#define WINDOWSIZE_X 1500
-#define WINDOWSIZE_Y 800
+#define DEFAULT_RES_X 1500  // If resolution is not found from config file
+#define DEFAULT_RES_Y 800   // use default resolution.
+#define DEFAULT_SSAO_KERNEL_SAMPLES 32
 
 #define RESOLUTION_X 1500
 #define RESOLUTION_Y 800
@@ -118,7 +120,7 @@
 #define ENEMY_GUNFX_PSYS 8
 #define CLOUD_PSYS 9
 #define PRJ_TRAIL_PSYS 10
-#define MAX_PSYSTEMS 12
+#define MAX_PSYSTEMS 11
 // ...
 
 
@@ -163,7 +165,8 @@
 
 
 // IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
-#define SSAO_KERNEL_SIZE 42
+#define MAX_SSAO_KERNEL_SIZE 128
+
 // Critical hit marker.
 struct crithit_marker_t {
     Vector3 position;
@@ -192,7 +195,7 @@ struct gbuffer_t {
 #define FOG_MODE_TORENDERDIST 0
 
 // Density can be controlled arbitrarily. range: 0 - 10.0
-#define FOG_MODE_CUSTOM 1
+#define FOG_MODE_CUSTOM 1   // TODO
 
 
 struct fog_t {
@@ -209,6 +212,8 @@ struct state_t {
     float dt; // Previous frame time.
     struct player_t player;
     Font font;
+    platform_file_t cfgfile;
+    struct config_t cfg;
 
     unsigned int ubo[MAX_UBOS];
     size_t num_prj_lights;
@@ -289,7 +294,7 @@ struct state_t {
     Texture ssao_noise_tex;
     Matrix cam_view_matrix;
     Matrix cam_proj_matrix;
-    Vector3 ssao_kernel[SSAO_KERNEL_SIZE];
+    Vector3* ssao_kernel;
     int ssao_kernel_type;
 
     RenderTexture2D ssao_target;
@@ -308,7 +313,6 @@ struct state_t {
     RenderTexture2D gbuf_depth_up;
 
     RenderTexture2D bloom_downsamples[NUM_BLOOM_DOWNSAMPLES];
-
 };
 
 

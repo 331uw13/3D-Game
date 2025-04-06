@@ -31,8 +31,25 @@ void state_setup_gbuffer(struct state_t* gst) {
         return;
     }
 
-    gst->gbuffer.res_x = gst->res_x / 2;
-    gst->gbuffer.res_y = gst->res_y / 2;
+    float scale;
+
+    switch(gst->cfg.ssao_quality) {
+        default:
+        case CFG_SSAO_QLOW:
+            scale = 2.0;
+            break;
+        
+        case CFG_SSAO_QMED:
+            scale = 1.35;
+            break;
+        
+        case CFG_SSAO_QHIGH:
+            scale = 1.0;
+            break;
+    }
+
+    gst->gbuffer.res_x = gst->res_x / scale;
+    gst->gbuffer.res_y = gst->res_y / scale;
 
     printf("Creating gbuffer: %ix%i\n", gst->gbuffer.res_x, gst->gbuffer.res_y);
     rlEnableFramebuffer(gst->gbuffer.framebuffer);
@@ -92,10 +109,10 @@ void state_setup_gbuffer(struct state_t* gst) {
 void state_setup_ssao(struct state_t* gst) {
 
     Shader shader = gst->shaders[POSTPROCESS_SHADER];
-    for(size_t i = 0; i < SSAO_KERNEL_SIZE; i++) {
+    for(size_t i = 0; i < gst->cfg.ssao_kernel_samples; i++) {
 
         // Get scale factor to move points closer to the center.
-        float scale = (float)i / (float)SSAO_KERNEL_SIZE;
+        float scale = (float)i / (float)gst->cfg.ssao_kernel_samples;
         scale = lerp(scale*scale, 0.1, 1.0);
 
         Vector3 sample = (Vector3) {
@@ -234,7 +251,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, SSAO_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_SSAO_ENABLED, &gst->ssao_enabled);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
-  
+    shader_setu_int(gst, SSAO_SHADER, U_SSAO_KERNEL_SAMPLES, &gst->cfg.ssao_kernel_samples);  
 }
 
 

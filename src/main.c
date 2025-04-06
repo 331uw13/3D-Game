@@ -186,7 +186,6 @@ void cleanup(struct state_t* gst) {
     UnloadRenderTexture(gst->gbuf_pos_up);
     UnloadRenderTexture(gst->gbuf_norm_up);
     UnloadRenderTexture(gst->gbuf_depth_up);
-
     delete_npc(&gst->npc);
 
     for(int i = 0; i < NUM_BLOOM_DOWNSAMPLES; i++) {
@@ -199,17 +198,123 @@ void cleanup(struct state_t* gst) {
         glDeleteBuffers(1, &gst->ubo[i]);
     }
 
+    free(gst->ssao_kernel);
     UnloadFont(gst->font);
 
     printf("\033[35m -> Cleanup done...\033[0m\n");
     CloseWindow();
 }
 
+#include "platform/platform.h"
+
+#define CFGBUF_SIZE 64
+
+int cfgbool_to_int(char* buf) {
+    return CLAMP(strcmp(buf, "false"), 0, 1);
+}
+
+int read_config(struct state_t* gst) {
+    int result = 0;
+
+    platform_file_t cfgfile;
+    platform_init_file(&cfgfile);
+
+    if(!platform_read_file(&cfgfile, "game.cfg")) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to read config file\033[0m\n",
+                __func__);
+        goto error;
+    }
+
+    char buf[CFGBUF_SIZE] = { 0 };
+    
+    // Resolution.
+    int res_found = 0;
+    if((res_found = read_cfgvar(&cfgfile, "resolution_x", buf, CFGBUF_SIZE))) {
+        int res_x = atoi(buf);
+        if(res_x > 0) {
+            gst->cfg.resolution_x = res_x;
+        }
+        res_found = 1;
+    }
+
+    if((res_found = read_cfgvar(&cfgfile, "resolution_y", buf, CFGBUF_SIZE))) {
+        int res_y = atoi(buf);
+        if(res_y > 0) {
+            gst->cfg.resolution_y = res_y;
+        }
+    }
+
+    if(!res_found) {
+        fprintf(stderr, "\033[35m(WARNING) '%s': Something went wrong while reading resolution from config file\n"
+                " using default resoltion now.\033[0m",__func__);
+        gst->cfg.resolution_x = DEFAULT_RES_X;
+        gst->cfg.resolution_y = DEFAULT_RES_Y;
+    }
+
+
+    // Fullscreen?
+
+    if(read_cfgvar(&cfgfile, "fullscreen", buf, CFGBUF_SIZE)) {
+        gst->cfg.fullscreen = cfgbool_to_int(buf);
+    }
+    
+    // ssao quality.
+    read_cfgvar(&cfgfile, "ssao_quality", buf, CFGBUF_SIZE);
+
+    if(!strcmp(buf, "low")) {
+        gst->cfg.ssao_quality = CFG_SSAO_QLOW;
+        printf("'%s': Using low ssao quality\n", __func__);
+    }
+    else
+    if(!strcmp(buf, "medium")) {
+        gst->cfg.ssao_quality = CFG_SSAO_QMED;
+        printf("'%s': Using medium ssao quality\n", __func__);
+    }
+    else
+    if(!strcmp(buf, "high")) {
+        gst->cfg.ssao_quality = CFG_SSAO_QHIGH;
+        printf("'%s': Using high ssao quality\n", __func__);
+    }
+    else {
+        gst->cfg.ssao_quality = CFG_SSAO_QLOW;
+        fprintf(stderr, "\033[35m(WARNING) '%s': Something went wrong while reading ssao quality from config file\n"
+                " using low quality now\033[0m\n", __func__);
+    }
+
+    if(read_cfgvar(&cfgfile, "ssao_kernel_samples", buf, CFGBUF_SIZE)) {
+        int num_samples = CLAMP(atoi(buf), 8, MAX_SSAO_KERNEL_SIZE);
+        if(num_samples > 0 && num_samples) {
+            gst->cfg.ssao_kernel_samples = num_samples;
+            printf("'%s': Using %i ssao kernel samples\n", __func__, num_samples);
+        }
+    }
+    else {
+        gst->cfg.ssao_kernel_samples = DEFAULT_SSAO_KERNEL_SAMPLES;
+        fprintf(stderr, "\033[35m(WARNING) '%s': Something went wrong while reading ssao kernel samples count"
+                " using %i now\033[0m\n", __func__, DEFAULT_SSAO_KERNEL_SAMPLES);
+    }
+   
+    // ssao enabled?
+    if(read_cfgvar(&cfgfile, "ssao_enabled", buf, CFGBUF_SIZE)) {
+        gst->ssao_enabled = cfgbool_to_int(buf);
+        printf("%i\n", gst->ssao_enabled);
+    }
+
+    result = 1;
+    platform_close_file(&cfgfile);
+
+error:
+    return result;
+}
 
 
 void first_setup(struct state_t* gst) {
 
-    InitWindow(WINDOWSIZE_X, WINDOWSIZE_Y, "3D-Game");
+    if(!read_config(gst)) {
+        return;
+    }
+
+    InitWindow(gst->cfg.resolution_x, gst->cfg.resolution_y, "3D-Game");
     SetExitKey(-1);
     gst->font = LoadFont("res/Topaz-8.ttf");
 
@@ -218,12 +323,11 @@ void first_setup(struct state_t* gst) {
     SetTraceLogLevel(LOG_ERROR);
 
     gst->screen_size = (Vector2){ GetScreenWidth(), GetScreenHeight() };
+    gst->res_x = (int)gst->screen_size.x;
+    gst->res_y = (int)gst->screen_size.y;
 
-    // We can probably get away with rendering everything smaller resolution.
-    // Also gives a little nice pixel effect
-    gst->res_x = gst->screen_size.x;
-    gst->res_y = gst->screen_size.y;
-
+    gst->ssao_kernel = NULL;
+    gst->ssao_kernel = malloc(gst->cfg.ssao_kernel_samples * sizeof *gst->ssao_kernel);
 
     gst->num_textures = 0;
     gst->num_textures = 0;
@@ -235,11 +339,11 @@ void first_setup(struct state_t* gst) {
     gst->num_enemy_weapons = 0;
     gst->menu_open = 0;
     gst->running = 1;
-    gst->ssao_enabled = 1;
     gst->xp_update_done = 1;
     memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
     init_shaderutil(gst);
+
 
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
@@ -259,6 +363,7 @@ void first_setup(struct state_t* gst) {
 
     memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
     */
+
 
     state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
@@ -281,6 +386,11 @@ void first_setup(struct state_t* gst) {
 
     gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
     gst->skybox.materials[0] = LoadMaterialDefault();
+
+
+    // (!IMPORTANT!)
+    // TODO: Errors from all functions on init should be checked!
+    //       alot of memory may be leaked if crash after terrain was created.
 
 
     // --- Setup Terrain ----

@@ -25,7 +25,8 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_anygui_open\0",
     "u_bloomtresh_tex\0",
     "u_render_dist\0",
-    "u_defnoise_tex\0"
+    "u_defnoise_tex\0",
+    "u_ssao_kernel_samples\0"
 };
 
 

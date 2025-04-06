@@ -447,7 +447,7 @@ void state_render(struct state_t* gst) {
         shader_setu_matrix(gst, SSAO_SHADER, U_CAMVIEW_MATRIX, gst->cam_view_matrix);
         shader_setu_matrix(gst, SSAO_SHADER, U_CAMPROJ_MATRIX, gst->cam_proj_matrix);
   
-        for(int i = 0; i < SSAO_KERNEL_SIZE; i++) {
+        for(int i = 0; i < gst->cfg.ssao_kernel_samples; i++) {
             SetShaderValueV(ssao_shader,
                     GetShaderLocation(ssao_shader, TextFormat("ssao_kernel[%i]",i)),
                     &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);

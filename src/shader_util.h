@@ -25,6 +25,7 @@ typedef short uloc_t;
 #define U_BLOOMTRESH_TEX 14
 #define U_RENDER_DIST 15
 #define U_DEFNOISE_TEX 16
+#define U_SSAO_KERNEL_SAMPLES 17
 
 #define U_NOTFOUND -1
 
