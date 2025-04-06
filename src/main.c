@@ -283,7 +283,7 @@ int read_config(struct state_t* gst) {
 
     if(read_cfgvar(&cfgfile, "ssao_kernel_samples", buf, CFGBUF_SIZE)) {
         int num_samples = CLAMP(atoi(buf), 8, MAX_SSAO_KERNEL_SIZE);
-        if(num_samples > 0 && num_samples) {
+        if(num_samples > 0) {
             gst->cfg.ssao_kernel_samples = num_samples;
             printf("'%s': Using %i ssao kernel samples\n", __func__, num_samples);
         }
