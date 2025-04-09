@@ -15,7 +15,9 @@ uniform vec4 colDiffuse;
 uniform float u_waterlevel;
 uniform float terrain_lowest_point;
 uniform float u_time;
+uniform float u_shadowcam_y;
 uniform vec3 u_campos;
+
 
 // Output fragment color
 out vec4 finalColor;
@@ -24,11 +26,79 @@ out vec4 finalColor;
 #include "res/shaders/voronoi.glsl"
 
 
+uniform sampler2D shadow_map;
+uniform mat4 u_shadowview_matrix;
+uniform mat4 u_shadowproj_matrix;
+uniform float u_shadow_bias;
 
+/*
+float ld(float depth) {
+    float near = 0.1;
+    float far = 2000.0*u_shadow_tresh;
+    float ndc = depth;// * 2.0 - 1.0;
+    return (2.0 * near * far) / (far + near - ndc * (far - near)) / far;
+}
+*/
 
+// TODO: Fix shadowcam flip near water(???)
 
 void main()
 {
+    finalColor = vec4(0.1, 0.0, 0.1, 1.0);
+    // ----------------------------
+    vec3 fnormal = normalize(fragNormal);
+    vec3 light_dir = vec3(0.0, 1.0, 0.0);
+    
+    mat4 shvp = u_shadowproj_matrix * u_shadowview_matrix;
+    
+    // Transform into shadow camera space.
+    vec4 shadow_space = shvp * vec4(fragPosition, 1.0);
+    vec3 dcoords = shadow_space.xyz / shadow_space.w; // Perspective divide.
+    vec3 shadow = vec3(1.0);
+    if(dcoords.x > -1.0 && dcoords.x < 1.0 && dcoords.y > -1.0 && dcoords.y < 1.0) {
+
+        shadow = vec3(0);
+        int samples = 3;
+        vec2 ts = 1.0/vec2(1500, 800);
+
+        for(int x = -samples; x <= samples; x++) {
+            for(int y = -samples; y <= samples; y++) {
+                vec2 offset = vec2(float(x), float(y))*ts;
+                
+                vec2 tfcoords = (dcoords.xy+1.0)/2.0 + offset;
+                vec3 closest = texture(shadow_map, tfcoords).xyz;
+
+                if(closest.y-u_shadow_bias < fragPosition.y) {
+                    shadow += vec3(0.5);
+                }
+            }
+        }
+
+        shadow /= (16.0);
+    }
+
+
+    /*
+    if(coords.x > -1.0 && coords.x < 1.0 && coords.y > -1.0 && coords.y < 1.0) {
+
+        vec3 closest = texture(shadow_map, (coords.xy+1.0)/2.0).xyz;
+   
+        if(closest.y < fragPosition.y-bias) {
+            finalColor.r = 0.5;
+        }
+        //finalColor.r = closest.y;
+        
+    }
+    else {
+        // Outside of shadow camera frustrum.
+        finalColor.b = 0.05;
+        finalColor.r = 0.05;
+    }
+    */
+    
+
+
+    //return;
 
     vec4 texel_color = texture(texture0, fragTexCoord);
     vec3 normal = normalize(fragNormal);
@@ -42,6 +112,7 @@ void main()
     finalColor = (texel_color * ((colDiffuse + vec4(g_lightspecular, 1.0)) * vec4(g_lightcolor,1.0)));
     finalColor.xyz += texel_color.xyz * AMBIENT;
 
+    finalColor.xyz *= shadow;
 
     vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
     finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));

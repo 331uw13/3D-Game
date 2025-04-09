@@ -9,7 +9,6 @@ in vec4 fragColor;
 uniform sampler2D texture0;
 uniform sampler2D u_bloomtresh_tex;
 uniform sampler2D ssao_texture;
-uniform sampler2D depth_texture;
 
 uniform vec4 colDiffuse;
 uniform float u_time;
@@ -43,16 +42,13 @@ vec3 color_lerp(float t, vec3 a, vec3 b) {
             );
 }
 
-vec3 blur_ssao() {
-
-    vec3 current = texture(ssao_texture, fragTexCoord).rgb;
-    return current;
-}
-
 
 
 void main()
 {
+    finalColor = vec4(0.0, 0.0, 0.0, 1.0);
+    
+
     vec4 color = texture(texture0, fragTexCoord);
     color.rgb += texture(u_bloomtresh_tex, fragTexCoord).rgb;
  
@@ -78,6 +74,7 @@ void main()
         color.rgb *= texture(ssao_texture, fragTexCoord).rgb;
     }
     finalColor = color;
+
 }
 
 
