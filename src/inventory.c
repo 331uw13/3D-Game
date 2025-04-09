@@ -4,7 +4,7 @@
 
 #include "gui.h"
 #include "inventory.h"
-#include "state.h"
+#include "state/state.h"
 #include "util.h"
 
 

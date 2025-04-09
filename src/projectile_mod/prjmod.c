@@ -4,7 +4,7 @@
 
 #include "prjmod.h"
 
-#include "../state.h"
+#include "../state/state.h"
 #include "../memory.h"
 
 

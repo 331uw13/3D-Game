@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "state.h"
+#include "state/state.h"
 #include "npc.h"
 #include "util.h"
 

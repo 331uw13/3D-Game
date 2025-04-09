@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "terrain.h"
-#include "state.h"
+#include "state/state.h"
 
 #include "util.h"
 
@@ -813,13 +813,15 @@ void render_terrain(
         }
 
 
+        /*
         // Chunks very nearby may get discarded if the center position goes behind the player.
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
 
-        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 100.0/*fov range*/)) {
+        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 100.0)) {
             continue;
         }
+        */
 
         terrain->num_visible_chunks++;
 

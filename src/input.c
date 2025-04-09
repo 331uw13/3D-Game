@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <float.h>
 
-#include "state.h"
+#include "state/state.h"
 #include "util.h"
 
 // TODO: clean this up.
@@ -50,6 +50,37 @@ void handle_userinput(struct state_t* gst) {
         gst->ssao_enabled = !gst->ssao_enabled;
     }
 
+    if(gst->gamepad.id >= 0) {
+        gst->gamepad.Lstick = (Vector2) {
+            GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_LEFT_X),
+            GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_LEFT_Y)
+        };
+
+        Vector2 old_Rstick = gst->gamepad.Rstick;
+        gst->gamepad.Rstick = (Vector2) {
+            GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_RIGHT_X),
+            GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_RIGHT_Y)
+        };
+
+        const float dead_rangeL = 0.125;
+        const float dead_rangeR = 0.05;
+        if(gst->gamepad.Lstick.x < dead_rangeL && gst->gamepad.Lstick.x > -dead_rangeL) {
+            gst->gamepad.Lstick.x = 0.0;
+        }
+        if(gst->gamepad.Lstick.y < dead_rangeL && gst->gamepad.Lstick.y > -dead_rangeL) {
+            gst->gamepad.Lstick.y = 0.0;
+        }
+        if(gst->gamepad.Rstick.x < dead_rangeR && gst->gamepad.Rstick.x > -dead_rangeR) {
+            gst->gamepad.Rstick.x = 0.0;
+        }
+        if(gst->gamepad.Rstick.y < dead_rangeR && gst->gamepad.Rstick.y > -dead_rangeR) {
+            gst->gamepad.Rstick.y = 0.0;
+        }
+
+        //printf("Lstick: %f, %f\n", gst->gamepad.Lstick.x, gst->gamepad.Lstick.y);
+        //printf("Rstick: %f, %f\n", gst->gamepad.Rstick.x, gst->gamepad.Rstick.y);
+        //printf("\n");
+    }
     
 
     if(IsKeyPressed(KEY_F2)) {
@@ -58,34 +89,52 @@ void handle_userinput(struct state_t* gst) {
         TakeScreenshot(filename);
     }
 
-    if(IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
-        gst->player.aim_button_hold_timer += gst->dt;
-        if(gst->player.aim_button_hold_timer >= 0.485/* <- Treshold */) {
-            gst->player.disable_aim_mode = DISABLE_AIM_WHEN_RELEASED;
+
+    if(gst->gamepad.id < 0) {
+        // When controller is not detected use mouse input.
+
+        if(IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
+            gst->player.aim_button_hold_timer += gst->dt;
+            if(gst->player.aim_button_hold_timer >= 0.485/* <- Treshold */) {
+                gst->player.disable_aim_mode = DISABLE_AIM_WHEN_RELEASED;
+            }
+        }
+        else {
+            gst->player.aim_button_hold_timer = 0.0;
+            
+        }
+
+        if(gst->player.alive && gst->player.holding_gun) {
+            if((IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) 
+            && !gst->player.any_gui_open
+            && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
+                gst->player.is_aiming =! gst->player.is_aiming;
+                gst->player.aim_idle_timer = 0.0;
+            }
+            else
+            if((!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)
+            && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_RELEASED))) {
+                gst->player.is_aiming = 0;
+            }
         }
     }
     else {
-        gst->player.aim_button_hold_timer = 0.0;
-        
-    }
+        // Controller should have different system.
 
-    // TODO: remove this.
-    if(IsKeyPressed(KEY_I)) {
-        update_powerup_shop_offers(gst);
-    }
-    
-    if(gst->player.alive && gst->player.holding_gun) {
-        if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) 
-        && !gst->player.any_gui_open
-        && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
-            gst->player.is_aiming =! gst->player.is_aiming;
-            gst->player.aim_idle_timer = 0.0;
+        int gamepad_aim_hold = (gst->gamepad.id >= 0 
+                && IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_LEFT_TRIGGER_1));
+
+        if(gamepad_aim_hold) {
+            if(!gst->player.is_aiming) {
+                gst->player.is_aiming = 1;
+                gst->player.aim_idle_timer = 0.0;
+            }
         }
-        else
-        if(!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)
-        && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_RELEASED)) {
+        else {
             gst->player.is_aiming = 0;
         }
+
+
     }
 
 

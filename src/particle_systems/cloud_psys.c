@@ -1,5 +1,5 @@
 #include "cloud_psys.h"
-#include "../state.h"
+#include "../state/state.h"
 #include "../util.h"
 
 #include "../perlin_noise.h"

@@ -6,11 +6,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "state.h"
+#include "state/state.h"
+#include "state/state_setup.h"
+#include "state/state_free.h"
+#include "state/state_render.h"
 #include "input.h"
 #include "util.h"
-#include "terrain.h"
-#include "state_render.h"
+//#include "terrain.h"
 
 #include <rlgl.h>
 
@@ -51,7 +53,14 @@ void loop(struct state_t* gst) {
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_final.texture);
-   
+
+                int shadow_map_loc = GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "shadow_map");
+                int slot = 10;
+                rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
+                rlActiveTextureSlot(slot);
+                rlEnableTexture(gst->shadow_gbuffer.position_tex);
+                rlSetUniform(shadow_map_loc, &slot, SHADER_UNIFORM_INT, 1);
+
 
 
                 DrawTexturePro(gst->env_render_target.texture,
@@ -146,6 +155,11 @@ void loop(struct state_t* gst) {
                         dtext_x, next_y, 20, (Color){ 150, 80, 200, 255 });
                 next_y += y_inc;
                 
+                RayCollision ray = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
+                DrawText(TextFormat("TerrainLevel=%0.3f", ray.point.y),
+                        dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
+                next_y += y_inc;
+                
                 DrawText("(Debug ON)", gst->res_x - 200, 10, 20, GREEN);
             }
 
@@ -166,40 +180,19 @@ void cleanup(struct state_t* gst) {
     delete_terrain(&gst->terrain);
     delete_player(&gst->player);
     delete_prjmods(gst);
-    state_delete_all_textures(gst);
-    state_delete_all_shaders(gst);
-    state_delete_all_psystems(gst);
-    state_delete_all_sounds(gst);
-    state_delete_all_enemy_models(gst);
-    state_delete_all_item_models(gst);
-
-    UnloadTexture(gst->ssao_noise_tex);
-    UnloadRenderTexture(gst->env_render_target);
-    UnloadRenderTexture(gst->env_render_downsample);
-    UnloadRenderTexture(gst->bloomtresh_target);
-    UnloadRenderTexture(gst->ssao_target);
-    UnloadRenderTexture(gst->ssao_final);
-    state_delete_gbuffer(gst);
-
-    UnloadRenderTexture(gst->gbuf_pos_up);
-    UnloadRenderTexture(gst->gbuf_norm_up);
-    UnloadRenderTexture(gst->gbuf_depth_up);
     delete_npc(&gst->npc);
 
-    for(int i = 0; i < NUM_BLOOM_DOWNSAMPLES; i++) {
-        UnloadRenderTexture(gst->bloom_downsamples[i]);
-    }
-
+    state_free_everything(gst);
     UnloadModel(gst->skybox);
 
-    for(int i = 0; i < MAX_UBOS; i++) {
-        glDeleteBuffers(1, &gst->ubo[i]);
+    if(gst->ssao_kernel) {
+        free(gst->ssao_kernel);
     }
 
-    free(gst->ssao_kernel);
-    UnloadFont(gst->font);
 
     printf("\033[35m -> Cleanup done...\033[0m\n");
+    
+    UnloadFont(gst->font);
     CloseWindow();
 }
 
@@ -304,6 +297,11 @@ error:
     return result;
 }
 
+void tracelog_callback(int logLevel, const char *text, va_list args) {
+    char buf[256] = { 0 };
+    vsnprintf(buf, 256, text, args);
+    printf("\033[36m|\033[0m %s\n", buf);
+}
 
 void first_setup(struct state_t* gst) {
 
@@ -311,6 +309,7 @@ void first_setup(struct state_t* gst) {
         return;
     }
 
+    SetTraceLogCallback(tracelog_callback);
     InitWindow(gst->cfg.resolution_x, gst->cfg.resolution_y, "3D-Game");
     SetExitKey(-1);
     gst->font = LoadFont("res/Topaz-8.ttf");
@@ -336,8 +335,6 @@ void first_setup(struct state_t* gst) {
     gst->res_x = (int)gst->screen_size.x;
     gst->res_y = (int)gst->screen_size.y;
 
-    gst->ssao_kernel = NULL;
-    gst->ssao_kernel = malloc(gst->cfg.ssao_kernel_samples * sizeof *gst->ssao_kernel);
 
     gst->num_textures = 0;
     gst->num_textures = 0;
@@ -354,19 +351,6 @@ void first_setup(struct state_t* gst) {
 
     init_shaderutil(gst);
 
-
-    const float terrain_scale = 20.0;
-    const u32   terrain_size = 1024;
-    const float terrain_amplitude = 30.0;
-    const float terrain_pnfrequency = 30.0;
-    const int   terrain_octaves = 3;
-    /*
-    const float terrain_scale = 20.0;
-    const u32   terrain_size = 2048;
-    const float terrain_amplitude = 30.0;
-    const float terrain_pnfrequency = 80.0;
-    const int   terrain_octaves = 3;
-    */
     /*
     gst->num_crithit_markers = 0;
     gst->crithit_marker_maxlifetime = 1.5;
@@ -375,60 +359,23 @@ void first_setup(struct state_t* gst) {
     */
 
 
-    state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
-    state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
-    state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
-
-
-    state_setup_all_textures(gst);
-    state_setup_all_shaders(gst);
-    state_setup_all_weapons(gst);
-    state_setup_all_sounds(gst);
-    state_setup_all_enemy_models(gst);
-    state_setup_all_item_models(gst);
-    
     printf("Screen size: %0.0fx%0.0f\n", gst->screen_size.x, gst->screen_size.y);
     
-    state_setup_gbuffer(gst);
-    state_setup_ssao(gst);
-    state_setup_render_targets(gst);
-    setup_npc(gst, &gst->npc);
-
-    gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
-    gst->skybox.materials[0] = LoadMaterialDefault();
-
 
     // (!IMPORTANT!)
     // TODO: Errors from all functions on init should be checked!
     //       alot of memory may be leaked if crash after terrain was created.
 
 
-    // --- Setup Terrain ----
-    {
-        init_perlin_noise();
-        gst->terrain = (struct terrain_t) { 0 };
+    state_setup_everything(gst);
+ 
 
-        const int terrain_seed = GetRandomValue(0, 9999999);
-        //const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
+    setup_npc(gst, &gst->npc);
 
-        printf("(INFO) '%s': Terrain seed = %i\n",
-                __func__, terrain_seed);
+    gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
+    gst->skybox.materials[0] = LoadMaterialDefault();
 
-        generate_terrain(
-                gst, &gst->terrain,
-                terrain_size,
-                terrain_scale,
-                terrain_amplitude,
-                terrain_pnfrequency,
-                terrain_octaves,
-                terrain_seed
-                );
-
-    }
-
-    init_player_struct(gst, &gst->player);
-    state_setup_all_psystems(gst);
-    
+   
     setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
 
@@ -490,11 +437,25 @@ void first_setup(struct state_t* gst) {
         .density = 0.0 // Density is ignored when fog mode is TORENDERDIST
     };
 
-
-
-
     set_light(gst, &SUN, LIGHTS_UBO);
     set_fog_settings(gst, &gst->fog);
+
+
+    gst->gamepad.id = -1;
+    for(int i = 0; i < 16; i++) {
+        if(IsGamepadAvailable(i)) {
+            gst->gamepad.id = i;
+            break;
+        }
+    }
+
+    if(gst->gamepad.id >= 0) {
+        gst->gamepad.sensetivity = 6.689830;
+        printf("\033[36mController Detected! '%s'\033[0m\n", GetGamepadName(gst->gamepad.id));
+    }
+
+    gst->shadow_bias = 2.0;
+
 }
 
 int main(void) {

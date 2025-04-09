@@ -26,6 +26,10 @@ typedef short uloc_t;
 #define U_RENDER_DIST 15
 #define U_DEFNOISE_TEX 16
 #define U_SSAO_KERNEL_SAMPLES 17
+#define U_SHADOWVIEW_MATRIX 18
+#define U_SHADOWPROJ_MATRIX 19
+#define U_SHADOWCAM_Y 20
+#define U_SHADOW_BIAS 21
 
 #define U_NOTFOUND -1
 

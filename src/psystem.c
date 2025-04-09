@@ -4,7 +4,7 @@
 
 #include "psystem.h"
 
-#include "state.h"
+#include "state/state.h"
 #include "util.h"
 
 #include <rlgl.h>

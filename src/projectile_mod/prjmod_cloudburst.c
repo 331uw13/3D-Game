@@ -2,7 +2,7 @@
 
 #include "prjmod_cloudburst.h"
 #include "../particle_systems/weapon_psys.h"
-#include "state.h"
+#include "../state/state.h"
 #include "util.h"
 
 

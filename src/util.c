@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include "util.h"
-#include "state.h"
+#include "state/state.h"
 #include "glsl_preproc.h"
 #include "platform.h"
 
@@ -20,7 +20,7 @@ int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader
     platform_init_file(&fragment_file);
     platform_init_file(&vertex_file);
 
-    printf("\033[36m-> Compile and link\033[90m (fragment)\033[34m'%s'\033[90m (vertex)\033[34m'%s'\033[0m\n",
+    printf("\033[36m,-> Compile and link\033[90m (fragment)\033[34m'%s'\033[90m (vertex)\033[34m'%s'\033[0m\n",
             fs_filename, vs_filename);
 
     // Errors are reported from functions.
@@ -36,12 +36,19 @@ int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader
     size_t sizeout = 0;
     char* fs_code = preproc_glsl(&fragment_file, &sizeout);
 
+    shader->id = 0;
     *shader = LoadShaderFromMemory(vertex_file.data, fs_code);
 
     if(fs_code) {
         free(fs_code);
     }
 
+    if(shader->id) {
+        printf("\033[36m`-> \033[32mOk\033[0m\n");
+    }
+    else {
+        printf("\033[36m`-> \033[31mFailed\033[0m\n");
+    }
     result = 1;
 
 error_and_close:

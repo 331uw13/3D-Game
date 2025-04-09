@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "prjmod_test.h"
-#include "../state.h"
+#include "../state/state.h"
 
 
 void prjmod_test__init(struct state_t* gst, struct psystem_t* psys, struct particle_t* part) {

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "state.h"
+#include "state/state.h"
 #include "enemy.h"
 #include "util.h"
 
@@ -87,6 +87,7 @@ int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_file
         model->materials[i].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texture_id];
     }
 
+    result = 1;
 
 error:
     SetTraceLogLevel(LOG_NONE);

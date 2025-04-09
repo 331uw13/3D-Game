@@ -1,5 +1,5 @@
 #include "enemy_hit_psys.h"
-#include "../state.h"
+#include "../state/state.h"
 #include "../util.h"
 
 #include <raymath.h>

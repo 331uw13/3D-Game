@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "state.h"
+#include "state/state.h"
 #include "item.h"
 #include "util.h"
 #include <raymath.h>
@@ -89,6 +89,7 @@ int load_item_model(struct state_t* gst, u32 item_type, const char* model_filepa
     model->materials[0].shader = gst->shaders[DEFAULT_SHADER];
     model->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[texid];
 
+    result = 1;
 
 error:
     SetTraceLogLevel(LOG_NONE);

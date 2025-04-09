@@ -1,5 +1,5 @@
 #include "enemy_gunfx_psys.h"
-#include "../state.h"
+#include "../state/state.h"
 #include "../util.h"
 #include "../enemy.h"
 

@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "prjmod_test.h"
-#include "../state.h"
+#include "../state/state.h"
 #include "../particle_systems/weapon_psys.h"
 
 #include <raymath.h>

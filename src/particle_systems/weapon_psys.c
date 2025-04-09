@@ -3,7 +3,7 @@
 #include "weapon_psys.h"
 
 
-#include "../state.h"
+#include "../state/state.h"
 #include "../util.h"
 #include "../enemy.h"
 

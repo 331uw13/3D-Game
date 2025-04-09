@@ -2,7 +2,7 @@
 #include <math.h>
 
 #include "prjmod_fmj_ability.h"
-#include "../state.h"
+#include "../state/state.h"
 #include "../particle_systems/weapon_psys.h"
 
 

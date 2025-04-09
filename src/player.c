@@ -2,7 +2,7 @@
 #include <raymath.h>
 #include <stdio.h>
 
-#include "state.h"
+#include "state/state.h"
 #include "player.h"
 #include "util.h"
 
@@ -65,8 +65,14 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
 
-    p->reflect_cam = p->cam;
-    p->reflect_cam.up = (Vector3){ 0.0, -1.0, 0.0 };
+    gst->shadow_cam = p->cam;
+    gst->shadow_cam.fovy = 60.0;
+    
+    CameraPitch(&gst->shadow_cam, -90*DEG2RAD, 1, 0, 0);
+    gst->shadow_cam.projection = CAMERA_ORTHOGRAPHIC;//PERSPECTIVE;    
+    gst->shadow_cam_y = 800;
+
+    // TODO: remove "reflect cam"
 
     printf("Spawn point: %0.2f, %0.2f, %0.2f\n", 
             p->cam.position.x, p->cam.position.y, p->cam.position.z);
@@ -416,16 +422,22 @@ void player_update(struct state_t* gst, struct player_t* p) {
     p->holding_gun = (p->inventory.selected_index == 0);
     //rainbow_palette(sin(gst->time*0.75), &p->weapon.color.r, &p->weapon.color.g, &p->weapon.color.b);
 
+    int fireprj_hold = (gst->gamepad.id < 0) 
+                    ? IsMouseButtonDown(MOUSE_BUTTON_LEFT) 
+                    : IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_RIGHT_TRIGGER_1);
+
     if(!p->any_gui_open
        && p->alive
        && p->holding_gun
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
-        ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+        ? fireprj_hold
         : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) {
         player_shoot(gst, &gst->player);
     }
 
-    if(((p->aim_idle_timer > 2.75) && p->is_aiming) || (!p->holding_gun)) {
+   
+    // aim idle timer should not be used if controller is detected.
+    if(gst->gamepad.id < 0 && (((p->aim_idle_timer > 2.75) && p->is_aiming) || (!p->holding_gun))) {
         p->is_aiming = 0;
     }
 
@@ -674,8 +686,10 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
     p->speed = p->walkspeed;
    
+
     // Can player run?
-    if(IsKeyDown(KEY_LEFT_SHIFT)
+    if((IsKeyDown(KEY_LEFT_SHIFT) 
+                || (gst->gamepad.id >= 0 && IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_LEFT_THUMB)))
     && p->onground
     && !p->any_gui_open
     && !p->is_aiming
@@ -705,6 +719,11 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         p->onground = 0;
     }
 
+    if(gst->gamepad.id >= 0) {
+        p->velocity.x += gst->gamepad.Lstick.x * (p->speed * gst->dt);
+        p->velocity.z += (-gst->gamepad.Lstick.y) * (p->speed * gst->dt);
+    }
+
     
     if(IsKeyDown(KEY_W)) {
         p->velocity.z += p->speed * gst->dt;
@@ -731,6 +750,10 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     // Dash movement
     CameraMoveForward (&p->cam, (p->dash_velocity.z) * gst->dt, 1);
     CameraMoveRight   (&p->cam, (p->dash_velocity.x) * gst->dt, 1);
+    
+
+    //CameraMoveForward (&gst->shadow_cam, (p->speed * p->velocity.z) * gst->dt, 1);
+    //CameraMoveRight   (&gst->shadow_cam, (p->speed * p->velocity.x) * gst->dt, 1);
 
     // Friction.
     float friction = (p->onground || p->noclip) ? p->ground_friction : p->air_friction;
@@ -803,12 +826,22 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 
 
     // Fix camera target. it may be wrong if Y position changed.
+    {
+        float scale_up = ( p->position.y - p->cam.position.y);
 
-    float scale_up = ( p->position.y - p->cam.position.y);
+        Vector3 up = Vector3Scale(GetCameraUp(&p->cam), scale_up);
+        p->cam.target = Vector3Add(p->cam.target, up);
+        p->cam.position.y = p->position.y;
+    }
 
-    Vector3 up = Vector3Scale(GetCameraUp(&p->cam), scale_up);
-    p->cam.target = Vector3Add(p->cam.target, up);
-    p->cam.position.y = p->position.y;
+    // Update camera for shadowmap so it always points down from above the player.
+    {
+        gst->shadow_cam.target = (Vector3){0, 0, 0};
+        gst->shadow_cam.target.x =     (p->cam.position.x - gst->shadow_cam.target.x);
+        gst->shadow_cam.target.z = 1.0+(p->cam.position.z - gst->shadow_cam.target.z);
+        gst->shadow_cam.position = p->cam.position;
+        gst->shadow_cam.position.y += gst->shadow_cam_y;
+    }
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
@@ -816,13 +849,19 @@ void player_update_camera(struct state_t* gst, struct player_t* p) {
         return;
     }
 
-    const Vector2 md = GetMouseDelta();
-    
+    Vector2 md = GetMouseDelta();
+  
+    if(gst->gamepad.id >= 0) {
+        md = Vector2Scale(gst->gamepad.Rstick, gst->gamepad.sensetivity);
+    }
+
+
     p->cam_yaw = (-md.x * CAMERA_SENSETIVITY);
     p->looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
         
     CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY), 0);
     CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY), 1, 0, 0);
+    
 }
 
 #define NO_YINCREMENT 0

@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "powerup.h"
-#include "state.h"
+#include "state/state.h"
 
 #include "projectile_mod/prjmod_fmj_ability.h"
 #include "projectile_mod/prjmod_gravity.h"

@@ -1,10 +1,11 @@
 #include <stdio.h>
-#include "state.h"
+#include "state/state.h"
 
 #include <rlgl.h>
 
 
 #define DISABLE_ERROR_MSG 1
+
 
 // NOTE: This must match order with '#define U_...' in 'shader_util.h'
 static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
@@ -25,7 +26,11 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_bloomtresh_tex\0",
     "u_render_dist\0",
     "u_defnoise_tex\0",
-    "u_ssao_kernel_samples\0"
+    "u_ssao_kernel_samples\0",
+    "u_shadowview_matrix\0",
+    "u_shadowproj_matrix\0",
+    "u_shadowcam_y\0",
+    "u_shadow_bias\0"
 };
 
 
