@@ -95,7 +95,10 @@ static void delete_gbuffer(struct gbuffer_t* gbuf) {
 
 static void state_delete_gbuffers(struct state_t* gst) {
     delete_gbuffer(&gst->gbuffer);
-    delete_gbuffer(&gst->shadow_gbuffer);
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        delete_gbuffer(&gst->shadow_gbuffers[i]);
+    }
+
     printf("\033[35m -> Deleted Geometry buffers\033[0m\n");
 }
 

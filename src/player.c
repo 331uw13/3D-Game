@@ -9,8 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
-#define NOCLIP_SPEED 25
-
+#define NOCLIP_SPEED 8
 
 static void set_player_default_stats(struct player_t* p) {
 
@@ -65,13 +64,14 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
 
+    /*
     gst->shadow_cam = p->cam;
     gst->shadow_cam.fovy = 60.0;
     
     CameraPitch(&gst->shadow_cam, -90*DEG2RAD, 1, 0, 0);
     gst->shadow_cam.projection = CAMERA_ORTHOGRAPHIC;//PERSPECTIVE;    
     gst->shadow_cam_y = 800;
-
+    */
     // TODO: remove "reflect cam"
 
     printf("Spawn point: %0.2f, %0.2f, %0.2f\n", 
@@ -834,14 +834,6 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         p->cam.position.y = p->position.y;
     }
 
-    // Update camera for shadowmap so it always points down from above the player.
-    {
-        gst->shadow_cam.target = (Vector3){0, 0, 0};
-        gst->shadow_cam.target.x =     (p->cam.position.x - gst->shadow_cam.target.x);
-        gst->shadow_cam.target.z = 1.0+(p->cam.position.z - gst->shadow_cam.target.z);
-        gst->shadow_cam.position = p->cam.position;
-        gst->shadow_cam.position.y += gst->shadow_cam_y;
-    }
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {

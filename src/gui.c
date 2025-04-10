@@ -223,6 +223,8 @@ void gui_render_menu_screen(struct state_t* gst) {
     }
     btn_pos.y += 50.0;
 
+    gui_slider_float(gst, "Controller Sensetivity", 20.0, btn_pos, 530,
+            &gst->gamepad.sensetivity, 1.0, 10.0);
 
     /*
 
@@ -426,7 +428,6 @@ void gui_render_devmenu(struct state_t* gst) {
 
     if(gui_button(gst, "Telport to zero", 15.0, btn_pos)) {
         gst->player.cam.position = (Vector3){ 0, 0, 0 };
-        gst->shadow_cam.position = (Vector3){ 0, 0, 0 };
     }
     btn_pos.y += btn_y_inc;
     if(gui_button(gst, "Kill player", 15.0, btn_pos)) {
@@ -476,23 +477,23 @@ void gui_render_devmenu(struct state_t* gst) {
     
     btn_pos.y += space_y*2;
 
-    gui_slider_float(gst, "Shadowmap fov", 20.0, btn_pos, 530,
-            &gst->shadow_cam.fovy, 1.0, 1000.0);
+    /*
+    if(gui_slider_float(gst, "Shadowmap fov", 20.0, btn_pos, 530,
+            &gst->shadow_cam.fovy, 1.0, 1000.0)) {
+        printf("%f\n", gst->shadow_cam.fovy);
+    }
     btn_pos.y += btn_y_inc+10;
 
     gui_slider_float(gst, "Shadow cam Y", 20.0, btn_pos, 530,
-            &gst->shadow_cam_y, -10.0, 1000);
+            &gst->shadow_cam_height, -10.0, 1000);
     btn_pos.y += btn_y_inc+10;
     
     gui_slider_float(gst, "Shadow bias", 20.0, btn_pos, 530,
             &gst->shadow_bias, 0.0, 2.0);
     btn_pos.y += btn_y_inc+10;
-
+    */
 
     // MOVE THIS:
-    gui_slider_float(gst, "Controller Sensetivity", 20.0, btn_pos, 530,
-            &gst->gamepad.sensetivity, 1.0, 10.0);
-    btn_pos.y += btn_y_inc+10;
 
 
 }

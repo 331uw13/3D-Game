@@ -169,6 +169,10 @@
 // IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
 #define MAX_SSAO_KERNEL_SIZE 128
 
+#define MAX_SHADOW_LEVELS 3
+
+
+
 // Critical hit marker.
 struct crithit_marker_t {
     Vector3 position;
@@ -220,6 +224,7 @@ struct gamepad_t {
     Vector2 Rstick_delta;
     float sensetivity;
 };
+
 
 
 // Game state "gst".
@@ -286,19 +291,26 @@ struct state_t {
     float xp_update_timer;
     float xp_value_f;
 
-    int has_audio;
-    Sound sounds[MAX_SOUNDS];
+    int    has_audio;
+    Sound  sounds[MAX_SOUNDS];
 
-    // Resolution to render everything to
+    // Resolutions
     int res_x;
     int res_y;
     int ssao_res_x;
     int ssao_res_y;
+    int shadow_res_x;
+    int shadow_res_y;
 
     Vector2 screen_size;
 
     struct gbuffer_t gbuffer;  
-    struct gbuffer_t shadow_gbuffer;
+    struct gbuffer_t shadow_gbuffers[MAX_SHADOW_LEVELS];
+
+    Camera  shadow_cams[MAX_SHADOW_LEVELS];
+    float   shadow_cam_height;
+    float   shadow_bias;
+ 
 
     // Everything is rendered to this texture
     // and then post processed.
@@ -309,17 +321,17 @@ struct state_t {
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
         
-    int ssao_enabled;
-    Texture ssao_noise_tex;
-    Matrix cam_view_matrix;
-    Matrix cam_proj_matrix;
-    Vector3* ssao_kernel;
-    int ssao_kernel_type;
+    int       ssao_enabled;
+    Texture   ssao_noise_tex;
+    Vector3*  ssao_kernel;
+    
+    Matrix cam_view_matrix; // TODO: Move these
+    Matrix cam_proj_matrix; //
 
     RenderTexture2D ssao_target;
     RenderTexture2D ssao_final;
 
-    Color render_bg_color;
+    Color render_bg_color; // TODO: Remove this
     int running;
     int menu_open;
     int devmenu_open;
@@ -329,13 +341,7 @@ struct state_t {
 
     RenderTexture2D bloom_downsamples[NUM_BLOOM_DOWNSAMPLES];
 
-    //RenderTexture2D shadow_map;
-    Camera shadow_cam;
-    Matrix shadow_view_matrix;
-    Matrix shadow_proj_matrix;
-    float shadow_cam_y;
-    float shadow_bias;
-    
+   
 };
 
 
@@ -350,6 +356,8 @@ void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, siz
 //void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
+void state_update_shadow_cams(struct state_t* gst);
+void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
 void set_fog_settings(struct state_t* gst, struct fog_t* fog);
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);

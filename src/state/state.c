@@ -175,6 +175,50 @@ void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, siz
 }
 
 
+void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index) {
+
+    // Update shadow maps.
+
+    Vector2 shadow_res = (Vector2){ gst->shadow_res_x, gst->shadow_res_y };
+    float aspect_ratio = shadow_res.x / shadow_res.y;
+    
+    shader_setu_vec2(gst, shader_index, U_SHADOW_RES, &shadow_res);
+    shader_setu_float(gst, shader_index, U_SHADOW_BIAS, &gst->shadow_bias);
+
+    int shadow_map_slot = 10;
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        Camera* shadow_cam = &gst->shadow_cams[i];
+
+        //shader_setu_matrix(gst, DEFAULT_SHADER, U_SHADOWVIEW_MATRIX, GetCameraViewMatrix(shadow_cam));
+        //shader_setu_matrix(gst, DEFAULT_SHADER, U_SHADOWPROJ_MATRIX, GetCameraProjectionMatrix(shadow_cam, aspect));
+
+        int view_matrix_loc = GetShaderLocation(gst->shaders[shader_index], TextFormat("u_shadowview_matrix[%i]",i));
+        int proj_matrix_loc = GetShaderLocation(gst->shaders[shader_index], TextFormat("u_shadowproj_matrix[%i]",i));
+        int fovy_loc        = GetShaderLocation(gst->shaders[shader_index], TextFormat("u_shadow_fov[%i]",i));
+        
+        Matrix cam_view_matrix = GetCameraViewMatrix(shadow_cam);
+        Matrix cam_proj_matrix = GetCameraProjectionMatrix(shadow_cam, aspect_ratio);
+
+        SetShaderValueMatrix(gst->shaders[shader_index], view_matrix_loc, cam_view_matrix);
+        SetShaderValueMatrix(gst->shaders[shader_index], proj_matrix_loc, cam_proj_matrix);
+
+        SetShaderValueV(gst->shaders[shader_index], fovy_loc, &shadow_cam->fovy, SHADER_UNIFORM_FLOAT, 1);
+
+        int shadow_map_loc = GetShaderLocation(gst->shaders[shader_index], 
+                TextFormat("shadow_maps[%i]", i));
+
+
+        rlEnableShader(gst->shaders[shader_index].id);
+        rlActiveTextureSlot(shadow_map_slot);
+        rlEnableTexture(gst->shadow_gbuffers[i].position_tex);
+        rlSetUniform(shadow_map_loc, &shadow_map_slot, SHADER_UNIFORM_INT, 1);
+
+        shadow_map_slot++;
+    }
+
+
+}
+
 void state_update_shader_uniforms(struct state_t* gst) {
 
     // Update Player view position.
@@ -214,19 +258,8 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_int(gst, SSAO_SHADER, U_SSAO_KERNEL_SAMPLES, &gst->cfg.ssao_kernel_samples);  
 
 
-    float aspect = (float)gst->res_x / (float)gst->res_y;
-    shader_setu_matrix(gst, DEFAULT_SHADER, U_SHADOWVIEW_MATRIX, GetCameraViewMatrix(&gst->shadow_cam));
-    shader_setu_matrix(gst, DEFAULT_SHADER, U_SHADOWPROJ_MATRIX, GetCameraProjectionMatrix(&gst->shadow_cam,aspect));
-
-    int shadow_map_loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER], "shadow_map");
-    int slot = 10;
-    rlEnableShader(gst->shaders[DEFAULT_SHADER].id);
-    rlActiveTextureSlot(slot);
-    rlEnableTexture(gst->shadow_gbuffer.position_tex);
-    rlSetUniform(shadow_map_loc, &slot, SHADER_UNIFORM_INT, 1);
-
-    shader_setu_float(gst, DEFAULT_SHADER, U_SHADOW_BIAS, &gst->shadow_bias);
-    shader_setu_float(gst, DEFAULT_SHADER, U_SHADOWCAM_Y, &gst->shadow_cam_y);
+    state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
+    state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);
 }
 
 
@@ -277,7 +310,7 @@ void state_update_frame(struct state_t* gst) {
     update_inventory(gst, &gst->player);
     update_npc(gst, &gst->npc);
     player_update(gst, &gst->player);
-
+    state_update_shadow_cams(gst);
 
     if(!gst->xp_update_done) {
         
@@ -303,6 +336,18 @@ void state_update_frame(struct state_t* gst) {
     }
 }
 
+void state_update_shadow_cams(struct state_t* gst) {
+   
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        Camera* cam = &gst->shadow_cams[i];
+        cam->target = (Vector3){0, 0, 0};
+        cam->target.x =     (gst->player.cam.position.x - cam->target.x);
+        cam->target.z = 1.0+(gst->player.cam.position.z - cam->target.z);
+        cam->position = gst->player.cam.position;
+        cam->position.y += gst->shadow_cam_height;
+
+    }
+}
 
 
 

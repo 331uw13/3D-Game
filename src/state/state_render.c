@@ -171,27 +171,26 @@ static Vector3 test_sphere_pos = (Vector3){0, 0, 0 };
 
 void state_render(struct state_t* gst) {
 
+    // ------ Shadow map.
     // TODO: This should be rendered in low resolution and then add blur.
 
-    // ------ Shadow map.
-    {
-        rlEnableFramebuffer(gst->shadow_gbuffer.framebuffer);
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        struct gbuffer_t* gbuf = &gst->shadow_gbuffers[i];
+        rlEnableFramebuffer(gbuf->framebuffer);
         rlClearColor(0, 0, 0, 0);
         rlClearScreenBuffers(); // Clear color and depth.
         rlDisableColorBlend();
-        rlViewport(0, 0, gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y);
-        rlSetFramebufferWidth(gst->shadow_gbuffer.res_x);
-        rlSetFramebufferHeight(gst->shadow_gbuffer.res_y);
-        BeginMode3D(gst->shadow_cam);
+        rlViewport(0, 0, gbuf->res_x, gbuf->res_y);
+        rlSetFramebufferWidth(gbuf->res_x);
+        rlSetFramebufferHeight(gbuf->res_y);
+        BeginMode3D(gst->shadow_cams[i]);
         {
-            rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
             render_scene(gst, RENDERPASS_GBUFFER);
         }
         EndMode3D();
         rlDisableFramebuffer();
         rlClearScreenBuffers();
         rlEnableColorBlend();
-   
     }
 
     // ------ Geometry data.
@@ -475,8 +474,7 @@ void state_render(struct state_t* gst) {
         for(int i = 0; i < gst->cfg.ssao_kernel_samples; i++) {
             SetShaderValueV(ssao_shader,
                     GetShaderLocation(ssao_shader, TextFormat("ssao_kernel[%i]",i)),
-                    &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1);
-        
+                    &gst->ssao_kernel[i], SHADER_UNIFORM_VEC3, 1); 
         }
 
         DrawTexturePro(gst->env_render_downsample.texture,

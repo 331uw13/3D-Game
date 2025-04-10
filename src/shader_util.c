@@ -27,10 +27,8 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_render_dist\0",
     "u_defnoise_tex\0",
     "u_ssao_kernel_samples\0",
-    "u_shadowview_matrix\0",
-    "u_shadowproj_matrix\0",
-    "u_shadowcam_y\0",
-    "u_shadow_bias\0"
+    "u_shadow_bias\0",
+    "u_shadow_res\0"
 };
 
 

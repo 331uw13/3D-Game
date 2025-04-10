@@ -54,13 +54,14 @@ void loop(struct state_t* gst) {
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_final.texture);
 
+                /*
                 int shadow_map_loc = GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "shadow_map");
                 int slot = 10;
                 rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
                 rlActiveTextureSlot(slot);
                 rlEnableTexture(gst->shadow_gbuffer.position_tex);
                 rlSetUniform(shadow_map_loc, &slot, SHADER_UNIFORM_INT, 1);
-
+                */
 
 
                 DrawTexturePro(gst->env_render_target.texture,

@@ -667,7 +667,12 @@ static void state_setup_all_shaders(struct state_t* gst) {
 }
 
 
-static int state_setup_gbuffer(struct gbuffer_t* gbuf, int width, int height) {
+#define GBUF_FLG_ALL       0x1
+#define GBUF_FLG_POSITIONS 0x2
+#define GBUF_FLG_NORMALS   0x4
+#define GBUF_FLG_LDEPTH    0x8
+
+static int state_setup_gbuffer(struct gbuffer_t* gbuf, int width, int height, int flags) {
     int result = 0;
 
     printf("\033[90m: Creating framebuffer %ix%i\n", width, height);
@@ -687,40 +692,50 @@ static int state_setup_gbuffer(struct gbuffer_t* gbuf, int width, int height) {
 
     // ------- Create Textures.
 
+    int num_drawbuffers = 0;
+
     // Positions.
-    gbuf->position_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
+    if((flags & GBUF_FLG_ALL) || (flags & GBUF_FLG_POSITIONS)) {
+        gbuf->position_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+        num_drawbuffers++;
+    }
+
     // Normals.
-    gbuf->normal_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
-    // Diffuse specular. (NOTE: This is not currently used, TODO: remove if no future use.)
-    gbuf->difspec_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
+    if((flags & GBUF_FLG_ALL) || (flags & GBUF_FLG_NORMALS)) {
+        gbuf->normal_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+        num_drawbuffers++;
+    }
     
     // Linear Depth.
-    gbuf->depth_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
+    if((flags & GBUF_FLG_ALL) || (flags & GBUF_FLG_LDEPTH)) {
+        gbuf->depth_tex = rlLoadTexture(NULL, width, height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+        num_drawbuffers++;
+    }
    
     gbuf->depthbuffer =  rlLoadTextureDepth(width, height, 1);
 
-    rlActiveDrawBuffers(4);
+    rlActiveDrawBuffers(num_drawbuffers);
 
     // -------- Attach textures to framebuffer.
 
     // Positions.
-    rlFramebufferAttach(gbuf->framebuffer, gbuf->position_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
-    
+    if((flags & GBUF_FLG_ALL) || (flags & GBUF_FLG_POSITIONS)) {
+        rlFramebufferAttach(gbuf->framebuffer, gbuf->position_tex,
+                RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
+        printf("\033[90m: Attached texture for positions.\033[0m\n");
+    }
     // Normals.
-    rlFramebufferAttach(gbuf->framebuffer, gbuf->normal_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL1, RL_ATTACHMENT_TEXTURE2D, 0);
-    
-    // Diffuse specular.
-    rlFramebufferAttach(gbuf->framebuffer, gbuf->difspec_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL2, RL_ATTACHMENT_TEXTURE2D, 0);
-
+    if((flags & GBUF_FLG_ALL) || (flags & GBUF_FLG_NORMALS)) {
+        rlFramebufferAttach(gbuf->framebuffer, gbuf->normal_tex,
+             RL_ATTACHMENT_COLOR_CHANNEL1, RL_ATTACHMENT_TEXTURE2D, 0);
+        printf("\033[90m: Attached texture for normals.\033[0m\n");
+    }
     // Linear Depth.
-    rlFramebufferAttach(gbuf->framebuffer, gbuf->depth_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL3, RL_ATTACHMENT_TEXTURE2D, 0);
+    if((flags & GBUF_FLG_ALL) || (flags & GBUF_FLG_LDEPTH)) {
+        rlFramebufferAttach(gbuf->framebuffer, gbuf->depth_tex,
+                RL_ATTACHMENT_COLOR_CHANNEL2, RL_ATTACHMENT_TEXTURE2D, 0);
+        printf("\033[90m: Attached texture for linear depth.\033[0m\n");
+    }
 
     // Attach depth buffer.
     rlFramebufferAttach(gbuf->framebuffer, gbuf->depthbuffer,
@@ -732,7 +747,8 @@ static int state_setup_gbuffer(struct gbuffer_t* gbuf, int width, int height) {
                 __func__);
         goto error;
     }
-  
+ 
+    printf("\033[90m: Framebuffer complete.\033[0m\n");
     result = 1;
 
 error:
@@ -740,32 +756,24 @@ error:
     return result;
 }
 
+
+
 static void state_setup_all_gbuffers(struct state_t* gst) {
     PRINT_CURRENT_SETUP;
 
-    gst->ssao_res_x = 0;
-    gst->ssao_res_y = 0;
 
-    switch(gst->cfg.ssao_quality) {
-        default:
-        case CFG_SSAO_QLOW:
-            gst->ssao_res_x = gst->res_x/2.0;
-            gst->ssao_res_y = gst->res_y/2.0;
-            break;
+    state_setup_gbuffer(&gst->gbuffer, 
+            gst->ssao_res_x, gst->ssao_res_y,
+            GBUF_FLG_ALL);
+    
+    gst->shadow_res_x = gst->res_x;
+    gst->shadow_res_y = gst->res_y;
 
-        case CFG_SSAO_QMED:
-            gst->ssao_res_x = gst->res_x/1.35;
-            gst->ssao_res_y = gst->res_y/1.35;
-            break;
-
-        case CFG_SSAO_QHIGH:
-            gst->ssao_res_x = gst->res_x;
-            gst->ssao_res_y = gst->res_y;
-            break;
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        state_setup_gbuffer(&gst->shadow_gbuffers[i],
+                gst->shadow_res_x, gst->shadow_res_y,
+                GBUF_FLG_POSITIONS);
     }
-
-    state_setup_gbuffer(&gst->gbuffer, gst->ssao_res_x, gst->ssao_res_y);
-    state_setup_gbuffer(&gst->shadow_gbuffer, gst->res_x, gst->res_y);
 
     PRINT_CURRENT_SETUP_DONE;
 }
@@ -854,7 +862,51 @@ static void state_setup_ssao(struct state_t* gst) {
     SetTextureWrap(gst->ssao_noise_tex, TEXTURE_WRAP_MIRROR_REPEAT);
 
     free(pixels);
-    
+ 
+    gst->ssao_res_x = 0;
+    gst->ssao_res_y = 0;
+
+    switch(gst->cfg.ssao_quality) {
+        default:
+        case CFG_SSAO_QLOW:
+            gst->ssao_res_x = gst->res_x/2.0;
+            gst->ssao_res_y = gst->res_y/2.0;
+            break;
+
+        case CFG_SSAO_QMED:
+            gst->ssao_res_x = gst->res_x/1.35;
+            gst->ssao_res_y = gst->res_y/1.35;
+            break;
+
+        case CFG_SSAO_QHIGH:
+            gst->ssao_res_x = gst->res_x;
+            gst->ssao_res_y = gst->res_y;
+            break;
+    }   
+}
+
+static void state_setup_shadow_cams(struct state_t* gst) {
+
+
+    float fovs[MAX_SHADOW_LEVELS] = {
+        180.0,
+        500.0,
+        1000.0
+    };
+
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        Camera* cam = &gst->shadow_cams[i];
+        *cam = (Camera){ 0 };
+        cam->position = (Vector3){0};
+        cam->target = (Vector3){0};
+        cam->up = (Vector3){ 0.0, 1.0, 0.0 };
+        cam->fovy = fovs[i];
+        cam->projection = CAMERA_ORTHOGRAPHIC;
+
+        printf("\033[90m: Created shadow camera with fov %0.4f\033[0m\n", fovs[i]);
+    }
+  
+    gst->shadow_cam_height = 300.0;
 }
 
 
@@ -866,9 +918,16 @@ int state_setup_everything(struct state_t* gst) {
 
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
+    const float terrain_amplitude = 3.0;
+    const float terrain_pnfrequency = 3.0;
+    const int   terrain_octaves = 3;
+    /*
+    const float terrain_scale = 20.0;
+    const u32   terrain_size = 1024;
     const float terrain_amplitude = 30.0;
     const float terrain_pnfrequency = 30.0;
     const int   terrain_octaves = 3;
+    */
     /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 2048;
@@ -915,6 +974,7 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_render_targets(gst);
     
     init_player_struct(gst, &gst->player);
+    state_setup_shadow_cams(gst);
 
     result = 1;
 error:
