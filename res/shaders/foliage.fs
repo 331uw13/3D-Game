@@ -17,6 +17,7 @@ out vec4 finalColor;
 #include "res/shaders/fog.glsl"
 #include "res/shaders/voronoi.glsl"
 #include "res/shaders/light.glsl"
+#include "res/shaders/shadow.glsl"
 
 void main()
 {
@@ -34,9 +35,13 @@ void main()
 
     col = texelcolor.rgb * g_lightcolor;
     col += texelcolor.rgb * AMBIENT;
+    col *= get_shadows();
+
+    /*
     float v = voronoi3d(fragPosition*0.1 - (time*0.3)*vec3(0,1,0)).x;
     v *= v;
     col += (v * 0.25) * vec3(0.0, 0.3,0.3);
+    */
 
     float dist = length(u_campos - fragPosition);
     col = get_fog(col, dist, _YLEVEL);

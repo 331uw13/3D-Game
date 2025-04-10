@@ -2,8 +2,7 @@
 
 layout (location = 0) out vec3 gPosition;
 layout (location = 1) out vec3 gNormal;
-layout (location = 2) out vec4 gAlbedoSpec;
-layout (location = 3) out vec4 gDepth;
+layout (location = 2) out vec4 gDepth;
 
 in vec3 fragPosition;
 in vec2 fragTexCoord;
@@ -14,7 +13,6 @@ in vec4 fragColor;
 void main() {
     gPosition = fragPosition;
     gNormal = normalize(fragNormal);
-    gAlbedoSpec = fragColor;
 
 
     float near = 0.01;

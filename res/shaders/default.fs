@@ -24,13 +24,7 @@ out vec4 finalColor;
 #include "res/shaders/fog.glsl"
 #include "res/shaders/light.glsl"
 #include "res/shaders/voronoi.glsl"
-
-
-uniform sampler2D shadow_map;
-uniform mat4 u_shadowview_matrix;
-uniform mat4 u_shadowproj_matrix;
-uniform float u_shadow_bias;
-
+#include "res/shaders/shadow.glsl"
 /*
 float ld(float depth) {
     float near = 0.1;
@@ -45,10 +39,9 @@ float ld(float depth) {
 void main()
 {
     finalColor = vec4(0.1, 0.0, 0.1, 1.0);
-    // ----------------------------
-    vec3 fnormal = normalize(fragNormal);
-    vec3 light_dir = vec3(0.0, 1.0, 0.0);
-    
+   
+    vec3 shadow = get_shadows();
+    /*
     mat4 shvp = u_shadowproj_matrix * u_shadowview_matrix;
     
     // Transform into shadow camera space.
@@ -75,43 +68,21 @@ void main()
         }
 
         shadow /= (16.0);
-    }
-
-
-    /*
-    if(coords.x > -1.0 && coords.x < 1.0 && coords.y > -1.0 && coords.y < 1.0) {
-
-        vec3 closest = texture(shadow_map, (coords.xy+1.0)/2.0).xyz;
-   
-        if(closest.y < fragPosition.y-bias) {
-            finalColor.r = 0.5;
-        }
-        //finalColor.r = closest.y;
-        
-    }
-    else {
-        // Outside of shadow camera frustrum.
-        finalColor.b = 0.05;
-        finalColor.r = 0.05;
+    
+        shadow += vec3(0.8, 0.0, 0.7);
     }
     */
-    
-
 
     //return;
 
     vec4 texel_color = texture(texture0, fragTexCoord);
     vec3 normal = normalize(fragNormal);
-    vec3 view_dir = normalize(u_campos - fragPosition);
-
-    //float noise = voronoi3d(fragPosition*0.01).y * abs(voronoi3d(fragPosition*0.0002).x);
-    //texel_color.rgb += vec3(1.0, 0.3, 0.3) * noise;
   
+    vec3 view_dir = normalize(u_campos - fragPosition);
     compute_lights(view_dir);
 
     finalColor = (texel_color * ((colDiffuse + vec4(g_lightspecular, 1.0)) * vec4(g_lightcolor,1.0)));
     finalColor.xyz += texel_color.xyz * AMBIENT;
-
     finalColor.xyz *= shadow;
 
     vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
