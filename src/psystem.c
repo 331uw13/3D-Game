@@ -26,7 +26,9 @@ void delete_psystem(struct psystem_t* psys) {
         glDeleteBuffers(1, &psys->color_vbo);
     }
 
-    UnloadMesh(psys->particle_mesh);
+    if(IsModelValid(psys->particle_model)) {
+        UnloadModel(psys->particle_model);
+    }
 
     psys->enabled = 0;
     psys->update_callback = NULL;
@@ -69,6 +71,7 @@ void create_psystem(
     psys->update_callback = update_callback_ptr;
     psys->pinit_callback = pinit_callback_ptr;
     psys->userptr = NULL;
+    psys->particle_model_mesh_index = 0;
 
     psys->particles = calloc(max_particles, sizeof *psys->particles);
     if(!psys->particles) {
@@ -132,7 +135,7 @@ void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys) {
     }
 
 
-    rlEnableVertexArray(psys->particle_mesh.vaoId);
+    rlEnableVertexArray(psys->particle_model.meshes[0].vaoId);
 
     psys->color_vbo = (sizeof(float) * 4) * psys->max_particles;
     psys->color_vbo = rlLoadVertexBuffer(NULL, psys->color_vbo, 1);
@@ -150,20 +153,17 @@ void setup_psystem_color_vbo(struct state_t* gst, struct psystem_t* psys) {
 
 
 void update_psystem(struct state_t* gst, struct psystem_t* psys) {
-
-    if(psys->num_alive_parts == 0) {
-       
+    if(psys->halt) {
         return;
     }
-
-    psys->num_alive_parts = 0;
-   
+    if(psys->num_alive_parts == 0) {  
+        return;
+    }
     if(!psys->update_callback) {
         fprintf(stderr, "\033[31m(ERROR) '%s': No update callback.\033[0m\n",
                 __func__);
         return;
     }
-
     if(!psys->pinit_callback) {
         fprintf(stderr, "\033[31m(ERROR) '%s': No particle initialization callback.\033[0m\n",
                 __func__);
@@ -173,11 +173,11 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
     int has_color_vbo = (psys->color_vbo != PSYS_NO_COLOR_VBO);
 
     if(has_color_vbo) {
-        rlEnableVertexArray(psys->particle_mesh.vaoId);
+        rlEnableVertexArray(psys->particle_model.meshes[0].vaoId);
         glBindBuffer(GL_ARRAY_BUFFER, psys->color_vbo);
     }
     
-
+    psys->num_alive_parts = 0;
     for(size_t i = 0; i < psys->max_particles; i++) {
         struct particle_t* p = &psys->particles[i];
         if(!p) {
@@ -246,19 +246,19 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color global_ps
     // TODO. add 'tag' in psystem to see where these errors may be coming from?
     if(psys->first_render) {
         if(!IsMaterialValid(psys->particle_material)) {
-            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_material' is not loaded.\033[0m\n",
+            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_material' is not loaded correctly.\033[0m\n",
                     __func__);
             psys->halt = 1;
             return;
         }
         if(!IsShaderValid(psys->particle_material.shader)) {
-            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_shader' is not loaded.\033[0m\n",
+            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_shader' is not loaded correctly.\033[0m\n",
                     __func__);
             psys->halt = 1;
             return;
         }
-        if(!(psys->particle_mesh.vertices)) {
-            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_mesh' is not loaded.\033[0m\n",
+        if(!IsModelValid(psys->particle_model)) {
+            fprintf(stderr, "\033[31m\033[7m(ERROR) '%s': 'particle_model' is not loaded correctly.\033[0m\n",
                     __func__);
             psys->halt = 1;
             return;
@@ -290,7 +290,7 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color global_ps
 
 
     DrawMeshInstanced(
-            psys->particle_mesh,
+            psys->particle_model.meshes[psys->particle_model_mesh_index],
             psys->particle_material,
             psys->transforms,
             psys->max_particles

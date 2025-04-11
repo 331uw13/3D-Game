@@ -9,7 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
-#define NOCLIP_SPEED 8
+#define NOCLIP_SPEED 40
 
 static void set_player_default_stats(struct player_t* p) {
 
@@ -426,6 +426,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
                     ? IsMouseButtonDown(MOUSE_BUTTON_LEFT) 
                     : IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_RIGHT_TRIGGER_1);
 
+    // 'any_gui_open' is set from state/state.c 'state_update_frame()'
     if(!p->any_gui_open
        && p->alive
        && p->holding_gun
@@ -837,7 +838,7 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
-    if(p->any_gui_open) {
+    if(p->any_gui_open || gst->devmenu_open) {
         return;
     }
 

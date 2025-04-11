@@ -6,7 +6,6 @@
 
 #define DISABLE_ERROR_MSG 1
 
-
 // NOTE: This must match order with '#define U_...' in 'shader_util.h'
 static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_time\0",
@@ -28,7 +27,10 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_defnoise_tex\0",
     "u_ssao_kernel_samples\0",
     "u_shadow_bias\0",
-    "u_shadow_res\0"
+    "u_shadow_res\0",
+    "u_wind_strength\0",
+    "u_wind_dir\0",
+    "u_sun_color\0"
 };
 
 

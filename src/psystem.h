@@ -85,7 +85,8 @@ struct psystem_t {
     Matrix*     transforms;
     
     Material    particle_material;
-    Mesh        particle_mesh;
+    Model       particle_model; // NOTE: Model will be unloaded when calling 'delete_psystem'
+    size_t      particle_model_mesh_index; // Which mesh in model should be used?
 
     size_t max_particles;
     size_t num_alive_parts;
@@ -131,8 +132,7 @@ struct psystem_t {
     short   user_i[PSYS_MAX_USER_I];
     float   user_f[PSYS_MAX_USER_F];
     Vector3 user_v[PSYS_MAX_USER_V];
-    void*   user_p[PSYS_MAX_USER_P];
-    
+    void*   user_p[PSYS_MAX_USER_P]; 
 };
 
 

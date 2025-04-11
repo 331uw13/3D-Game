@@ -7,7 +7,7 @@
 #include <raymath.h>
 #include <stdio.h>
 
-#define RADIUS 4000
+#define RADIUS 7000
 
 // PARTICLE UPDATE
 void cloud_psys_update(
@@ -21,7 +21,10 @@ void cloud_psys_update(
 
     part->position.y += sin(gst->time*5 + part->index) * 0.01;
     part->position.z += cos(gst->time*5 + part->index) * 0.01;
-    part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt));
+
+    Vector3 velocity = Vector3Multiply(gst->weather.wind_dir, part->velocity);
+    velocity = Vector3Scale(velocity, gst->weather.wind_strength);
+    part->position = Vector3Add(part->position, Vector3Scale(velocity, gst->dt));
 
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);   
     Matrix scale_matrix = MatrixScale(scale, scale, scale);
@@ -49,16 +52,21 @@ void cloud_psys_init(
     
     part->position = (Vector3) {
         gst->player.position.x + RSEEDRANDOMF(-RADIUS, RADIUS),
-        RSEEDRANDOMF(-100, 600) + 800,
+        RSEEDRANDOMF(-100, 600) + 1200,
         gst->player.position.z + RSEEDRANDOMF(-RADIUS, RADIUS)
     };
-   
+ 
+    part->velocity = (Vector3) {
+        RSEEDRANDOMF(1.0, 3.0), 0, RSEEDRANDOMF(1.0, 3.0)
+    };
+    /*
     part->velocity = (Vector3) {
         0, 0, RSEEDRANDOMF(-500, -100)
     };
+    */
 
     part->lifetime = 0.0;
-    part->scale = RSEEDRANDOMF(1.0, 5.0);
+    part->scale = RSEEDRANDOMF(10.0, 50.0);
 }
 
 

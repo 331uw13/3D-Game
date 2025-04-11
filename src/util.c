@@ -24,7 +24,6 @@ int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader
             fs_filename, vs_filename);
 
     // Errors are reported from functions.
-
     if(!platform_read_file(&vertex_file, vs_filename)) {
         goto error;
     }
@@ -35,12 +34,17 @@ int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader
     
     size_t sizeout = 0;
     char* fs_code = preproc_glsl(&fragment_file, &sizeout);
+    char* vs_code = preproc_glsl(&vertex_file, &sizeout);
 
     shader->id = 0;
-    *shader = LoadShaderFromMemory(vertex_file.data, fs_code);
+    *shader = LoadShaderFromMemory(vs_code, fs_code);
+
 
     if(fs_code) {
         free(fs_code);
+    }
+    if(vs_code) {
+        free(vs_code);
     }
 
     if(shader->id) {

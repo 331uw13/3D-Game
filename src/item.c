@@ -7,7 +7,7 @@
 #include <raymath.h>
 
 
-static const char* ITEM_NAMES[] = {
+static char* const ITEM_NAMES[] = {
     "Apple\0",
     "Metal\0",
     "<Unknown>\0"

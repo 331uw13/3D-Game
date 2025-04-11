@@ -28,6 +28,9 @@ typedef short uloc_t;
 #define U_SSAO_KERNEL_SAMPLES 17
 #define U_SHADOW_BIAS 18
 #define U_SHADOW_RES 19
+#define U_WIND_STRENGTH 20
+#define U_WIND_DIR 21
+#define U_SUN_COLOR 22
 
 #define U_NOTFOUND -1
 

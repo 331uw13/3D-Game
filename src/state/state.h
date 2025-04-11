@@ -85,7 +85,7 @@
 //...
 
 
-// Index for 'shaders'
+// Index for 'shaders'   | TODO: Delete unused shaders.
 #define DEFAULT_SHADER 0
 #define POSTPROCESS_SHADER 1
 #define BLOOM_TRESHOLD_SHADER 2
@@ -100,13 +100,14 @@
 #define PLAYER_HIT_SHADER 11
 #define GBUFFER_SHADER 12
 #define GBUFFER_INSTANCE_SHADER 13
-#define SSAO_SHADER 14
-#define BLOOM_BLUR_SHADER 15
-#define SSAO_BLUR_SHADER 16
-#define SKY_SHADER 17
-#define WDEPTH_SHADER 18
-#define WDEPTH_INSTANCE_SHADER 19
-#define MAX_SHADERS 20
+#define GBUFFER_FOLIAGE_WIND_SHADER 14
+#define SSAO_SHADER 15
+#define BLOOM_BLUR_SHADER 16
+#define SSAO_BLUR_SHADER 17
+#define SKY_SHADER 18
+#define CLOUD_PARTICLE_SHADER 19
+#define FOLIAGE_WIND_SHADER 20
+#define MAX_SHADERS 21
 // ...
  
 
@@ -195,15 +196,9 @@ struct gbuffer_t {
     int res_y;
 };
 
-struct depth_t {
-    unsigned int framebuffer;
-    unsigned int tex;
-};
-
-
 // Sets the fog density automatically to 'render_dist'
 // 'density' variable in fog_t struct will be ignored.
-#define FOG_MODE_TORENDERDIST 0
+#define FOG_MODE_RENDERDIST 0
 
 // Density can be controlled arbitrarily. range: 0 - 10.0
 #define FOG_MODE_CUSTOM 1   // TODO
@@ -214,6 +209,13 @@ struct fog_t {
     int mode;
     Color color_top;
     Color color_bottom;
+};
+
+struct weather_t {
+    Color   sun_color;
+    Vector3 wind_dir;
+    float   wind_strength;
+    // ...
 };
 
 
@@ -240,8 +242,9 @@ struct state_t {
     unsigned int ubo[MAX_UBOS];
     size_t num_prj_lights;
 
-    struct fog_t fog;
-    
+    struct fog_t      fog;
+    struct weather_t  weather;
+
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
 
@@ -341,7 +344,9 @@ struct state_t {
 
     RenderTexture2D bloom_downsamples[NUM_BLOOM_DOWNSAMPLES];
 
-   
+    // This is for gui component.
+    Texture  colorpick_tex;
+    Image    colorpick_img;
 };
 
 

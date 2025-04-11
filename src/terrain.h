@@ -119,7 +119,13 @@ void generate_terrain(
 
 
 void delete_terrain(struct terrain_t* terrain);
-void render_terrain(struct state_t* gst, struct terrain_t* terrain);
+
+
+// These settings should be used for different render passes.
+// For shadows full render distance terrain should not be rendered.
+#define RENDER_TERRAIN_FOR_PLAYER 0
+#define RENDER_TERRAIN_FOR_SHADOWS 1
+void render_terrain(struct state_t* gst, struct terrain_t* terrain, int render_setting);
 
 
 

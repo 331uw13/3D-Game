@@ -47,7 +47,7 @@ struct item_t {
     int     can_be_dropped;
 
     int     rarity;
-    int     type;
+    u32     type;
 
     int     consumable; 
     float   health_boost_when_used;

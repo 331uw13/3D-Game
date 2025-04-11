@@ -32,7 +32,8 @@ static void state_delete_textures(struct state_t* gst) {
     }
 
     UnloadTexture(gst->ssao_noise_tex);
-    
+    UnloadTexture(gst->colorpick_tex); 
+    UnloadImage(gst->colorpick_img);
     printf("\033[35m -> Deleted Textures\033[0m\n");
 }
 
@@ -119,6 +120,7 @@ void state_free_everything(struct state_t* gst) {
     state_delete_item_models(gst);
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
+    state_delete_ubos(gst);
 }
 
 

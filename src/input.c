@@ -56,7 +56,6 @@ void handle_userinput(struct state_t* gst) {
             GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_LEFT_Y)
         };
 
-        Vector2 old_Rstick = gst->gamepad.Rstick;
         gst->gamepad.Rstick = (Vector2) {
             GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_RIGHT_X),
             GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_RIGHT_Y)
@@ -151,6 +150,7 @@ void handle_userinput(struct state_t* gst) {
         toggle_gui(&gst->player.powerup_shop.open);
         gst->player.powerup_shop.selected_index = -1;
         gst->player.inventory.open = 0;
+        gst->devmenu_open = 0;
     }
    
 
@@ -174,7 +174,7 @@ void handle_userinput(struct state_t* gst) {
         printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
     }
 
-    if(IsKeyPressed(KEY_R)) {
+    if(IsKeyPressed(KEY_R) && !gst->player.any_gui_open) {
         if(!DEV_MODE) {
             fprintf(stderr, "\033[31mdev mode is disabled, cant open dev menu\033[0m\n");
             return;

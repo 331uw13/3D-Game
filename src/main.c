@@ -29,7 +29,7 @@ void loop(struct state_t* gst) {
 
         if(IsWindowResized()) {
             printf("\033[31m(WARNING!): Resizing window is not yet supported in runtime."
-                    " Change it in config file.\n (Also the config file doesnt exists yet)\033[0m\n");
+                    " Change it in config file.\033[0m\n");
         }
 
             
@@ -53,16 +53,6 @@ void loop(struct state_t* gst) {
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_final.texture);
-
-                /*
-                int shadow_map_loc = GetShaderLocation(gst->shaders[POSTPROCESS_SHADER], "shadow_map");
-                int slot = 10;
-                rlEnableShader(gst->shaders[POSTPROCESS_SHADER].id);
-                rlActiveTextureSlot(slot);
-                rlEnableTexture(gst->shadow_gbuffer.position_tex);
-                rlSetUniform(shadow_map_loc, &slot, SHADER_UNIFORM_INT, 1);
-                */
-
 
                 DrawTexturePro(gst->env_render_target.texture,
                         (Rectangle){
@@ -416,8 +406,8 @@ void first_setup(struct state_t* gst) {
         .type = LIGHT_DIRECTIONAL,
         .enabled = 1,
         .color = (Color){ 240, 210, 200, 255 },
-        .position = (Vector3){ -1, 1, -1 },
-        .strength = 0.2,
+        .position = (Vector3){ 0, 1, 0 },
+        .strength = 0.4,
         .index = SUN_LIGHT_ID
     };
 
@@ -432,10 +422,10 @@ void first_setup(struct state_t* gst) {
 
     // Setup fog.
     gst->fog = (struct fog_t) {
-        .mode = FOG_MODE_TORENDERDIST,
-        .color_top = (Color){ 5, 0, 10 },
-        .color_bottom = (Color){ 60, 30, 80 },
-        .density = 0.0 // Density is ignored when fog mode is TORENDERDIST
+        .mode = FOG_MODE_RENDERDIST,
+        .color_top = (Color){ 16, 0, 25, 255 },
+        .color_bottom = (Color){ 39, 0, 37, 255 },
+        .density = 0.0 // Density is ignored when fog mode is RENDERDIST
     };
 
     set_light(gst, &SUN, LIGHTS_UBO);

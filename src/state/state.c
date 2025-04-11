@@ -225,8 +225,10 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst, DEFAULT_SHADER,      U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, WATER_SHADER,        U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, FOLIAGE_SHADER,      U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, FOLIAGE_WIND_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, FOG_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
-    shader_setu_vec3(gst, SKY_SHADER,          U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, CLOUD_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
+    shader_setu_vec3(gst, SKY_SHADER,            U_CAMPOS, &gst->player.cam.position);
 
 
     // Update screen size.
@@ -242,9 +244,12 @@ void state_update_shader_uniforms(struct state_t* gst) {
     // Update time
     shader_setu_float(gst, DEFAULT_SHADER,         U_TIME, &gst->time);
     shader_setu_float(gst, FOLIAGE_SHADER,         U_TIME, &gst->time);
+    shader_setu_float(gst, FOLIAGE_WIND_SHADER,    U_TIME, &gst->time);
+    shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER,    U_TIME, &gst->time);
     shader_setu_float(gst, POSTPROCESS_SHADER,     U_TIME, &gst->time);
     shader_setu_float(gst, WATER_SHADER,           U_TIME, &gst->time);
-
+    shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
+    shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
     // Update water level
     shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
 
@@ -257,10 +262,33 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
     shader_setu_int(gst, SSAO_SHADER, U_SSAO_KERNEL_SAMPLES, &gst->cfg.ssao_kernel_samples);  
 
+    // TODO: Uniform buffer for weather data.
+    shader_setu_float(gst, FOLIAGE_WIND_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
+    shader_setu_vec3(gst,  FOLIAGE_WIND_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
+    shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
+    shader_setu_vec3(gst,  GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
+    
+    shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
+    shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->weather.sun_color);
 
     state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
     state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);
+
 }
+
+void state_update_shadow_cams(struct state_t* gst) {
+   
+    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
+        Camera* cam = &gst->shadow_cams[i];
+        cam->target = (Vector3){0, 0, 0};
+        cam->target.x =     (gst->player.cam.position.x - cam->target.x);
+        cam->target.z = 1.0+(gst->player.cam.position.z - cam->target.z);
+        cam->position = gst->player.cam.position;
+        cam->position.y += gst->shadow_cam_height;
+
+    }
+}
+
 
 
 // NOTE: DO NOT RENDER FROM HERE:
@@ -268,7 +296,7 @@ void state_update_frame(struct state_t* gst) {
     
     gst->player.any_gui_open = (
             gst->menu_open 
-            || gst->devmenu_open
+            //|| gst->devmenu_open
             || gst->player.inventory.open
             || gst->player.powerup_shop.open
          );
@@ -336,20 +364,6 @@ void state_update_frame(struct state_t* gst) {
     }
 }
 
-void state_update_shadow_cams(struct state_t* gst) {
-   
-    for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
-        Camera* cam = &gst->shadow_cams[i];
-        cam->target = (Vector3){0, 0, 0};
-        cam->target.x =     (gst->player.cam.position.x - cam->target.x);
-        cam->target.z = 1.0+(gst->player.cam.position.z - cam->target.z);
-        cam->position = gst->player.cam.position;
-        cam->position.y += gst->shadow_cam_height;
-
-    }
-}
-
-
 
 
 /*
@@ -392,7 +406,7 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
     float settings[4] = { 0 };
 
 
-    if(fog->mode == FOG_MODE_TORENDERDIST) {
+    if(fog->mode == FOG_MODE_RENDERDIST) {
         float test = 1.0 / (gst->render_dist-gst->render_dist/2.0);
         test = pow(test, exp(test));
         settings[0] = test;
@@ -629,7 +643,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     // Strech water plane to match render distance.
     gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);
 
-    if(gst->fog.mode == FOG_MODE_TORENDERDIST) {
+    if(gst->fog.mode == FOG_MODE_RENDERDIST) {
         set_fog_settings(gst, &gst->fog);
     }
 

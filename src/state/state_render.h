@@ -4,7 +4,7 @@
 
 #define RENDERPASS_RESULT 0
 #define RENDERPASS_GBUFFER 1
-#define RENDERPASS_SHADOWMAP 2
+#define RENDERPASS_SHADOWS 2
 
 struct state_t;
 

@@ -39,7 +39,6 @@ static void state_setup_all_enemy_models(struct state_t* gst) {
 }
 
 static void state_setup_all_item_models(struct state_t* gst) {
-    int result = 0;
     PRINT_CURRENT_SETUP;
     for(size_t i = 0; i < MAX_ALL_ITEMS; i++) {
         gst->items[i].enabled = 0;
@@ -90,6 +89,36 @@ error:
 }
 
 
+static void load_colorpick_texture(struct state_t* gst) {
+    int width = 200;
+    int height = 200;
+
+    Color* pixels = malloc((width*height) * sizeof *pixels);
+
+
+    for(int y = 0; y < height; y++) {
+        for(int x = 0; x < width; x++) {
+            Vector2 pos = (Vector2){ x, y };
+            float dist = pos.x / (float)width;
+            float damp = (float)y/(float)(height);
+            damp = CLAMP(damp, 0.0, 1.0);
+            printf("%f\n", damp);
+            size_t index = y * width + x;
+            pixels[index] = ColorFromHSV(dist * 360, 1.0, damp);
+        }
+    }
+
+    gst->colorpick_img = (Image) {
+        .data = pixels,
+        .width = width,
+        .height = height,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
+        .mipmaps = 1
+    };
+
+    gst->colorpick_tex = LoadTextureFromImage(gst->colorpick_img);
+
+}
 
 static int load_texture(struct state_t* gst, const char* filepath, int texid) {
     int result = 0;
@@ -142,6 +171,7 @@ static void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/terrain_mushroom.png", TERRAIN_MUSHROOM_TEXID);
     SetTraceLogLevel(LOG_NONE);  
 
+    load_colorpick_texture(gst);
    
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
@@ -223,7 +253,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(1.25, 16, 16);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.25, 16, 16));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -241,7 +271,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(1.5, 16, 16);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.5, 16, 16));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -260,7 +290,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 PRJ_ENVHIT_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.5, 32, 32);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.5, 32, 32));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -280,7 +310,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(1.25, 16, 16);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.25, 16, 16));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -299,7 +329,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 PRJ_ENVHIT_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.8, 8, 8);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.8, 8, 8));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -317,7 +347,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 PLAYER_HIT_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.75, 8, 8);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.75, 8, 8));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -338,7 +368,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 FOG_PARTICLE_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.5, 4, 4);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.5, 4, 4));
         add_particles(gst, psystem, num_fog_effect_parts, 
                 (Vector3){0}, (Vector3){0}, (Color){0},
                 NULL, NO_EXTRADATA, NO_IDB);
@@ -359,7 +389,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 PRJ_ENVHIT_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.45, 8, 8);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.45, 8, 8));
         psystem->userptr = &gst->player.weapon;
         setup_psystem_color_vbo(gst, psystem);
     }
@@ -378,7 +408,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 EXPLOSION_PSYS_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.6, 8, 8));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -398,14 +428,14 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 );
 
         //psystem->particle_mesh = GenMeshSphere(0.6, 8, 8);
-        psystem->particle_mesh = GenMeshPlane(1.0, 1.0, 1, 1);
+        psystem->particle_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
         setup_psystem_color_vbo(gst, psystem);
     }
 
 
     // Create CLOUD_PSYS.
     {
-        const size_t num_cloud_parts = 800;
+        const size_t num_cloud_parts = 400;
         struct psystem_t* psystem = &gst->psystems[CLOUD_PSYS];
         create_psystem(
                 gst,
@@ -415,13 +445,14 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 num_cloud_parts,
                 cloud_psys_update,
                 cloud_psys_init,
-                FOG_PARTICLE_SHADER
+                CLOUD_PARTICLE_SHADER
                 );
 
-        psystem->particle_mesh = GenMeshCube(30, 10, 80);
+        psystem->particle_model = LoadModel("res/models/cloud.glb");
         add_particles(gst, psystem, num_cloud_parts, 
                 (Vector3){0}, (Vector3){0}, (Color){0},
                 NULL, NO_EXTRADATA, NO_IDB);
+
     }
 
 
@@ -433,7 +464,6 @@ static void state_setup_all_psystems(struct state_t* gst) {
 static void state_setup_all_shaders(struct state_t* gst) {
     PRINT_CURRENT_SETUP;
     SetTraceLogLevel(LOG_ALL);
-    int result = 0;
 
     // --- Setup Default Shader ---
     {
@@ -453,14 +483,6 @@ static void state_setup_all_shaders(struct state_t* gst) {
         load_shader(
                 "res/shaders/default.vs",
                 "res/shaders/postprocess.fs", shader);
-
-        /*
-        gst->fs_unilocs[POSTPROCESS_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
-        gst->fs_unilocs[POSTPROCESS_SCREENSIZE_FS_UNILOC] = GetShaderLocation(*shader, "screen_size");
-        gst->fs_unilocs[POSTPROCESS_PLAYER_HEALTH_FS_UNILOC] = GetShaderLocation(*shader, "health");
-        gst->fs_unilocs[POSTPROCESS_CAMTARGET_FS_UNILOC] = GetShaderLocation(*shader, "cam_target");
-        gst->fs_unilocs[POSTPROCESS_CAMPOS_FS_UNILOC] = GetShaderLocation(*shader, "cam_pos");
-        */
     }
 
     // --- PRJ_ENVHIT_PSYS_SHADER ---
@@ -513,9 +535,20 @@ static void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-  
-        //gst->fs_unilocs[FOLIAGE_SHADER_TIME_FS_UNILOC] = GetShaderLocation(*shader, "time");
     }
+
+    // --- FOLIAGE_WIND_SHADER ---
+    {
+        Shader* shader = &gst->shaders[FOLIAGE_WIND_SHADER];
+        load_shader(
+                "res/shaders/foliage_wind.vs",
+                "res/shaders/foliage.fs", shader);
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+    }
+
 
     // --- FOG_EFFECT_PARTICLE_SHADER ---
     {
@@ -529,27 +562,16 @@ static void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
 
-    // --- WDEPTH_INSTANCE_SHADER ---
+    // --- CLOUD_PARTICLE_SHADER ---
     {
-        Shader* shader = &gst->shaders[WDEPTH_INSTANCE_SHADER];
+        Shader* shader = &gst->shaders[CLOUD_PARTICLE_SHADER];
         load_shader(
-                "res/shaders/write_instance_depth.vs",
-                "res/shaders/write_depth.fs", shader);
+                "res/shaders/cloud_particle.vs",
+                "res/shaders/cloud_particle.fs", shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
-    }
-    
-    // --- WDEPTH_SHADER ---
-    {
-        Shader* shader = &gst->shaders[WDEPTH_SHADER];
-        load_shader(
-                "res/shaders/write_depth.vs",
-                "res/shaders/write_depth.fs", shader);
-        
-        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
-        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
     }
 
     // --- WATER_SHADER ---
@@ -645,6 +667,17 @@ static void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
 
+    // --- GBUFFER_FOLIAGE_WIND_SHADER ---
+    {
+        Shader* shader = &gst->shaders[GBUFFER_FOLIAGE_WIND_SHADER];
+        load_shader(
+            "res/shaders/foliage_wind.vs", 
+            "res/shaders/gbuffer.fs", shader);
+
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+    }
 
     // --- SSAO_SHADER ---
     {
@@ -820,8 +853,7 @@ static void state_setup_ssao(struct state_t* gst) {
     gst->ssao_kernel = NULL;
     gst->ssao_kernel = malloc(gst->cfg.ssao_kernel_samples * sizeof *gst->ssao_kernel);
 
-    Shader shader = gst->shaders[POSTPROCESS_SHADER];
-    for(size_t i = 0; i < gst->cfg.ssao_kernel_samples; i++) {
+    for(int i = 0; i < gst->cfg.ssao_kernel_samples; i++) {
 
         // Get scale factor to move points closer to the center.
         float scale = (float)i / (float)gst->cfg.ssao_kernel_samples;
@@ -843,8 +875,8 @@ static void state_setup_ssao(struct state_t* gst) {
 
     for (int i = 0; i < width*height; i++) {
         pixels[i] = (Color) {
-            GetRandomValue(0, 255),
-            GetRandomValue(0, 255),
+            GetRandomValue(0, 255)*0.25,
+            GetRandomValue(0, 255)*0.25,
             0, // Rotating around z axis.
             0
         };
@@ -890,7 +922,7 @@ static void state_setup_shadow_cams(struct state_t* gst) {
 
     float fovs[MAX_SHADOW_LEVELS] = {
         180.0,
-        500.0,
+        720.0,
         1000.0
     };
 
@@ -910,24 +942,25 @@ static void state_setup_shadow_cams(struct state_t* gst) {
 }
 
 
+
 int state_setup_everything(struct state_t* gst) {
     int result = 0;
 
     gst->ssao_res_x = 0;
     gst->ssao_res_y = 0;
 
+    /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
     const float terrain_amplitude = 3.0;
     const float terrain_pnfrequency = 3.0;
     const int   terrain_octaves = 3;
-    /*
+    */
     const float terrain_scale = 20.0;
     const u32   terrain_size = 1024;
-    const float terrain_amplitude = 30.0;
+    const float terrain_amplitude = 40.0;
     const float terrain_pnfrequency = 30.0;
     const int   terrain_octaves = 3;
-    */
     /*
     const float terrain_scale = 20.0;
     const u32   terrain_size = 2048;
@@ -939,7 +972,11 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_ubos(gst);
-   
+
+    gst->weather.wind_dir = (Vector3){ 0, 0, 1 };
+    gst->weather.wind_strength = 100.0;
+    gst->weather.sun_color = (Color){ 255, 140, 30, 255 };
+
     // --- Setup Terrain ----
     {
         init_perlin_noise();
@@ -977,6 +1014,5 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_shadow_cams(gst);
 
     result = 1;
-error:
     return result;
 }

@@ -23,7 +23,7 @@ static size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
 
     long int i = (r_z * terrain->heightmap.size + r_x);
 
-    i = (i < 0) ? 0 : (i > terrain->heightmap.total_size) ? 0 : i;
+    i = (i < 0) ? 0 : (i > (long int)terrain->heightmap.total_size) ? 0 : i;
 
 
     return (size_t)i;
@@ -38,7 +38,7 @@ static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
 static void _load_foliage_model(struct state_t* gst, Model* modelptr, const char* model_filepath) {
     *modelptr = LoadModel(model_filepath);
     
-    for(size_t i = 0; i < modelptr->materialCount; i++) {
+    for(int i = 0; i < modelptr->materialCount; i++) {
         modelptr->materials[i] = LoadMaterialDefault();
         modelptr->materials[i].shader = gst->shaders[FOLIAGE_SHADER];
     }
@@ -183,7 +183,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
     struct chunk_foliage_data_t* chunk_fdata = NULL;
     
 
-    // Positions and rotations for: TF_TREE_TYPE0
+    // --- TREE TYPE 0
     chunk_fdata = &chunk->foliage_data[TF_TREE_TYPE0];
     for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
     
@@ -204,7 +204,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
     }
 
 
-    // Positions and rotations for: TF_TREE_TYPE1
+    // --- TREE TYPE 1
     chunk_fdata = &chunk->foliage_data[TF_TREE_TYPE1];
     for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
     
@@ -224,7 +224,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         chunk_fdata->num_foliage++;
     }
 
-    // Positions and rotations for: TF_ROCK_TYPE0
+    // --- ROCK TYPE 0
     chunk_fdata = &chunk->foliage_data[TF_ROCK_TYPE0];
     for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
     
@@ -246,8 +246,7 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
     }
 
 
-    // Mushrooms
-
+    // --- MUSHROOM TYPE 0
     chunk_fdata = &chunk->foliage_data[TF_MUSHROOM_TYPE0];
     for(size_t i = 0; i < chunk_fdata->matrices_size; i++) {
    
@@ -781,7 +780,8 @@ void delete_terrain(struct terrain_t* terrain) {
 
 void render_terrain(
         struct state_t* gst,
-        struct terrain_t* terrain
+        struct terrain_t* terrain,
+        int render_setting
 ){
     terrain->num_visible_chunks = 0;
 
@@ -794,8 +794,8 @@ void render_terrain(
         f_rdata->num_render = 0;
     }
 
-
     terrain->water_ylevel += sin(gst->time)*0.001585;
+    float trender_dist = (render_setting == RENDER_TERRAIN_FOR_PLAYER) ? gst->render_dist : 1200.0;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -808,12 +808,11 @@ void render_terrain(
                         gst->player.position.x, 0, gst->player.position.z
                     });
 
-        if(chunk->dst2player > gst->render_dist) {
+        if(chunk->dst2player > trender_dist) {
             continue;
         }
 
 
-        /*
         // Chunks very nearby may get discarded if the center position goes behind the player.
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
@@ -821,7 +820,6 @@ void render_terrain(
         if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 100.0)) {
             continue;
         }
-        */
 
         terrain->num_visible_chunks++;
 
@@ -866,8 +864,8 @@ void render_terrain(
                     __func__, i);
         }
 
-        for(size_t mi = 0; mi < fmodel->meshCount; mi++) {
-            size_t mat_index = CLAMP(mi, 0, fmodel->materialCount);
+        for(int mi = 0; mi < fmodel->meshCount; mi++) {
+            size_t mat_index = (size_t)CLAMP(mi, 0, fmodel->materialCount);
 
             DrawMeshInstanced(
                     fmodel->meshes[mi],

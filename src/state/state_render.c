@@ -79,18 +79,14 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     int rp_shader_i = DEFAULT_SHADER;
     int rp_shader_skybox_i = SKY_SHADER;
     int rp_shader_foliage_i = FOLIAGE_SHADER;
+    int rp_shader_foliage_wind_i = FOLIAGE_WIND_SHADER;
 
-    if(renderpass == RENDERPASS_GBUFFER) {
+    if((renderpass == RENDERPASS_GBUFFER) || (renderpass == RENDERPASS_SHADOWS)) {
         rp_shader_i = GBUFFER_SHADER;
         rp_shader_foliage_i = GBUFFER_INSTANCE_SHADER;
+        rp_shader_foliage_wind_i = GBUFFER_FOLIAGE_WIND_SHADER;
         rp_shader_skybox_i = GBUFFER_SHADER;
     }
-    else
-    if(renderpass == RENDERPASS_SHADOWMAP) {
-        rp_shader_i = WDEPTH_SHADER;
-        rp_shader_foliage_i = WDEPTH_INSTANCE_SHADER;
-    }
-
 
     // Prepare enemies.
     for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
@@ -107,6 +103,11 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
             fmodel->materials[mi].shader = gst->shaders[rp_shader_foliage_i];
         }
     }
+
+    // Set other shader for tree leafs.
+    gst->terrain.foliage_models[TF_TREE_TYPE0].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
+    gst->terrain.foliage_models[TF_TREE_TYPE1].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
+
 
     // Prepare player.
     gst->player.gunmodel.materials[0].shader = gst->shaders[rp_shader_i];
@@ -155,18 +156,15 @@ static void render_scene(struct state_t* gst, int renderpass) {
         render_enemy(gst, ent);
     }
 
+    int terrain_render_setting = 
+        (renderpass == RENDERPASS_SHADOWS) ?
+            RENDER_TERRAIN_FOR_SHADOWS : RENDER_TERRAIN_FOR_PLAYER;
 
-    render_terrain(gst, &gst->terrain);
+    render_terrain(gst, &gst->terrain, terrain_render_setting);
     render_items(gst);
     render_npc(gst, &gst->npc);
-    if(renderpass != RENDERPASS_SHADOWMAP) {
-        render_player(gst, &gst->player);
-    }
+    render_player(gst, &gst->player);
 }
-
-
-static Vector3 test_cube_pos = (Vector3){0, 0, 0 };
-static Vector3 test_sphere_pos = (Vector3){0, 0, 0 };
 
 
 void state_render(struct state_t* gst) {
@@ -185,7 +183,7 @@ void state_render(struct state_t* gst) {
         rlSetFramebufferHeight(gbuf->res_y);
         BeginMode3D(gst->shadow_cams[i]);
         {
-            render_scene(gst, RENDERPASS_GBUFFER);
+            render_scene(gst, RENDERPASS_SHADOWS);
         }
         EndMode3D();
         rlDisableFramebuffer();
