@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O2 -Wall -Wextra -Isrc -Isrc/platform # Base flags and include path for project headers
+CFLAGS = -O2 -Wall -Wextra -Isrc -Isrc/platform -Wno-unused-parameter # Base flags and include path for project headers
 LDFLAGS = # Base linker flags
 LIBS = # Base libraries
 
