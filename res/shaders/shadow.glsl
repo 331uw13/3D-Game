@@ -23,7 +23,7 @@ vec3 get_shadow_map(int idx) {
     if(dcoords.x >= -1.0 && dcoords.x <= 1.0
     && dcoords.y >= -1.0 && dcoords.y <= 1.0) {
         shadows = vec3(0.0);
-        int samples = 3;
+        int samples = 2;
         vec2 ts = 1.0/u_shadow_res;
         
         for(int x = -samples; x <= samples; x++) {
@@ -43,7 +43,7 @@ vec3 get_shadow_map(int idx) {
         }
 
         shadows /= (float(samples)*float(samples));
-        shadows += vec3(0.2, 0.5, 1.0);
+        shadows += vec3(0.45, 0.5, 1.0);
 
         //shadows += dist;
         
@@ -62,11 +62,14 @@ vec3 get_shadow_map(int idx) {
 // 'psfov' = previous added shadow cam fov.
 // NOTE: Calculating shadow cam fov as its distance maybe doesnt work very well with perspective projection(??)
 
-float get_shadow_area(float sfov, float psfov) {
+float get_shadow_area(float sfov, float psfov, int last) {
     float dist = length(fragPosition.xz - u_campos.xz);
-    float s0 = step(dist, sfov/3.0);
+    float s0 = 1.0;
+    if(last == 0) {
+        s0 = step(dist, sfov/2.0);
+    }
     if(psfov > 0.0) {
-        float s1 = 1.0-step(dist, psfov/3.0);
+        float s1 = 1.0-step(dist, psfov/2.0);
         s0 *= s1;
     }
 
@@ -78,13 +81,13 @@ vec3 get_shadows() {
     vec3 shadows = vec3(0);
 
     // First level area.
-    float area0 = get_shadow_area(u_shadow_fov[0], -1.0);
+    float area0 = get_shadow_area(u_shadow_fov[0], -1.0, 0);
     
     // Second level area.
-    float area1 = get_shadow_area(u_shadow_fov[1], u_shadow_fov[0]);
+    float area1 = get_shadow_area(u_shadow_fov[1], u_shadow_fov[0], 0);
     
     // Third level area.
-    float area2 = get_shadow_area(u_shadow_fov[2], u_shadow_fov[1]);
+    float area2 = get_shadow_area(u_shadow_fov[2], u_shadow_fov[1], 1);
    
     
     vec3 map0 = get_shadow_map(0) * area0;

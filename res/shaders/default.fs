@@ -40,41 +40,6 @@ void main()
 {
     finalColor = vec4(0.1, 0.0, 0.1, 1.0);
    
-    vec3 shadow = get_shadows();
-    /*
-    mat4 shvp = u_shadowproj_matrix * u_shadowview_matrix;
-    
-    // Transform into shadow camera space.
-    vec4 shadow_space = shvp * vec4(fragPosition, 1.0);
-    vec3 dcoords = shadow_space.xyz / shadow_space.w; // Perspective divide.
-    vec3 shadow = vec3(1.0);
-    if(dcoords.x > -1.0 && dcoords.x < 1.0 && dcoords.y > -1.0 && dcoords.y < 1.0) {
-
-        shadow = vec3(0);
-        int samples = 3;
-        vec2 ts = 1.0/vec2(1500, 800);
-
-        for(int x = -samples; x <= samples; x++) {
-            for(int y = -samples; y <= samples; y++) {
-                vec2 offset = vec2(float(x), float(y))*ts;
-                
-                vec2 tfcoords = (dcoords.xy+1.0)/2.0 + offset;
-                vec3 closest = texture(shadow_map, tfcoords).xyz;
-
-                if(closest.y-u_shadow_bias < fragPosition.y) {
-                    shadow += vec3(0.5);
-                }
-            }
-        }
-
-        shadow /= (16.0);
-    
-        shadow += vec3(0.8, 0.0, 0.7);
-    }
-    */
-
-    //return;
-
     vec4 texel_color = texture(texture0, fragTexCoord);
     vec3 normal = normalize(fragNormal);
   
@@ -83,7 +48,7 @@ void main()
 
     finalColor = (texel_color * ((colDiffuse + vec4(g_lightspecular, 1.0)) * vec4(g_lightcolor,1.0)));
     finalColor.xyz += texel_color.xyz * AMBIENT;
-    finalColor.xyz *= shadow;
+    finalColor.xyz *= get_shadows();
 
     vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
     finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));
@@ -100,7 +65,7 @@ void main()
         float t = (y - level) / (u_waterlevel - level);
 
         vec3 to = vec3(0.0, 0.1, 0.3);
-        vec3 from = vec3(0.0, 0.3, 0.4);
+        vec3 from = vec3(0.0, 0.5, 0.7);
 
         finalColor.xyz += 0.5*vec3(
                 _lerp(t, to.x, from.x),

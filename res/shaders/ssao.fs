@@ -47,7 +47,7 @@ void main() {
         return;
     }
     
-    vec2 noise_scale = vec2(u_screen_size.x/10.0, u_screen_size.y/10.0);
+    vec2 noise_scale = vec2(u_screen_size.x/50.0, u_screen_size.y/50.0);
 
     // Data from geometry buffer.
     vec3 frag_pos   = texture(u_gbuf_pos_tex, fragTexCoord).xyz;

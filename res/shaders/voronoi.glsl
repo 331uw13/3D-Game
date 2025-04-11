@@ -1,5 +1,5 @@
 
-// Taken from:
+// Voronoise Taken from:
 // https://github.com/MaxBittker/glsl-voronoi-noise/tree/master
 
 

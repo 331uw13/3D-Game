@@ -46,6 +46,8 @@ vec3 color_lerp(float t, vec3 a, vec3 b) {
 
 void main()
 {
+//    finalColor = texture(ssao_texture, fragTexCoord); return;
+
     finalColor = vec4(0.0, 0.0, 0.0, 1.0);
     
 

@@ -27,7 +27,7 @@ float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
 void main()
 {
     vec3 res = vec3(0);
-    
+
 
 
     int r = 2;
@@ -48,7 +48,7 @@ void main()
 
             vec3 sample_fragpos = texture(u_gbuf_pos_tex, sample_pos).xyz;
 
-            const float tresh = 0.5;
+            const float tresh = 0.1;
             if(abs((fragpos.z) - (sample_fragpos.z)) > tresh) {
                 continue;
             }
@@ -63,7 +63,7 @@ void main()
     finalColor.w = 1.0;
 
 
-    r = 1;
+    r = 2;
 
     vec3 blur_result = vec3(0);
     for(int y = -r; y <= r; y++) {
@@ -76,7 +76,7 @@ void main()
         }
     }
 
-    finalColor.rgb += blur_result/16.0;
+    finalColor.rgb += blur_result/(4.0*4.0*2);
 
 
 }
