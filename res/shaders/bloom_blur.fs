@@ -25,7 +25,7 @@ void main()
 
 
 
-    int size = 10;
+    int size = 15;
     float weight_sum = 0.0;
 
     for(int x = -size; x <= size; x++) {

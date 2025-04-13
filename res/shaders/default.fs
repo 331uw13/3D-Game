@@ -16,8 +16,19 @@ uniform float u_waterlevel;
 uniform float terrain_lowest_point;
 uniform float u_time;
 uniform float u_shadowcam_y;
-uniform vec3 u_campos;
+uniform vec3  u_campos;
+uniform int   u_ground_pass; // Set to positive number if ground is being rendered.
+uniform float u_terrain_size;
 
+#define BIOMEID_COMFY 0
+#define BIOMEID_HAZY 1
+#define BIOMEID_EVIL 2
+#define MAX_BIOME_TYPES 3
+
+uniform sampler2D biome_groundtex[MAX_BIOME_TYPES];
+uniform vec2  biome_ylevels[MAX_BIOME_TYPES];
+uniform float u_terrain_lowest;
+uniform float u_terrain_highest;
 
 // Output fragment color
 out vec4 finalColor;
@@ -25,24 +36,37 @@ out vec4 finalColor;
 #include "res/shaders/light.glsl"
 #include "res/shaders/voronoi.glsl"
 #include "res/shaders/shadow.glsl"
-/*
-float ld(float depth) {
-    float near = 0.1;
-    float far = 2000.0*u_shadow_tresh;
-    float ndc = depth;// * 2.0 - 1.0;
-    return (2.0 * near * far) / (far + near - ndc * (far - near)) / far;
-}
-*/
 
-// TODO: Fix shadowcam flip near water(???)
+
+#define S smoothstep
+
 
 void main()
 {
-    finalColor = vec4(0.1, 0.0, 0.1, 1.0);
+    finalColor = vec4(0.0, 0.0, 0.0, 1.0);
    
     vec4 texel_color = texture(texture0, fragTexCoord);
-    vec3 normal = normalize(fragNormal);
   
+    if(u_ground_pass == 1) {
+        vec2 comfy_level = biome_ylevels[BIOMEID_COMFY];
+        vec2 hazy_level = biome_ylevels[BIOMEID_HAZY];
+        vec2 evil_level = biome_ylevels[BIOMEID_EVIL];
+
+        const float Y = fragPosition.y;
+
+        float comfy_w = S(comfy_level.y, comfy_level.x, Y);
+        float hazy_w  = S(hazy_level.y, hazy_level.x, Y) * (1.0-comfy_w);
+        float evil_w  = S(evil_level.y, evil_level.x, Y) * (1.0-comfy_w-hazy_w);
+        
+
+        vec4 comfy_tex = texture(biome_groundtex[BIOMEID_COMFY], fragTexCoord);
+        vec4 hazy_tex = texture(biome_groundtex[BIOMEID_HAZY], fragTexCoord);
+        vec4 evil_tex = texture(biome_groundtex[BIOMEID_EVIL], fragTexCoord);
+
+        texel_color = (comfy_tex * comfy_w) + (hazy_tex * hazy_w) + (evil_tex * evil_w);
+    }
+
+    vec3 normal = normalize(fragNormal);
     vec3 view_dir = normalize(u_campos - fragPosition);
     compute_lights(view_dir);
 
@@ -54,7 +78,8 @@ void main()
     finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));
 
     // Create effect around water.
-    
+   
+    /*
     float rad = 6.24;
     float level = (u_waterlevel+rad) + voronoi3d(fragPosition.xyz*0.01+vec3(0,-u_time,0)).y*5.0;
 
@@ -91,7 +116,7 @@ void main()
                 _lerp(t, to.z, from.z)
                 );
     }
-
+    */
 
 
     float dist = length(u_campos - fragPosition);
