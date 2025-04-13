@@ -46,7 +46,9 @@ void main()
     finalColor = vec4(0.0, 0.0, 0.0, 1.0);
    
     vec4 texel_color = texture(texture0, fragTexCoord);
-  
+
+
+    // Biome blending.
     if(u_ground_pass == 1) {
         vec2 comfy_level = biome_ylevels[BIOMEID_COMFY];
         vec2 hazy_level = biome_ylevels[BIOMEID_HAZY];
@@ -54,10 +56,18 @@ void main()
 
         const float Y = fragPosition.y;
 
+        // Biome weights by Y position.
         float comfy_w = S(comfy_level.y, comfy_level.x, Y);
-        float hazy_w  = S(hazy_level.y, hazy_level.x, Y) * (1.0-comfy_w);
-        float evil_w  = S(evil_level.y, evil_level.x, Y) * (1.0-comfy_w-hazy_w);
-        
+        float hazy_w  = S(hazy_level.y, hazy_level.x, Y);
+        // Move lowest point very far away so the texture wont disappear at the bottom.
+        float evil_w  = S(evil_level.y-5000, evil_level.x, Y);
+
+        comfy_w = clamp(comfy_w, 0.0, 1.0);
+        hazy_w = clamp(hazy_w, 0.0, 1.0);
+        evil_w = clamp(evil_w, 0.0, 1.0);
+
+        hazy_w *= (1.0-comfy_w);
+        evil_w *= (1.0-(comfy_w+hazy_w));
 
         vec4 comfy_tex = texture(biome_groundtex[BIOMEID_COMFY], fragTexCoord);
         vec4 hazy_tex = texture(biome_groundtex[BIOMEID_HAZY], fragTexCoord);
