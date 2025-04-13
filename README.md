@@ -4,7 +4,7 @@
 ---------------------
 
 > [!WARNING]
-> The game is not ready and __may__ run poorly because it is not yet optimized well.
+> The game is not ready and __may__ run poorly because it is not yet fully optimized.
 > Try changing render settings from the menu and `game.cfg`
 
 ---------------------
