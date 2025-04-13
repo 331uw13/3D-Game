@@ -63,7 +63,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
-
     /*
     gst->shadow_cam = p->cam;
     gst->shadow_cam.fovy = 60.0;

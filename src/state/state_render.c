@@ -95,8 +95,14 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
         }
     }
 
-    // Prepare terrain and foliage.
-    gst->terrain.material.shader = gst->shaders[rp_shader_i];
+    //gst->terrain.material.shader = gst->shaders[rp_shader_i];
+
+    // Prepare biomes
+    for(int i = 0; i < MAX_BIOME_TYPES; i++) {
+        gst->terrain.biome_materials[i].shader = gst->shaders[rp_shader_i];
+    }
+
+    // Prepare foliage
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
         Model* fmodel = &gst->terrain.foliage_models[i];
         for(int mi = 0; mi < fmodel->materialCount; mi++) {
@@ -255,15 +261,26 @@ void state_render(struct state_t* gst) {
                     DrawCircle3D(ent->position, ent->target_range, 
                             (Vector3){0.0, 1.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
                 }
-
             }
 
+            for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
+                struct chunk_t* chunk = &gst->terrain.chunks[i];
+                if(chunk->dst2player > 2000.0) {
+                    continue;
+                }
+
+                float scale = gst->terrain.chunk_size * gst->terrain.scaling;
+                Vector3 size = (Vector3){ scale, scale, scale };
+                DrawCubeWiresV(chunk->center_pos, size, RED);
+
+            }
             //DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
         // ------------
         render_scene(gst, RENDERPASS_RESULT);
 
 
+        /*
         // Water
         {
             rlDisableBackfaceCulling();
@@ -274,6 +291,7 @@ void state_render(struct state_t* gst) {
             
             rlEnableBackfaceCulling();
         }
+        */
      
         // Particle systems. (rendered only if needed)
         {

@@ -16,6 +16,7 @@
 #include "../shader_util.h"
 #include "../npc.h"
 #include "../config.h"
+#include "../fog.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -66,7 +67,9 @@
 #define MUSHROOM_HAT_TEXID 20
 #define MUSHROOM_BODY_TEXID 21
 #define TERRAIN_MUSHROOM_TEXID 22
-#define MAX_TEXTURES 23
+#define HAZYBIOME_GROUND_TEXID 23
+#define EVILBIOME_GROUND_TEXID 24
+#define MAX_TEXTURES 25
 // ...
 
 
@@ -107,7 +110,7 @@
 #define SKY_SHADER 18
 #define CLOUD_PARTICLE_SHADER 19
 #define FOLIAGE_WIND_SHADER 20
-#define MAX_SHADERS 21
+#define MAX_SHADERS 22
 // ...
  
 
@@ -204,12 +207,6 @@ struct gbuffer_t {
 #define FOG_MODE_CUSTOM 1   // TODO
 
 
-struct fog_t {
-    float density;
-    int mode;
-    Color color_top;
-    Color color_bottom;
-};
 
 struct weather_t {
     Color   sun_color;
@@ -364,7 +361,6 @@ void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
-void set_fog_settings(struct state_t* gst, struct fog_t* fog);
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 void set_render_dist(struct state_t* gst, float new_dist);
 

@@ -215,9 +215,23 @@ void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index) {
 
         shadow_map_slot++;
     }
-
-
 }
+
+static void state_update_biome_texture_uniforms(struct state_t* gst) {
+    
+    int tex_slot = 4;
+
+    for(int i = 0; i < MAX_BIOME_TYPES; i++) {
+        rlEnableShader(gst->shaders[DEFAULT_SHADER].id);
+        rlActiveTextureSlot(tex_slot);
+        rlEnableTexture(gst->terrain.biome_materials[i].maps[MATERIAL_MAP_DIFFUSE].texture.id);
+        int biome_tex_loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER],
+                TextFormat("biome_groundtex[%i]", i));
+        rlSetUniform(biome_tex_loc, &tex_slot, SHADER_UNIFORM_INT, 1);
+        tex_slot++;
+    }
+}
+
 
 void state_update_shader_uniforms(struct state_t* gst) {
 
@@ -273,19 +287,33 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
     state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
     state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);
+    state_update_biome_texture_uniforms(gst);
 
+    shader_setu_float(gst, DEFAULT_SHADER, U_TERRAIN_LOWEST, &gst->terrain.lowest_point);
+    shader_setu_float(gst, DEFAULT_SHADER, U_TERRAIN_HIGHEST, &gst->terrain.highest_point);
+
+    for(int i = 0; i < MAX_BIOME_TYPES; i++) {
+        int biome_ylevel_loc = GetShaderLocation(gst->shaders[DEFAULT_SHADER],
+                TextFormat("biome_ylevels[%i]", i));
+        SetShaderValueV(gst->shaders[DEFAULT_SHADER], biome_ylevel_loc, &gst->terrain.biome_ylevels[i],
+                SHADER_UNIFORM_VEC2, 1);
+    }
+    /*
+    struct chunk_t* last_chunk = &gst->terrain.chunks[gst->terrain.num_chunks-1];
+    Vector3 sizeoff = (Vector3){ gst->terrain.chunk_size*gst->terrain.scaling, 0, gst->terrain.chunk_size*gst->terrain.scaling };
+    printf("%f\n", Vector3Length(Vector3Add(last_chunk->center_pos, sizeoff)));
+    */
 }
 
 void state_update_shadow_cams(struct state_t* gst) {
-   
     for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
         Camera* cam = &gst->shadow_cams[i];
         cam->target = (Vector3){0, 0, 0};
         cam->target.x =     (gst->player.cam.position.x - cam->target.x);
         cam->target.z = 1.0+(gst->player.cam.position.z - cam->target.z);
+        cam->target.y =     (gst->player.cam.position.y - cam->target.y);
         cam->position = gst->player.cam.position;
         cam->position.y += gst->shadow_cam_height;
-
     }
 }
 
@@ -385,112 +413,6 @@ void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
     }
 }
 */
-
-void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
-    glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FOG_UBO]);
-
-    float top_color4f[4] = {
-        (float)fog->color_top.r / 255.0,
-        (float)fog->color_top.g / 255.0,
-        (float)fog->color_top.b / 255.0,
-        1.0
-    };
-
-    float bottom_color4f[4] = {
-        (float)fog->color_bottom.r / 255.0,
-        (float)fog->color_bottom.g / 255.0,
-        (float)fog->color_bottom.b / 255.0,
-        1.0
-    };
-
-    float settings[4] = { 0 };
-
-
-    if(fog->mode == FOG_MODE_RENDERDIST) {
-        float test = 1.0 / (gst->render_dist-gst->render_dist/2.0);
-        test = pow(test, exp(test));
-        settings[0] = test;
-    }
-
-
-
-
-    printf("'%s': New fog density = %f\n", __func__, settings[0]);
-
-    size_t offset;
-    size_t size = sizeof(float)*4;
-
-    offset = 0;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, settings);
-
-    offset = 16;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, top_color4f);
-
-    offset = 32;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, bottom_color4f);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-
-    /*
-    gst->render_bg_color = (Color) {
-        gst->fog.color_far.r * 0.6,
-        gst->fog.color_far.g * 0.6,
-        gst->fog.color_far.b * 0.6,
-        255
-    };
-
-
-    int max_far = 100;
-    gst->fog.color_far.r = CLAMP(gst->fog.color_far.r, 0, max_far);
-    gst->fog.color_far.g = CLAMP(gst->fog.color_far.g, 0, max_far);
-    gst->fog.color_far.b = CLAMP(gst->fog.color_far.b, 0, max_far);
-
-    float near_color[4] = {
-        (float)gst->fog.color_near.r / 255.0,
-        (float)gst->fog.color_near.g / 255.0,
-        (float)gst->fog.color_near.b / 255.0,
-        1.0
-    };
-
-    float far_color[4] = {
-        (float)gst->fog.color_far.r / 255.0,
-        (float)gst->fog.color_far.g / 255.0,
-        (float)gst->fog.color_far.b / 255.0,
-        1.0
-    };
-
-    size_t offset;
-    size_t size;
-    size = sizeof(float)*4;
-
-    // DENSITY
-   
-    float density[4] = {
-        // Convert fog density to more friendly scale.
-        // Otherwise it is very exponental with very very samll numbers.
-        0.0, //map(log(CLAMP(gst->fog_density, FOG_MIN, FOG_MAX)), FOG_MIN, FOG_MAX, 0.0015, 0.02),
-        0.0,
-        0.0,  // Maybe adding more settings later.
-        0.0
-    };
-
-
-    offset = 0;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, density);
-
-    // NEAR COLOR
-    offset = 16;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, near_color);
-
-    // FAR COLOR
-    offset = 16*2;
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, far_color);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-     */
-}
-
 
 static float get_explosion_effect(Vector3 exp_pos, Vector3 p, float radius) {
     float dist = Vector3Distance(exp_pos, p);

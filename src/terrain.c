@@ -191,10 +191,11 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
+        /*
         if(ray.point.y < terrain->water_ylevel) {
             continue;
         }
-
+        */
 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation    = MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI));
@@ -212,9 +213,11 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
+        /*
         if(ray.point.y < terrain->water_ylevel) {
             continue;
         }
+        */
 
 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
@@ -232,10 +235,11 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         float z = RSEEDRANDOMF(z_min, z_max);
 
         RayCollision ray = raycast_terrain(terrain, x, z);
+        /*
         if(ray.point.y < terrain->water_ylevel) {
             continue;
         }
-
+        */
 
         Matrix translation = MatrixTranslate(x, ray.point.y, z);
         Matrix rotation    = MatrixRotateXYZ(
@@ -270,9 +274,48 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
         chunk_fdata->matrices[chunk_fdata->num_foliage] = MatrixMultiply(rotation, translation);
         chunk_fdata->num_foliage++;
     }
-
-
 }
+
+static void _decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
+
+    chunk->biome = terrain->biomedata[BIOMEID_COMFY];
+    /*
+    long int chunks_inrow = (terrain->heightmap.size / terrain->chunk_size);
+    const float chunks_inrow_F = (float)chunks_inrow;
+
+    if(chunks_inrow <= 0) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': 'chunks_inrow' is zero or less\033[0m\n",
+                __func__);
+        return;
+    }
+
+    long int chunk_x = chunk->index % chunks_inrow;
+    long int chunk_z = chunk->index / chunks_inrow;
+
+    chunk_x += terrain->seed;
+    chunk_z += terrain->seed;
+
+    float freq = 4.0;
+
+    float pnoise = perlin_noise_2D(
+            freq * ((float)chunk_x / chunks_inrow_F),
+            freq * ((float)chunk_z / chunks_inrow_F));
+
+    pnoise *= 255.0;
+    pnoise /= 80.0;
+    pnoise = CLAMP(pnoise, -1.0, 1.0);
+
+
+    float t = (round((pnoise * MAX_BIOME_TYPES + MAX_BIOME_TYPES) / MAX_BIOME_TYPES));
+
+    // Just make sure it is in the valid range.
+    t = CLAMP(t, 0, MAX_BIOME_TYPES);
+    int biome_id = (int)t;
+
+    chunk->biome = terrain->biomedata[biome_id];
+    */
+}
+
 
 static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain) {
     
@@ -321,8 +364,9 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         *chunk = (struct chunk_t) { 0 };
+        chunk->index = i;
+   
         
-    
         // Loading bar
         BeginDrawing();
         {
@@ -480,7 +524,8 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                 n_counter += 18;
             }
         }
-    
+   
+        _decide_chunk_biome(gst, terrain, chunk);
         _load_chunk_foliage(gst, terrain, chunk);
 
         UploadMesh(&chunk->mesh, 0);
@@ -519,6 +564,7 @@ void generate_terrain(
     terrain->heightmap.data = malloc(terrain->heightmap.total_size * sizeof *terrain->heightmap.data);
     terrain->heightmap.size = terrain_size;
     terrain->chunks = NULL;
+    terrain->seed = seed;
 
     terrain->highest_point = 0.0;
     terrain->lowest_point = 999999;
@@ -530,12 +576,13 @@ void generate_terrain(
     int seed_x = randomgen(&seed);
     int seed_z = randomgen(&seed);
  
+    // First pass.
+    
     BeginDrawing();
     CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 1 / 3", 100, 100, 40.0, WHITE);
+    DrawText("Creating heightmap 1 / 4", 100, 100, 40.0, WHITE);
     EndDrawing();   
 
-    // First pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * (terrain->heightmap.size) + x;
@@ -547,14 +594,16 @@ void generate_terrain(
             terrain->heightmap.data[index] = value;
         }
     }
+    
+
+    // Second pass.
 
     BeginDrawing();
     CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 2 / 3", 100, 100, 40.0, WHITE);
+    DrawText("Creating heightmap 2 / 4", 100, 100, 40.0, WHITE);
     EndDrawing();   
 
 
-    // Second pass.
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
@@ -567,13 +616,36 @@ void generate_terrain(
         }
     }
 
+    
+    // Third pass.
+
     BeginDrawing();
     CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 3 / 3", 100, 100, 40.0, WHITE);
+    DrawText("Creating heightmap 3 / 4", 100, 100, 40.0, WHITE);
     EndDrawing();   
 
 
-    // Third pass.
+    for(u32 z = 0; z < terrain->heightmap.size; z++) {
+        for(u32 x = 0; x < terrain->heightmap.size; x++) {
+            size_t index = z * terrain->heightmap.size + x;
+
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/50.25);
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/50.25);
+
+            float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 100);
+            terrain->heightmap.data[index] += value;
+        }
+    }
+    
+    
+    // Fourth pass.
+
+    BeginDrawing();
+    CLEAR_BACKGROUND;
+    DrawText("Creating heightmap 4 / 4", 100, 100, 40.0, WHITE);
+    EndDrawing();
+
+
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
@@ -697,9 +769,7 @@ void generate_terrain(
     _load_terrain_foliage_models(gst, terrain);
     _load_terrain_chunks(gst, terrain);
      set_render_dist(gst, 3000.0);
-
    
-
 
     // Get valid spawnpoint for player.
     {
@@ -797,6 +867,9 @@ void render_terrain(
     terrain->water_ylevel += sin(gst->time)*0.001585;
     float trender_dist = (render_setting == RENDER_TERRAIN_FOR_PLAYER) ? gst->render_dist : 1200.0;
 
+    int ground_pass = 1;
+    shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
+
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         chunk->dst2player = 
@@ -850,9 +923,11 @@ void render_terrain(
         }
 
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
-        DrawMesh(terrain->chunks[i].mesh, terrain->material, translation);
+        DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
     }
 
+    ground_pass = 0;
+    shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
     // Render foliage.
 
 

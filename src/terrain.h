@@ -6,9 +6,10 @@
 
 #include "perlin_noise.h"
 #include "typedefs.h"
+#include "biome.h"
 
 struct state_t;
-
+struct fog_t;
 
 #define CHUNK_SIZE 64
 
@@ -62,16 +63,18 @@ struct foliage_rdata_t {
 };
 
 struct chunk_t {
+    size_t   index; // Index in 'terrain.chunks' array.
     Mesh     mesh;
     Vector3  position;
     Vector3  center_pos;
     float    dst2player;
-
     struct chunk_foliage_data_t foliage_data[MAX_FOLIAGE_TYPES];
+    struct biome_t biome;
 };
 
 
 struct terrain_t {
+    int seed;
     Material  material;
     Matrix    transform;
     struct heightmap_t heightmap;
@@ -81,6 +84,10 @@ struct terrain_t {
     size_t num_chunks;
     int    num_max_visible_chunks;
     int    num_visible_chunks;
+
+    struct biome_t biomedata[MAX_BIOME_TYPES];
+    Material biome_materials[MAX_BIOME_TYPES];
+    Vector2  biome_ylevels[MAX_BIOME_TYPES]; // X(where the biome starts.) Y(where the biome ends.)
 
     size_t                 foliage_max_perchunk  [MAX_FOLIAGE_TYPES];
     Model                  foliage_models [MAX_FOLIAGE_TYPES];

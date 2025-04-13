@@ -4,6 +4,7 @@
 #include <raylib.h>
 
 struct state_t;
+struct vec4int_t;
 
 typedef short uloc_t;
 
@@ -31,6 +32,9 @@ typedef short uloc_t;
 #define U_WIND_STRENGTH 20
 #define U_WIND_DIR 21
 #define U_SUN_COLOR 22
+#define U_GROUND_PASS 23
+#define U_TERRAIN_LOWEST 24
+#define U_TERRAIN_HIGHEST 25
 
 #define U_NOTFOUND -1
 
@@ -56,6 +60,7 @@ void shader_setu_int   (struct state_t* gst, int shader_index, int shader_u, int
 void shader_setu_vec2  (struct state_t* gst, int shader_index, int shader_u, Vector2* v);
 void shader_setu_vec3  (struct state_t* gst, int shader_index, int shader_u, Vector3* v);
 void shader_setu_vec4  (struct state_t* gst, int shader_index, int shader_u, Vector4* v);
+void shader_setu_ivec4 (struct state_t* gst, int shader_index, int shader_u, struct vec4int_t* v);
 void shader_setu_sampler (struct state_t* gst, int shader_index, int shader_u, int texid);
 void shader_setu_matrix  (struct state_t* gst, int shader_index, int shader_u, Matrix m);
 void shader_setu_color   (struct state_t* gst, int shader_index, int shader_u, Color* c);

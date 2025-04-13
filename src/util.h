@@ -6,6 +6,12 @@
 
 struct state_t;
 
+
+struct vec4int_t {
+    int x; int y; int z; int w;
+};
+
+
 #define RANDOMGEN_MAX 0x7FFF
 
 // Load shaders but preprocess fragment shader.

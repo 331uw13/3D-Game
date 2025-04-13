@@ -102,7 +102,6 @@ static void load_colorpick_texture(struct state_t* gst) {
             float dist = pos.x / (float)width;
             float damp = (float)y/(float)(height);
             damp = CLAMP(damp, 0.0, 1.0);
-            printf("%f\n", damp);
             size_t index = y * width + x;
             pixels[index] = ColorFromHSV(dist * 360, 1.0, damp);
         }
@@ -169,14 +168,18 @@ static void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/mushroom_body.png", MUSHROOM_BODY_TEXID);
     load_texture(gst, "res/textures/mushroom_hat.png", MUSHROOM_HAT_TEXID);
     load_texture(gst, "res/textures/terrain_mushroom.png", TERRAIN_MUSHROOM_TEXID);
+    load_texture(gst, "res/textures/hazy_biome_ground.jpg", HAZYBIOME_GROUND_TEXID);
+    load_texture(gst, "res/textures/evil_biome_ground.png", EVILBIOME_GROUND_TEXID);
     SetTraceLogLevel(LOG_NONE);  
 
     load_colorpick_texture(gst);
    
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
-    SetTextureWrap(gst->textures[TERRAIN_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[GRASS_TEXID], TEXTURE_WRAP_CLAMP);
+    SetTextureWrap(gst->textures[TERRAIN_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
+    SetTextureWrap(gst->textures[HAZYBIOME_GROUND_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
+    SetTextureWrap(gst->textures[EVILBIOME_GROUND_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
 
     PRINT_CURRENT_SETUP_DONE;
 }
@@ -612,8 +615,6 @@ static void state_setup_all_shaders(struct state_t* gst) {
             "res/shaders/bloom_blur.fs", shader);
     }
 
-
-
     // --- GUNFX_SHADER (for player) ---
     {
         Shader* shader = &gst->shaders[GUNFX_SHADER];
@@ -957,9 +958,9 @@ int state_setup_everything(struct state_t* gst) {
     const int   terrain_octaves = 3;
     */
     const float terrain_scale = 20.0;
-    const u32   terrain_size = 1024;
+    const u32   terrain_size = 2048;
     const float terrain_amplitude = 40.0;
-    const float terrain_pnfrequency = 30.0;
+    const float terrain_pnfrequency = 70.0;
     const int   terrain_octaves = 3;
     /*
     const float terrain_scale = 20.0;
@@ -975,12 +976,13 @@ int state_setup_everything(struct state_t* gst) {
 
     gst->weather.wind_dir = (Vector3){ 0, 0, 1 };
     gst->weather.wind_strength = 100.0;
-    gst->weather.sun_color = (Color){ 255, 140, 30, 255 };
+    //gst->weather.sun_color = (Color){ 255, 140, 30, 255 };
 
     // --- Setup Terrain ----
     {
         init_perlin_noise();
         gst->terrain = (struct terrain_t) { 0 };
+        setup_biomes(gst);
 
         const int terrain_seed = GetRandomValue(0, 9999999);
         //const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
@@ -1009,9 +1011,12 @@ int state_setup_everything(struct state_t* gst) {
 
     state_setup_all_gbuffers(gst);
     state_setup_all_render_targets(gst);
-    
+
     init_player_struct(gst, &gst->player);
     state_setup_shadow_cams(gst);
+
+
+    set_render_dist(gst, gst->cfg.render_dist);
 
     result = 1;
     return result;

@@ -61,7 +61,7 @@ void weapon_psys_prj_update(
 
 
     // Check collision with water
-
+    /*
     if(part->position.y <= gst->terrain.water_ylevel) {
         add_particles(
                 gst,
@@ -75,8 +75,7 @@ void weapon_psys_prj_update(
         disable_projectile(gst, part);
         return;
     }
-
-
+    */
 
     int disable_prj = 0;
 

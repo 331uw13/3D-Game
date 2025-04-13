@@ -13,6 +13,7 @@ struct config_t {
     int resolution_y;
     int ssao_quality;
     int ssao_kernel_samples;
+    int render_dist;
 };
 
 int read_cfgvar(platform_file_t* cfgfile, const char* name, char* outbuf, size_t outbuf_size);

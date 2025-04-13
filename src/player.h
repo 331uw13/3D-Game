@@ -55,6 +55,7 @@ struct player_t {
     int      is_moving;
     Vector3  velocity;
 
+
     // Movement related.
     float    speed; // "Read only". Updated from 'input.c'
     float    walkspeed;

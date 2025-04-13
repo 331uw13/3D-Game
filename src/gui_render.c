@@ -242,6 +242,9 @@ void gui_render_powerup_shop(struct state_t* gst) {
     }
 }
 
+static int g_show_biome_map = 0; // Temporary.
+
+
 void gui_render_devmenu(struct state_t* gst) {
     const float fontsize = 15;
     //DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 10, 30, 30, 200 });
@@ -320,6 +323,13 @@ void gui_render_devmenu(struct state_t* gst) {
             &gst->weather.wind_strength, 0.0, 600.0);
     btn_pos.y += btn_y_inc+5;
 
+    
+    if(gui_button(gst, "Show biome map", fontsize, btn_pos)) {
+        g_show_biome_map = 1;
+    }
+
+
+    btn_pos.y += btn_y_inc;
 
     // ------------ Color pickers -----------
 
@@ -340,7 +350,7 @@ void gui_render_devmenu(struct state_t* gst) {
     }
 
     if(gui_colorpicker(gst, "Sun color", 
-                (Vector2){ gst->res_x-660, 100 }, (Vector2){ 200, 200 },
+                (Vector2){ gst->res_x-550, 100 }, (Vector2){ 200, 200 },
                 &gst->weather.sun_color)) {      
         //printf("%i, %i, %i\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
         set_fog_settings(gst, &gst->fog);

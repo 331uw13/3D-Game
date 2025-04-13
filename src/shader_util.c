@@ -30,7 +30,10 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_shadow_res\0",
     "u_wind_strength\0",
     "u_wind_dir\0",
-    "u_sun_color\0"
+    "u_sun_color\0",
+    "u_ground_pass\0",
+    "u_terrain_lowest\0",
+    "u_terrain_highest\0"
 };
 
 
@@ -122,6 +125,14 @@ void shader_setu_vec4(struct state_t* gst, int shader_index, int shader_u, Vecto
     SetShaderValueV(gst->shaders[shader_index], loc, v, SHADER_UNIFORM_VEC4, 1);
 }
 
+void shader_setu_ivec4 (struct state_t* gst, int shader_index, int shader_u, struct vec4int_t* v) {
+    int loc = get_uloc(gst, shader_index, shader_u);
+    if(loc == U_NOTFOUND) {
+        return;
+    }
+
+    SetShaderValueV(gst->shaders[shader_index], loc, v, SHADER_UNIFORM_IVEC4, 1);
+}
 
 void shader_setu_sampler(struct state_t* gst, int shader_index, int shader_u, int texid) {
     int loc = get_uloc(gst, shader_index, shader_u);

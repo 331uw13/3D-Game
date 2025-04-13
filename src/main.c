@@ -281,6 +281,18 @@ int read_config(struct state_t* gst) {
         gst->ssao_enabled = cfgbool_to_int(buf);
     }
 
+
+    // Render distance?
+    if(read_cfgvar(&cfgfile, "render_distance", buf, CFGBUF_SIZE)) {
+        int render_dist = atoi(buf);
+        if(render_dist <= 0) {
+            fprintf(stderr, "\033[35m(WARNING) '%s': Invalid render distance. set to 3000 now.\033[0m\n",
+                    __func__);
+            render_dist = 3000;
+        }
+        gst->cfg.render_dist = render_dist;
+    }
+
     result = 1;
     platform_close_file(&cfgfile);
 
