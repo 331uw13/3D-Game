@@ -150,7 +150,15 @@ void loop(struct state_t* gst) {
                 DrawText(TextFormat("TerrainLevel=%0.3f", ray.point.y),
                         dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
                 next_y += y_inc;
-                
+        
+                DrawText(TextFormat("CurrentBiome=%s", get_biome_name_by_id(gst->player.current_biome->id)),
+                        dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
+                next_y += y_inc;
+
+                DrawText(TextFormat("InBiomeShiftArea: %i", playerin_biomeshift_area(gst, &gst->player)),
+                        dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
+                next_y += y_inc;
+
                 DrawText("(Debug ON)", gst->res_x - 200, 10, 20, GREEN);
             }
 

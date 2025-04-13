@@ -277,6 +277,7 @@ void gui_render_devmenu(struct state_t* gst) {
             0,
             gst->player.position.z + RSEEDRANDOMF(-30, 30)
         };
+        gst->npc.travel.dest_reached = 1;
         gst->npc.active = 1;
     }
     btn_pos.y += btn_y_inc;

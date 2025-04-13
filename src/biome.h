@@ -25,6 +25,14 @@ struct biome_t {
 
 
 void setup_biomes(struct state_t* gst);
+void setup_biome_ylevels(struct state_t* gst);
+
+void change_to_biome(struct state_t* gst, int biomeid);
+int  get_biomeid_by_ylevel(struct state_t* gst, float y);
+const char* get_biome_name_by_id(size_t biomeid);
+
+// Environment variable blending. fog, sun...
+void update_biome_envblend(struct state_t* gst);
 
 
 #endif

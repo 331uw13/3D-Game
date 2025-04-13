@@ -361,6 +361,7 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
     update_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS]);
 
+    update_biome_envblend(gst);
     update_items(gst);
     update_decay_lights(gst);
     update_inventory(gst, &gst->player);
@@ -388,8 +389,10 @@ void state_update_frame(struct state_t* gst) {
                 }
             }
         }
-
     }
+
+
+
 }
 
 

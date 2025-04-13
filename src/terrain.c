@@ -278,42 +278,10 @@ static void _load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, 
 
 static void _decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
 
-    chunk->biome = terrain->biomedata[BIOMEID_COMFY];
-    /*
-    long int chunks_inrow = (terrain->heightmap.size / terrain->chunk_size);
-    const float chunks_inrow_F = (float)chunks_inrow;
-
-    if(chunks_inrow <= 0) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': 'chunks_inrow' is zero or less\033[0m\n",
-                __func__);
-        return;
-    }
-
-    long int chunk_x = chunk->index % chunks_inrow;
-    long int chunk_z = chunk->index / chunks_inrow;
-
-    chunk_x += terrain->seed;
-    chunk_z += terrain->seed;
-
-    float freq = 4.0;
-
-    float pnoise = perlin_noise_2D(
-            freq * ((float)chunk_x / chunks_inrow_F),
-            freq * ((float)chunk_z / chunks_inrow_F));
-
-    pnoise *= 255.0;
-    pnoise /= 80.0;
-    pnoise = CLAMP(pnoise, -1.0, 1.0);
-
-
-    float t = (round((pnoise * MAX_BIOME_TYPES + MAX_BIOME_TYPES) / MAX_BIOME_TYPES));
-
-    // Just make sure it is in the valid range.
-    t = CLAMP(t, 0, MAX_BIOME_TYPES);
-    int biome_id = (int)t;
-
-    chunk->biome = terrain->biomedata[biome_id];
-    */
+    // Get Chunk center position Y. it is not stored in chunk->center_pos..
+    RayCollision ray = raycast_terrain(terrain, chunk->center_pos.x, chunk->center_pos.z);
+    int biomeid = get_biomeid_by_ylevel(gst, ray.point.y);
+    chunk->biome = terrain->biomedata[biomeid];
 }
 
 
@@ -591,7 +559,7 @@ void generate_terrain(
             float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * frequency;
 
             float value = fbm_2D(p_nx, p_nz, octaves) * amplitude;
-            terrain->heightmap.data[index] = value;
+            terrain->heightmap.data[index] = fabs(value);
         }
     }
     
@@ -664,7 +632,7 @@ void generate_terrain(
             float value3 = fbm_2D(p_nx3, p_nz3, octaves);
 
 
-            terrain->heightmap.data[index] += value * (value2 * value3);
+            terrain->heightmap.data[index] += fabs(value * (value2 * value3));
         }
     }
     
@@ -685,8 +653,20 @@ void generate_terrain(
         }
     }
 
-    printf("Terrain highest point: %0.2f\n", terrain->highest_point);
-    printf("Terrain lowest point: %0.2f\n", terrain->lowest_point);
+    // Raise the heighmap so 0 is at the very bottom.
+    const size_t heightmap_total_size = (terrain->heightmap.size * terrain->heightmap.size);
+    for(size_t i = 0; i < heightmap_total_size; i++) {
+        terrain->heightmap.data[i] += fabs(terrain->lowest_point);
+    }
+
+    terrain->highest_point += fabs(terrain->lowest_point);
+    terrain->lowest_point = 0.0;
+
+    setup_biome_ylevels(gst);
+
+
+    printf("Terrain (highest) point: %0.2f\n", terrain->highest_point);
+    printf("Terrain (lowest)  point: %0.2f\n", terrain->lowest_point);
 
     SetShaderValueV(gst->shaders[DEFAULT_SHADER],
             GetShaderLocation(gst->shaders[DEFAULT_SHADER], "terrain_lowest_point"),
@@ -763,9 +743,6 @@ void generate_terrain(
     terrain->waterplane.materials[0].shader = gst->shaders[WATER_SHADER];
 
  
-
-
-    
     _load_terrain_foliage_models(gst, terrain);
     _load_terrain_chunks(gst, terrain);
      set_render_dist(gst, 3000.0);
@@ -788,7 +765,7 @@ void generate_terrain(
                     terrain->valid_player_spawnpoint.z
                     );
 
-            if(ray.point.y > terrain->water_ylevel) { 
+            if(ray.point.y > terrain->highest_point-5000) { 
                 break;
             }
 

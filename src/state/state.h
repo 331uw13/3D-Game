@@ -344,18 +344,15 @@ struct state_t {
     // This is for gui component.
     Texture  colorpick_tex;
     Image    colorpick_img;
+
+    // Used for when player changes biome.
+    float biome_change;
+    struct biome_t* old_biome;
+    struct biome_t* new_biome;
 };
 
 
-//void state_setup_gbuffer(struct state_t* gst);
-//void state_setup_shadow_gbuffer(struct state_t* gst);
-//void state_setup_ssao(struct state_t* gst);
-//void state_delete_gbuffer(struct state_t* gst);
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
-//void state_setup_grass(struct state_t* gst);
-//void state_gen_defnoise(struct state_t* gst); // Generate default noise texture for everything, adds littlebit detail
-
-//void state_setup_render_targets(struct state_t* gst);
 void state_update_shader_uniforms(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
@@ -369,26 +366,6 @@ void resample_texture(struct state_t* gst,
         RenderTexture2D to, RenderTexture2D from,
         int src_width, int src_height,
         int dst_width, int dst_height, int shader_index);
-
-/*
-// Initialization.
-void state_setup_all_shaders(struct state_t* gst);
-void state_setup_all_weapons(struct state_t* gst);
-void state_setup_all_psystems(struct state_t* gst);
-void state_setup_all_textures(struct state_t* gst);
-void state_setup_all_sounds(struct state_t* gst);
-void state_setup_all_enemy_models(struct state_t* gst);
-void state_setup_all_item_models(struct state_t* gst);
-
-// Free up memory.
-void state_delete_all_shaders(struct state_t* gst);
-void state_delete_all_psystems(struct state_t* gst);
-void state_delete_all_sounds(struct state_t* gst);
-void state_delete_all_textures(struct state_t* gst);
-void state_delete_all_enemy_models(struct state_t* gst);
-void state_delete_all_item_models(struct state_t* gst);
-*/
-
 // Misc.
 //void state_add_crithit_marker(struct state_t* gst, Vector3 position);
 

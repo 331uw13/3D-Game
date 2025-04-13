@@ -49,31 +49,13 @@ static void get_npc_travel_dest(struct state_t* gst, struct npc_t* npc) {
     npc->travel.travelled = 0.0;
     npc->travel.dest_reached = 0;
 
-    int attemps = 0;
-    const int max_attemps = 1024;
-    
-    while(attemps < max_attemps) {
-    
-        Vector3 dst_pos = (Vector3) {
-            npc->position.x + RSEEDRANDOMF(-NPC_RND_DEST_RADIUS, NPC_RND_DEST_RADIUS),
-            0, // y can be ignored.
-            npc->position.z + RSEEDRANDOMF(-NPC_RND_DEST_RADIUS, NPC_RND_DEST_RADIUS)
-        };
+    Vector3 dst_pos = (Vector3) {
+        npc->position.x + RSEEDRANDOMF(-NPC_RND_DEST_RADIUS, NPC_RND_DEST_RADIUS),
+        0, // y can be ignored.
+        npc->position.z + RSEEDRANDOMF(-NPC_RND_DEST_RADIUS, NPC_RND_DEST_RADIUS)
+    };
 
-        RayCollision ray = raycast_terrain(&gst->terrain, dst_pos.x, dst_pos.z);
-        if(ray.point.y > gst->terrain.water_ylevel) {
-            npc->travel.dest = dst_pos;
-            break;
-        }
-
-        attemps++;
-    }
-
-    if(attemps >= max_attemps) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to get random destination for NPC\033[0m\n",
-                __func__);
-    }
-
+    npc->travel.dest = dst_pos;
 }
 
 

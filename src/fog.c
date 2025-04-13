@@ -34,7 +34,7 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
 
 
 
-    printf("'%s': New fog density = %f\n", __func__, settings[0]);
+    //printf("'%s': New fog density = %f\n", __func__, settings[0]);
 
     size_t offset;
     size_t size = sizeof(float)*4;
@@ -108,6 +108,20 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
      */
+}
+
+void fog_blend(struct state_t* gst, 
+        struct fog_t* fog_target,
+        float  blend,
+        struct fog_t* fog_from,
+        struct fog_t* fog_to
+){
+
+    fog_target->color_top = ColorLerp(fog_from->color_top, fog_to->color_top, blend);
+    fog_target->color_bottom = ColorLerp(fog_from->color_bottom, fog_to->color_bottom, blend);
+    set_fog_settings(gst, fog_target);
+
+
 }
 
 

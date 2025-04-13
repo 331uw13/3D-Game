@@ -55,6 +55,7 @@ struct player_t {
     int      is_moving;
     Vector3  velocity;
 
+    struct biome_t* current_biome;
 
     // Movement related.
     float    speed; // "Read only". Updated from 'input.c'
@@ -195,6 +196,13 @@ void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force);
 int  point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point, float fov_range);
 
 /*TODO*/void player_update_death_animation(struct state_t* gst, struct player_t* p);
+
+// Returns '-1' If not in biome shift area.
+// Returns 0 - 'MAX_BIOME_TYPES' When in area.
+// Example: if returned value is 1, 
+//          we can know fog and other things must start to blend from
+//          BIOMEID_HAZY <-> BIOMEID_EVIL.
+int  playerin_biomeshift_area(struct state_t* gst, struct player_t* p);
 
 // TODO: Rename these.
 // updates player's variables. not movement for movement see (input.c)

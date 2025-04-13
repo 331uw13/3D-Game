@@ -85,9 +85,13 @@ struct terrain_t {
     int    num_max_visible_chunks;
     int    num_visible_chunks;
 
-    struct biome_t biomedata[MAX_BIOME_TYPES];
+    struct biome_t biomedata[MAX_BIOME_TYPES]; //<- Initialized from 'biome.c' 'setup_biomes()'
     Material biome_materials[MAX_BIOME_TYPES];
     Vector2  biome_ylevels[MAX_BIOME_TYPES]; // X(where the biome starts.) Y(where the biome ends.)
+    
+    // Area at biome edge
+    float biomeshift_area; // NOTE: This value is set from 'biome.c' 'setup_biomes()'
+
 
     size_t                 foliage_max_perchunk  [MAX_FOLIAGE_TYPES];
     Model                  foliage_models [MAX_FOLIAGE_TYPES];

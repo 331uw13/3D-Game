@@ -1014,7 +1014,7 @@ int state_setup_everything(struct state_t* gst) {
 
     init_player_struct(gst, &gst->player);
     state_setup_shadow_cams(gst);
-
+    change_to_biome(gst, get_biomeid_by_ylevel(gst, gst->player.position.y));
 
     set_render_dist(gst, gst->cfg.render_dist);
 

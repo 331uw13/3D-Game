@@ -63,6 +63,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     p->cam.fovy = 60.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
+    
     /*
     gst->shadow_cam = p->cam;
     gst->shadow_cam.fovy = 60.0;
@@ -381,13 +382,24 @@ int point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point,
     return (f < fov_range);
 }
 
-Vector3 Vec3Lerp(float t, Vector3 a, Vector3 b) {
-    return (Vector3) {
-        lerp(t, a.x, b.x),
-        lerp(t, a.y, b.y),
-        lerp(t, a.z, b.z)
-    };
+int playerin_biomeshift_area(struct state_t* gst, struct player_t* p) {
+    int inarea = -1;
+    const float shiftarea = gst->terrain.biomeshift_area;
+    const float py = p->position.y;
+    const float biome_div = gst->terrain.highest_point / (float)MAX_BIOME_TYPES;
+    for(int i = 0; i < MAX_BIOME_TYPES; i++) {
+        Vector2 biome_ylevel = gst->terrain.biome_ylevels[i];
+        
+        if(py < (biome_ylevel.y+shiftarea) && py > (biome_ylevel.y)) {
+            inarea = i;
+            break;
+        }
+
+    }
+
+    return inarea;
 }
+
 
 void player_respawn(struct state_t* gst, struct player_t* p) {
     if(p->alive) {
@@ -834,6 +846,12 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         p->cam.position.y = p->position.y;
     }
 
+
+    // Check if current biome has changed.
+    int biomeid_by_y = get_biomeid_by_ylevel(gst, p->position.y);
+    if(biomeid_by_y != p->current_biome->id) {
+        change_to_biome(gst, biomeid_by_y);
+    }
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
