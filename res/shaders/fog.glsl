@@ -22,14 +22,20 @@ float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
 // use camera position Y and the fragment position Y to get ylevel for fog.
 // NOTE: this has a problem with very wide objects on xz axis. But will work for now.
 
+#define PI 3.14159
+
 vec3 get_horizon_color(float y) {
     const float max_y  = -1000.0; // Negative value goes up in world.
     const float blevel =  200.0;  // This value controls where bottom color starts.
     const float change =  2.0;    // How fast the color changes from 'color_top' to 'color_bottom'?
     float noise = fract(cos(dot(vec2(-y*200, fract(y)+y*200), vec2(52.621,67.1262)))*72823.53)/80.0;
+    
+    y += sin((cos(fragPosition.x*0.003)+sin(fragPosition.z*0.003)))*60.0;
+
     y = map(y, max_y, blevel, 1.0, 0.0);
     y = smoothstep(0.0, 1.0, y*change);
     vec3 res = mix(fog.color_top.rgb, fog.color_bottom.rgb, y+noise);
+    
     return res*0.8;
 }
 
@@ -39,7 +45,7 @@ vec3 get_fog(vec3 current, float dist, float ylevel) {
     vec3 c = get_horizon_color(ylevel);
     c = clamp(c, vec3(0.0), vec3(1.0));
     // Try to break noticeable banding with noise.
-    float noise = fract(cos(dot(vec2(-ylevel*200, fract(dist)+ylevel*200), vec2(52.621,67.1262)))*72823.53)/80.0;
+    float noise = fract(cos(dot(vec2(-ylevel*200, fract(dist)+ylevel*200), vec2(52.621,67.1262)))*72823.53)/50.0;
     return mix(c, current, f+noise);
 };
 

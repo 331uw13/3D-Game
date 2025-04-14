@@ -14,7 +14,7 @@ uniform vec4 psystem_color;
 //uniform vec3 viewPos;
 
 
-
+#include "res/shaders/voronoi.glsl"
 #include "res/shaders/fog.glsl"
 
 void main()

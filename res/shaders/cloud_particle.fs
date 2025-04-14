@@ -16,6 +16,7 @@ uniform vec4 psystem_color;
 
 
 
+#include "res/shaders/voronoi.glsl"
 #include "res/shaders/fog.glsl"
 
 void main()

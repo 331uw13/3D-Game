@@ -32,10 +32,10 @@ uniform float u_terrain_highest;
 
 // Output fragment color
 out vec4 finalColor;
-#include "res/shaders/fog.glsl"
 #include "res/shaders/light.glsl"
 #include "res/shaders/voronoi.glsl"
 #include "res/shaders/shadow.glsl"
+#include "res/shaders/fog.glsl"
 
 
 #define S smoothstep
@@ -60,6 +60,7 @@ void main()
         float comfy_w = S(comfy_level.y, comfy_level.x, Y);
         float hazy_w  = S(hazy_level.y, hazy_level.x, Y);
         // Move lowest point very far away so the texture wont disappear at the bottom.
+        // But has a chance to get a bit darker.
         float evil_w  = S(evil_level.y-5000, evil_level.x, Y);
 
         comfy_w = clamp(comfy_w, 0.0, 1.0);
@@ -67,7 +68,7 @@ void main()
         evil_w = clamp(evil_w, 0.0, 1.0);
 
         hazy_w *= (1.0-comfy_w);
-        evil_w *= (1.0-(comfy_w+hazy_w));
+        evil_w *= (1.0-(hazy_w+comfy_w));
 
         vec4 comfy_tex = texture(biome_groundtex[BIOMEID_COMFY], fragTexCoord);
         vec4 hazy_tex = texture(biome_groundtex[BIOMEID_HAZY], fragTexCoord);

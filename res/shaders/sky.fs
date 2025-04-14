@@ -18,9 +18,9 @@ uniform vec4 u_sun_color;
 // Output fragment color
 out vec4 finalColor;
 
-#include "res/shaders/fog.glsl"
-#include "res/shaders/light.glsl"
 #include "res/shaders/voronoi.glsl"
+#include "res/shaders/light.glsl"
+#include "res/shaders/fog.glsl"
 
 
 
