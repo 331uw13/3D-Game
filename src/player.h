@@ -54,6 +54,7 @@ struct player_t {
     Vector3  looking_at; // normalized vector where the player is looking towards
     int      is_moving;
     Vector3  velocity;
+    Vector3  spawn_point;
 
     struct biome_t* current_biome;
 

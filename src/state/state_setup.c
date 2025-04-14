@@ -962,17 +962,23 @@ int state_setup_everything(struct state_t* gst) {
     const float terrain_amplitude = 40.0;
     const float terrain_pnfrequency = 70.0;
     const int   terrain_octaves = 3;
-    /*
-    const float terrain_scale = 20.0;
-    const u32   terrain_size = 2048;
-    const float terrain_amplitude = 30.0;
-    const float terrain_pnfrequency = 80.0;
-    const int   terrain_octaves = 3;
-    */
  
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_ubos(gst);
+
+    // Make sure all lights are disabled.
+    for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
+        struct light_t disabled = {
+            .enabled = 0,
+            .index = i
+        };
+        set_light(gst, &disabled, LIGHTS_UBO);
+    }
+    for(size_t i = 0; i < MAX_DECAY_LIGHTS; i++) {
+        gst->decay_lights[i].enabled = 0;
+    }
+
 
     gst->weather.wind_dir = (Vector3){ 0, 0, 1 };
     gst->weather.wind_strength = 100.0;
@@ -987,7 +993,7 @@ int state_setup_everything(struct state_t* gst) {
         const int terrain_seed = GetRandomValue(0, 9999999);
         //const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
 
-        printf("(INFO) '%s': Terrain seed = %i\n",
+        printf("'%s': Terrain seed = %i\n",
                 __func__, terrain_seed);
 
         generate_terrain(
@@ -1013,9 +1019,9 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_render_targets(gst);
 
     init_player_struct(gst, &gst->player);
-    state_setup_shadow_cams(gst);
     change_to_biome(gst, get_biomeid_by_ylevel(gst, gst->player.position.y));
-
+    
+    state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
 
     result = 1;

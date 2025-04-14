@@ -283,7 +283,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst,  GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
     
     shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
-    shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->weather.sun_color);
+    shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->sun.color);
 
     state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
     state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);
@@ -311,7 +311,7 @@ void state_update_shadow_cams(struct state_t* gst) {
         cam->target = (Vector3){0, 0, 0};
         cam->target.x =     (gst->player.cam.position.x - cam->target.x);
         cam->target.z = 1.0+(gst->player.cam.position.z - cam->target.z);
-        cam->target.y =     (gst->player.cam.position.y - cam->target.y);
+        //cam->target.y =     (gst->player.cam.position.y - cam->target.y);
         cam->position = gst->player.cam.position;
         cam->position.y += gst->shadow_cam_height;
     }
@@ -532,7 +532,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
         struct chunk_t* chunk = &gst->terrain.chunks[i];
 
-        float dst = Vector3Length(chunk->center_pos);
+        float dst = Vector3Length((Vector3){ chunk->center_pos.x, 0, chunk->center_pos.z });
 
         if(dst <= gst->render_dist) {
             gst->terrain.num_max_visible_chunks++;
@@ -540,7 +540,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     }
 
     printf("'%s': New render distance: %0.3f\n", __func__, new_dist);
-    printf("'%s': Predicted visible chunks: %i\n", __func__, gst->terrain.num_max_visible_chunks);
+    printf("'%s': Predicted visible chunks: %i (without frustrum culling)\n", __func__, gst->terrain.num_max_visible_chunks);
 
 
     // Allocate/Reallocate space for foliage.

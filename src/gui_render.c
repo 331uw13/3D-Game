@@ -260,8 +260,8 @@ void gui_render_devmenu(struct state_t* gst) {
     Vector2 btn_pos = (Vector2){ 100, 150 };
 
 
-    if(gui_button(gst, "Telport to zero", fontsize, btn_pos)) {
-        gst->player.cam.position = (Vector3){ 0, 0, 0 };
+    if(gui_button(gst, "Telport to spawn point", fontsize, btn_pos)) {
+        gst->player.cam.position = gst->player.spawn_point;
     }
     btn_pos.y += btn_y_inc;
     if(gui_button(gst, "Kill player", fontsize, btn_pos)) {
@@ -332,6 +332,7 @@ void gui_render_devmenu(struct state_t* gst) {
 
     btn_pos.y += btn_y_inc;
 
+    /*
     // ------------ Color pickers -----------
 
     if(gui_colorpicker(gst, "Fog Top color", 
@@ -357,6 +358,7 @@ void gui_render_devmenu(struct state_t* gst) {
         set_fog_settings(gst, &gst->fog);
         printf("Fog bottom color: (%i, %i, %i)\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
     }
+    */
 
 
     

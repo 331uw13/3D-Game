@@ -7,7 +7,6 @@
 #include <raymath.h>
 #include <stdio.h>
 
-#define RADIUS 7000
 
 // PARTICLE UPDATE
 void cloud_psys_update(
@@ -32,7 +31,9 @@ void cloud_psys_update(
     *part->transform = MatrixMultiply(scale_matrix, translation);
 
 
-    if(Vector3Distance(gst->player.position, part->position) > RADIUS) {
+    if(Vector3Distance(
+                (Vector3){ gst->player.position.x, 0, gst->player.position.z },
+                (Vector3){ part->position.x, 0, part->position.z }) > gst->render_dist) {
         cloud_psys_init(gst, psys, part, (Vector3){0}, (Vector3){0}, (Color){0}, NULL, NO_EXTRADATA);
     }
 }
@@ -51,9 +52,9 @@ void cloud_psys_init(
 ){
     
     part->position = (Vector3) {
-        gst->player.position.x + RSEEDRANDOMF(-RADIUS, RADIUS),
-        RSEEDRANDOMF(-100, 600) + 1200,
-        gst->player.position.z + RSEEDRANDOMF(-RADIUS, RADIUS)
+        gst->player.position.x + RSEEDRANDOMF(-gst->render_dist, gst->render_dist),
+        RSEEDRANDOMF(-100, 600) + gst->terrain.highest_point,
+        gst->player.position.z + RSEEDRANDOMF(-gst->render_dist, gst->render_dist)
     };
  
     part->velocity = (Vector3) {

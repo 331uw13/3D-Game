@@ -56,9 +56,19 @@ static void set_player_default_stats(struct player_t* p) {
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->render = 1; 
+
+
+    // Figure out spawn point by looping through all chunks and taking highest point.
+    p->spawn_point = (Vector3){ 0, 0, 0 };
+    for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
+        struct chunk_t* chunk = &gst->terrain.chunks[i];
+        if(chunk->center_pos.y > p->spawn_point.y) {
+            p->spawn_point = chunk->center_pos;
+        }
+    }
     
     p->cam = (Camera){ 0 };
-    p->cam.position = gst->terrain.valid_player_spawnpoint;
+    p->cam.position = p->spawn_point;
     p->cam.target = (Vector3){ 0, 0, 0 };
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
     p->cam.fovy = 60.0;
@@ -408,7 +418,7 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     p->alive = 1;
     p->is_aiming = 0;
     p->ready_to_shoot = 0;
-    p->cam.position = gst->terrain.valid_player_spawnpoint;
+    p->cam.position = p->spawn_point;
     p->velocity = (Vector3){0, 0, 0};
     p->ext_force_vel = (Vector3){0, 0, 0};
     p->ext_force_acc = (Vector3){0, 0, 0};

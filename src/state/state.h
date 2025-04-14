@@ -29,7 +29,7 @@
 #define RESOLUTION_X 1500
 #define RESOLUTION_Y 800
 
-#define MAX_RENDERDIST 8000.0
+#define MAX_RENDERDIST 15000.0
 #define MIN_RENDERDIST 2200.0
 
 #define TARGET_FPS 500
@@ -209,7 +209,6 @@ struct gbuffer_t {
 
 
 struct weather_t {
-    Color   sun_color;
     Vector3 wind_dir;
     float   wind_strength;
     // ...
@@ -240,6 +239,7 @@ struct state_t {
     size_t num_prj_lights;
 
     struct fog_t      fog;
+    struct light_t    sun;
     struct weather_t  weather;
 
     Shader               shaders[MAX_SHADERS];

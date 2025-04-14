@@ -26,7 +26,7 @@ void set_fog_settings(struct state_t* gst, struct fog_t* fog) {
 
 
     if(fog->mode == FOG_MODE_RENDERDIST) {
-        float test = 1.0 / (gst->render_dist-gst->render_dist/2.0);
+        float test = 1.0 / (gst->render_dist*0.465);
         test = pow(test, exp(test));
         settings[0] = test;
     }

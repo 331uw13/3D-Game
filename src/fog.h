@@ -13,6 +13,7 @@ struct fog_t {
 
 
 void set_fog_settings(struct state_t* gst, struct fog_t* fog);
+
 void fog_blend(
         struct state_t* gst,
         struct fog_t* fog_target,
@@ -20,6 +21,7 @@ void fog_blend(
         struct fog_t* fog_from,
         struct fog_t* fog_to
         );
+
 
 
 #endif

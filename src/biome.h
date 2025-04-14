@@ -8,6 +8,7 @@ struct terrain_t;
 
 #include "fog.h"
 #include "util.h"
+#include "light.h"
 
 #define BIOMEID_COMFY  0  // Comfortable biome to be in no much threats other than few easy robots.
 #define BIOMEID_HAZY   1  // Player cant see very far and dangers may lurk outside of view.
@@ -19,7 +20,7 @@ struct terrain_t;
 struct biome_t {
     int id;
     struct fog_t fog;
-    Color sun_color;
+    struct light_t sun;
     // ...
 };
 

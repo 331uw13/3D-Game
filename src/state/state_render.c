@@ -263,6 +263,7 @@ void state_render(struct state_t* gst) {
                 }
             }
 
+            // Chunk borders.
             for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
                 struct chunk_t* chunk = &gst->terrain.chunks[i];
                 if(chunk->dst2player > 2000.0) {
@@ -271,7 +272,8 @@ void state_render(struct state_t* gst) {
 
                 float scale = gst->terrain.chunk_size * gst->terrain.scaling;
                 Vector3 size = (Vector3){ scale, scale, scale };
-                DrawCubeWiresV(chunk->center_pos, size, RED);
+                Vector3 box = (Vector3){ chunk->center_pos.x, chunk->position.y, chunk->center_pos.z };
+                DrawCubeWiresV(box, size, RED);
 
             }
             //DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);

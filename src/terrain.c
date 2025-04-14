@@ -368,6 +368,8 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
         int n_counter = 0; // Count normals.
         int tc_counter = 0; // Count texcoords.
 
+        // Figure chunk Y position by taking avarage of all chunk y vertices.
+
         chunk->position = (Vector3){ 
             (chunk_x * (terrain->scaling)) - ((terrain_size/2) * terrain->scaling),
             0, 
@@ -377,10 +379,14 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
         chunk->center_pos = (Vector3) {
             chunk->position.x
                 + (terrain->scaling * terrain->chunk_size / 2),
-            0, 
+            0,
             chunk->position.z
                 + (terrain->scaling * terrain->chunk_size / 2)
         };
+
+        // Used to get average Y position of chunk.
+        float vertex_y_points = 0.0;
+        float num_vertex_y_points = 0.0;
 
         for(int z = 0; z < terrain->chunk_size; z++) {
             for(int x = 0; x < terrain->chunk_size; x++) {
@@ -409,6 +415,14 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                 chunk->mesh.vertices[v_counter+7] = get_heightmap_value(terrain, X+1, Z);
                 chunk->mesh.vertices[v_counter+8] = (float)z * scale.z;
 
+                // Average of the quads y points.
+                // Then later take avarage of those.
+                vertex_y_points += 
+                    ( chunk->mesh.vertices[v_counter+1]
+                    + chunk->mesh.vertices[v_counter+4]
+                    + chunk->mesh.vertices[v_counter+7]) / 3.0;
+
+                num_vertex_y_points += 1.0;
 
                 // Right bottom corner triangle
 
@@ -492,7 +506,10 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
                 n_counter += 18;
             }
         }
-   
+
+        chunk->position.y = vertex_y_points / num_vertex_y_points;
+        chunk->center_pos.y = chunk->position.y;
+
         _decide_chunk_biome(gst, terrain, chunk);
         _load_chunk_foliage(gst, terrain, chunk);
 
@@ -597,10 +614,10 @@ void generate_terrain(
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
 
-            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/50.25);
-            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/50.25);
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/60.25);
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/60.25);
+            float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 80);
 
-            float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude * 100);
             terrain->heightmap.data[index] += value;
         }
     }
@@ -618,13 +635,13 @@ void generate_terrain(
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
             size_t index = z * terrain->heightmap.size + x;
 
-            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency);
-            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency);
+            float p_nx = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/4.0);
+            float p_nz = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/4.0);
             float value = fbm_2D(p_nx, p_nz, octaves) * (amplitude*3.0);
 
 
-            float p_nx2 = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/10.0);
-            float p_nz2 = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/10.0);
+            float p_nx2 = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/30.0);
+            float p_nz2 = ((float)(z+seed_z) / (float)terrain->heightmap.size) * (frequency/30.0);
             float value2 = fbm_2D(p_nx2, p_nz2, octaves);
 
             float p_nx3 = ((float)(x+seed_x) / (float)terrain->heightmap.size) * (frequency/2.0);
@@ -632,7 +649,7 @@ void generate_terrain(
             float value3 = fbm_2D(p_nx3, p_nz3, octaves);
 
 
-            terrain->heightmap.data[index] += fabs(value * (value2 * value3));
+            terrain->heightmap.data[index] += (value * (value2 * value3));
         }
     }
     
@@ -652,6 +669,7 @@ void generate_terrain(
             }
         }
     }
+
 
     // Raise the heighmap so 0 is at the very bottom.
     const size_t heightmap_total_size = (terrain->heightmap.size * terrain->heightmap.size);
@@ -748,6 +766,7 @@ void generate_terrain(
      set_render_dist(gst, 3000.0);
    
 
+    /*
     // Get valid spawnpoint for player.
     {
         int attemps = 0;
@@ -765,7 +784,7 @@ void generate_terrain(
                     terrain->valid_player_spawnpoint.z
                     );
 
-            if(ray.point.y > terrain->highest_point-5000) { 
+            if(ray.point.y > terrain->highest_point) {
                 break;
             }
 
@@ -777,7 +796,7 @@ void generate_terrain(
             }
         }
     }
-
+    */
 
     printf("Max visible chunks: %i\n", terrain->num_max_visible_chunks);
     printf("\033[32m -> Generated terrain succesfully.\033[0m\n");
@@ -842,7 +861,8 @@ void render_terrain(
     }
 
     terrain->water_ylevel += sin(gst->time)*0.001585;
-    float trender_dist = (render_setting == RENDER_TERRAIN_FOR_PLAYER) ? gst->render_dist : 1200.0;
+    float trender_dist = (render_setting == RENDER_TERRAIN_FOR_PLAYER) 
+        ? gst->render_dist : SHADOW_CAM_RENDERDIST;
 
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
@@ -863,6 +883,7 @@ void render_terrain(
         }
 
 
+        /*
         // Chunks very nearby may get discarded if the center position goes behind the player.
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
@@ -870,6 +891,7 @@ void render_terrain(
         if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 100.0)) {
             continue;
         }
+        */
 
         terrain->num_visible_chunks++;
 

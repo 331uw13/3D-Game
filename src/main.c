@@ -298,7 +298,7 @@ int read_config(struct state_t* gst) {
                     __func__);
             render_dist = 3000;
         }
-        gst->cfg.render_dist = render_dist;
+        gst->cfg.render_dist = CLAMP(render_dist, MIN_RENDERDIST, MAX_RENDERDIST);
     }
 
     result = 1;
@@ -377,10 +377,11 @@ void first_setup(struct state_t* gst) {
     // TODO: Errors from all functions on init should be checked!
     //       alot of memory may be leaked if crash after terrain was created.
 
+    gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
+
+
 
     state_setup_everything(gst);
- 
-
     setup_npc(gst, &gst->npc);
 
     gst->skybox = LoadModelFromMesh(GenMeshSphere(1.0, 32, 32));
@@ -400,21 +401,6 @@ void first_setup(struct state_t* gst) {
     SetRandomSeed(seed);
 
 
-    // Make sure all lights are disabled.
-    for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
-        struct light_t disabled = {
-            .enabled = 0,
-            .index = i
-        };
-        set_light(gst, &disabled, LIGHTS_UBO);
-    }
-    for(size_t i = 0; i < MAX_DECAY_LIGHTS; i++) {
-        gst->decay_lights[i].enabled = 0;
-    }
-
-    gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
-
-
     for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
         gst->enemies[i].modelptr = NULL;
         gst->enemies[i].alive = 0;
@@ -422,6 +408,7 @@ void first_setup(struct state_t* gst) {
     }
 
 
+    /*
     struct light_t SUN = (struct light_t) {
         .type = LIGHT_DIRECTIONAL,
         .enabled = 1,
@@ -430,6 +417,7 @@ void first_setup(struct state_t* gst) {
         .strength = 0.4,
         .index = SUN_LIGHT_ID
     };
+    */
 
     gst->player.gun_light = (struct light_t) {
         .type = LIGHT_POINT,
@@ -440,6 +428,7 @@ void first_setup(struct state_t* gst) {
     }; // Player's gun light is updated from 'src/player.c'
 
 
+    /*
     // Setup fog.
     gst->fog = (struct fog_t) {
         .mode = FOG_MODE_RENDERDIST,
@@ -447,9 +436,10 @@ void first_setup(struct state_t* gst) {
         .color_bottom = (Color){ 39, 0, 37, 255 },
         .density = 0.0 // Density is ignored when fog mode is RENDERDIST
     };
+    */
 
-    set_light(gst, &SUN, LIGHTS_UBO);
-    set_fog_settings(gst, &gst->fog);
+    //set_light(gst, &SUN, LIGHTS_UBO);
+    //set_fog_settings(gst, &gst->fog);
 
 
     gst->gamepad.id = -1;

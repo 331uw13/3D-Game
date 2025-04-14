@@ -11,9 +11,12 @@
 struct state_t;
 struct fog_t;
 
-#define CHUNK_SIZE 64
+#define CHUNK_SIZE 128
+#define SHADOW_CAM_RENDERDIST 4000 // <- This must be adjusted if changing CHUNK_SIZE
 
-#define WATER_INITIAL_YLEVEL -230 // NOTE: This must be same as in 'res/shaders/default.fs'
+
+// (CURRENTLY NOT USED)
+#define WATER_INITIAL_YLEVEL -230
 
 
 struct heightmap_t {
@@ -106,8 +109,6 @@ struct terrain_t {
 
     // Triangles saved but in order to get triangle at xz location efficiently.
     struct triangle2x_t* triangle_lookup;
-
-    Vector3 valid_player_spawnpoint;
 };
 
 
