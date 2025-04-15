@@ -26,9 +26,11 @@ static void set_player_default_stats(struct player_t* p) {
 
     // Armor and health
 
-    p->max_health = 300.0;
+    p->max_health = MAX_DEFAULT_HEALTH;
     p->health = p->max_health;
 
+    p->max_armor = MAX_DEFAULT_ARMOR;
+    p->armor = p->max_armor;
 
     // Weapon stuff
     
@@ -51,7 +53,7 @@ static void set_player_default_stats(struct player_t* p) {
         p->kills[i] = 0;
     }
 
-    p->xp = 9999999;
+    p->xp = 999999;
 }
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
@@ -831,10 +833,6 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
             float g = (GRAVITY_CONST * (!p->in_water ? p->gravity : 0.1)) * gst->dt;
             p->velocity.y -= g;
         }
-
-
-
-
     }
     else {
         if(IsKeyDown(KEY_SPACE)) {
@@ -846,7 +844,23 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
         }
     }
 
+    // "View bobbing"
+    {
+        float vlen = Vector3Length((Vector3){ p->velocity.x, 0, p->velocity.z });
+        vlen *= vlen;
+        vlen = CLAMP(vlen, 0.0, 8.0);
 
+        float yaw = 0.0;
+        float pitch = 0.0;
+
+        if(vlen > 0.01) {
+            yaw   = sin((gst->time) * vlen) * 0.000075;
+            pitch = cos((gst->time*2.0) * vlen) * 0.000075;
+            CameraYaw(&gst->player.cam, yaw, 0);
+            CameraPitch(&gst->player.cam, pitch, 1, 0, 0);
+        }
+    }
+    
     // Fix camera target. it may be wrong if Y position changed.
     {
         float scale_up = ( p->position.y - p->cam.position.y);

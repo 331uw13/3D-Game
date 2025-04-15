@@ -111,6 +111,7 @@ static void state_delete_ubos(struct state_t* gst) {
     printf("\033[35m -> Deleted Uniform buffers.\033[0m\n");
 }
 
+
 void state_free_everything(struct state_t* gst) {
     state_delete_shaders(gst);
     state_delete_psystems(gst);

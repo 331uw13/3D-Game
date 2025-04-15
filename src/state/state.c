@@ -343,7 +343,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        //update_enemy_spawn_systems(gst); 
+        update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -513,6 +513,29 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
                 Vector3Subtract(ent->position, position),
                 exp_knockback_to_ent);
     }
+
+
+    /*
+    // Bend chunk vertices.
+
+    struct chunk_t* chunk = NULL;
+    int found_chunk = 0;
+    for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
+        chunk = &gst->terrain.chunks[i];
+        float chunk_x_min = chunk->position.x;
+        float chunk_x_max = chunk->position.x + (gst->terrain.chunk_size * gst->terrain.scaling);
+        float chunk_z_min = chunk->position.z;
+        float chunk_z_max = chunk->position.z + (gst->terrain.chunk_size * gst->terrain.scaling);
+
+        if((position.x > chunk_x_min && position.x < chunk_x_max)
+        && (position.z > chunk_z_min && position.z < chunk_z_max)) {
+            found_chunk = 1;
+            break;
+        }
+    }
+    */
+
+
 }
 
 

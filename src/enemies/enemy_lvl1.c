@@ -93,8 +93,7 @@ void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
 
 
     RayCollision ray = raycast_terrain(&gst->terrain, ent->position.x, ent->position.z);
-    float ypoint = CLAMP(ray.point.y, gst->terrain.water_ylevel, 1000.0);
-    ent->position.y = ypoint + HOVER_YLEVEL;
+    ent->position.y = ray.point.y + HOVER_YLEVEL;
     
     Matrix translation = MatrixTranslate(ent->position.x, ent->position.y, ent->position.z);
 

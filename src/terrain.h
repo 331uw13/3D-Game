@@ -6,7 +6,7 @@
 
 #include "perlin_noise.h"
 #include "typedefs.h"
-#include "biome.h"
+#include "chunk.h"
 
 struct state_t;
 struct fog_t;
@@ -37,25 +37,6 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
     Vector3 b2;
 };
 
-
-#define TF_TREE_TYPE0 0
-#define TF_TREE_TYPE1 1
-#define TF_ROCK_TYPE0 2
-#define TF_MUSHROOM_TYPE0 3
-#define MAX_FOLIAGE_TYPES 4
-
-
-// This data is not directly being used to render foliages from.
-//   When chunks are being generated
-//   this array will be filled with their transformation matrix
-//   then they are copied to 'foliage_rdata' and rendered all at once(per type)
-//   ^ this will reduce the draw calls.
-struct chunk_foliage_data_t {
-    Matrix* matrices;         
-    size_t  matrices_size;   // How many elements was allocated for matrix array?
-    size_t  num_foliage;     // Chunk may not generate the absolute max number of foliage.
-};
-
 // "Foliage render data"
 // Matrices from all visible chunks to player.
 struct foliage_rdata_t {
@@ -65,21 +46,10 @@ struct foliage_rdata_t {
     size_t  next_index;      // Keep track of index where to copy.
 };
 
-struct chunk_t {
-    size_t   index; // Index in 'terrain.chunks' array.
-    Mesh     mesh;
-    Vector3  position;
-    Vector3  center_pos;
-    float    dst2player;
-    struct chunk_foliage_data_t foliage_data[MAX_FOLIAGE_TYPES];
-    struct biome_t biome;
-};
-
-
 struct terrain_t {
     int seed;
-    Material  material;
-    Matrix    transform;
+    Material  material;  // <-TODO: Remove this
+    Matrix    transform; // <-TODO: Remove this
     struct heightmap_t heightmap;
 
     struct chunk_t* chunks;
@@ -92,13 +62,14 @@ struct terrain_t {
     Material biome_materials[MAX_BIOME_TYPES];
     Vector2  biome_ylevels[MAX_BIOME_TYPES]; // X(where the biome starts.) Y(where the biome ends.)
     
-    // Area at biome edge
+    // Area at biome edges
     float biomeshift_area; // NOTE: This value is set from 'biome.c' 'setup_biomes()'
 
-
+    // Information about specific type of "foliage"
+    // Can be found from these arrays with foliage ID.
     size_t                 foliage_max_perchunk  [MAX_FOLIAGE_TYPES];
     Model                  foliage_models [MAX_FOLIAGE_TYPES];
-    struct foliage_rdata_t foliage_rdata  [MAX_FOLIAGE_TYPES];
+    struct foliage_rdata_t foliage_rdata  [MAX_FOLIAGE_TYPES]; // Used for rendering.
 
     float highest_point;
     float lowest_point;
@@ -114,8 +85,8 @@ struct terrain_t {
 
 // More optimized way to raycast the terrain instead of raycasting on the whole terrain mesh.
 // it uses triangle lookup table.
+// The name might be bit confusing but it actually raycasts the terrain from above.
 RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z);
-
 Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, RayCollision* ray_out);
 
 void generate_terrain(
@@ -138,7 +109,6 @@ void delete_terrain(struct terrain_t* terrain);
 #define RENDER_TERRAIN_FOR_PLAYER 0
 #define RENDER_TERRAIN_FOR_SHADOWS 1
 void render_terrain(struct state_t* gst, struct terrain_t* terrain, int render_setting);
-
 
 
 

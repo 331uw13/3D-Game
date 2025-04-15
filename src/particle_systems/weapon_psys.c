@@ -86,6 +86,8 @@ void weapon_psys_prj_update(
     if(t_hit.point.y >= part->position.y) {
         disable_prj = 1;
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
+    
+        //create_explosion(gst, part->position, 100, 100);
     }
 
 

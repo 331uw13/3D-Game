@@ -77,7 +77,7 @@ static int state_setup_all_sounds(struct state_t* gst) {
     gst->sounds[CLOUDBURST_SOUND] = LoadSound("res/audio/cloudburst.wav");
     
 
-    SetMasterVolume(30.0);
+    SetMasterVolume(100.0);
     gst->has_audio = 1;
     result = 1;
 
@@ -170,10 +170,13 @@ static void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/terrain_mushroom.png", TERRAIN_MUSHROOM_TEXID);
     load_texture(gst, "res/textures/hazy_biome_ground.jpg", HAZYBIOME_GROUND_TEXID);
     load_texture(gst, "res/textures/evil_biome_ground.png", EVILBIOME_GROUND_TEXID);
-    SetTraceLogLevel(LOG_NONE);  
+    
+
+    SetTraceLogLevel(LOG_NONE); 
 
     load_colorpick_texture(gst);
    
+    SetTextureWrap(gst->textures[TREEBARK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[GRASS_TEXID], TEXTURE_WRAP_CLAMP);
@@ -941,7 +944,6 @@ static void state_setup_shadow_cams(struct state_t* gst) {
   
     gst->shadow_cam_height = 300.0;
 }
-
 
 
 int state_setup_everything(struct state_t* gst) {

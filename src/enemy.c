@@ -8,6 +8,8 @@
 #include "enemies/enemy_lvl0.h"
 #include "enemies/enemy_lvl1.h"
 
+#include <rlgl.h>
+
 
 static int _is_terrain_blocking_view(struct state_t* gst, struct enemy_t* ent) {
     int result = 0;
@@ -274,6 +276,11 @@ void update_enemy(struct state_t* gst, struct enemy_t* ent) {
 }
 
 void render_enemy(struct state_t* gst, struct enemy_t* ent) {
+
+    if(!ent->alive) {
+        return;
+    }
+
     if(!ent->enabled) {
         return;
     }
@@ -647,7 +654,7 @@ int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int
 
 static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
     Vector3 pos = (Vector3) { 0, 0, 0 };
-    const int max_attemps = 100;
+    const int max_attemps = 300;
     int attemps = 0;
 
     while(attemps < max_attemps) {
@@ -657,10 +664,10 @@ static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
             gst->player.position.z + RSEEDRANDOMF(-spawn_radius, spawn_radius)
         };
 
-        RayCollision ray = raycast_terrain(&gst->terrain, pos.x, pos.z);
-        int in_water = (ray.point.y <= gst->terrain.water_ylevel);
+        float dist = Vector3Distance(pos, (Vector3){ gst->player.position.x, 0, gst->player.position.z });
 
-        if(!in_water && Vector3Distance(pos, gst->player.position) > ENEMY_SPAWN_SAFE_RADIUS) {
+        printf("'%s': %f\n", __func__, dist);
+        if(dist > ENEMY_SPAWN_SAFE_RADIUS) {
             break;
         }
 
@@ -668,8 +675,10 @@ static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
     }
 
     if(attemps >= max_attemps) {
-        pos.x = gst->player.position.x + ENEMY_SPAWN_SAFE_RADIUS;
-        pos.z = gst->player.position.z + ENEMY_SPAWN_SAFE_RADIUS;
+        printf("\033[35m(WARNING) '%s': Failed to get good spawn position for enemy\033[0m\n",
+                __func__);
+        pos.x = gst->player.position.x + ENEMY_SPAWN_SAFE_RADIUS*2;
+        pos.z = gst->player.position.z + ENEMY_SPAWN_SAFE_RADIUS*2;
     }
 
     return pos;
@@ -729,7 +738,7 @@ void setup_default_enemy_spawn_settings(struct state_t* gst) {
         spawnsys->difficulty = 0;
         spawnsys->max_in_world = 10;
         spawnsys->max_in_spawn_radius = 6;
-        spawnsys->spawn_radius = 800.0;
+        spawnsys->spawn_radius = 1000.0;
         spawnsys->spawn_delay = 30.0;
         spawnsys->num_spawns_min = 3;
         spawnsys->num_spawns_max = 4;
@@ -754,7 +763,7 @@ void setup_default_enemy_spawn_settings(struct state_t* gst) {
         spawnsys->difficulty = 0;
         spawnsys->max_in_world = 10;
         spawnsys->max_in_spawn_radius = 6;
-        spawnsys->spawn_radius = 800.0;
+        spawnsys->spawn_radius = 1000.0;
         spawnsys->spawn_delay = 40.0;
         spawnsys->num_spawns_min = 1;
         spawnsys->num_spawns_max = 2;

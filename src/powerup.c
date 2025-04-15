@@ -250,7 +250,7 @@ void apply_powerup(struct state_t* gst, struct player_t* player, int powerup_typ
 
 }
 
-static int get_new_offer_type(struct powerup_shop_t* shop) {
+static int get_new_offer_type(struct state_t* gst, struct powerup_shop_t* shop) {
     int offer_type = 0;
 
     int attemps = 0;
@@ -281,10 +281,10 @@ void update_powerup_shop_offers(struct state_t* gst) {
 
 
     for(int i = 0; i < NUM_POWERUP_OFFERS; i++) {
-        shop->offers[i] = shop->powerups[get_new_offer_type(shop)];
+        shop->offers[i] = shop->powerups[get_new_offer_type(gst, shop)];
     }
     
-    memmove(shop->prev_offers, shop->offers, sizeof *shop->offers);
+    memmove(shop->prev_offers, shop->offers, NUM_POWERUP_OFFERS * sizeof *shop->offers);
     gst->player.powerup_shop.selected_index = -1;
 }
 

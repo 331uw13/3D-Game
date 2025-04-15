@@ -95,8 +95,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
         }
     }
 
-    //gst->terrain.material.shader = gst->shaders[rp_shader_i];
-
     // Prepare biomes
     for(int i = 0; i < MAX_BIOME_TYPES; i++) {
         gst->terrain.biome_materials[i].shader = gst->shaders[rp_shader_i];
@@ -110,9 +108,10 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
         }
     }
 
-    // Set other shader for tree leafs.
-    gst->terrain.foliage_models[TF_TREE_TYPE0].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
-    gst->terrain.foliage_models[TF_TREE_TYPE1].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
+    // Set wind shader for tree leafs.
+    // The shader just manipulates vertices with voronoise.
+    gst->terrain.foliage_models[TF_COMFY_TREE_0].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
+    gst->terrain.foliage_models[TF_COMFY_TREE_1].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
 
 
     // Prepare player.
@@ -131,7 +130,6 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
 
 
     // Prepare npc
-
     gst->npc.model.materials[0].shader = gst->shaders[rp_shader_i];
     gst->npc.model.materials[1].shader = gst->shaders[rp_shader_i];
 }
@@ -156,9 +154,6 @@ static void render_scene(struct state_t* gst, int renderpass) {
 
     for(size_t i = 0; i < gst->num_enemies; i++) {
         struct enemy_t* ent = &gst->enemies[i];
-        if(!ent->alive) {
-            continue;
-        }
         render_enemy(gst, ent);
     }
 

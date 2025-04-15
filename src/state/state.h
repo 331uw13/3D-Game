@@ -69,7 +69,8 @@
 #define TERRAIN_MUSHROOM_TEXID 22
 #define HAZYBIOME_GROUND_TEXID 23
 #define EVILBIOME_GROUND_TEXID 24
-#define MAX_TEXTURES 25
+#define TEST_TEXID 25
+#define MAX_TEXTURES 26
 // ...
 
 
@@ -222,7 +223,6 @@ struct gamepad_t {
     Vector2 Rstick_delta;
     float sensetivity;
 };
-
 
 
 // Game state "gst".

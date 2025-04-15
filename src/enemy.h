@@ -39,7 +39,7 @@
 #define ENEMY_DEATH_EXPLOSION_DAMAGE 100.0
 
 // Enemies cant spawn too close to the player.
-#define ENEMY_SPAWN_SAFE_RADIUS 300.0 
+#define ENEMY_SPAWN_SAFE_RADIUS 600.0 
 
 // Hitbox tag
 #define HITBOX_LEGS 0
