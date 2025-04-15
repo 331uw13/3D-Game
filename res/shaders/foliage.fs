@@ -25,7 +25,7 @@ void main()
     vec3 g_lightdot = vec3(0.0);
 
 
-    vec4 texelcolor = texture(texture0, fragTexCoord * 2.0);
+    vec4 texelcolor = texture(texture0, fragTexCoord*2.0);
     texelcolor.rgb *= 0.6;
     //texelcolor *= vec3(0.5, 0.7, 0.2);
 
