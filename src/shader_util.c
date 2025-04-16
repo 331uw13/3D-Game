@@ -201,7 +201,6 @@ static void set_shader_attrib_locs(Shader* shader) {
 
 
 // TODO: Close game safely if errors happen.
-// Load shaders but preprocess fragment shader.
 int load_shader(
         const char* vs_filepath,
         const char* fs_filepath,
