@@ -14,8 +14,6 @@ struct vec4int_t {
 
 #define RANDOMGEN_MAX 0x7FFF
 
-// Load shaders but preprocess fragment shader.
-int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader);
 void rainbow_palette(float t, unsigned char* red, unsigned char* grn, unsigned char* blu);
 
 // multiply direction by factor(f) and add it to v1

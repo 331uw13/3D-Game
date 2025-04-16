@@ -35,12 +35,15 @@ typedef short uloc_t;
 #define U_GROUND_PASS 23
 #define U_TERRAIN_LOWEST 24
 #define U_TERRAIN_HIGHEST 25
+#define U_GRASS_MVP 26
 
 #define U_NOTFOUND -1
 
 #define MAX_UNIFORM_LOCS 64
 
-// gst->shaderutil[shader_index].ulocs[U_TIME]
+
+#define NO_GEOMETRY_SHADER NULL
+
 
 // This will take a littlebit unused memory but will make programming with shaders alot easier
 // by not having to setup the uniform locations by yourself.
@@ -50,6 +53,16 @@ struct shaderutil_t {
 
 
 void init_shaderutil(struct state_t* gst);
+
+// Load shaders but preprocess them so '#include' can be used.
+// Leave 'gs_filepath' NULL or much prefered 'NO_GEOMETRY_SHADER' for better readability.
+// if its not used.
+int load_shader(
+        const char* vs_filepath, // (Vertex shader)
+        const char* fs_filepath, // (Fragment shader)
+        const char* gs_filepath, // (Geometry shader)
+        Shader* shader
+        );
 
 
 // If shader uniform location in 'shaderutil_t ulocs' array is 'U_NOTFOUND'.

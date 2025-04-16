@@ -4,6 +4,7 @@
 #include "chunk.h"
 #include "state/state.h"
 
+#include <rlgl.h>
 
 
 static void load_foliage_model(
@@ -47,8 +48,6 @@ void load_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
     set_foliage_texture(gst, TF_COMFY_TREE_0, 0, TREEBARK_TEXID);
     set_foliage_texture(gst, TF_COMFY_TREE_0, 1, LEAF_TEXID);
 
-
-
     terrain->foliage_max_perchunk[TF_COMFY_TREE_1] = 32;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_TREE_1], "res/models/biomes/comfy/tree_type1.glb");
     set_foliage_texture(gst, TF_COMFY_TREE_1, 0, TREEBARK_TEXID);
@@ -63,6 +62,7 @@ void load_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
     terrain->foliage_max_perchunk[TF_COMFY_MUSHROOM_0] = 500;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_MUSHROOM_0], "res/models/biomes/comfy/mushroom.glb");
     set_foliage_texture(gst, TF_COMFY_MUSHROOM_0, 0, TERRAIN_MUSHROOM_TEXID);
+
 
 
     // BIOMEID_HAZY
@@ -89,12 +89,18 @@ struct chunk_area_t {
 
 #define NO_PERLIN_NOISE 0
 #define USE_PERLIN_NOISE 1
+
+
 static void fill_chunk_fdata_matrices(
         struct state_t* gst,
         int  foliage_index,
         struct chunk_t*      chunk,
         struct chunk_area_t* chunk_area,
-        Vector3 rotation, // Rotation for matrix.
+
+        Vector3 position_offset,
+        Vector3 perinstance_rotation,
+        Vector3 rotation, // Rotation for all instances.
+
         int     use_perlin_noise,
         Vector2 perlin_noise_scale,
         float   perlin_noise_tresh
@@ -118,12 +124,18 @@ static void fill_chunk_fdata_matrices(
 
         RayCollision ray = raycast_terrain(&gst->terrain, x, z);
         
-        Matrix translation = MatrixTranslate(x, ray.point.y, z);
+        Matrix translation = MatrixTranslate(
+                position_offset.x + x,
+                position_offset.y + ray.point.y,
+                position_offset.z + z
+        );
         Matrix rotation_matrix = MatrixRotateXYZ((Vector3){ 
-            RSEEDRANDOMF(-M_PI, M_PI) * rotation.x,
-            RSEEDRANDOMF(-M_PI, M_PI) * rotation.y,
-            RSEEDRANDOMF(-M_PI, M_PI) * rotation.z
-            });
+            RSEEDRANDOMF(-M_PI, M_PI) * perinstance_rotation.x,
+            RSEEDRANDOMF(-M_PI, M_PI) * perinstance_rotation.y,
+            RSEEDRANDOMF(-M_PI, M_PI) * perinstance_rotation.z
+        });
+
+        rotation_matrix = MatrixMultiply(rotation_matrix, MatrixRotateXYZ(rotation));
 
         chunk_fdata->matrices[chunk_fdata->num_foliage] = MatrixMultiply(rotation_matrix, translation);
         chunk_fdata->num_foliage++;
@@ -131,6 +143,74 @@ static void fill_chunk_fdata_matrices(
 }
 
 
+static void load_chunk_grassdata(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        struct chunk_t* chunk,
+        struct chunk_area_t* chunk_area
+){
+    
+
+    chunk->grassdata.vbo = 0;
+    chunk->grassdata.vao = 0;
+    chunk->grassdata.vertices = NULL;
+
+    const size_t num_blades = 100000;
+    const size_t vertices_size = (num_blades * 3) * sizeof(float);
+    chunk->grassdata.vertices = malloc(vertices_size);
+    chunk->grassdata.num_vertices = num_blades;
+
+    for(size_t i = 0; i < num_blades; i += 3) {
+
+        float* x = &chunk->grassdata.vertices[i+0];
+        float* y = &chunk->grassdata.vertices[i+1];
+        float* z = &chunk->grassdata.vertices[i+2];
+
+        // TODO: To get better results, create grid for grass blade positions
+        //       then add small offset to the blades. But this will do for testing.
+        float rnd_x = RSEEDRANDOMF(chunk_area->x_min, chunk_area->x_max);
+        float rnd_z = RSEEDRANDOMF(chunk_area->z_min, chunk_area->z_max);
+
+
+        *y = raycast_terrain(terrain, rnd_x, rnd_z).point.y + 5.0;
+        *x = rnd_x;
+        *z = rnd_z;
+    }
+
+    chunk->grassdata.vao = rlLoadVertexArray();
+    rlEnableVertexArray(chunk->grassdata.vao);
+
+    chunk->grassdata.vbo = rlLoadVertexBuffer(
+                chunk->grassdata.vertices,
+                vertices_size,
+                0 // No dynamic vbo.
+            );
+
+    rlEnableVertexBuffer(chunk->grassdata.vbo);
+
+    // Grass blades only need position. all other data is created with shaders.
+    int attr_index = 0;
+    rlEnableVertexAttribute(attr_index);
+    rlSetVertexAttribute(attr_index, 3, RL_FLOAT, 0, sizeof(float)*3, 0);
+
+
+    rlDisableVertexBuffer();
+    rlDisableVertexArray();
+}
+
+void delete_chunk(struct chunk_t* chunk) {
+   
+    if(chunk->grassdata.vertices) {
+        free(chunk->grassdata.vertices);
+    }
+
+    glDeleteBuffers(1, &chunk->grassdata.vbo);
+    glDeleteVertexArrays(1, &chunk->grassdata.vao);
+
+    // TODO: Delete grass data VAO and VBO.
+
+    UnloadMesh(chunk->mesh);
+}
 
 void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
 
@@ -146,6 +226,8 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
         chunk->foliage_data[i].matrices = malloc(max_perchunk * sizeof(Matrix));
         chunk->foliage_data[i].matrices_size = max_perchunk;
         chunk->foliage_data[i].num_foliage = 0;
+    
+        terrain->foliage_rdata[i].render_backface = 0;
     }
 
     const float x_min = chunk->position.x;
@@ -158,9 +240,10 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
         z_min, z_max
     };
 
-    struct chunk_foliage_data_t* chunk_fdata = NULL;
-    
 
+    struct chunk_foliage_data_t* chunk_fdata = NULL;
+    load_chunk_grassdata(gst, terrain, chunk, &chunk_area);
+    
     switch(chunk->biome.id) {
     
         case BIOMEID_COMFY:
@@ -168,7 +251,9 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
                 fill_chunk_fdata_matrices(gst, 
                         TF_COMFY_TREE_0,
                         chunk, &chunk_area,
+                        (Vector3){ 0, 0, 0 }, // Position offset
                         (Vector3){ 0, 1, 0 }, // Rotation
+                        (Vector3){ 0, 0, 0 },
                         NO_PERLIN_NOISE, (Vector2){ 0, 0 }, 0
                         );
 
@@ -176,24 +261,30 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
                 fill_chunk_fdata_matrices(gst, 
                         TF_COMFY_TREE_1,
                         chunk, &chunk_area,
+                        (Vector3){ 0, 0, 0 }, // Position offset
                         (Vector3){ 0, 1, 0 }, // Rotation
+                        (Vector3){ 0, 0, 0 },
                         NO_PERLIN_NOISE, (Vector2){ 0, 0 }, 0
                         );
 
                 fill_chunk_fdata_matrices(gst, 
                         TF_COMFY_ROCK_0,
                         chunk, &chunk_area,
+                        (Vector3){ 0, 0, 0 }, // Position offset
                         (Vector3){ 1, 1, 1 }, // Rotation
+                        (Vector3){ 0, 0, 0 },
                         NO_PERLIN_NOISE, (Vector2){ 0, 0 }, 0
                         );
-
 
                 fill_chunk_fdata_matrices(gst, 
                         TF_COMFY_MUSHROOM_0,
                         chunk, &chunk_area,
+                        (Vector3){ 0, 0, 0 }, // Position offset
                         (Vector3){ 0, 1, 0 }, // Rotation
+                        (Vector3){ 0, 0, 0 },
                         USE_PERLIN_NOISE, (Vector2){ 0.00025, 0.00025 }, 0.0
                         );
+
             }
             break;
 
@@ -201,15 +292,19 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
             {
                 fill_chunk_fdata_matrices(gst, 
                         TF_HAZY_TREE_0,
-                        chunk, &chunk_area,
+                        chunk, &chunk_area,  
+                        (Vector3){ 0, 0, 0 },   // Position offset
                         (Vector3){ 0.075, 1, 0.075 }, // Rotation
+                        (Vector3){ 0, 0, 0 },
                         NO_PERLIN_NOISE, (Vector2){ 0, 0 }, 0
                         );
 
                 fill_chunk_fdata_matrices(gst, 
                         TF_HAZY_ROCK_0,
                         chunk, &chunk_area,
+                        (Vector3){ 0, 0, 0 },   // Position offset
                         (Vector3){ 0.075, 1, 0.075 }, // Rotation
+                        (Vector3){ 0, 0, 0 },
                         USE_PERLIN_NOISE, (Vector2){ 0.005, 0.005 }, 0.0
                         );
             }

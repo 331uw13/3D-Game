@@ -264,6 +264,11 @@ void gui_render_devmenu(struct state_t* gst) {
         gst->player.cam.position = gst->player.spawn_point;
     }
     btn_pos.y += btn_y_inc;
+    if(gui_button(gst, "Telport to zero", fontsize, btn_pos)) {
+        gst->player.cam.position = (Vector3){ 0, 0, 0 };
+    }
+    btn_pos.y += btn_y_inc;
+ 
     if(gui_button(gst, "Kill player", fontsize, btn_pos)) {
         player_damage(gst, &gst->player, 99999999);
         gst->devmenu_open = 0;

@@ -72,6 +72,7 @@ char* preproc_glsl(platform_file_t* file, size_t* size_out) {
 
     size_t code_size = file->size;
 
+
     char tmpbuf[PREPROC_TMPBUF_SIZE] = { 0 };
     size_t tmpbuf_i = 0;
     size_t includetag_index = 0; // Where "#include" was found
@@ -182,6 +183,11 @@ discard_tmpbuf:
     }
 
     code[code_size-1] = '\0';
+
+    if(size_out) {
+        //printf("'%s': %li\n", __func__, code_size);
+        *size_out = code_size;
+    }
 
 error:
     return code;

@@ -4,64 +4,8 @@
 
 #include "util.h"
 #include "state/state.h"
-#include "glsl_preproc.h"
-#include "platform.h"
 
 #define _2PI 6.28318
-
-
-// Load shaders but preprocess fragment shader.
-int load_shader(const char* vs_filename, const char* fs_filename, Shader* shader) {
-    int result = 0;
-    
-    platform_file_t fragment_file = { 0 };
-    platform_file_t vertex_file = { 0 };
-
-    platform_init_file(&fragment_file);
-    platform_init_file(&vertex_file);
-
-    printf("\033[36m,-> Compile and link\033[90m (fragment)\033[34m'%s'\033[90m (vertex)\033[34m'%s'\033[0m\n",
-            fs_filename, vs_filename);
-
-    // Errors are reported from functions.
-    if(!platform_read_file(&vertex_file, vs_filename)) {
-        goto error;
-    }
-    if(!platform_read_file(&fragment_file, fs_filename)) {
-        goto error_and_close;
-    }
-
-    
-    size_t sizeout = 0;
-    char* fs_code = preproc_glsl(&fragment_file, &sizeout);
-    char* vs_code = preproc_glsl(&vertex_file, &sizeout);
-
-    shader->id = 0;
-    *shader = LoadShaderFromMemory(vs_code, fs_code);
-
-
-    if(fs_code) {
-        free(fs_code);
-    }
-    if(vs_code) {
-        free(vs_code);
-    }
-
-    if(shader->id) {
-        printf("\033[36m`-> \033[32mOk\033[0m\n");
-    }
-    else {
-        printf("\033[36m`-> \033[31mFailed\033[0m\n");
-    }
-    result = 1;
-
-error_and_close:
-    platform_close_file(&vertex_file);
-    platform_close_file(&fragment_file);
-
-error:
-    return result;
-}
 
 
 

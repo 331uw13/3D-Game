@@ -44,7 +44,10 @@ struct foliage_rdata_t {
     size_t  matrices_size;   // How many elemets was allocated for matrix array?
     size_t  num_render;      // How many to render?
     size_t  next_index;      // Keep track of index where to copy.
+    int     render_backface;
 };
+
+
 
 struct terrain_t {
     int seed;

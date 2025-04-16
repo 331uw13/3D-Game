@@ -666,7 +666,6 @@ static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
 
         float dist = Vector3Distance(pos, (Vector3){ gst->player.position.x, 0, gst->player.position.z });
 
-        printf("'%s': %f\n", __func__, dist);
         if(dist > ENEMY_SPAWN_SAFE_RADIUS) {
             break;
         }

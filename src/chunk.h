@@ -34,6 +34,15 @@ struct chunk_foliage_data_t {
     size_t  num_foliage;     // Chunk may not generate the absolute max number of foliage.
 };
 
+// Points are rendered where grass blade should be.
+// Then those points are processed by geometry shader to build the grass blade
+// and bending with wind.
+struct chunk_grassdata_t {
+    unsigned int vao;
+    unsigned int vbo;
+    float* vertices;
+    size_t num_vertices;
+};
 
 struct chunk_t {
     size_t   index; // Index in 'terrain.chunks' array.
@@ -43,12 +52,13 @@ struct chunk_t {
     float    dst2player;
     struct chunk_foliage_data_t foliage_data[MAX_FOLIAGE_TYPES];
     struct biome_t biome;
+    struct chunk_grassdata_t grassdata;
 };
 
 
 void load_foliage_models(struct state_t* gst, struct terrain_t* terrain);
 void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
 void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
-
+void delete_chunk(struct chunk_t* chunk);
 
 #endif

@@ -475,8 +475,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[DEFAULT_SHADER];
         load_shader(
-                "res/shaders/default.vs",
-                "res/shaders/default.fs", shader);
+            "res/shaders/default.vs",
+            "res/shaders/default.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
         
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -487,16 +489,20 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[POSTPROCESS_SHADER];
         load_shader(
-                "res/shaders/default.vs",
-                "res/shaders/postprocess.fs", shader);
+            "res/shaders/default.vs",
+            "res/shaders/postprocess.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
     // --- PRJ_ENVHIT_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[PRJ_ENVHIT_PSYS_SHADER];
         load_shader(
-                "res/shaders/instance_core.vs",
-                "res/shaders/prj_envhit_psys.fs", shader);
+            "res/shaders/instance_core.vs",
+            "res/shaders/prj_envhit_psys.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -508,8 +514,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[BASIC_WEAPON_PSYS_SHADER];
         load_shader(
-                "res/shaders/instance_core.vs",
-                "res/shaders/basic_weapon_psys.fs", shader);
+            "res/shaders/instance_core.vs",
+            "res/shaders/basic_weapon_psys.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -522,8 +530,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[EXPLOSION_PSYS_SHADER];
         load_shader(
-                "res/shaders/instance_core.vs",
-                "res/shaders/explosion_psys.fs", shader);
+            "res/shaders/instance_core.vs",
+            "res/shaders/explosion_psys.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -535,8 +545,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[FOLIAGE_SHADER];
         load_shader(
-                "res/shaders/foliage.vs",
-                "res/shaders/foliage.fs", shader);
+            "res/shaders/foliage.vs",
+            "res/shaders/foliage.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -547,8 +559,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[FOLIAGE_WIND_SHADER];
         load_shader(
-                "res/shaders/foliage_wind.vs",
-                "res/shaders/foliage.fs", shader);
+            "res/shaders/foliage_wind.vs",
+            "res/shaders/foliage.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -560,8 +574,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[FOG_PARTICLE_SHADER];
         load_shader(
-                "res/shaders/instance_core.vs",
-                "res/shaders/fog_particle.fs", shader);
+            "res/shaders/instance_core.vs",
+            "res/shaders/fog_particle.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -572,8 +588,10 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[CLOUD_PARTICLE_SHADER];
         load_shader(
-                "res/shaders/cloud_particle.vs",
-                "res/shaders/cloud_particle.fs", shader);
+            "res/shaders/cloud_particle.vs",
+            "res/shaders/cloud_particle.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -584,19 +602,23 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[WATER_SHADER];
         load_shader(
-                "res/shaders/default.vs",
-                "res/shaders/water.fs", shader);
+            "res/shaders/default.vs",
+            "res/shaders/water.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
         
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
     }
 
-    // --- Setup Sky Shader ---
+    // --- SKY_SHADER ---
     {
         Shader* shader = &gst->shaders[SKY_SHADER];
         load_shader(
-                "res/shaders/default.vs",
-                "res/shaders/sky.fs", shader);
+            "res/shaders/default.vs",
+            "res/shaders/sky.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
         
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocation(*shader, "matModel");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -607,7 +629,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[BLOOM_TRESHOLD_SHADER];
         load_shader(
             "res/shaders/default.vs",
-            "res/shaders/bloom_treshold.fs", shader);
+            "res/shaders/bloom_treshold.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
     // --- BLOOM_BLUR_SHADER ---
@@ -615,7 +639,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[BLOOM_BLUR_SHADER];
         load_shader(
             "res/shaders/default.vs",
-            "res/shaders/bloom_blur.fs", shader);
+            "res/shaders/bloom_blur.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
     // --- GUNFX_SHADER (for player) ---
@@ -623,7 +649,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[GUNFX_SHADER];
         load_shader(
             "res/shaders/default.vs",
-            "res/shaders/player_gunfx.fs", shader);
+            "res/shaders/player_gunfx.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
     // --- ENEMY_GUNFX_SHADER ---
@@ -631,7 +659,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[ENEMY_GUNFX_SHADER];
         load_shader(
             "res/shaders/instance_core.vs",
-            "res/shaders/enemy_gunfx.fs", shader);
+            "res/shaders/enemy_gunfx.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -643,7 +673,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[PLAYER_HIT_SHADER];
         load_shader(
             "res/shaders/instance_core.vs",
-            "res/shaders/player_hit.fs", shader);
+            "res/shaders/player_hit.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
        
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -656,7 +688,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[GBUFFER_SHADER];
         load_shader(
             "res/shaders/default.vs", 
-            "res/shaders/gbuffer.fs", shader);
+            "res/shaders/gbuffer.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
     // --- GBUFFER_INSTANCE_SHADER ---
@@ -664,7 +698,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[GBUFFER_INSTANCE_SHADER];
         load_shader(
             "res/shaders/instance_core.vs", 
-            "res/shaders/gbuffer.fs", shader);
+            "res/shaders/gbuffer.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
 
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -676,7 +712,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[GBUFFER_FOLIAGE_WIND_SHADER];
         load_shader(
             "res/shaders/foliage_wind.vs", 
-            "res/shaders/gbuffer.fs", shader);
+            "res/shaders/gbuffer.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
 
         shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
         shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
@@ -688,7 +726,9 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[SSAO_SHADER];
         load_shader(
             "res/shaders/default.vs", 
-            "res/shaders/ssao.fs", shader);
+            "res/shaders/ssao.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
     // --- SSAO_BLUR_SHADER ---
@@ -696,9 +736,21 @@ static void state_setup_all_shaders(struct state_t* gst) {
         Shader* shader = &gst->shaders[SSAO_BLUR_SHADER];
         load_shader(
             "res/shaders/default.vs", 
-            "res/shaders/ssao_blur.fs", shader);
+            "res/shaders/ssao_blur.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
     }
 
+
+    // --- TERRAIN_GRASS_SHADER ---
+    {
+        Shader* shader = &gst->shaders[TERRAIN_GRASS_SHADER];
+        load_shader(
+            "res/shaders/grass/grass.vs",
+            "res/shaders/grass/grass.fs",
+            "res/shaders/grass/grass.gs",
+            shader);
+    }
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
 }

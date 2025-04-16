@@ -632,7 +632,7 @@ void delete_terrain(struct terrain_t* terrain) {
                 free(terrain->chunks[i].foliage_data[j].matrices);
             }
 
-            UnloadMesh(terrain->chunks[i].mesh);
+            delete_chunk(&terrain->chunks[i]);
         }
 
         free(terrain->chunks);
@@ -665,6 +665,30 @@ void delete_terrain(struct terrain_t* terrain) {
     printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
 
+
+static void render_chunk_grass(struct state_t* gst, struct chunk_t* chunk) {
+
+    if(chunk->dst2player > gst->render_dist/2) {
+        return;
+    }
+
+    Matrix mvp = MatrixMultiply(
+            rlGetMatrixModelview(),
+            rlGetMatrixProjection()
+            );
+
+    shader_setu_matrix(gst, TERRAIN_GRASS_SHADER, U_GRASS_MVP, mvp);
+    rlEnableShader(gst->shaders[TERRAIN_GRASS_SHADER].id);
+
+    rlEnableVertexArray(chunk->grassdata.vao);
+
+    //rlDisableBackfaceCulling();
+    glPointSize(5.0);
+    glDrawArrays(GL_POINTS, 0, chunk->grassdata.num_vertices);
+    //rlEnableBackfaceCulling();
+
+    rlDisableVertexArray();
+}
 
 void render_terrain(
         struct state_t* gst,
@@ -745,8 +769,11 @@ void render_terrain(
 
         }
 
+        // Render chunk ground.
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
+
+        render_chunk_grass(gst, chunk);
     }
 
     ground_pass = 0;
@@ -765,12 +792,18 @@ void render_terrain(
         for(int mi = 0; mi < fmodel->meshCount; mi++) {
             size_t mat_index = (size_t)CLAMP(mi, 0, fmodel->materialCount);
 
+            if(terrain->foliage_rdata[i].render_backface) {
+                rlDisableBackfaceCulling();
+            }
+
             DrawMeshInstanced(
                     fmodel->meshes[mi],
                     fmodel->materials[mat_index],
                     terrain->foliage_rdata[i].matrices,
                     terrain->foliage_rdata[i].num_render
                     );
+                
+            rlEnableBackfaceCulling();
         }
     }
 }
