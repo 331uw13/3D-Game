@@ -5,20 +5,17 @@
 in vec3 vertexPosition;
 
 // Input uniform values
-uniform mat4 u_grass_mvp;
+uniform mat4 u_viewproj;
 
 
 // Output vertex attributes (to fragment shader)
 out vec3 fragPosition;
-out vec2 fragTexCoord;
-out vec4 fragColor;
-out vec3 fragNormal;
+out mat4 viewproj;
 
 
 void main()
 {
     fragPosition = vertexPosition;
-
-    // Calculate final vertex position
-    gl_Position = u_grass_mvp * vec4(vertexPosition, 1.0);    
+    viewproj = u_viewproj;
+    gl_Position = u_viewproj * vec4(vertexPosition, 1.0);    
 }
