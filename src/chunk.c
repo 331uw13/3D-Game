@@ -155,7 +155,7 @@ static void load_chunk_grassdata(
     chunk->grassdata.vao = 0;
     chunk->grassdata.vertices = NULL;
 
-    const size_t num_blades = 400000;
+    const size_t num_blades = 150000;
     const size_t vertices_size = (num_blades * 3) * sizeof(float);
     chunk->grassdata.vertices = malloc(vertices_size);
     chunk->grassdata.num_vertices = num_blades*3;
