@@ -36,7 +36,10 @@ void setup_npc(struct state_t* gst, struct npc_t* npc) {
     npc->travel.dest_reached = 1;
 }
 
-void delete_npc(struct npc_t* npc) {
+void delete_npc(struct state_t* gst, struct npc_t* npc) {
+    if(!(gst->init_flags & INITFLG_NPC)) {
+        return;
+    }
     UnloadModel(npc->model);
 
     printf("\033[35m -> Deleted npc\033[0m\n");

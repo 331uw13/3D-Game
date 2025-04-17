@@ -9,6 +9,7 @@
 
 
 static void state_delete_shaders(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_SHADERS)) { return; }
     for(int i = 0; i < MAX_SHADERS; i++) {
         UnloadShader(gst->shaders[i]);
     }
@@ -17,6 +18,7 @@ static void state_delete_shaders(struct state_t* gst) {
 }
 
 static void state_delete_psystems(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_PSYSTEMS)) { return; }
     for(int i = 0; i < MAX_PSYSTEMS; i++) {
         delete_psystem(&gst->psystems[i]);
     }
@@ -26,7 +28,7 @@ static void state_delete_psystems(struct state_t* gst) {
 
 
 static void state_delete_textures(struct state_t* gst) {
-    // Delete all textures.
+    if(!(gst->init_flags & INITFLG_TEXTURES)) { return; }
     for(unsigned int i = 0; i < gst->num_textures; i++) {
         UnloadTexture(gst->textures[i]);
     }
@@ -38,6 +40,7 @@ static void state_delete_textures(struct state_t* gst) {
 }
 
 static void state_delete_sounds(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_SOUNDS)) { return; }
     if(gst->has_audio) {
         for(int i = 0; i < MAX_SOUNDS; i++) {
             UnloadSound(gst->sounds[i]);
@@ -51,6 +54,7 @@ static void state_delete_sounds(struct state_t* gst) {
 }
 
 static void state_delete_enemy_models(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_ENEMY_MODELS)) { return; }
     for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
         if(IsModelValid(gst->enemy_models[i])) {
             UnloadModel(gst->enemy_models[i]);
@@ -61,6 +65,7 @@ static void state_delete_enemy_models(struct state_t* gst) {
 }
 
 static void state_delete_item_models(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_ITEM_MODELS)) { return; }
     for(int i = 0; i < MAX_ITEM_MODELS; i++) {
         if(IsModelValid(gst->item_models[i])) {
             UnloadModel(gst->item_models[i]);
@@ -71,6 +76,7 @@ static void state_delete_item_models(struct state_t* gst) {
 }
 
 static void state_delete_render_targets(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_RENDERTARGETS)) { return; }
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->env_render_downsample);
     UnloadRenderTexture(gst->bloomtresh_target);
@@ -95,6 +101,7 @@ static void delete_gbuffer(struct gbuffer_t* gbuf) {
 }
 
 static void state_delete_gbuffers(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_GBUFFERS)) { return; }
     delete_gbuffer(&gst->gbuffer);
     for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
         delete_gbuffer(&gst->shadow_gbuffers[i]);
@@ -104,6 +111,7 @@ static void state_delete_gbuffers(struct state_t* gst) {
 }
 
 static void state_delete_ubos(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_UBOS)) { return; }
     for(int i = 0; i < MAX_UBOS; i++) {
         glDeleteBuffers(1, &gst->ubo[i]);
     }
@@ -122,7 +130,12 @@ void state_free_everything(struct state_t* gst) {
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
     state_delete_ubos(gst);
+
+    delete_player(gst, &gst->player);
+    delete_prjmods(gst);
+    delete_npc(gst, &gst->npc);
 }
+
 
 
 

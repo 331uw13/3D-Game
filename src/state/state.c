@@ -2,8 +2,10 @@
 #include <stdlib.h>
 
 #include "state.h"
+#include "state/state_free.h"
 #include "input.h"
 #include "util.h"
+
 
 #include <raymath.h>
 #include <rlgl.h>
@@ -161,6 +163,26 @@ void state_setup_shadow_gbuffer(struct state_t* gst) {
 
 */
 
+void state_abort(struct state_t* gst) {
+    fprintf(stderr, "\033[31m(%s)\033[0m\n", __func__);
+
+    state_free_everything(gst);
+
+    if(IsModelValid(gst->skybox)) {
+        UnloadModel(gst->skybox);
+    }
+
+    if(gst->ssao_kernel) {
+        free(gst->ssao_kernel);
+    }
+
+    UnloadFont(gst->font);
+    CloseWindow();
+
+    exit(1);
+}
+
+
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size) {
     gst->ubo[ubo_index] = 0;
 
@@ -243,7 +265,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst, FOG_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, CLOUD_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, SKY_SHADER,            U_CAMPOS, &gst->player.cam.position);
-
+    shader_setu_vec3(gst, TERRAIN_GRASS_SHADER,  U_CAMPOS, &gst->player.cam.position);
 
     // Update screen size.
 
@@ -264,6 +286,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, WATER_SHADER,           U_TIME, &gst->time);
     shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
+    shader_setu_float(gst, TERRAIN_GRASS_SHADER,   U_TIME, &gst->time);
     // Update water level
     shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
 
@@ -284,6 +307,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     
     shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->sun.color);
+    shader_setu_float(gst, TERRAIN_GRASS_SHADER, U_RENDER_DIST, &gst->terrain.grass_render_dist);
 
     state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
     state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);

@@ -187,7 +187,7 @@ struct player_t {
 
 
 void init_player_struct(struct state_t* gst, struct player_t* p);
-void delete_player  (struct player_t* p);
+void delete_player  (struct state_t* gst, struct player_t* p);
 void player_respawn (struct state_t* gst, struct player_t* p);
 void player_shoot   (struct state_t* gst, struct player_t* p);
 void player_damage  (struct state_t* gst, struct player_t* p, float damage);

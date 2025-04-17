@@ -191,9 +191,13 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     set_player_default_stats(p);
 
+    gst->init_flags |= INITFLG_PLAYER;
 }
 
-void delete_player(struct player_t* p) {
+void delete_player(struct state_t* gst, struct player_t* p) {
+    if(!(gst->init_flags & INITFLG_PLAYER)) {
+        return;
+    }
     UnloadModel(p->gunmodel);
     UnloadModel(p->gunfx_model);
     UnloadTexture(p->gun_item.inv_tex);

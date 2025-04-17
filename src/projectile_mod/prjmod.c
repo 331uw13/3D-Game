@@ -104,6 +104,9 @@ void delete_prjmods(struct state_t* gst) {
     if(!gst->player.prjmods) {
         return;
     }
+    if(!(gst->init_flags & INITFLG_PRJMODS)) {
+        return;
+    }
 
     for(size_t i = 0; i < MAX_PRJMOD_INDICES; i++) {
         gst->player.prjmod_indices[i] = -1;

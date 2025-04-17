@@ -35,7 +35,7 @@ typedef short uloc_t;
 #define U_GROUND_PASS 23
 #define U_TERRAIN_LOWEST 24
 #define U_TERRAIN_HIGHEST 25
-#define U_GRASS_MVP 26
+#define U_VIEWPROJ 26
 
 #define U_NOTFOUND -1
 
@@ -58,6 +58,7 @@ void init_shaderutil(struct state_t* gst);
 // Leave 'gs_filepath' NULL or much prefered 'NO_GEOMETRY_SHADER' for better readability.
 // if its not used.
 int load_shader(
+        struct state_t* gst,
         const char* vs_filepath, // (Vertex shader)
         const char* fs_filepath, // (Fragment shader)
         const char* gs_filepath, // (Geometry shader)

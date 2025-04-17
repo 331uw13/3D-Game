@@ -177,9 +177,6 @@ void loop(struct state_t* gst) {
 void cleanup(struct state_t* gst) {
     
     delete_terrain(&gst->terrain);
-    delete_player(&gst->player);
-    delete_prjmods(gst);
-    delete_npc(&gst->npc);
 
     state_free_everything(gst);
     UnloadModel(gst->skybox);
@@ -319,6 +316,9 @@ void first_setup(struct state_t* gst) {
     if(!read_config(gst)) {
         return;
     }
+
+    gst->skybox = (Model){ 0 };
+
 
     SetTraceLogCallback(tracelog_callback);
     InitWindow(gst->cfg.resolution_x, gst->cfg.resolution_y, "3D-Game");

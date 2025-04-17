@@ -115,7 +115,7 @@
 // ...
  
 
-// Global particle systems:
+// Particle systems:
 #define PLAYER_WEAPON_PSYS 0
 #define ENEMY_WEAPON_PSYS 1
 #define PROJECTILE_ENVHIT_PSYS 2
@@ -136,7 +136,6 @@
 #define PLAYER_GUN_NLIGHT 1
 // ...
 
-// How many lights can decay at once?
 #define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
@@ -148,18 +147,15 @@
 #define MAX_UBOS 3
 
 
+// TODO: Move these.
 #define ENEMY_LVL0_WEAPON 0
 #define ENEMY_LVL1_WEAPON 1
 #define MAX_ENEMY_WEAPONS 2
-
-
 #define MAX_ALL_ENEMIES 64 // Total max enemies.
 #define MAX_ENEMY_MODELS 2
 
 #define NUM_BLOOM_DOWNSAMPLES 2
 
-
-//#define MAX_RENDER_CRITHITS 8
 
 // Static lights in lights ubo
 #define SUN_LIGHT_ID 0
@@ -171,12 +167,25 @@
 #define MAX_EXPLOSION_LIGHTS (MAX_NORMAL_LIGHTS - MAX_STATIC_LIGHTS)
 
 
-// IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
-#define MAX_SSAO_KERNEL_SIZE 128
 
+#define MAX_SSAO_KERNEL_SIZE 128 // IMPORTANT NOTE: This must be same as in 'res/shaders/ssao.fs'
 #define MAX_SHADOW_LEVELS 3
 
-
+// Used to know what has been succesfully initialized.
+#define INITFLG_TERRAIN      (1<<0)
+#define INITFLG_ENEMY_MODELS (1<<1)
+#define INITFLG_ITEM_MODELS  (1<<2)
+#define INITFLG_PSYSTEMS     (1<<3)
+#define INITFLG_SHADERS      (1<<4)
+#define INITFLG_UBOS          (1<<5)
+#define INITFLG_RENDERTARGETS (1<<6)
+#define INITFLG_GBUFFERS      (1<<7)
+#define INITFLG_SOUNDS        (1<<8)
+#define INITFLG_TEXTURES      (1<<9)
+#define INITFLG_SSAO          (1<<10)
+#define INITFLG_PLAYER        (1<<11)
+#define INITFLG_NPC           (1<<12)
+#define INITFLG_PRJMODS       (1<<13)
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -347,10 +356,14 @@ struct state_t {
 
     // Used for when player changes biome.
     float biome_change;
-    struct biome_t* old_biome;
-    struct biome_t* new_biome;
+    struct biome_t* old_biome;  // TODO: Not needed.
+    struct biome_t* new_biome;  // TODO: Not needed.
+
+    uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
 };
 
+// NOTE: This function should only be used if errors happen while doing setup!
+void state_abort(struct state_t* gst);
 
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
 void state_update_shader_uniforms(struct state_t* gst);

@@ -40,7 +40,7 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_ground_pass\0",
     "u_terrain_lowest\0",
     "u_terrain_highest\0",
-    "u_grass_mvp\0"
+    "u_viewproj\0"
 };
 
 
@@ -109,8 +109,14 @@ static void print_shader_infolog(unsigned int shaderid, size_t max_log_length, i
         return;
     }
 
+    memset(log, 0, max_log_length);
     glGetShaderInfoLog(shaderid, max_log_length, &log_size, log);
-    
+   
+    if(log_size <= 0) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Log is empty\033[0m\n", __func__);
+        goto error;
+    }
+
     if(log_type == SHADER_LOGTYPE_WARNING) {
         printf("\033[35m(SHADER_WARNING):\n%s\033[0m\n", log);
     }
@@ -119,6 +125,7 @@ static void print_shader_infolog(unsigned int shaderid, size_t max_log_length, i
         fprintf(stderr, "\033[31m(SHADER_ERROR):\n%s\033[0m\n", log);
     }
 
+error:
     free(log);
 }
 
@@ -144,10 +151,10 @@ static unsigned int compile_shader(const char* code, const int code_size, int sh
 
 
     if(compile_status == GL_FALSE) {
+        print_shader_infolog(shaderid, max_log_length, SHADER_LOGTYPE_ERROR);
+        
         glDeleteShader(shaderid);
         shaderid = 0;
-
-        print_shader_infolog(shaderid, max_log_length, SHADER_LOGTYPE_ERROR);
         goto error;
     }
 
@@ -200,8 +207,8 @@ static void set_shader_attrib_locs(Shader* shader) {
 }
 
 
-// TODO: Close game safely if errors happen.
 int load_shader(
+        struct state_t* gst,
         const char* vs_filepath,
         const char* fs_filepath,
         const char* gs_filepath,
@@ -392,6 +399,10 @@ error_and_free:
 error_and_close:
     platform_close_file(&vertex_file);
     platform_close_file(&fragment_file);
+
+    if(!result) {
+        state_abort(gst);
+    }
 
 error:
     return result;

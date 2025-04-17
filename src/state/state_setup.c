@@ -35,6 +35,7 @@ static void state_setup_all_enemy_models(struct state_t* gst) {
     load_enemy_model(gst, ENEMY_LVL0, "res/models/enemy_lvl0.glb", ENEMY_LVL0_TEXID);
     load_enemy_model(gst, ENEMY_LVL1, "res/models/enemy_lvl1.glb", ENEMY_LVL1_TEXID);
 
+    gst->init_flags |= INITFLG_ENEMY_MODELS;
     PRINT_CURRENT_SETUP_DONE;
 }
 
@@ -48,6 +49,7 @@ static void state_setup_all_item_models(struct state_t* gst) {
     load_item_model(gst, ITEM_METALPIECE, "res/models/metal_piece.glb", METALPIECE_TEXID);
     
 
+    gst->init_flags |= INITFLG_ITEM_MODELS;
     PRINT_CURRENT_SETUP_DONE;
 }
 
@@ -81,6 +83,7 @@ static int state_setup_all_sounds(struct state_t* gst) {
     gst->has_audio = 1;
     result = 1;
 
+    gst->init_flags |= INITFLG_SOUNDS;
 
 error:
     SetTraceLogLevel(LOG_NONE);
@@ -184,6 +187,7 @@ static void state_setup_all_textures(struct state_t* gst) {
     SetTextureWrap(gst->textures[HAZYBIOME_GROUND_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[EVILBIOME_GROUND_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
 
+    gst->init_flags |= INITFLG_TEXTURES;
     PRINT_CURRENT_SETUP_DONE;
 }
 
@@ -461,7 +465,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
 
     }
 
-
+    gst->init_flags |= INITFLG_PSYSTEMS;
 }
 
 
@@ -474,7 +478,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- Setup Default Shader ---
     {
         Shader* shader = &gst->shaders[DEFAULT_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/default.fs",
             NO_GEOMETRY_SHADER,
@@ -488,7 +492,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- Setup Post Processing Shader ---
     {
         Shader* shader = &gst->shaders[POSTPROCESS_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/postprocess.fs",
             NO_GEOMETRY_SHADER,
@@ -498,7 +502,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- PRJ_ENVHIT_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[PRJ_ENVHIT_PSYS_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs",
             "res/shaders/prj_envhit_psys.fs",
             NO_GEOMETRY_SHADER,
@@ -513,7 +517,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- PLAYER_WEAPON_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[BASIC_WEAPON_PSYS_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs",
             "res/shaders/basic_weapon_psys.fs",
             NO_GEOMETRY_SHADER,
@@ -529,7 +533,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- EXPLOSION_PSYS_SHADER ---
     {
         Shader* shader = &gst->shaders[EXPLOSION_PSYS_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs",
             "res/shaders/explosion_psys.fs",
             NO_GEOMETRY_SHADER,
@@ -544,7 +548,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- FOLIAGE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOLIAGE_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/foliage.vs",
             "res/shaders/foliage.fs",
             NO_GEOMETRY_SHADER,
@@ -558,7 +562,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- FOLIAGE_WIND_SHADER ---
     {
         Shader* shader = &gst->shaders[FOLIAGE_WIND_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/foliage_wind.vs",
             "res/shaders/foliage.fs",
             NO_GEOMETRY_SHADER,
@@ -573,7 +577,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- FOG_EFFECT_PARTICLE_SHADER ---
     {
         Shader* shader = &gst->shaders[FOG_PARTICLE_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs",
             "res/shaders/fog_particle.fs",
             NO_GEOMETRY_SHADER,
@@ -587,7 +591,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- CLOUD_PARTICLE_SHADER ---
     {
         Shader* shader = &gst->shaders[CLOUD_PARTICLE_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/cloud_particle.vs",
             "res/shaders/cloud_particle.fs",
             NO_GEOMETRY_SHADER,
@@ -601,7 +605,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- WATER_SHADER ---
     {
         Shader* shader = &gst->shaders[WATER_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/water.fs",
             NO_GEOMETRY_SHADER,
@@ -614,7 +618,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- SKY_SHADER ---
     {
         Shader* shader = &gst->shaders[SKY_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/sky.fs",
             NO_GEOMETRY_SHADER,
@@ -627,7 +631,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- BLOOM_TRESHOLD_SHADER ---
     {
         Shader* shader = &gst->shaders[BLOOM_TRESHOLD_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/bloom_treshold.fs",
             NO_GEOMETRY_SHADER,
@@ -637,7 +641,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- BLOOM_BLUR_SHADER ---
     {
         Shader* shader = &gst->shaders[BLOOM_BLUR_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/bloom_blur.fs",
             NO_GEOMETRY_SHADER,
@@ -647,7 +651,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- GUNFX_SHADER (for player) ---
     {
         Shader* shader = &gst->shaders[GUNFX_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/player_gunfx.fs",
             NO_GEOMETRY_SHADER,
@@ -657,7 +661,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- ENEMY_GUNFX_SHADER ---
     {
         Shader* shader = &gst->shaders[ENEMY_GUNFX_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs",
             "res/shaders/enemy_gunfx.fs",
             NO_GEOMETRY_SHADER,
@@ -671,7 +675,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- PLAYER_HIT_SHADER ---
     {
         Shader* shader = &gst->shaders[PLAYER_HIT_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs",
             "res/shaders/player_hit.fs",
             NO_GEOMETRY_SHADER,
@@ -686,7 +690,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- GBUFFER_SHADER ---
     {
         Shader* shader = &gst->shaders[GBUFFER_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs", 
             "res/shaders/gbuffer.fs",
             NO_GEOMETRY_SHADER,
@@ -696,7 +700,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- GBUFFER_INSTANCE_SHADER ---
     {
         Shader* shader = &gst->shaders[GBUFFER_INSTANCE_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/instance_core.vs", 
             "res/shaders/gbuffer.fs",
             NO_GEOMETRY_SHADER,
@@ -710,7 +714,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- GBUFFER_FOLIAGE_WIND_SHADER ---
     {
         Shader* shader = &gst->shaders[GBUFFER_FOLIAGE_WIND_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/foliage_wind.vs", 
             "res/shaders/gbuffer.fs",
             NO_GEOMETRY_SHADER,
@@ -724,7 +728,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- SSAO_SHADER ---
     {
         Shader* shader = &gst->shaders[SSAO_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs", 
             "res/shaders/ssao.fs",
             NO_GEOMETRY_SHADER,
@@ -734,7 +738,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- SSAO_BLUR_SHADER ---
     {
         Shader* shader = &gst->shaders[SSAO_BLUR_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/default.vs", 
             "res/shaders/ssao_blur.fs",
             NO_GEOMETRY_SHADER,
@@ -745,12 +749,15 @@ static void state_setup_all_shaders(struct state_t* gst) {
     // --- TERRAIN_GRASS_SHADER ---
     {
         Shader* shader = &gst->shaders[TERRAIN_GRASS_SHADER];
-        load_shader(
+        load_shader(gst,
             "res/shaders/grass/grass.vs",
             "res/shaders/grass/grass.fs",
             "res/shaders/grass/grass.gs",
             shader);
     }
+
+    gst->init_flags |= INITFLG_SHADERS;
+
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
 }
@@ -859,10 +866,15 @@ static void state_setup_all_gbuffers(struct state_t* gst) {
     gst->shadow_res_y = gst->res_y;
 
     for(int i = 0; i < MAX_SHADOW_LEVELS; i++) {
-        state_setup_gbuffer(&gst->shadow_gbuffers[i],
+        if(!state_setup_gbuffer(&gst->shadow_gbuffers[i],
                 gst->shadow_res_x, gst->shadow_res_y,
-                GBUF_FLG_POSITIONS);
+                GBUF_FLG_POSITIONS)) {
+            state_abort(gst);
+        }
     }
+
+    gst->init_flags |= INITFLG_GBUFFERS;
+
 
     PRINT_CURRENT_SETUP_DONE;
 }
@@ -892,7 +904,8 @@ static void state_setup_all_render_targets(struct state_t* gst) {
     SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
- 
+
+    gst->init_flags |= INITFLG_RENDERTARGETS;
 
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
@@ -902,6 +915,8 @@ static void state_setup_all_ubos(struct state_t* gst) {
     state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
+
+    gst->init_flags |= INITFLG_UBOS;
 }
 
 static void state_setup_ssao(struct state_t* gst) {
@@ -970,7 +985,9 @@ static void state_setup_ssao(struct state_t* gst) {
             gst->ssao_res_x = gst->res_x;
             gst->ssao_res_y = gst->res_y;
             break;
-    }   
+    } 
+
+    gst->init_flags |= INITFLG_SSAO;
 }
 
 static void state_setup_shadow_cams(struct state_t* gst) {
@@ -997,26 +1014,47 @@ static void state_setup_shadow_cams(struct state_t* gst) {
     gst->shadow_cam_height = 300.0;
 }
 
-
-int state_setup_everything(struct state_t* gst) {
-    int result = 0;
-
-    gst->ssao_res_x = 0;
-    gst->ssao_res_y = 0;
-
-    /*
-    const float terrain_scale = 20.0;
-    const u32   terrain_size = 1024;
-    const float terrain_amplitude = 3.0;
-    const float terrain_pnfrequency = 3.0;
-    const int   terrain_octaves = 3;
-    */
+static void state_setup_terrain(struct state_t* gst) {
     const float terrain_scale = 20.0;
     const u32   terrain_size = 2048;
     const float terrain_amplitude = 40.0;
     const float terrain_pnfrequency = 70.0;
     const int   terrain_octaves = 3;
- 
+    
+    init_perlin_noise();
+    gst->terrain = (struct terrain_t) { 0 };
+    setup_biomes(gst);
+
+    const int terrain_seed = GetRandomValue(0, 9999999);
+    //const int terrain_seed = 2010357;
+
+    printf("'%s': Terrain seed = %i\n",
+            __func__, terrain_seed);
+
+    generate_terrain(
+            gst, &gst->terrain,
+            terrain_size,
+            terrain_scale,
+            terrain_amplitude,
+            terrain_pnfrequency,
+            terrain_octaves,
+            terrain_seed
+            );
+
+    gst->init_flags |= INITFLG_TERRAIN;
+
+}
+
+
+int state_setup_everything(struct state_t* gst) {
+    int result = 0;
+
+    gst->init_flags = 0;
+
+    // TODO: Is this used?
+    gst->ssao_res_x = 0;
+    gst->ssao_res_y = 0;
+
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_ubos(gst);
@@ -1038,29 +1076,8 @@ int state_setup_everything(struct state_t* gst) {
     gst->weather.wind_strength = 100.0;
     //gst->weather.sun_color = (Color){ 255, 140, 30, 255 };
 
-    // --- Setup Terrain ----
-    {
-        init_perlin_noise();
-        gst->terrain = (struct terrain_t) { 0 };
-        setup_biomes(gst);
 
-        const int terrain_seed = GetRandomValue(0, 9999999);
-        //const int terrain_seed = 2010357;//GetRandomValue(0, 9999999);
-
-        printf("'%s': Terrain seed = %i\n",
-                __func__, terrain_seed);
-
-        generate_terrain(
-                gst, &gst->terrain,
-                terrain_size,
-                terrain_scale,
-                terrain_amplitude,
-                terrain_pnfrequency,
-                terrain_octaves,
-                terrain_seed
-                );
-
-    }
+    state_setup_terrain(gst);
     state_setup_ssao(gst);
 
     state_setup_all_psystems(gst);
@@ -1077,6 +1094,9 @@ int state_setup_everything(struct state_t* gst) {
     
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
+    
+    gst->terrain.grass_render_dist = gst->render_dist / 3.0;
+    printf("'%s': Grass render distance: %f\n", __func__, gst->terrain.grass_render_dist);
 
     result = 1;
     return result;

@@ -53,7 +53,7 @@ struct state_t;
 
 
 void setup_npc(struct state_t* gst, struct npc_t* npc);
-void delete_npc(struct npc_t* npc);
+void delete_npc(struct state_t* gst, struct npc_t* npc);
 
 void update_npc(struct state_t* gst, struct npc_t* npc);
 void render_npc(struct state_t* gst, struct npc_t* npc);

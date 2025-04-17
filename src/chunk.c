@@ -155,10 +155,10 @@ static void load_chunk_grassdata(
     chunk->grassdata.vao = 0;
     chunk->grassdata.vertices = NULL;
 
-    const size_t num_blades = 100000;
+    const size_t num_blades = 400000;
     const size_t vertices_size = (num_blades * 3) * sizeof(float);
     chunk->grassdata.vertices = malloc(vertices_size);
-    chunk->grassdata.num_vertices = num_blades;
+    chunk->grassdata.num_vertices = num_blades*3;
 
     for(size_t i = 0; i < num_blades; i += 3) {
 
@@ -172,7 +172,17 @@ static void load_chunk_grassdata(
         float rnd_z = RSEEDRANDOMF(chunk_area->z_min, chunk_area->z_max);
 
 
-        *y = raycast_terrain(terrain, rnd_x, rnd_z).point.y + 5.0;
+        // Add some noise to the position to spice things up a bit.
+        
+        float freq = 0.0035;
+        float pn = perlin_noise_2D(rnd_x*freq, rnd_z*freq) * (M_PI * 2.0);
+        Vector2 direction = (Vector2){ cos(pn), sin(pn) };
+
+        rnd_x += direction.x * 50;
+        rnd_z += direction.y * 50;
+
+
+        *y = raycast_terrain(terrain, rnd_x, rnd_z).point.y;
         *x = rnd_x;
         *z = rnd_z;
     }
@@ -206,8 +216,6 @@ void delete_chunk(struct chunk_t* chunk) {
 
     glDeleteBuffers(1, &chunk->grassdata.vbo);
     glDeleteVertexArrays(1, &chunk->grassdata.vao);
-
-    // TODO: Delete grass data VAO and VBO.
 
     UnloadMesh(chunk->mesh);
 }

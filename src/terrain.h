@@ -11,7 +11,7 @@
 struct state_t;
 struct fog_t;
 
-#define CHUNK_SIZE 128
+#define CHUNK_SIZE 192
 #define SHADOW_CAM_RENDERDIST 4000 // <- This must be adjusted if changing CHUNK_SIZE
 
 
@@ -61,6 +61,8 @@ struct terrain_t {
     int    num_max_visible_chunks;
     int    num_visible_chunks;
 
+    float  grass_render_dist;
+
     struct biome_t biomedata[MAX_BIOME_TYPES]; //<- Initialized from 'biome.c' 'setup_biomes()'
     Material biome_materials[MAX_BIOME_TYPES];
     Vector2  biome_ylevels[MAX_BIOME_TYPES]; // X(where the biome starts.) Y(where the biome ends.)
@@ -107,11 +109,17 @@ void generate_terrain(
 void delete_terrain(struct terrain_t* terrain);
 
 
+// For: 'render_setting'
 // These settings should be used for different render passes.
 // For shadows full render distance terrain should not be rendered.
 #define RENDER_TERRAIN_FOR_PLAYER 0
 #define RENDER_TERRAIN_FOR_SHADOWS 1
-void render_terrain(struct state_t* gst, struct terrain_t* terrain, int render_setting);
+void render_terrain(struct state_t* gst, struct terrain_t* terrain,
+        // Shaders are prepared in 'state/state.c' 'prepare_renderpass()'
+        // but rendering the grass for all buffers is very expensive. so will try to fake all effects for it.
+        int renderpass,     
+        int render_setting 
+        );
 
 
 

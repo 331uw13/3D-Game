@@ -7,6 +7,7 @@
 
 #include "terrain.h"
 #include "state/state.h"
+#include "state/state_render.h"
 
 #include "util.h"
 
@@ -587,39 +588,6 @@ void generate_terrain(
     _load_terrain_chunks(gst, terrain);
      set_render_dist(gst, 3000.0);
    
-
-    /*
-    // Get valid spawnpoint for player.
-    {
-        int attemps = 0;
-        int max_attemps = 100;
-        const float spawn_rad = (terrain_size * terrain_scaling) / 4.0;
-        while(1) {
-            terrain->valid_player_spawnpoint = (Vector3) {
-                RSEEDRANDOMF(-spawn_rad, spawn_rad),
-                0,
-                RSEEDRANDOMF(-spawn_rad, spawn_rad)
-            };
-
-            RayCollision ray = raycast_terrain(terrain,
-                    terrain->valid_player_spawnpoint.x,
-                    terrain->valid_player_spawnpoint.z
-                    );
-
-            if(ray.point.y > terrain->highest_point) {
-                break;
-            }
-
-            attemps++;
-            if(attemps >= max_attemps) {
-                fprintf(stderr, "\033[31m(ERROR) '%s': Cant find valid spawn point.\033[0m\n",
-                        __func__);
-                break;
-            }
-        }
-    }
-    */
-
     printf("Max visible chunks: %i\n", terrain->num_max_visible_chunks);
     printf("\033[32m -> Generated terrain succesfully.\033[0m\n");
 }
@@ -667,8 +635,7 @@ void delete_terrain(struct terrain_t* terrain) {
 
 
 static void render_chunk_grass(struct state_t* gst, struct chunk_t* chunk) {
-
-    if(chunk->dst2player > gst->render_dist/2) {
+    if(chunk->dst2player > gst->terrain.grass_render_dist) {
         return;
     }
 
@@ -677,22 +644,23 @@ static void render_chunk_grass(struct state_t* gst, struct chunk_t* chunk) {
             rlGetMatrixProjection()
             );
 
-    shader_setu_matrix(gst, TERRAIN_GRASS_SHADER, U_GRASS_MVP, mvp);
+    shader_setu_matrix(gst, TERRAIN_GRASS_SHADER, U_VIEWPROJ, mvp);
     rlEnableShader(gst->shaders[TERRAIN_GRASS_SHADER].id);
 
     rlEnableVertexArray(chunk->grassdata.vao);
 
-    //rlDisableBackfaceCulling();
-    glPointSize(5.0);
+    rlDisableBackfaceCulling();
     glDrawArrays(GL_POINTS, 0, chunk->grassdata.num_vertices);
-    //rlEnableBackfaceCulling();
+    rlEnableBackfaceCulling();
 
     rlDisableVertexArray();
+    rlDisableShader();
 }
 
 void render_terrain(
         struct state_t* gst,
         struct terrain_t* terrain,
+        int renderpass,
         int render_setting
 ){
     terrain->num_visible_chunks = 0;
@@ -712,6 +680,7 @@ void render_terrain(
 
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
+
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -733,7 +702,7 @@ void render_terrain(
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
 
-        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 100.0)) {
+        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 80.0)) {
             continue;
         }
 
@@ -773,7 +742,10 @@ void render_terrain(
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
 
-        render_chunk_grass(gst, chunk);
+        if(renderpass == RENDERPASS_RESULT
+        && render_setting == RENDER_TERRAIN_FOR_PLAYER) {
+            render_chunk_grass(gst, chunk);
+        }
     }
 
     ground_pass = 0;

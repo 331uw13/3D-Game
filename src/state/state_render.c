@@ -161,7 +161,7 @@ static void render_scene(struct state_t* gst, int renderpass) {
         (renderpass == RENDERPASS_SHADOWS) ?
             RENDER_TERRAIN_FOR_SHADOWS : RENDER_TERRAIN_FOR_PLAYER;
 
-    render_terrain(gst, &gst->terrain, terrain_render_setting);
+    render_terrain(gst, &gst->terrain, renderpass, terrain_render_setting);
     render_items(gst);
     render_npc(gst, &gst->npc);
     render_player(gst, &gst->player);
