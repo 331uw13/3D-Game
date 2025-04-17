@@ -11,7 +11,7 @@
 struct state_t;
 struct fog_t;
 
-#define CHUNK_SIZE 192
+#define CHUNK_SIZE 128
 #define SHADOW_CAM_RENDERDIST 4000 // <- This must be adjusted if changing CHUNK_SIZE
 
 
