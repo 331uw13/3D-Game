@@ -142,7 +142,7 @@ static void fill_chunk_fdata_matrices(
     }
 }
 
-
+/*
 static void load_chunk_grassdata(
         struct state_t* gst,
         struct terrain_t* terrain,
@@ -150,7 +150,6 @@ static void load_chunk_grassdata(
         struct chunk_area_t* chunk_area
 ){
     
-
     chunk->grassdata.vbo = 0;
     chunk->grassdata.vao = 0;
     chunk->grassdata.vertices = NULL;
@@ -159,7 +158,6 @@ static void load_chunk_grassdata(
     const size_t vertices_size = (num_blades * 3) * sizeof(float);
     chunk->grassdata.vertices = malloc(vertices_size);
     chunk->grassdata.num_vertices = num_blades*3;
-
     for(size_t i = 0; i < num_blades; i += 3) {
 
         float* x = &chunk->grassdata.vertices[i+0];
@@ -173,14 +171,13 @@ static void load_chunk_grassdata(
 
 
         // Add some noise to the position to spice things up a bit.
-        
-        float freq = 0.0035;
+       
+        float freq = 0.0015;
         float pn = perlin_noise_2D(rnd_x*freq, rnd_z*freq) * (M_PI * 2.0);
         Vector2 direction = (Vector2){ cos(pn), sin(pn) };
 
         rnd_x += direction.x * 50;
         rnd_z += direction.y * 50;
-
 
         *y = raycast_terrain(terrain, rnd_x, rnd_z).point.y;
         *x = rnd_x;
@@ -207,15 +204,18 @@ static void load_chunk_grassdata(
     rlDisableVertexBuffer();
     rlDisableVertexArray();
 }
+*/
 
 void delete_chunk(struct chunk_t* chunk) {
    
+    /*
     if(chunk->grassdata.vertices) {
         free(chunk->grassdata.vertices);
     }
+    */
 
-    glDeleteBuffers(1, &chunk->grassdata.vbo);
-    glDeleteVertexArrays(1, &chunk->grassdata.vao);
+    //glDeleteBuffers(1, &chunk->grassdata.vbo);
+    //glDeleteVertexArrays(1, &chunk->grassdata.vao);
 
     UnloadMesh(chunk->mesh);
 }
@@ -250,7 +250,7 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
 
 
     struct chunk_foliage_data_t* chunk_fdata = NULL;
-    load_chunk_grassdata(gst, terrain, chunk, &chunk_area);
+    //load_chunk_grassdata(gst, terrain, chunk, &chunk_area);
     
     switch(chunk->biome.id) {
     

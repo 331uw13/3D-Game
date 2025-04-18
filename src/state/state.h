@@ -111,9 +111,11 @@
 #define CLOUD_PARTICLE_SHADER 19
 #define FOLIAGE_WIND_SHADER 20
 #define TERRAIN_GRASS_SHADER 21
-#define MAX_SHADERS 22
+#define TERRAIN_GRASS_GBUFFER_SHADER 22
+#define GRASSDATA_COMPUTE_SHADER 23
+#define MAX_SHADERS 24
 // ...
- 
+
 
 // Particle systems:
 #define PLAYER_WEAPON_PSYS 0
@@ -145,6 +147,10 @@
 #define LIGHTS_UBO 1     // "Normal" lights
 #define PRJLIGHTS_UBO 2  // Projectile lights.
 #define MAX_UBOS 3
+
+// Shader storage buffer objects.
+#define GRASSDATA_SSBO 0
+#define MAX_SSBOS 1
 
 
 // TODO: Move these.
@@ -186,6 +192,10 @@
 #define INITFLG_PLAYER        (1<<11)
 #define INITFLG_NPC           (1<<12)
 #define INITFLG_PRJMODS       (1<<13)
+#define INITFLG_SSBOS         (1<<14)
+#define INITFLG_GRASSDATA     (1<<15) // Grass positions have been written?
+
+
 
 // Critical hit marker.
 struct crithit_marker_t {
@@ -245,6 +255,8 @@ struct state_t {
     struct gamepad_t gamepad;
 
     unsigned int ubo[MAX_UBOS];
+    unsigned int ssbo[MAX_SSBOS];
+
     size_t num_prj_lights;
 
     struct fog_t      fog;
@@ -253,6 +265,7 @@ struct state_t {
 
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
+
 
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
@@ -329,7 +342,8 @@ struct state_t {
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
-        
+    
+    int       grass_enabled;
     int       ssao_enabled;
     Texture   ssao_noise_tex;
     Vector3*  ssao_kernel;
@@ -359,6 +373,7 @@ struct state_t {
     struct biome_t* old_biome;  // TODO: Not needed.
     struct biome_t* new_biome;  // TODO: Not needed.
 
+    
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
 };
 
@@ -366,6 +381,7 @@ struct state_t {
 void state_abort(struct state_t* gst);
 
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
+void state_create_ssbo(struct state_t* gst, int ssbo_index, int binding_point, size_t size);
 void state_update_shader_uniforms(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);

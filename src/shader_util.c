@@ -40,7 +40,8 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_ground_pass\0",
     "u_terrain_lowest\0",
     "u_terrain_highest\0",
-    "u_viewproj\0"
+    "u_viewproj\0",
+    "u_chunk_grass_baseindex\0"
 };
 
 
@@ -166,6 +167,46 @@ error:
     return shaderid;
 }
 
+static int link_shader_program(unsigned int program) {
+    int link_status = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &link_status);
+    if(link_status != GL_TRUE) {
+        int max_infolog_len = get_program_infolog_len(program);
+
+        if(max_infolog_len < 0) {
+            fprintf(stderr, 
+                    "\033[31m(ERROR) '%s': Shader program failed to link"
+                    " but log is empty\033[0m\n",
+                    __func__);
+            glDeleteProgram(program);
+            goto error;
+        }
+
+        char* log = NULL;
+        int log_length = 0;
+        log = malloc(max_infolog_len);
+        
+
+        if(!log) {
+            fprintf(stderr, 
+                    "\033[31m(ERROR) '%s': Failed to allocate memory"
+                    " for linking error log\033[0m\n",
+                    __func__);
+            goto error;
+        }
+
+
+        glGetProgramInfoLog(program, max_infolog_len, &log_length, log);
+
+        fprintf(stderr, "\033[31m(SHADER_LINKING_ERROR):\n%s\033[0m", log);
+        free(log);
+
+        glDeleteProgram(program);
+    }
+error:
+    return link_status;
+}
+
 
 static void bind_program_attrib_locs(unsigned int program) {
     glBindAttribLocation(program, RL_DEFAULT_SHADER_ATTRIB_LOCATION_POSITION, RL_DEFAULT_SHADER_ATTRIB_NAME_POSITION);
@@ -265,7 +306,7 @@ int load_shader(
     /*
     printf("----------- VERTEX SHADER --------------\n");
     printf("\033[90m%s\033[0m\n", vs_code);
-    
+   
     printf("----------- FRAGMENT SHADER --------------\n");
     printf("\033[90m%s\033[0m\n", fs_code);
     */
@@ -297,7 +338,7 @@ int load_shader(
     unsigned int gs_shaderid = 0;
     if(has_geometry_shader) {
         gs_shaderid = compile_shader(gs_code, gs_code_size, GL_GEOMETRY_SHADER);
-        if(gs_shaderid == 0) {
+    if(gs_shaderid == 0) {
             fprintf(stderr, "\033[31m(ERROR) '%s': Geometry shader failed.\033[0m\n",
                     __func__);
             glDeleteShader(vs_shaderid);
@@ -326,44 +367,9 @@ int load_shader(
         glDeleteShader(gs_shaderid);
     }
 
-    // Check link status and print log if something unwanted happened.
-    // ... Probably only care about linking errors ?
 
-    int link_status = 0;
-    glGetProgramiv(program, GL_LINK_STATUS, &link_status);
-    if(link_status != GL_TRUE) {
-        int max_infolog_len = get_program_infolog_len(program);
-
-        if(max_infolog_len < 0) {
-            fprintf(stderr, 
-                    "\033[31m(ERROR) '%s': Shader program failed to link"
-                    " but log is empty\033[0m\n",
-                    __func__);
-            glDeleteProgram(program);
-            goto error_and_free;
-        }
-
-        char* log = NULL;
-        int log_length = 0;
-        log = malloc(max_infolog_len);
-        
-
-        if(!log) {
-            fprintf(stderr, 
-                    "\033[31m(ERROR) '%s': Failed to allocate memory"
-                    " for linking error log\033[0m\n",
-                    __func__);
-            goto error_and_free;
-        }
-
-
-        glGetProgramInfoLog(program, max_infolog_len, &log_length, log);
-
-        fprintf(stderr, "\033[31m(SHADER_LINKING_ERROR):\n%s\033[0m", log);
-        free(log);
-
-        glDeleteProgram(program);
-        goto error_and_free;
+    if(!link_shader_program(program)) {
+        goto error_and_free;   
     }
 
     shader->id = program;
@@ -409,6 +415,73 @@ error:
 }
 
 
+int load_compute_shader(
+        struct state_t* gst,
+        const char* filepath,
+        int shader_index
+){
+    int result = 0;
+
+    platform_file_t compute_file = { 0 };
+    platform_init_file(&compute_file);
+
+    printf("\033[36m,-> Compile and link:\n"
+            "\033[36m:    \033[90m (Compute shader)   \033[34m%s\n"
+            "\033[0m",
+            filepath
+            );
+    
+    if(!platform_read_file(&compute_file, filepath)) {
+        goto error;
+    }
+
+    size_t code_size = 0;
+    char* code = preproc_glsl(&compute_file, &code_size);
+
+
+    unsigned int sh 
+        = compile_shader(code, code_size, GL_COMPUTE_SHADER);
+
+    if(sh == 0) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Compute shader failed.\033[0m\n",
+                __func__);
+        goto error_and_free;
+    }
+
+
+    unsigned int program = 0;
+    program = glCreateProgram();
+
+    glAttachShader(program, sh);
+    glLinkProgram(program);
+
+    // Individual shaders are not needed anymore.
+    glDeleteShader(sh);
+
+    if(!link_shader_program(program)) {
+        goto error_and_free;   
+    }
+
+
+    gst->shaders[shader_index].id = program;
+    gst->shaders[shader_index].locs = NULL;
+
+    result = 1;
+
+error_and_free:
+
+    if(code) {
+        free(code);
+    }
+
+    platform_close_file(&compute_file);
+
+    if(!result) {
+        state_abort(gst);
+    }
+error:
+    return result;
+}
 
 
 static int get_uloc(struct state_t* gst, int shader_index, int shader_u) {
@@ -450,6 +523,23 @@ void init_shaderutil(struct state_t* gst) {
             gst->shader_u[s_i].ulocs[i] = U_NOTFOUND;
         }
     }
+}
+
+
+void dispatch_compute(
+        struct state_t* gst,
+        int compute_shader_index,
+        size_t num_groups_x,
+        size_t num_groups_y,
+        size_t num_groups_z,
+        int barrier_bit
+){
+    rlEnableShader(gst->shaders[compute_shader_index].id);
+    //glUseProgram(gst->compute_shaders[compute_shader_index]);
+    glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+
+    // TODO: This maybe can moved to somewhere so something else can be done while the compute shader finishes??
+    glMemoryBarrier(barrier_bit);
 }
 
 

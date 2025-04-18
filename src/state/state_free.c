@@ -13,7 +13,7 @@ static void state_delete_shaders(struct state_t* gst) {
     for(int i = 0; i < MAX_SHADERS; i++) {
         UnloadShader(gst->shaders[i]);
     }
-    
+
     printf("\033[35m -> Deleted Shaders\033[0m\n");
 }
 
@@ -119,6 +119,14 @@ static void state_delete_ubos(struct state_t* gst) {
     printf("\033[35m -> Deleted Uniform buffers.\033[0m\n");
 }
 
+static void state_delete_ssbos(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_SSBOS)) { return; }
+    for(int i = 0; i < MAX_SSBOS; i++) {
+        glDeleteBuffers(1, &gst->ssbo[i]);
+    }
+
+    printf("\033[35m -> Deleted Shader storage buffers.\033[0m\n");
+}
 
 void state_free_everything(struct state_t* gst) {
     state_delete_shaders(gst);
@@ -130,10 +138,13 @@ void state_free_everything(struct state_t* gst) {
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
     state_delete_ubos(gst);
-
+    state_delete_ssbos(gst);
     delete_player(gst, &gst->player);
     delete_prjmods(gst);
     delete_npc(gst, &gst->npc);
+
+    UnloadModel(gst->terrain.grass_model);
+    UnloadModel(gst->terrain.grass_model_lowres);
 }
 
 

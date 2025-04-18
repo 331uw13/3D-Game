@@ -196,6 +196,19 @@ void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, siz
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+void state_create_ssbo(struct state_t* gst, int ssbo_index, int binding_point, size_t size) {
+    gst->ssbo[ssbo_index] = 0;
+    
+    glGenBuffers(1, &gst->ssbo[ssbo_index]);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[ssbo_index]);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding_point, gst->ssbo[ssbo_index]);
+    //glBindBufferRange(GL_SHADER_STORAGE_BUFFER, binding_point, gst->ssbo[ssbo_index], 0, size);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
 
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index) {
 
@@ -287,6 +300,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
     shader_setu_float(gst, TERRAIN_GRASS_SHADER,   U_TIME, &gst->time);
+    shader_setu_float(gst, GRASSDATA_COMPUTE_SHADER,   U_TIME, &gst->time);
     // Update water level
     shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
 
@@ -299,12 +313,16 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
     shader_setu_int(gst, SSAO_SHADER, U_SSAO_KERNEL_SAMPLES, &gst->cfg.ssao_kernel_samples);  
 
+    // Weather data.
     // TODO: Uniform buffer for weather data.
     shader_setu_float(gst, FOLIAGE_WIND_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
     shader_setu_vec3(gst,  FOLIAGE_WIND_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
     shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
     shader_setu_vec3(gst,  GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
     
+    shader_setu_float(gst, GRASSDATA_COMPUTE_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
+    shader_setu_vec3(gst,  GRASSDATA_COMPUTE_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
+
     shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->sun.color);
     shader_setu_float(gst, TERRAIN_GRASS_SHADER, U_RENDER_DIST, &gst->terrain.grass_render_dist);

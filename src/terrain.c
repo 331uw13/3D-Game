@@ -33,7 +33,6 @@ static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
 
 
 
-#define CLEAR_BACKGROUND ClearBackground((Color){ 10, 10, 10, 255 })
 
 
 RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z) {
@@ -109,6 +108,48 @@ Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, RayC
     return MatrixRotateXYZ((Vector3){ axis.x, 0.0, axis.z });
 }
 
+static void render_loading_info(struct state_t* gst, const char* text, int step, int max_steps) {
+     
+    BeginDrawing();
+    {
+        ClearBackground((Color){ 10, 10, 10, 255 });
+
+        float Y = gst->screen_size.y / 2;
+        DrawTextEx(
+                gst->font,
+                text,
+                (Vector2){ 200, Y },
+                25, // Font size.
+                FONT_SPACING,
+                (Color){ 200, 200, 200, 255 }
+                );
+
+        DrawTextEx(
+                gst->font,
+                TextFormat("%0.0f%%", map(step, 0, max_steps, 0, 100)),
+                (Vector2){ 100, Y+5 },
+                20, // Font size.
+                FONT_SPACING,
+                (Color){ 150, 150, 150, 255 }
+                );
+
+
+        const float max_width = 800;
+        const float max_height = 30;
+        const float padding = 5.0;
+        const float bar_y = Y+50;
+        DrawRectangle(100, bar_y, max_width, max_height, (Color){ 30, 30, 30, 255 });
+
+        Color bar_color = (Color){ 50, 200, 60, 255 };
+        float bar_width = map(step, 0, max_steps, 0, max_width-padding);
+        DrawRectangle(100+padding, bar_y+padding, 
+                bar_width, max_height-padding*2,
+                bar_color);
+
+    }
+    EndDrawing();
+   
+}
 
 static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain) {
     
@@ -157,24 +198,10 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
         struct chunk_t* chunk = &terrain->chunks[i];
         *chunk = (struct chunk_t) { 0 };
         chunk->index = i;
-   
-        
-        // Loading bar
-        BeginDrawing();
-        {
-            CLEAR_BACKGROUND;
+  
 
-            DrawText(TextFormat("Loading chunk (%i / %i)", i, terrain->num_chunks), 100, 100, 40.0, WHITE);
-            const float bar_x = 100;
-            const float bar_y = 200;
-            const float bar_max_x = 800;
-            float bar_height = 20;
-            float bar_width = map((float)i, 0, (float)terrain->num_chunks, 0.0, bar_max_x);
-            DrawRectangle(bar_x-5, bar_y-5, bar_max_x+10, bar_height+10, (Color){ 30, 40, 30, 255 });
-            DrawRectangle(bar_x, bar_y, bar_width, bar_height, (Color){ 80, 200, 80, 255 });
-
-        }
-        EndDrawing();
+        render_loading_info(gst, "Loading chunks",
+                i, terrain->num_chunks);
 
         chunk->mesh.triangleCount = chunk_triangle_count;
         chunk->mesh.vertexCount = chunk->mesh.triangleCount * 3;
@@ -349,6 +376,85 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     printf("\n----------------\n");
 }
 
+// Write all constant information about grass blades
+// for grass data ssbo (shader storage buffer object).
+void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrain) {
+    if((gst->init_flags & INITFLG_GRASSDATA)) {
+        fprintf(stderr, "\033[35m(WARNING) '%s': Trying to overwrite grass data\033[0m\n",
+                __func__);
+        return;
+    }
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
+    size_t grasspos_index = 0;
+
+
+    float time_start = GetTime();
+   
+    struct grassdata_t {
+        float position[4];
+        float _reserved[4];
+    };
+
+    const size_t data_size = 
+        (terrain->num_chunks * terrain->grass_instances_perchunk)
+        * (sizeof(float) * 8);
+
+    struct grassdata_t* data = malloc(data_size);
+
+    for(size_t i = 0; i < terrain->num_chunks; i++) {
+        struct chunk_t* chunk = &terrain->chunks[i];
+        chunk->grass_baseindex = grasspos_index;
+
+        const float chunk_x_min = chunk->position.x;
+        const float chunk_x_max = chunk->position.x + (terrain->chunk_size * terrain->scaling);
+        const float chunk_z_min = chunk->position.z;
+        const float chunk_z_max = chunk->position.z + (terrain->chunk_size * terrain->scaling);
+
+        render_loading_info(gst, "Loading Grass", i, terrain->num_chunks);
+
+        // Making this loop backwards because it was a bit faster.
+        for(size_t n = terrain->grass_instances_perchunk; n > 0; n--) {
+
+            //float grasspos[4] = { 0, 0, 0, 0 };
+            data[grasspos_index].position[0] = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
+            data[grasspos_index].position[2] = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
+
+            data[grasspos_index].position[1] 
+                = raycast_terrain(terrain, 
+                        data[grasspos_index].position[0],
+                        data[grasspos_index].position[2]).point.y;
+            
+            /*
+            grasspos[0] = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
+            grasspos[2] = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
+            grasspos[1] = raycast_terrain(terrain, grasspos[0], grasspos[2]).point.y;
+            */
+            /*
+            glBufferSubData(
+                    GL_SHADER_STORAGE_BUFFER,
+                    grasspos_index * GRASSDATA_STRUCT_SIZE,
+                    sizeof(float)*4,
+                    grasspos
+                    );
+                    */
+            grasspos_index++;
+        }
+    }
+
+    glBufferSubData(
+            GL_SHADER_STORAGE_BUFFER,
+            0,
+            data_size,
+            data
+            );
+
+    free(data);
+
+    gst->init_flags |= INITFLG_GRASSDATA;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    printf("'%s': Done %li, In %0.2f seconds\n", __func__, grasspos_index, GetTime() - time_start);
+}
 
 
 void generate_terrain(
@@ -386,10 +492,7 @@ void generate_terrain(
  
     // First pass.
     // Base where to start crafting the heightmap from.
-    BeginDrawing();
-    CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 1 / 4", 100, 100, 40.0, WHITE);
-    EndDrawing();   
+    render_loading_info(gst, "Generating heightmaps", 1, 4);
 
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
@@ -406,10 +509,7 @@ void generate_terrain(
 
     // Second pass.
     // Just for some detail.
-    BeginDrawing();
-    CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 2 / 4", 100, 100, 40.0, WHITE);
-    EndDrawing();   
+    render_loading_info(gst, "Generating heightmaps", 2, 4);
 
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
@@ -426,10 +526,7 @@ void generate_terrain(
     
     // Third pass.
     // Add very low frequency noise but high amplitude. It will give an effect that its like a mountain range
-    BeginDrawing();
-    CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 3 / 4", 100, 100, 40.0, WHITE);
-    EndDrawing();   
+    render_loading_info(gst, "Generating heightmaps", 3, 4);
 
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
@@ -449,10 +546,7 @@ void generate_terrain(
     // 'value':  medium amplitude noise.
     // 'value2': how much medium amplitude regions "repeat".
     // 'value3': how big the medium aplitude regions are?
-    BeginDrawing();
-    CLEAR_BACKGROUND;
-    DrawText("Creating heightmap 4 / 4", 100, 100, 40.0, WHITE);
-    EndDrawing();
+    render_loading_info(gst, "Generating heightmaps", 4, 4);
 
     for(u32 z = 0; z < terrain->heightmap.size; z++) {
         for(u32 x = 0; x < terrain->heightmap.size; x++) {
@@ -586,7 +680,8 @@ void generate_terrain(
 
     //_load_terrain_foliage_models(gst, terrain);
     _load_terrain_chunks(gst, terrain);
-     set_render_dist(gst, 3000.0);
+    set_render_dist(gst, 3000.0); // TODO: Remove this from here.
+    
    
     printf("Max visible chunks: %i\n", terrain->num_max_visible_chunks);
     printf("\033[32m -> Generated terrain succesfully.\033[0m\n");
@@ -634,28 +729,71 @@ void delete_terrain(struct terrain_t* terrain) {
 }
 
 
-static void render_chunk_grass(struct state_t* gst, struct chunk_t* chunk) {
-    if(chunk->dst2player > gst->terrain.grass_render_dist) {
+static void render_chunk_grass(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        struct chunk_t* chunk,
+        Matrix* mvp,
+        int renderpass
+){
+    if(chunk->dst2player > terrain->grass_render_dist) {
         return;
     }
+    const int mesh_triangle_count = terrain->grass_model.meshes[0].triangleCount;
+    const int baseindex = (int)chunk->grass_baseindex;
 
-    Matrix mvp = MatrixMultiply(
-            rlGetMatrixModelview(),
-            rlGetMatrixProjection()
+
+    shader_setu_int(gst, 
+            GRASSDATA_COMPUTE_SHADER,
+            U_CHUNK_GRASS_BASEINDEX,
+            &baseindex
             );
 
-    shader_setu_matrix(gst, TERRAIN_GRASS_SHADER, U_VIEWPROJ, mvp);
-    rlEnableShader(gst->shaders[TERRAIN_GRASS_SHADER].id);
+    // Dispatch grassdata compute shader
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
+    dispatch_compute(gst,
+            GRASSDATA_COMPUTE_SHADER,
+            terrain->grass_instances_perchunk,  1, 1,
+            GL_SHADER_STORAGE_BARRIER_BIT
+            );
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    rlEnableVertexArray(chunk->grassdata.vao);
+
+
+    int render_shader_i = (renderpass == RENDERPASS_RESULT)
+        ? TERRAIN_GRASS_SHADER : TERRAIN_GRASS_GBUFFER_SHADER;
+
+    shader_setu_matrix(gst, render_shader_i, U_VIEWPROJ, *mvp);
+
+    rlEnableShader(gst->shaders[render_shader_i].id);
+    rlEnableVertexArray(
+            (chunk->dst2player > terrain->grass_render_dist / 2.0)
+            ? terrain->grass_model_lowres.meshes[0].vaoId
+            : terrain->grass_model.meshes[0].vaoId
+            );
+    
+    shader_setu_int(gst,
+            render_shader_i,
+            U_CHUNK_GRASS_BASEINDEX,
+            &baseindex
+            );
 
     rlDisableBackfaceCulling();
-    glDrawArrays(GL_POINTS, 0, chunk->grassdata.num_vertices);
-    rlEnableBackfaceCulling();
+    glDrawElementsInstanced(
+            GL_TRIANGLES,
+            mesh_triangle_count * 3,
+            GL_UNSIGNED_SHORT,
+            0,
+            terrain->grass_instances_perchunk
+            );
 
+    rlEnableBackfaceCulling();
     rlDisableVertexArray();
     rlDisableShader();
+
+    terrain->num_rendered_grass += terrain->grass_instances_perchunk;
 }
+
 
 void render_terrain(
         struct state_t* gst,
@@ -664,7 +802,6 @@ void render_terrain(
         int render_setting
 ){
     terrain->num_visible_chunks = 0;
-
     // Clear foliage render data from previous frame.
 
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
@@ -681,6 +818,13 @@ void render_terrain(
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
 
+
+    Matrix mvp = MatrixMultiply(
+            rlGetMatrixModelview(),
+            rlGetMatrixProjection()
+            );  
+   
+    terrain->num_rendered_grass = 0;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -701,7 +845,6 @@ void render_terrain(
         // Chunks very nearby may get discarded if the center position goes behind the player.
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
-
         if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 80.0)) {
             continue;
         }
@@ -710,7 +853,7 @@ void render_terrain(
         if(terrain->num_visible_chunks >= terrain->num_max_visible_chunks) {
             fprintf(stderr, "\033[31m(ERROR) '%s': Overloading render data array. Not rendering more this frame.\033[0m\n",
                     __func__);
-            break;
+            return;
         }
 
         // Copy current foliage type matrices from chunk to bigger array of same type.
@@ -742,16 +885,27 @@ void render_terrain(
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
 
-        if(renderpass == RENDERPASS_RESULT
-        && render_setting == RENDER_TERRAIN_FOR_PLAYER) {
-            render_chunk_grass(gst, chunk);
+        if(!gst->grass_enabled) {
+            continue;
+        }
+       
+        // Grass.
+        
+        if(((renderpass == RENDERPASS_RESULT)
+        || (renderpass == RENDERPASS_GBUFFER && gst->ssao_enabled))
+            && render_setting == RENDER_TERRAIN_FOR_PLAYER) {
+        
+            // TODO: Optimize this. Render only once.
+            render_chunk_grass(gst, terrain, chunk, &mvp, renderpass);
         }
     }
 
+
     ground_pass = 0;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
-    // Render foliage.
+    
 
+    // Render foliage.
 
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
         Model* fmodel = &terrain->foliage_models[i];

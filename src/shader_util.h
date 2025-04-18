@@ -36,6 +36,7 @@ typedef short uloc_t;
 #define U_TERRAIN_LOWEST 24
 #define U_TERRAIN_HIGHEST 25
 #define U_VIEWPROJ 26
+#define U_CHUNK_GRASS_BASEINDEX 27
 
 #define U_NOTFOUND -1
 
@@ -54,6 +55,16 @@ struct shaderutil_t {
 
 void init_shaderutil(struct state_t* gst);
 
+// TODO: Struct for compute shader.
+void dispatch_compute(
+        struct state_t* gst,
+        int compute_shader_index,
+        size_t num_groups_x,
+        size_t num_groups_y,
+        size_t num_groups_z,
+        int barrier_bit
+        );
+
 // Load shaders but preprocess them so '#include' can be used.
 // Leave 'gs_filepath' NULL or much prefered 'NO_GEOMETRY_SHADER' for better readability.
 // if its not used.
@@ -63,6 +74,12 @@ int load_shader(
         const char* fs_filepath, // (Fragment shader)
         const char* gs_filepath, // (Geometry shader)
         Shader* shader
+        );
+
+int load_compute_shader(
+        struct state_t* gst,
+        const char* filepath,
+        int shader_index
         );
 
 

@@ -34,6 +34,8 @@ void setup_npc(struct state_t* gst, struct npc_t* npc) {
     npc->leg_matrix[NPC_R_LEG_MI] = MatrixIdentity();
 
     npc->travel.dest_reached = 1;
+
+    gst->init_flags |= INITFLG_NPC;
 }
 
 void delete_npc(struct state_t* gst, struct npc_t* npc) {

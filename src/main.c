@@ -136,6 +136,11 @@ void loop(struct state_t* gst) {
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
 
+                DrawText(TextFormat("NumRenderedGrass: %li", gst->terrain.num_rendered_grass),
+                        dtext_x, next_y, 20, PURPLE);
+                next_y += y_inc;
+
+
                 DrawText(TextFormat("X=%0.3f", gst->player.cam.position.x),
                         dtext_x, next_y, 20, (Color){ 150, 80, 200, 255 });
                 next_y += y_inc;
@@ -286,6 +291,9 @@ int read_config(struct state_t* gst) {
         gst->ssao_enabled = cfgbool_to_int(buf);
     }
 
+    if(read_cfgvar(&cfgfile, "render_grass", buf, CFGBUF_SIZE)) {
+        gst->grass_enabled = cfgbool_to_int(buf);
+    }
 
     // Render distance?
     if(read_cfgvar(&cfgfile, "render_distance", buf, CFGBUF_SIZE)) {
@@ -345,7 +353,6 @@ void first_setup(struct state_t* gst) {
     gst->screen_size = (Vector2){ GetScreenWidth(), GetScreenHeight() };
     gst->res_x = (int)gst->screen_size.x;
     gst->res_y = (int)gst->screen_size.y;
-
 
     gst->num_textures = 0;
     gst->num_textures = 0;

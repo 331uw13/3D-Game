@@ -752,9 +752,27 @@ static void state_setup_all_shaders(struct state_t* gst) {
         load_shader(gst,
             "res/shaders/grass/grass.vs",
             "res/shaders/grass/grass.fs",
-            "res/shaders/grass/grass.gs",
+            NO_GEOMETRY_SHADER,
             shader);
     }
+
+    // --- TERRAIN_GRASS_GBUFFER_SHADER ---
+    {
+        Shader* shader = &gst->shaders[TERRAIN_GRASS_GBUFFER_SHADER];
+        load_shader(gst,
+            "res/shaders/grass/grass.vs",
+            "res/shaders/grass/grass_gbuffer.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
+
+    // --- GRASSDATA_COMPUTE_SHADER ---
+    {
+        load_compute_shader(gst,
+                "res/shaders/grass/grass.cs",
+                GRASSDATA_COMPUTE_SHADER);
+    }
+
 
     gst->init_flags |= INITFLG_SHADERS;
 
@@ -919,6 +937,22 @@ static void state_setup_all_ubos(struct state_t* gst) {
     gst->init_flags |= INITFLG_UBOS;
 }
 
+static void state_setup_all_ssbos(struct state_t* gst) {
+
+    size_t num_all_grassblades = gst->terrain.grass_instances_perchunk * gst->terrain.num_chunks;
+
+    size_t grassdata_ssbo_size = num_all_grassblades * GRASSDATA_STRUCT_SIZE;
+    state_create_ssbo(gst, GRASSDATA_SSBO, 5, grassdata_ssbo_size);
+    gst->init_flags |= INITFLG_SSBOS;
+
+    printf("'%s':\n"
+            "   Number of grass blades in world: %li\n"
+            "   Grass SSBO size: %li(KB) / %li(MB)\n", 
+            __func__, num_all_grassblades, 
+            grassdata_ssbo_size/1000,
+            grassdata_ssbo_size/1000000);
+}
+
 static void state_setup_ssao(struct state_t* gst) {
     
     gst->ssao_kernel = NULL;
@@ -1043,6 +1077,14 @@ static void state_setup_terrain(struct state_t* gst) {
 
     gst->init_flags |= INITFLG_TERRAIN;
 
+    gst->terrain.grass_model = LoadModel("res/models/grassblade.glb");
+    gst->terrain.grass_model.materials[0] = LoadMaterialDefault();
+    
+    gst->terrain.grass_model_lowres = LoadModel("res/models/grassblade_lowres.glb");
+    gst->terrain.grass_model_lowres.materials[0] = LoadMaterialDefault();
+    
+    gst->terrain.grass_instances_perchunk = 150000;
+    gst->terrain.grass_render_dist = 4000.0;
 }
 
 
@@ -1054,6 +1096,8 @@ int state_setup_everything(struct state_t* gst) {
     // TODO: Is this used?
     gst->ssao_res_x = 0;
     gst->ssao_res_y = 0;
+    
+
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
@@ -1079,6 +1123,9 @@ int state_setup_everything(struct state_t* gst) {
 
     state_setup_terrain(gst);
     state_setup_ssao(gst);
+    
+    state_setup_all_ssbos(gst);
+    write_terrain_grass_positions(gst, &gst->terrain);
 
     state_setup_all_psystems(gst);
     state_setup_all_weapons(gst);
@@ -1095,9 +1142,40 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
     
-    gst->terrain.grass_render_dist = gst->render_dist / 3.0;
     printf("'%s': Grass render distance: %f\n", __func__, gst->terrain.grass_render_dist);
 
+
+    // FOR TEST -------------
+
+    /*
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
+
+    float test_x = 0;
+    float test_z = 0;
+    for(int i = 0; i < 100000; i++) {
+        size_t index = i * (GRASSDATA_STRUCT_SIZE);
+
+        float position[4] = {
+            test_x * 10, 0.0, test_z * 10,  0
+        };
+
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 
+                index,
+                sizeof(float) * 4,
+                position
+                );
+
+        test_x += 1.0;
+        if(test_x > 1000) {
+            test_x = 0;
+            test_z += 1.0;
+        }
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    // ----------------------
+    */
     result = 1;
     return result;
 }
+
+

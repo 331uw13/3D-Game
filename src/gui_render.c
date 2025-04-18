@@ -59,7 +59,10 @@ void gui_render_menu_screen(struct state_t* gst) {
 
     Vector2 btn_pos = (Vector2){ 100, gst->res_y/2+80 };
 
-    gui_checkbox(gst, "SSAO Enabled", 20.0, btn_pos, &gst->ssao_enabled);
+    gui_checkbox(gst, "Ambient Occlusion", 20.0, btn_pos, &gst->ssao_enabled);
+    btn_pos.y += 50.0;
+    
+    gui_checkbox(gst, "Render Grass", 20.0, btn_pos, &gst->grass_enabled);
     btn_pos.y += 50.0;
 
     gui_slider_float(gst, "Render Distance", 20.0, btn_pos, 530,
@@ -67,6 +70,11 @@ void gui_render_menu_screen(struct state_t* gst) {
     if(gui_button(gst, "Apply", 20.0, (Vector2){ btn_pos.x+600, btn_pos.y })) {
         set_render_dist(gst, gst->menu_slider_render_dist_v);
     }
+    btn_pos.y += 50.0;
+    
+    gui_slider_float(gst, "Grass Render Distance", 20.0, btn_pos, 530,
+            &gst->terrain.grass_render_dist, 1000, gst->render_dist);
+    
     btn_pos.y += 50.0;
 
     gui_slider_float(gst, "Controller Sensetivity", 20.0, btn_pos, 530,
@@ -269,6 +277,12 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
  
+    if(gui_button(gst, "Telport to first chunk", fontsize, btn_pos)) {
+        gst->player.cam.position = gst->terrain.chunks[0].center_pos;
+    }
+    btn_pos.y += btn_y_inc;
+ 
+
     if(gui_button(gst, "Kill player", fontsize, btn_pos)) {
         player_damage(gst, &gst->player, 99999999);
         gst->devmenu_open = 0;

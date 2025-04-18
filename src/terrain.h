@@ -47,6 +47,7 @@ struct foliage_rdata_t {
     int     render_backface;
 };
 
+#define GRASSDATA_STRUCT_SIZE (4*4 + 4*4)
 
 
 struct terrain_t {
@@ -60,8 +61,12 @@ struct terrain_t {
     size_t num_chunks;
     int    num_max_visible_chunks;
     int    num_visible_chunks;
+    int    num_rendered_grass;
 
     float  grass_render_dist;
+    Model  grass_model;
+    Model  grass_model_lowres;
+    size_t grass_instances_perchunk;
 
     struct biome_t biomedata[MAX_BIOME_TYPES]; //<- Initialized from 'biome.c' 'setup_biomes()'
     Material biome_materials[MAX_BIOME_TYPES];
@@ -94,6 +99,7 @@ struct terrain_t {
 RayCollision raycast_terrain(struct terrain_t* terrain, float x, float z);
 Matrix get_rotation_to_surface(struct terrain_t* terrain, float x, float z, RayCollision* ray_out);
 
+void delete_terrain(struct terrain_t* terrain);
 void generate_terrain(
         struct state_t* gst,
         struct terrain_t* terrain,
@@ -105,8 +111,7 @@ void generate_terrain(
         int    seed
         );
 
-
-void delete_terrain(struct terrain_t* terrain);
+void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrain);
 
 
 // For: 'render_setting'
