@@ -1,15 +1,12 @@
 #version 430
 
-in vec3 fragPosition;
+in vec3  fragPosition;
 in float grassblade_base_y;
-
-uniform vec3 u_campos;
-
+in vec3  campos;
 
 out vec4 finalColor;
 
-
-
+vec3 u_campos = campos;
 vec3 fragNormal = vec3(0);
 
 
@@ -36,6 +33,7 @@ float get_noise(vec2 noisepos) {
 
 void main()
 {
+
     finalColor = vec4(0.0, 0.0, 0.0, 1.0);
     //vec3 color = vec3(0.0, 0.3, 0.3);
     //finalColor = vec4(color, 1.0);
@@ -65,7 +63,7 @@ void main()
     // Gamma correction.
     color = pow(color, vec3(1.0/0.6));
 
-    float dist = length(u_campos - fragPosition);
+    float dist = length(campos - fragPosition);
     color = get_fog(color, dist, _YLEVEL);
 
     finalColor.rgb = color;

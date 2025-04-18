@@ -5,13 +5,13 @@ in vec3 vertexPosition;
 
 out vec3 fragNormal_f;
 out vec3 fragPosition;
+out vec3 campos;
 
 out float grassblade_base_y; // Terrain ylevel at grass blade position.
 
 uniform mat4 u_viewproj;
 uniform int u_chunk_grass_baseindex;
-
-
+uniform vec3 u_campos;
 
 #include "res/shaders/grass/grassdata.glsl"
 
@@ -29,7 +29,7 @@ mat3 rotate_m3(vec2 ang) {
 void main()
 {
     uint id = gl_InstanceID + u_chunk_grass_baseindex;
-
+    campos = u_campos;
     fragPosition = grassdata[id].position.xyz;
     grassblade_base_y = fragPosition.y;
 
