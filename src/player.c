@@ -385,12 +385,12 @@ int point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point,
     Vector3 P1 = (Vector3) { point.x, 0, point.z };
     Vector3 P2 = (Vector3) { p->position.x, 0, p->position.z };
 
-    Vector3 up = GetCameraUp(&p->cam);
-    Vector3 right = GetCameraRight(&p->cam);
-    Vector3 forward = Vector3CrossProduct(up, right);
+    //Vector3 up = GetCameraUp(&p->cam);
+    //Vector3 right = GetCameraRight(&p->cam);
+    //Vector3 forward = Vector3CrossProduct(up, right);
 
     Vector3 dir = Vector3Normalize(Vector3Subtract(P1, P2));
-    float dot = Vector3DotProduct(dir, forward);
+    float dot = Vector3DotProduct(dir, p->cam_forward);
 
     // Map result of dot product to 0 - 180
     float f = map(dot, 1.0, -1.0, 0.0, 180.0);
@@ -900,6 +900,12 @@ void player_update_camera(struct state_t* gst, struct player_t* p) {
     CameraYaw(&gst->player.cam, (-md.x * CAMERA_SENSETIVITY), 0);
     CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY), 1, 0, 0);
     
+    Vector3 up = GetCameraUp(&p->cam);
+    Vector3 right = GetCameraRight(&p->cam);
+    Vector3 forward = Vector3CrossProduct(up, right);
+
+    p->cam_forward = forward;
+
 }
 
 #define NO_YINCREMENT 0

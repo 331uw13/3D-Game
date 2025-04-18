@@ -41,7 +41,8 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_terrain_lowest\0",
     "u_terrain_highest\0",
     "u_viewproj\0",
-    "u_chunk_grass_baseindex\0"
+    "u_chunk_grass_baseindex\0",
+    "u_camforward\0"
 };
 
 

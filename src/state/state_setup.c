@@ -1083,7 +1083,7 @@ static void state_setup_terrain(struct state_t* gst) {
     gst->terrain.grass_model_lowres = LoadModel("res/models/grassblade_lowres.glb");
     gst->terrain.grass_model_lowres.materials[0] = LoadMaterialDefault();
     
-    gst->terrain.grass_instances_perchunk = 150000;
+    gst->terrain.grass_instances_perchunk = 100000;
     gst->terrain.grass_render_dist = 4000.0;
 }
 

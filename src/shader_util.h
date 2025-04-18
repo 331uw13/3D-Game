@@ -37,6 +37,7 @@ typedef short uloc_t;
 #define U_TERRAIN_HIGHEST 25
 #define U_VIEWPROJ 26
 #define U_CHUNK_GRASS_BASEINDEX 27
+#define U_CAMFORWARD 28
 
 #define U_NOTFOUND -1
 

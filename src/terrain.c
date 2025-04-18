@@ -728,7 +728,7 @@ void delete_terrain(struct terrain_t* terrain) {
     printf("\033[35m -> Deleted Terrain\033[0m\n");
 }
 
-
+/*
 static void render_chunk_grass(
         struct state_t* gst,
         struct terrain_t* terrain,
@@ -793,6 +793,71 @@ static void render_chunk_grass(
 
     terrain->num_rendered_grass += terrain->grass_instances_perchunk;
 }
+*/
+
+
+struct grass_group_t {
+    int base_index;
+    int num_instances;
+    Vector3 center;
+};
+static void render_grass_group(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        struct grass_group_t* group,
+        Matrix* mvp,
+        int renderpass
+){
+
+    const int mesh_triangles = terrain->grass_model.meshes[0].triangleCount;
+    const int vao_id = terrain->grass_model.meshes[0].vaoId;
+
+    shader_setu_int(gst,
+            GRASSDATA_COMPUTE_SHADER,
+            U_CHUNK_GRASS_BASEINDEX,
+            &group->base_index
+            );
+
+    // Dispatch grassdata compute shader
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
+    dispatch_compute(gst,
+            GRASSDATA_COMPUTE_SHADER,
+            group->num_instances,  1, 1,
+            GL_SHADER_STORAGE_BARRIER_BIT
+            );
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+
+    int rshader_i = (renderpass == RENDERPASS_RESULT)
+        ? TERRAIN_GRASS_SHADER
+        : TERRAIN_GRASS_GBUFFER_SHADER;
+
+    shader_setu_matrix(gst, rshader_i, U_VIEWPROJ, *mvp);
+
+    rlEnableShader(gst->shaders[rshader_i].id);
+    rlEnableVertexArray(vao_id);
+
+    shader_setu_int(gst,
+            rshader_i,
+            U_CHUNK_GRASS_BASEINDEX,
+            &group->base_index
+            );
+
+    rlDisableBackfaceCulling();
+    glDrawElementsInstanced(
+            GL_TRIANGLES,
+            mesh_triangles * 3,
+            GL_UNSIGNED_SHORT,
+            0,
+            group->num_instances
+            );
+
+    rlEnableBackfaceCulling();
+    rlDisableVertexArray();
+    rlDisableShader();
+
+    terrain->num_rendered_grass += group->num_instances;
+}
 
 
 void render_terrain(
@@ -805,7 +870,7 @@ void render_terrain(
     // Clear foliage render data from previous frame.
 
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
-        struct foliage_rdata_t* f_rdata = &terrain->foliage_rdata[i];
+    struct foliage_rdata_t* f_rdata = &terrain->foliage_rdata[i];
         memset(f_rdata->matrices, 0, f_rdata->matrices_size * sizeof *f_rdata->matrices);
         f_rdata->next_index = 0;
         f_rdata->num_render = 0;
@@ -826,6 +891,24 @@ void render_terrain(
    
     terrain->num_rendered_grass = 0;
 
+
+    // Add new chunk base index and increase instance count on the group.
+    // If chunk Z Position changes Render current group and start collecting new group info.
+    // This will reduce draw calls and compute dispatches.
+
+    struct chunk_t* prev_chunk = &terrain->chunks[0];
+    //struct grass_group_t grass_groups[32] = { 0 };
+    //size_t grass_group_i = 0;
+
+    struct grass_group_t grass_group = { -1, 0 };
+
+    int render_grass = gst->grass_enabled && (((renderpass == RENDERPASS_RESULT)
+        || (renderpass == RENDERPASS_GBUFFER && gst->ssao_enabled))
+        && render_setting == RENDER_TERRAIN_FOR_PLAYER);
+
+    int grass_perchunk = terrain->grass_instances_perchunk;
+    int first_group_render = 1;
+
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         chunk->dst2player = 
@@ -845,8 +928,9 @@ void render_terrain(
         // Chunks very nearby may get discarded if the center position goes behind the player.
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
-        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 80.0)) {
-            continue;
+        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 60.0)) {
+            goto skip_chunk_ground;
+            //continue;
         }
 
         terrain->num_visible_chunks++;
@@ -885,21 +969,49 @@ void render_terrain(
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
 
-        if(!gst->grass_enabled) {
+skip_chunk_ground:
+
+        // The nearby acceptable distance must be increased a littlebit.
+        // Otherwise some grass will be clipped off.
+        int skip_grass_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling)*2);
+        if(!skip_grass_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 60.0)) {
             continue;
         }
-       
-        // Grass.
-        
-        if(((renderpass == RENDERPASS_RESULT)
-        || (renderpass == RENDERPASS_GBUFFER && gst->ssao_enabled))
-            && render_setting == RENDER_TERRAIN_FOR_PLAYER) {
-        
-            // TODO: Optimize this. Render only once.
-            render_chunk_grass(gst, terrain, chunk, &mvp, renderpass);
+
+        if(render_grass) {
+            if(grass_group.base_index < 0) {
+                grass_group.base_index = chunk->grass_baseindex;
+                if(!first_group_render) {
+                    grass_group.base_index -= grass_perchunk;
+                }
+            }
+
+
+            grass_group.num_instances += grass_perchunk;
+           
+            // If this statement is true  we can know the row has been changed
+            // and current group must be rendered.
+            if(!FloatEquals(prev_chunk->center_pos.z, chunk->center_pos.z)) {
+                /*
+                Vector3 pp = chunk->center_pos;
+                pp.y += 600;
+                DrawSphere(pp, 30.0, RED);
+                */
+                render_grass_group(gst, terrain, &grass_group, &mvp, renderpass);
+                grass_group.base_index = -1;
+                grass_group.num_instances = 0;
+            }
+
+            first_group_render = 0;
+            prev_chunk = chunk;
         }
     }
 
+    if(render_grass) {
+        // Finish last grass group.
+        grass_group.num_instances += grass_perchunk;
+        render_grass_group(gst, terrain, &grass_group, &mvp, renderpass);
+    }
 
     ground_pass = 0;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);

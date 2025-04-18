@@ -306,8 +306,11 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
 
 
+
     // Update misc.
    
+    shader_setu_vec3(gst, TERRAIN_GRASS_SHADER, U_CAMFORWARD, &gst->player.cam_forward);
+
     shader_setu_float(gst, SSAO_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_SSAO_ENABLED, &gst->ssao_enabled);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ANYGUI_OPEN, &gst->player.any_gui_open);
