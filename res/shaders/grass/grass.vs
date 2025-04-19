@@ -5,15 +5,15 @@ in vec3 vertexPosition;
 
 out vec3 fragNormal_f;
 out vec3 fragPosition;
-out vec3 campos;
 
 out float grassblade_base_y; // Terrain ylevel at grass blade position.
 
 uniform mat4 u_viewproj;
 uniform int u_chunk_grass_baseindex;
-uniform vec3 u_campos;
+
 
 #include "res/shaders/grass/grassdata.glsl"
+
 
 
 mat3 rotate_m3(vec2 ang) {
@@ -25,22 +25,37 @@ mat3 rotate_m3(vec2 ang) {
             s.y*c.x, -s.x,  c.y*c.x);
 }
 
+float ease_outcubic(float x) {
+    return 1.0 - pow(1.0 - x, 3);
+}
+
 
 void main()
 {
     uint id = gl_InstanceID + u_chunk_grass_baseindex;
-    campos = u_campos;
     fragPosition = grassdata[id].position.xyz;
     grassblade_base_y = fragPosition.y;
 
     
-    float bending = ((vertexPosition.y + fragPosition.y) - grassblade_base_y) / 7.0;
-    bending *= GRASSDATA_BEND_VALUE(id);
+    float bend = ((fragPosition.y+vertexPosition.y) - grassblade_base_y) / 10.0;
+    bend *= GRASSDATA_BEND_VALUE(id);
 
-    // Random rotation so they are not facing the same direction.
-    float random_rotation = sin(32*fract(fragPosition.x)*12*fract(fragPosition.y));
-    fragPosition += vertexPosition * rotate_m3(vec2(-bending, random_rotation));
-    
+
+    mat3 rotation = mat3(grassdata[id].rotation);
+    mat3 bend_rotation = rotate_m3(vec2(-bend, -1.5));
+
+    // Random rotation so the blades are not facing exactly the same direction.
+    float rnd = sin((fract(grassdata[id].position.x)*fract(grassdata[id].position.z))*100);
+    mat3 rnd_rotation = rotate_m3(vec2(0.0, rnd));
+
+
+    fragPosition += vertexPosition * (rnd_rotation *  ((bend_rotation) * (rotation)));
     gl_Position = u_viewproj * vec4(fragPosition, 1.0);
+
 }
+
+
+
+
+
 

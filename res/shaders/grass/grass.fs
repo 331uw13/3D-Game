@@ -2,12 +2,12 @@
 
 in vec3  fragPosition;
 in float grassblade_base_y;
-in vec3  campos;
 
 out vec4 finalColor;
 
-vec3 u_campos = campos;
 vec3 fragNormal = vec3(0);
+
+uniform vec3 u_campos;
 
 
 #include "res/shaders/light.glsl"
@@ -53,17 +53,17 @@ void main()
     // TODO: Support more colors than two.
     vec3 grass_color 
         = color_lerp(
-                (fragPosition.y - grassblade_base_y) / 8.0,
+                (fragPosition.y - grassblade_base_y) / 10.0,
                 vec3(0.02, 0.07, 0.0),
                 vec3(0.2, 0.12, 0.0)
                 );
 
-    color = g_lightcolor*0.5 + grass_color;
+    color = g_lightcolor*0.258 + grass_color;
 
     // Gamma correction.
-    color = pow(color, vec3(1.0/0.6));
+    color = pow(color, vec3(1.0/0.54));
 
-    float dist = length(campos - fragPosition);
+    float dist = length(u_campos - fragPosition);
     color = get_fog(color, dist, _YLEVEL);
 
     finalColor.rgb = color;

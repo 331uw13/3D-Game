@@ -8,6 +8,8 @@ struct grassdata_t {
     // Z = ..
     // W = ..
     vec4 settings;
+
+    mat3x4 rotation;
 };
 
 layout(std430, binding = 5) buffer grassdata_ssbo {

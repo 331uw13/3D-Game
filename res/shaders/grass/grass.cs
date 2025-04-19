@@ -52,6 +52,14 @@ float pNoise(vec2 p, int res){
 // ------
 
 
+mat3 rotate_m3(vec2 ang) {
+    vec2 c = cos(ang);
+    vec2 s = sin(ang);
+    return mat3(
+            c.y,      0.0, -s.y,
+            s.y*s.x,  c.x,  c.y*s.x,
+            s.y*c.x, -s.x,  c.y*c.x);
+}
 
 void main() {
     
@@ -62,12 +70,32 @@ void main() {
             grassdata[id].position.z
             );
 
-    // TODO: this is wrong. but for test its ok.
-    noisepos -= u_wind_strength * (u_wind_dir.xz + u_time);
 
-    float pn = pNoise(noisepos*0.2, 1);
+    // Calculate rotation.
 
-    GRASSDATA_BEND_VALUE(id) = pn * 3.0;
+    // First rotate towards the wind direction.
+    vec3 windno_y = vec3(u_wind_dir.x, 0, u_wind_dir.z);
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 wx = normalize(u_wind_dir);
+    vec3 wy = normalize(cross(wx, up));
+    vec3 wz = normalize(cross(wy, wx));
 
+    mat3 rotation = mat3(wx, wy, wz);
+
+    float shift = pNoise(grassdata[id].position.xz*2.0, 1)*1.5;
+    rotation *= rotate_m3(vec2(1.5, shift));
+    rotation *= rotate_m3(vec2(0.0, 1.5));
+
+    
+    grassdata[id].rotation = mat3x4(rotation);
+
+
+    noisepos -= u_wind_strength * vec2(u_wind_dir.x * u_time, u_wind_dir.z * u_time);
+    float pn = pNoise(noisepos*0.2, 2) * 1.235;
+
+    GRASSDATA_BEND_VALUE(id) = pn;
+    
 }
+
+
 
