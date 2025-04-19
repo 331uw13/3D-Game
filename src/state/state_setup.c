@@ -1084,7 +1084,6 @@ static void state_setup_terrain(struct state_t* gst) {
     gst->terrain.grass_model_lowres.materials[0] = LoadMaterialDefault();
     
     gst->terrain.grass_instances_perchunk = 100000;
-    gst->terrain.grass_render_dist = 4000.0;
 }
 
 
@@ -1142,7 +1141,6 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
     
-    printf("'%s': Grass render distance: %f\n", __func__, gst->terrain.grass_render_dist);
 
 
     // FOR TEST -------------

@@ -9,7 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
-#define NOCLIP_SPEED 40
+#define NOCLIP_SPEED 25
 
 static void set_player_default_stats(struct player_t* p) {
 
@@ -84,13 +84,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     gst->shadow_cam.projection = CAMERA_ORTHOGRAPHIC;//PERSPECTIVE;    
     gst->shadow_cam_y = 800;
     */
-    // TODO: remove "reflect cam"
 
     printf("Spawn point: %0.2f, %0.2f, %0.2f\n", 
             p->cam.position.x, p->cam.position.y, p->cam.position.z);
 
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->height = 8.5;
+    p->height = 30.5;
     p->hitbox_size = (Vector3){ 1.5, 2.8, 1.5 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };

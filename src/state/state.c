@@ -325,10 +325,12 @@ void state_update_shader_uniforms(struct state_t* gst) {
     
     shader_setu_float(gst, GRASSDATA_COMPUTE_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
     shader_setu_vec3(gst,  GRASSDATA_COMPUTE_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
+    shader_setu_vec3(gst,  TERRAIN_GRASS_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
+    // -------
+
 
     shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->sun.color);
-    shader_setu_float(gst, TERRAIN_GRASS_SHADER, U_RENDER_DIST, &gst->terrain.grass_render_dist);
 
     state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
     state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);

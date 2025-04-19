@@ -393,12 +393,16 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
    
     struct grassdata_t {
         float position[4];
-        float _reserved[4];
+
+        float _reserved0[
+              4   // settings.
+            + 3*4 // rotation (mat3x4)
+        ];
     };
 
     const size_t data_size = 
         (terrain->num_chunks * terrain->grass_instances_perchunk)
-        * (sizeof(float) * 8);
+        * (sizeof(struct grassdata_t));
 
     struct grassdata_t* data = malloc(data_size);
 
@@ -411,7 +415,7 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
         const float chunk_z_min = chunk->position.z;
         const float chunk_z_max = chunk->position.z + (terrain->chunk_size * terrain->scaling);
 
-        render_loading_info(gst, "Loading Grass", i, terrain->num_chunks);
+        render_loading_info(gst, "Loading grass", i, terrain->num_chunks);
 
         // Making this loop backwards because it was a bit faster.
         for(size_t n = terrain->grass_instances_perchunk; n > 0; n--) {
@@ -799,8 +803,8 @@ static void render_chunk_grass(
 struct grass_group_t {
     int base_index;
     int num_instances;
-    Vector3 center;
 };
+
 static void render_grass_group(
         struct state_t* gst,
         struct terrain_t* terrain,
@@ -877,8 +881,16 @@ void render_terrain(
     }
 
     terrain->water_ylevel += sin(gst->time)*0.001585;
-    float trender_dist = (render_setting == RENDER_TERRAIN_FOR_PLAYER) 
+    float trender_dist = gst->render_dist;
+    /*
+        (render_setting == RENDER_TERRAIN_FOR_PLAYER) 
         ? gst->render_dist : SHADOW_CAM_RENDERDIST;
+    */
+
+    if((render_setting == RENDER_TERRAIN_FOR_SHADOWS)
+    || (renderpass == RENDERPASS_GBUFFER)){
+        trender_dist = TERRAIN_LOW_RENDERDIST;
+    }
 
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
@@ -897,9 +909,6 @@ void render_terrain(
     // This will reduce draw calls and compute dispatches.
 
     struct chunk_t* prev_chunk = &terrain->chunks[0];
-    //struct grass_group_t grass_groups[32] = { 0 };
-    //size_t grass_group_i = 0;
-
     struct grass_group_t grass_group = { -1, 0 };
 
     int render_grass = gst->grass_enabled && (((renderpass == RENDERPASS_RESULT)
@@ -928,9 +937,8 @@ void render_terrain(
         // Chunks very nearby may get discarded if the center position goes behind the player.
         // dont need to test it if its very close.
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
-        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 60.0)) {
+        if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 70.0)) {
             goto skip_chunk_ground;
-            //continue;
         }
 
         terrain->num_visible_chunks++;
@@ -971,16 +979,22 @@ void render_terrain(
 
 skip_chunk_ground:
 
+        if(chunk->dst2player > CLAMP(gst->render_dist/2.0, 3200, MAX_RENDERDIST)) {
+            continue;
+        }
+
         // The nearby acceptable distance must be increased a littlebit.
         // Otherwise some grass will be clipped off.
-        int skip_grass_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling)*2);
-        if(!skip_grass_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 60.0)) {
+        int skip_grass_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling)*1.6);
+        if(!skip_grass_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 20.0)) {
             continue;
         }
 
         if(render_grass) {
             if(grass_group.base_index < 0) {
                 grass_group.base_index = chunk->grass_baseindex;
+                
+                // Fix base index offset.
                 if(!first_group_render) {
                     grass_group.base_index -= grass_perchunk;
                 }

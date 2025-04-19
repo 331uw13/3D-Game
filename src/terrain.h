@@ -12,8 +12,7 @@ struct state_t;
 struct fog_t;
 
 #define CHUNK_SIZE 128
-#define SHADOW_CAM_RENDERDIST 4000 // <- This must be adjusted if changing CHUNK_SIZE
-
+#define TERRAIN_LOW_RENDERDIST 3000
 
 // (CURRENTLY NOT USED)
 #define WATER_INITIAL_YLEVEL -230
@@ -47,7 +46,7 @@ struct foliage_rdata_t {
     int     render_backface;
 };
 
-#define GRASSDATA_STRUCT_SIZE (4*4 + 4*4)
+#define GRASSDATA_STRUCT_SIZE (4*4/*position*/ + 4*4/*settings*/ + 48/*rotation (mat3x4)*/)
 
 
 struct terrain_t {
@@ -63,7 +62,6 @@ struct terrain_t {
     int    num_visible_chunks;
     int    num_rendered_grass;
 
-    float  grass_render_dist;
     Model  grass_model;
     Model  grass_model_lowres;
     size_t grass_instances_perchunk;

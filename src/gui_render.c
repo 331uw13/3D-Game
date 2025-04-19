@@ -72,30 +72,8 @@ void gui_render_menu_screen(struct state_t* gst) {
     }
     btn_pos.y += 50.0;
     
-    gui_slider_float(gst, "Grass Render Distance", 20.0, btn_pos, 530,
-            &gst->terrain.grass_render_dist, 1000, gst->render_dist);
-    
-    btn_pos.y += 50.0;
-
     gui_slider_float(gst, "Controller Sensetivity", 20.0, btn_pos, 530,
             &gst->gamepad.sensetivity, 1.0, 10.0);
-
-    /*
-
-    if(gui_button(gst, "Toggle Fullscreen", 20.0, btn_pos)) {
-        
-        if(!IsWindowFullscreen()) {
-            int monitor = GetCurrentMonitor();
-            SetWindowSize(GetMonitorWidth(monitor), GetMonitorHeight(monitor));
-        }
-        ToggleFullscreen();
-        
-        if(!IsWindowFullscreen()) {
-            SetWindowSize(DEF_res_x, DEF_res_y);
-        }
-    }
-    */
-
 
 }
 

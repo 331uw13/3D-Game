@@ -45,7 +45,6 @@ struct player_t {
     Camera   cam;
     Vector3  cam_forward;
 
-    Camera   reflect_cam; // Upside down camera. (NOT CURRENTLY USED)
     float cam_yaw;
     float cam_pitch;
     Vector3  position;  // "Read only" change the camera position instead.

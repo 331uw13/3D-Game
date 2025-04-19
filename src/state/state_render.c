@@ -268,7 +268,7 @@ void state_render(struct state_t* gst) {
                 DrawCubeWiresV(box, size, RED);
 
             }
-            //DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
+            DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
         // ------------
         render_scene(gst, RENDERPASS_RESULT);
