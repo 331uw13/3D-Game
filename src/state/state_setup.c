@@ -214,6 +214,8 @@ static void state_setup_all_weapons(struct state_t* gst) {
         .heat_increase = 2.0,
         .cooling_level = 20.0
     };
+
+    init_weapon_lqmag(gst, &gst->player.weapon, LQMAG_TYPE_SMALL);
  
 
     // Enemy lvl0 weapon.
@@ -229,6 +231,7 @@ static void state_setup_all_weapons(struct state_t* gst) {
         .prj_scale = 1.0,
         .color = (Color){ 255, 20, 120, 200 },
         .overheat_temp = -1,
+        .lqmag = (struct lqmag_t) { .infinite = 1 }
     };
 
     // Enemy lvl1 weapon.
@@ -244,6 +247,7 @@ static void state_setup_all_weapons(struct state_t* gst) {
         .prj_scale = 1.0,
         .color = (Color){ 255, 20, 255, 200 },
         .overheat_temp = -1,
+        .lqmag = (struct lqmag_t) { .infinite = 1 }
     };
 }
 
@@ -774,8 +778,18 @@ static void state_setup_all_shaders(struct state_t* gst) {
     }
 
 
-    gst->init_flags |= INITFLG_SHADERS;
+    // --- ENEGY_LIQUID_SHADER ---
+    {
+        Shader* shader = &gst->shaders[ENERGY_LIQUID_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/energy_liquid.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
 
+
+    gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
 }
@@ -901,22 +915,33 @@ static void state_setup_all_render_targets(struct state_t* gst) {
     PRINT_CURRENT_SETUP;
     SetTraceLogLevel(LOG_ALL);
     
-    gst->env_render_target     = LoadRenderTexture(gst->res_x, gst->res_y);
-    gst->bloomtresh_target     = LoadRenderTexture(gst->res_x, gst->res_y);
+    gst->env_render_target = LoadRenderTexture(
+            gst->res_x / gst->cfg.res_div,
+            gst->res_y / gst->cfg.res_div
+            );
+
+    gst->bloomtresh_target = LoadRenderTexture(
+            gst->res_x / gst->cfg.res_div,
+            gst->res_y / gst->cfg.res_div
+            );
+
     gst->env_render_downsample = LoadRenderTexture(gst->ssao_res_x, gst->ssao_res_y);
     //gst->shadow_map            = LoadRenderTextureHighp(gst->res_x, gst->res_y);
 
 
-    gst->ssao_final       = LoadRenderTexture(gst->res_x, gst->res_y);
-    gst->ssao_target      = LoadRenderTexture(gst->ssao_res_x, gst->ssao_res_y);
+    gst->ssao_final = LoadRenderTexture(
+            gst->res_x,
+            gst->res_y
+            );
+
+
+    gst->ssao_target = LoadRenderTexture(gst->ssao_res_x, gst->ssao_res_y);
 
     SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
 
     gst->bloom_downsamples[0] = LoadRenderTexture(909, 485);    
     gst->bloom_downsamples[1] = LoadRenderTexture(638, 340);
 
-
-    // TODO: Create function for setting texture filters.
 
     SetTextureFilter(gst->bloom_downsamples[0].texture, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
@@ -1049,9 +1074,9 @@ static void state_setup_shadow_cams(struct state_t* gst) {
 }
 
 static void state_setup_terrain(struct state_t* gst) {
-    const float terrain_scale = 20.0;
+    const float terrain_scale = 30.0;
     const u32   terrain_size = 2048;
-    const float terrain_amplitude = 40.0;
+    const float terrain_amplitude = 50.0;
     const float terrain_pnfrequency = 70.0;
     const int   terrain_octaves = 3;
     
@@ -1077,14 +1102,18 @@ static void state_setup_terrain(struct state_t* gst) {
 
     gst->init_flags |= INITFLG_TERRAIN;
 
+    SetTraceLogLevel(LOG_ALL);
     gst->terrain.grass_model = LoadModel("res/models/grassblade.glb");
     gst->terrain.grass_model.materials[0] = LoadMaterialDefault();
     
     gst->terrain.grass_model_lowres = LoadModel("res/models/grassblade_lowres.glb");
     gst->terrain.grass_model_lowres.materials[0] = LoadMaterialDefault();
+    SetTraceLogLevel(LOG_NONE);
     
+    //gst->terrain.grass_instances_perchunk = 500;
     gst->terrain.grass_instances_perchunk = 100000;
 }
+
 
 
 int state_setup_everything(struct state_t* gst) {
@@ -1131,6 +1160,7 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_sounds(gst);
     state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
+    //state_setup_all_lqmag_models(gst);
 
     state_setup_all_gbuffers(gst);
     state_setup_all_render_targets(gst);
@@ -1142,6 +1172,14 @@ int state_setup_everything(struct state_t* gst) {
     set_render_dist(gst, gst->cfg.render_dist);
     
 
+    gst->show_only_ssao = 0;
+    shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);
+
+    shader_setu_float(gst, SSAO_SHADER, U_RES_DIV, &gst->cfg.res_div);
+
+
+    gst->energy_liquid_material = LoadMaterialDefault();
+    gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
 
     // FOR TEST -------------
 

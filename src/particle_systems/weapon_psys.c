@@ -35,8 +35,6 @@ void weapon_psys_prj_update(
         return;
     }
 
-
-
     /*
     if((gst->player.powerup_levels[POWERUP_GRAVITY_PROJECTILES] > 0.0)
     && (weapon->gid == PLAYER_WEAPON_GID)) {

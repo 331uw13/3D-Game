@@ -13,6 +13,9 @@ struct config_t {
     int resolution_y;
     int ssao_quality;
     int ssao_kernel_samples;
+    
+    float res_div; // Resolution divisor (see game.cfg for detailed info)
+
     int render_dist;
 };
 

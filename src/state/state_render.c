@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "lib/glad.h"
+
 /*
 static void set_enemies_render_shader(struct state_t* gst, int shader_index) {
     for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
@@ -128,6 +130,12 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
         gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
     }
 
+    /*
+    // Prepare liquid magazine models.
+    for(size_t i = 0; i < MAX_LQMAG_TYPES; i++) {
+        gst->lqmag_models[i].materials[0].shader = gst->shaders[rp_shader_i];
+    }
+    */
 
     // Prepare npc
     gst->npc.model.materials[0].shader = gst->shaders[rp_shader_i];
@@ -157,11 +165,12 @@ static void render_scene(struct state_t* gst, int renderpass) {
         render_enemy(gst, ent);
     }
 
+    /*
     int terrain_render_setting = 
         (renderpass == RENDERPASS_SHADOWS) ?
             RENDER_TERRAIN_FOR_SHADOWS : RENDER_TERRAIN_FOR_PLAYER;
-
-    render_terrain(gst, &gst->terrain, renderpass, terrain_render_setting);
+    */
+    render_terrain(gst, &gst->terrain, renderpass);
     render_items(gst);
     render_npc(gst, &gst->npc);
     render_player(gst, &gst->player);
@@ -228,6 +237,9 @@ void state_render(struct state_t* gst) {
         
         // Render debug info if needed. --------
         if(gst->debug) {
+
+            glLineWidth(2.0);
+
             for(size_t i = 0; i < gst->num_enemies; i++) {
                 struct enemy_t* ent = &gst->enemies[i];
                 if(!ent->alive) {
@@ -262,17 +274,14 @@ void state_render(struct state_t* gst) {
             for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
                 struct chunk_t* chunk = &gst->terrain.chunks[i];
                 if(chunk->dst2player > gst->render_dist) { continue; }
-                float scale = gst->terrain.chunk_size * gst->terrain.scaling;
-                Vector3 size = (Vector3){ scale, scale, scale };
-                Vector3 box = (Vector3){ chunk->center_pos.x, chunk->position.y, chunk->center_pos.z };
-                DrawCubeWiresV(box, size, RED);
-
+                render_chunk_borders(gst, chunk, RED);
             }
             DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
-        // ------------
-        render_scene(gst, RENDERPASS_RESULT);
 
+        // ------------
+        
+        render_scene(gst, RENDERPASS_RESULT);
 
         /*
         // Water
@@ -286,7 +295,10 @@ void state_render(struct state_t* gst) {
             rlEnableBackfaceCulling();
         }
         */
-     
+    
+
+        float psys_render_timestart = GetTime();
+
         // Particle systems. (rendered only if needed)
         {
 
@@ -294,7 +306,7 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
             render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
             render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
-            render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 35, 40, 50, 240 });
+            //render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 35, 40, 50, 240 });
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
  
             render_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS], (Color){0});
@@ -304,10 +316,11 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
             render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
             render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
-
-           
         }
-        
+
+        state_timebuf_add(gst, 
+                TIMEBUF_ELEM_PSYSTEMS_R,
+                GetTime() - psys_render_timestart);
 
         /*
         Color cube_color = (Color){ 0, 0, 0, 255 };

@@ -38,6 +38,11 @@ typedef short uloc_t;
 #define U_VIEWPROJ 26
 #define U_CHUNK_GRASS_BASEINDEX 27
 #define U_CAMFORWARD 28
+#define U_ONLY_SSAO 29
+#define U_RES_DIV 30
+#define U_ENERGY_COLOR 31
+#define U_ENERGY_CONTAINER_LEVEL 32
+#define U_ENERGY_CONTAINER_CAPACITY 33
 
 #define U_NOTFOUND -1
 

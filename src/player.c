@@ -15,7 +15,7 @@ static void set_player_default_stats(struct player_t* p) {
 
     // Movement
     p->walkspeed = 20.0;
-    p->run_speed_mult = 1.85;
+    p->run_speed_mult = 2.32;
     p->air_speed_mult = 1.5;
     p->jump_force = 130.0;
     p->gravity = 0.5;
@@ -268,7 +268,6 @@ void player_damage(struct state_t* gst, struct player_t* p, float damage) {
     if(p->powerup_shop.open) {
         return;
     }
-
     if(damage < 0.0) {
         return;
     }
@@ -341,43 +340,6 @@ void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force) 
 
 }
 
-/*
-
-static int chunk_in_player_view(struct player_t* player, struct terrain_t* terrain, struct chunk_t* chunk) {
-    int res = 0;
-
-    Vector3 P1 = (Vector3) {
-        chunk->center_pos.x, 0, chunk->center_pos.z
-    };
-
-    Vector3 P2 = (Vector3) {
-        player->position.x, 0, player->position.z
-    };
-
-    float test_dist = (terrain->chunk_size) * terrain->scaling;
-    if(chunk->dst2player < test_dist) {
-        res = 1;
-        goto skip;
-    }
-
-
-    Vector3 up = (Vector3){ 0.0, 1.0, 0.0 };
-    Vector3 right = GetCameraRight(&player->cam);
-    Vector3 forward = Vector3CrossProduct(up, right);
-
-    Vector3 dir = Vector3Normalize(Vector3Subtract(P1, P2));
-    float dot = Vector3DotProduct(dir, forward);
-
-
-
-    float f = map(dot, 1.0, -1.0, 0.0, 180.0);
-
-
-    res = (f < 130.0);
-skip:
-    return res;
-}
-   */
 int point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point, float fov_range) {
 
     // Need to ignore Y axis
@@ -459,6 +421,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
        && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
         ? fireprj_hold
         : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) {
+
         player_shoot(gst, &gst->player);
     }
 
@@ -580,8 +543,9 @@ void player_update(struct state_t* gst, struct player_t* p) {
         p->fovy_change = CLAMP(p->fovy_change, 0.0, 1.0);
         p->cam.fovy = map(p->fovy_change, 0.0, 1.0, 60.0, 66.0) + sin(gst->time)*0.85;
     }
-
 }
+
+#include <rlgl.h>
 
 void render_player(struct state_t* gst, struct player_t* p) {
 
@@ -631,11 +595,13 @@ void render_player(struct state_t* gst, struct player_t* p) {
     const size_t inv_selected_i = p->inventory.selected_index;
 
     if(p->holding_gun) {
+
+        // TODO: This should be renamed!
         // Update Gun Light here because otherwise it will be one frame behind.
         {
-            Vector3 lpos = (Vector3){ 0.25, -0.125, -2.0 };
+            Vector3 lpos = (Vector3){ 0.1, -0.52, -0.75 };
             lpos = Vector3Transform(lpos, p->gunmodel.transform);
-            //DrawSphere(lpos, 0.2, RED);
+            //DrawSphere(lpos, 0.05, RED);
 
             p->gun_light.position = lpos;
             p->gun_light.color = p->weapon.color;
@@ -663,6 +629,26 @@ void render_player(struct state_t* gst, struct player_t* p) {
                 p->hands_material,
                 p->gunmodel.transform
                 );
+
+        // Ammo level.
+
+        shader_setu_float(gst, 
+            ENERGY_LIQUID_SHADER,
+            U_ENERGY_CONTAINER_LEVEL,
+            &p->weapon.lqmag.ammo_level);
+
+        shader_setu_float(gst,
+                ENERGY_LIQUID_SHADER,
+                U_ENERGY_CONTAINER_CAPACITY,
+                &p->weapon.lqmag.capacity);
+
+        DrawMesh(
+                p->gunmodel.meshes[3],
+                gst->energy_liquid_material,
+                p->gunmodel.transform
+                );
+
+        //render_weapon_lqmag(gst, &p->weapon, p->gunmodel.transform);
     }
     else 
     if(inv_selected_i < INV_SIZE) {

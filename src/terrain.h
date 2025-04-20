@@ -12,7 +12,13 @@ struct state_t;
 struct fog_t;
 
 #define CHUNK_SIZE 128
-#define TERRAIN_LOW_RENDERDIST 3000
+
+// NOTE: These distances must be adjusted if CHUNK_SIZE or terrain scale is changed.
+// (TODO: Probably should calculate these in runtime or config file...)
+
+//#define TERRAIN_LOW_RENDERDIST 3000 // Used by gbuffer passes and shadow cams.
+//#define GRASS_MIN_RENDERDIST 6000.0 // TODO: This must be adjusted better (?)
+
 
 // (CURRENTLY NOT USED)
 #define WATER_INITIAL_YLEVEL -230
@@ -83,8 +89,8 @@ struct terrain_t {
     float lowest_point;
     float scaling;
 
-    float water_ylevel;
-    Model waterplane;
+    float water_ylevel; // (CURRENTLY NOT USED)
+    Model waterplane;   // (CURRENTLY NOT USED)
 
     // Triangles saved but in order to get triangle at xz location efficiently.
     struct triangle2x_t* triangle_lookup;
@@ -110,19 +116,7 @@ void generate_terrain(
         );
 
 void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrain);
-
-
-// For: 'render_setting'
-// These settings should be used for different render passes.
-// For shadows full render distance terrain should not be rendered.
-#define RENDER_TERRAIN_FOR_PLAYER 0
-#define RENDER_TERRAIN_FOR_SHADOWS 1
-void render_terrain(struct state_t* gst, struct terrain_t* terrain,
-        // Shaders are prepared in 'state/state.c' 'prepare_renderpass()'
-        // but rendering the grass for all buffers is very expensive. so will try to fake all effects for it.
-        int renderpass,     
-        int render_setting 
-        );
+void render_terrain(struct state_t* gst, struct terrain_t* terrain, int render_pass);
 
 
 

@@ -14,7 +14,7 @@ static void state_delete_shaders(struct state_t* gst) {
         UnloadShader(gst->shaders[i]);
     }
 
-    printf("\033[35m -> Deleted Shaders\033[0m\n");
+    printf("\033[35m -> Deleted Shaders.\033[0m\n");
 }
 
 static void state_delete_psystems(struct state_t* gst) {
@@ -23,7 +23,7 @@ static void state_delete_psystems(struct state_t* gst) {
         delete_psystem(&gst->psystems[i]);
     }
    
-    printf("\033[35m -> Deleted Particle systems\033[0m\n");
+    printf("\033[35m -> Deleted Particle systems.\033[0m\n");
 }
 
 
@@ -36,7 +36,7 @@ static void state_delete_textures(struct state_t* gst) {
     UnloadTexture(gst->ssao_noise_tex);
     UnloadTexture(gst->colorpick_tex); 
     UnloadImage(gst->colorpick_img);
-    printf("\033[35m -> Deleted Textures\033[0m\n");
+    printf("\033[35m -> Deleted Textures.\033[0m\n");
 }
 
 static void state_delete_sounds(struct state_t* gst) {
@@ -50,7 +50,7 @@ static void state_delete_sounds(struct state_t* gst) {
         CloseAudioDevice();
     }
     
-    printf("\033[35m -> Deleted Sounds\033[0m\n");
+    printf("\033[35m -> Deleted Sounds.\033[0m\n");
 }
 
 static void state_delete_enemy_models(struct state_t* gst) {
@@ -61,7 +61,7 @@ static void state_delete_enemy_models(struct state_t* gst) {
         }
     }
 
-    printf("\033[35m -> Deleted Enemy models\033[0m\n");
+    printf("\033[35m -> Deleted Enemy models.\033[0m\n");
 }
 
 static void state_delete_item_models(struct state_t* gst) {
@@ -72,7 +72,7 @@ static void state_delete_item_models(struct state_t* gst) {
         }
     }
 
-    printf("\033[35m -> Deleted Item models\033[0m\n");
+    printf("\033[35m -> Deleted Item models.\033[0m\n");
 }
 
 static void state_delete_render_targets(struct state_t* gst) {
@@ -88,7 +88,7 @@ static void state_delete_render_targets(struct state_t* gst) {
     }
 
 
-    printf("\033[35m -> Deleted Render targets\033[0m\n");
+    printf("\033[35m -> Deleted Render targets.\033[0m\n");
 }
 
 static void delete_gbuffer(struct gbuffer_t* gbuf) {
@@ -107,7 +107,7 @@ static void state_delete_gbuffers(struct state_t* gst) {
         delete_gbuffer(&gst->shadow_gbuffers[i]);
     }
 
-    printf("\033[35m -> Deleted Geometry buffers\033[0m\n");
+    printf("\033[35m -> Deleted Geometry buffers.\033[0m\n");
 }
 
 static void state_delete_ubos(struct state_t* gst) {
@@ -128,17 +128,21 @@ static void state_delete_ssbos(struct state_t* gst) {
     printf("\033[35m -> Deleted Shader storage buffers.\033[0m\n");
 }
 
+
 void state_free_everything(struct state_t* gst) {
     state_delete_shaders(gst);
     state_delete_psystems(gst);
     state_delete_textures(gst);
     state_delete_sounds(gst);
+    
     state_delete_enemy_models(gst);
     state_delete_item_models(gst);
+
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
     state_delete_ubos(gst);
     state_delete_ssbos(gst);
+   
     delete_player(gst, &gst->player);
     delete_prjmods(gst);
     delete_npc(gst, &gst->npc);

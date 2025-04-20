@@ -327,4 +327,17 @@ void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct c
     chunk->biome = terrain->biomedata[biomeid];
 }
 
+void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color) {
+    float scale = gst->terrain.chunk_size * gst->terrain.scaling;
+    Vector3 size = (Vector3){ scale, scale, scale };
+    Vector3 box = (Vector3){ chunk->center_pos.x, chunk->position.y, chunk->center_pos.z };
+    DrawCubeWiresV(box, size, color);
+}
+
+void render_chunk_borders2x(struct state_t* gst, struct chunk_t* chunk, Color color) {
+    float scale = gst->terrain.chunk_size * gst->terrain.scaling;
+    Vector3 size = (Vector3){ scale*0.5, scale*0.5, scale*0.5 };
+    Vector3 box = (Vector3){ chunk->center_pos.x, chunk->position.y, chunk->center_pos.z };
+    DrawCubeWiresV(box, size, color);
+}
 

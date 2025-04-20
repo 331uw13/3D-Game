@@ -58,10 +58,13 @@ struct chunk_t {
     //struct chunk_grassdata_t grassdata;
 };
 
-
 void load_foliage_models(struct state_t* gst, struct terrain_t* terrain);
 void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
 void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
 void delete_chunk(struct chunk_t* chunk);
+
+// These can be used for debug if needed.
+void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);
+void render_chunk_borders2x(struct state_t* gst, struct chunk_t* chunk, Color color);
 
 #endif

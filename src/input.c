@@ -34,6 +34,9 @@ void handle_userinput(struct state_t* gst) {
         player_respawn(gst, &gst->player);
     }
 
+    if(IsKeyPressed(KEY_E)) {
+        gst->player.weapon.lqmag.ammo_level = gst->player.weapon.lqmag.capacity;
+    }
 
     if(IsKeyPressed(KEY_X)) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
@@ -44,10 +47,6 @@ void handle_userinput(struct state_t* gst) {
     }
     if(IsKeyPressed(KEY_V)) {
         spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
-    }
-
-    if(IsKeyPressed(KEY_L)) {
-        gst->ssao_enabled = !gst->ssao_enabled;
     }
 
     if(gst->gamepad.id >= 0) {

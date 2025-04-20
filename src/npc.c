@@ -44,7 +44,7 @@ void delete_npc(struct state_t* gst, struct npc_t* npc) {
     }
     UnloadModel(npc->model);
 
-    printf("\033[35m -> Deleted npc\033[0m\n");
+    printf("\033[35m -> Deleted NPC.\033[0m\n");
 }
 
 

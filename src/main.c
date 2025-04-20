@@ -164,9 +164,20 @@ void loop(struct state_t* gst) {
                         dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
                 next_y += y_inc;
 
+
+                DrawText(TextFormat("PSystemsRenderTime: %f", state_average_timebuf(gst, TIMEBUF_ELEM_PSYSTEMS_R)),
+                        dtext_x, next_y, 20, (Color){ 80, 120, 170, 255 });
+                next_y += y_inc;
+
+                DrawText(TextFormat("TerrainRenderTime: %f", state_average_timebuf(gst, TIMEBUF_ELEM_TERRAIN_R)),
+                        dtext_x, next_y, 20, (Color){ 80, 120, 170, 255 });
+                next_y += y_inc;
+
+
+
+
                 DrawText("(Debug ON)", gst->res_x - 200, 10, 20, GREEN);
             }
-
 
             DrawText(TextFormat("FPS: %i", GetFPS()),
                     gst->res_x - 100, gst->res_y-30, 20, WHITE);
@@ -204,6 +215,7 @@ void cleanup(struct state_t* gst) {
 int cfgbool_to_int(char* buf) {
     return CLAMP(strcmp(buf, "false"), 0, 1);
 }
+
 
 int read_config(struct state_t* gst) {
     int result = 0;
@@ -243,6 +255,17 @@ int read_config(struct state_t* gst) {
         gst->cfg.resolution_y = DEFAULT_RES_Y;
     }
 
+    // Resolution divisor (see detail from game.cfg)
+    if(read_cfgvar(&cfgfile, "resolution_divisor", buf, CFGBUF_SIZE)) {
+        gst->cfg.res_div = 0.0;
+        gst->cfg.res_div = atof(buf);
+        if(gst->cfg.res_div < 1.0) {
+            fprintf(stderr, "\033[35m(WARNING) '%s': Invalid resoltion divisor value, setting it to 1.0\033[0m\n",
+                    __func__);
+            gst->cfg.res_div = 1.0;
+        }
+
+    }
 
     // Fullscreen?
 
@@ -297,13 +320,7 @@ int read_config(struct state_t* gst) {
 
     // Render distance?
     if(read_cfgvar(&cfgfile, "render_distance", buf, CFGBUF_SIZE)) {
-        int render_dist = atoi(buf);
-        if(render_dist <= 0) {
-            fprintf(stderr, "\033[35m(WARNING) '%s': Invalid render distance. set to 3000 now.\033[0m\n",
-                    __func__);
-            render_dist = 3000;
-        }
-        gst->cfg.render_dist = CLAMP(render_dist, MIN_RENDERDIST, MAX_RENDERDIST);
+        gst->cfg.render_dist = CLAMP(atoi(buf), MIN_RENDERDIST, MAX_RENDERDIST);
     }
 
     result = 1;
@@ -426,11 +443,12 @@ void first_setup(struct state_t* gst) {
     };
     */
 
+    // TODO: Rename this.
     gst->player.gun_light = (struct light_t) {
         .type = LIGHT_POINT,
         .enabled = 1,
         .strength = 0.75,
-        .radius = 2.0,
+        .radius = 0.35,
         .index = PLAYER_GUN_LIGHT_ID
     }; // Player's gun light is updated from 'src/player.c'
 

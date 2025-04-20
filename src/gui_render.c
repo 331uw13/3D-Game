@@ -228,8 +228,6 @@ void gui_render_powerup_shop(struct state_t* gst) {
     }
 }
 
-static int g_show_biome_map = 0; // Temporary.
-
 
 void gui_render_devmenu(struct state_t* gst) {
     const float fontsize = 15;
@@ -260,6 +258,13 @@ void gui_render_devmenu(struct state_t* gst) {
     }
     btn_pos.y += btn_y_inc;
  
+    if(gui_button(gst, "Toggle SSAO View", fontsize, btn_pos)) {
+        gst->show_only_ssao = !gst->show_only_ssao;
+        shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);
+        printf("vitun vitun vittu\n");
+    }
+    btn_pos.y += btn_y_inc;
+
 
     if(gui_button(gst, "Kill player", fontsize, btn_pos)) {
         player_damage(gst, &gst->player, 99999999);
@@ -322,11 +327,6 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc+5;
 
     
-    if(gui_button(gst, "Show biome map", fontsize, btn_pos)) {
-        g_show_biome_map = 1;
-    }
-
-
     btn_pos.y += btn_y_inc;
 
     /*

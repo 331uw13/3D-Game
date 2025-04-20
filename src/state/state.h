@@ -113,7 +113,8 @@
 #define TERRAIN_GRASS_SHADER 21
 #define TERRAIN_GRASS_GBUFFER_SHADER 22
 #define GRASSDATA_COMPUTE_SHADER 23
-#define MAX_SHADERS 24
+#define ENERGY_LIQUID_SHADER 24
+#define MAX_SHADERS 25
 // ...
 
 
@@ -195,8 +196,16 @@
 #define INITFLG_SSBOS         (1<<14)
 #define INITFLG_GRASSDATA     (1<<15) // Grass positions have been written?
 
+// 'Time buffer' is for saving render times and processing times
+// So the average can be calculated.
+// How many to record?
+// If the 'TIME_ELEM_<something>' ends with _R it means its for rendering.
+#define TIMEBUF_SIZE 16
+#define TIMEBUF_ELEM_PSYSTEMS_R 0
+#define TIMEBUF_ELEM_TERRAIN_R 1
+#define TIMEBUF_MAX_ELEMS 2
 
-
+/*
 // Critical hit marker.
 struct crithit_marker_t {
     Vector3 position;
@@ -204,6 +213,7 @@ struct crithit_marker_t {
     int     visible;
     float   dst; // Distance to player. Used for sorting to fix alpha blending.
 };
+*/
 
 
 struct gbuffer_t {
@@ -296,6 +306,9 @@ struct state_t {
 
     float         natural_item_spawn_timers[MAX_ITEM_TYPES];
 
+    Material energy_liquid_material;
+
+
     int rseed; // Seed for randomgen functions.
     int debug;
 
@@ -347,7 +360,8 @@ struct state_t {
     int       ssao_enabled;
     Texture   ssao_noise_tex;
     Vector3*  ssao_kernel;
-    
+    int       show_only_ssao; // For debug.
+
     Matrix cam_view_matrix; // TODO: Move these
     Matrix cam_proj_matrix; //
 
@@ -373,12 +387,17 @@ struct state_t {
     struct biome_t* old_biome;  // TODO: Not needed.
     struct biome_t* new_biome;  // TODO: Not needed.
 
-    
+    float timebuf            [TIMEBUF_MAX_ELEMS][TIMEBUF_SIZE];
+    size_t timebuf_indices   [TIMEBUF_MAX_ELEMS];
+
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!
 void state_abort(struct state_t* gst);
+
+void state_timebuf_add(struct state_t* gst, int timebuf_elem, float time);
+float state_average_timebuf(struct state_t* gst, int timebuf_elem);
 
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
 void state_create_ssbo(struct state_t* gst, int ssbo_index, int binding_point, size_t size);

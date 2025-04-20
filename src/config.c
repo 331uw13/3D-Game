@@ -21,7 +21,7 @@ int read_cfgvar(platform_file_t* cfgfile, const char* name, char* outbuf, size_t
 
     memset(outbuf, 0, outbuf_size);
     
-    char tbuf[MAX_TBUF_SIZE] = { 0 };
+    char tbuf[MAX_TBUF_SIZE+1] = { 0 };
     size_t tbuf_i = 0;
     int read = READ_NAME;
 

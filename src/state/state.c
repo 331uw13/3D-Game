@@ -182,6 +182,50 @@ void state_abort(struct state_t* gst) {
     exit(1);
 }
 
+void state_timebuf_add(struct state_t* gst, int timebuf_elem, float time) {
+    
+    if(timebuf_elem > TIMEBUF_MAX_ELEMS) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid timebuf_elem\033[0m\n",
+                __func__);
+        return;
+    }
+
+    if(time < 0.0) {
+        printf("\033[35m(WARNING) '%s': Adding time (%f) into %i, is negative time.\033[0m\n",
+                __func__, time, timebuf_elem);
+    }
+
+
+    size_t* index = &gst->timebuf_indices[timebuf_elem];
+    gst->timebuf[timebuf_elem][*index] = time;
+
+    *index += 1;
+    if(*index >= TIMEBUF_SIZE) {
+        *index = 0;
+    }
+}
+
+float state_average_timebuf(struct state_t* gst, int timebuf_elem) {
+    float average_time = -1.0;
+
+    if(timebuf_elem >= TIMEBUF_MAX_ELEMS) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid timebuf_elem\033[0m\n",
+                __func__);
+        goto error;
+    }
+
+    average_time = 0.0;
+
+    for(size_t i = 0; i < TIMEBUF_SIZE; i++) {
+        average_time += gst->timebuf[timebuf_elem][i];
+    }
+
+    average_time /= ((float)TIMEBUF_SIZE);
+
+error:
+    return average_time;
+}
+
 
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size) {
     gst->ubo[ubo_index] = 0;
@@ -301,6 +345,8 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
     shader_setu_float(gst, TERRAIN_GRASS_SHADER,   U_TIME, &gst->time);
     shader_setu_float(gst, GRASSDATA_COMPUTE_SHADER,   U_TIME, &gst->time);
+    shader_setu_float(gst, ENERGY_LIQUID_SHADER,   U_TIME, &gst->time);
+
     // Update water level
     shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
 
@@ -328,6 +374,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst,  TERRAIN_GRASS_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
     // -------
 
+    shader_setu_color(gst, ENERGY_LIQUID_SHADER, U_ENERGY_COLOR, &gst->player.weapon.color);
 
     shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->sun.color);
