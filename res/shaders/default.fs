@@ -85,8 +85,6 @@ void main()
     finalColor.xyz += texel_color.xyz * AMBIENT;
     finalColor.xyz *= get_shadows();
 
-    vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
-    finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));
 
     // Create effect around water.
    
@@ -129,9 +127,13 @@ void main()
     }
     */
 
+    vec3 mapped = finalColor.xyz / (finalColor.xyz + vec3(1.6));
+    finalColor.xyz = pow(mapped, vec3(1.0 / 0.6));
+
 
     float dist = length(u_campos - fragPosition);
     finalColor.xyz = get_fog(finalColor.rgb, dist, _YLEVEL);
+    
 }
 
 

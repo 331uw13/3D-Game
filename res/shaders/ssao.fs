@@ -15,6 +15,9 @@ uniform vec3 cam_pos;
 uniform vec2 u_screen_size;
 uniform float u_render_dist;
 uniform int u_ssao_kernel_samples;
+uniform float u_res_div; // Needed for bloom treshold texture.
+
+// TODO: Remove unused stuff.
 
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -24,7 +27,7 @@ out vec4 finalColor;
 
 float ld(float depth) {
     float near = 0.01;     // NOTE: Remember to edit 'res/shaders/gbuffer.fs'
-    float far = 300.0;    //       if changing these values.
+    float far = 300.0;     //       if changing these values.
     float ndc = depth * 2.0 - 1.0;
     return (2.0 * near * far) / (far + near - ndc * (far - near)) / far;
 }
@@ -40,7 +43,7 @@ void main() {
 
     // Very bright objects should not appear on top of ambient occlusion.
     // Convert bloom treshold texture to gray scale and check if ssao should be applied.
-    vec3 bloomtresh = texture(u_bloomtresh_tex, fragTexCoord).rgb;
+    vec3 bloomtresh = texture(u_bloomtresh_tex, fragTexCoord/u_res_div).rgb;
     float bloom_scale = (bloomtresh.r + bloomtresh.g + bloomtresh.b)/3.0;
     if(bloom_scale >= 0.076) {
         finalColor = vec4(1.0);
@@ -73,10 +76,12 @@ void main() {
     const float rad_far = 2.5;
     float dt = (viewproj*vec4(frag_pos,1.0)).z;
 
+    /*
     if(dt > max_depth) {
         finalColor = vec4(1.0);
         return;
     }
+    */
 
     float tmax = 100.0;
     float radius = map(clamp(dt, 0.0, tmax), 0.0, tmax, rad_near, rad_far);
@@ -96,6 +101,7 @@ void main() {
         float sample_depth = texture(u_gbuf_depth_tex, offset.xy).x;
 
         // Range check.
+        // TODO: Fix this.
         float tr = ld(frag_pos.z);
         float rc = smoothstep(0.0, 1.0, radius/abs(tr*tr - sample_depth*sample_depth));
 
@@ -105,8 +111,8 @@ void main() {
     ao /= float(u_ssao_kernel_samples);
     
     // Fade ssao effect.
-    float fade = (dt*dt*dt)/(max_depth*max_depth*dt);
-    ao += fade;
+    //float fade = (dt*dt*dt)/(max_depth*max_depth*dt);
+    //ao += fade;
 
     finalColor = vec4(ao, ao, ao, 1.0);
 }

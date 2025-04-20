@@ -16,6 +16,8 @@ uniform float health; // normalized
 uniform vec2 u_screen_size;
 uniform int u_ssao_enabled;
 uniform int u_anygui_open;
+uniform int u_only_ssao;
+
 
 // Output fragment color
 out vec4 finalColor;
@@ -46,7 +48,10 @@ vec3 color_lerp(float t, vec3 a, vec3 b) {
 
 void main()
 {
-//    finalColor = texture(ssao_texture, fragTexCoord); return;
+    if(u_only_ssao == 1) {
+        finalColor = texture(ssao_texture, fragTexCoord);
+        return;
+    }
 
     finalColor = vec4(0.0, 0.0, 0.0, 1.0);
     
