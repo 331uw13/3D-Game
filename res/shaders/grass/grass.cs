@@ -6,6 +6,7 @@ uniform int u_chunk_grass_baseindex;
 uniform float u_wind_strength;
 uniform float u_time;
 uniform vec3  u_wind_dir;
+uniform int   u_num_forcevectors;
 
 #include "res/shaders/grass/grassdata.glsl"
 
@@ -61,6 +62,22 @@ mat3 rotate_m3(vec2 ang) {
             s.y*c.x, -s.x,  c.y*c.x);
 }
 
+
+
+#define MAX_GRASS_FORCEVECTORS 16
+
+
+
+layout (std140, binding = 6) uniform force_vec_ub {
+    // XYZ = Position
+    // W = Strength
+    vec4 force_vectors[MAX_GRASS_FORCEVECTORS];
+};
+
+
+#define PI 3.14159
+
+
 void main() {
     
     uint id = gl_GlobalInvocationID.x + uint(u_chunk_grass_baseindex);
@@ -87,13 +104,37 @@ void main() {
     rotation *= rotate_m3(vec2(0.0, 1.5));
 
     
+
+
+    // Add force vectors.
+
+    for(int i = 0; i < u_num_forcevectors; i++) {
+        if(force_vectors[i].w > 0.0) {
+
+            vec3 dir = grassdata[id].position.xyz - force_vectors[i].xyz;
+            float len = length(dir); // Distance.
+
+            len = clamp(len, 0.0, 50.0);
+            len = 1.0-(len/50.0);
+
+            vec3 diff = force_vectors[i].xyz - grassdata[id].position.xyz;
+            float dz = -(atan(diff.x, diff.z))*len;
+
+            mat3 rot =  rotate_m3(vec2(1.5*len, 0.0));
+                 rot *= rotate_m3(vec2(0.0, dz));
+
+            rotation *= rot;
+
+        }
+    }
+    
     grassdata[id].rotation = mat3x4(rotation);
 
 
     noisepos -= u_wind_strength * vec2(u_wind_dir.x * u_time, u_wind_dir.z * u_time);
-    float pn = pNoise(noisepos*0.2, 2) * 1.235;
+    float pn = pNoise(noisepos*0.2, 1) * 1.235;
 
-    GRASSDATA_BEND_VALUE(id) = pn;
+    GRASSDATA_BEND_VALUE(id) = pn + 0.1;
     
 }
 

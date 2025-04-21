@@ -9,7 +9,11 @@ struct grassdata_t {
     // W = ..
     vec4 settings;
 
+    // TODO: External force variable
+
     mat3x4 rotation;
+
+    vec4 ext_force;
 };
 
 layout(std430, binding = 5) buffer grassdata_ssbo {

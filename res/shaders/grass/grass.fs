@@ -2,6 +2,7 @@
 
 in vec3  fragPosition;
 in float grassblade_base_y;
+in vec3  force_vector;
 
 out vec4 finalColor;
 
@@ -40,7 +41,7 @@ void main()
 
     vec3 color = vec3(0);
 
-    // Fake normal to save memory.
+    // Fake normal.
     vec3 dx = dFdx(fragPosition);
     vec3 dy = dFdy(fragPosition);
     fragNormal = normalize(cross(dx, dy));
