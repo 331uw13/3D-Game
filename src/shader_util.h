@@ -43,6 +43,7 @@ typedef short uloc_t;
 #define U_ENERGY_COLOR 31
 #define U_ENERGY_CONTAINER_LEVEL 32
 #define U_ENERGY_CONTAINER_CAPACITY 33
+#define U_NUM_FORCEVECTORS 34
 
 #define U_NOTFOUND -1
 

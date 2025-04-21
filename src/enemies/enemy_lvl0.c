@@ -9,16 +9,17 @@
 #include <stdlib.h>
 
 
+#define BODY_OFFSET 26.5 // How much to offset the body from legs?  (Y axis)
+
 static void set_body_transform(struct enemy_t* ent, Vector3 tnormal) {
     
-    const float norm_off = 8.0; // How much the surface normal offsets the body position?
-    const float body_yoff = 10.0; // How much to offset the body Y position?
+    const float norm_off = 23.0; // How much the surface normal offsets the body position?
    
     // Translate to wanted position.
     ent->matrix[ENEMY_LVL0_BODY_MI]
             = MatrixTranslate(
                     tnormal.x * norm_off,
-                    body_yoff,
+                    BODY_OFFSET,
                     tnormal.z * norm_off
                     );
 
@@ -108,8 +109,8 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
 
                 if(ent->firerate_timer >= ent->firerate && gst->player.alive) {
 
-                    float prj_xoff = cos(-ent->rotation.y + M_PI/2) * 8.0;
-                    float prj_zoff = sin(-ent->rotation.y + M_PI/2) * 8.0;
+                    float prj_xoff = cos(-ent->rotation.y + M_PI/2) * 23.0;
+                    float prj_zoff = sin(-ent->rotation.y + M_PI/2) * 23.0;
 
                     if(!ent->gun_index) {
                         prj_xoff = -prj_xoff;
@@ -118,9 +119,9 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                     
 
                     Vector3 prj_pos = (Vector3) {
-                        ent->position.x + prj_xoff + ray.normal.x * 8,
-                        ent->position.y + 9.0,
-                        ent->position.z + prj_zoff + ray.normal.z * 8
+                        ent->position.x + prj_xoff + ray.normal.x * 26,
+                        ent->position.y + (BODY_OFFSET - 5),
+                        ent->position.z + prj_zoff + ray.normal.z * 26
                     };
 
                     Vector3 player_pos = gst->player.position;
@@ -142,7 +143,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                     Vector3 prj_dir = Vector3Normalize(Vector3Subtract(player_pos, prj_pos));
 
                     // Move the projectile little bit forward.
-                    const float ft = 10.0;
+                    const float ft = 25.0;
                     prj_pos.x += prj_dir.x * ft;
                     prj_pos.y += prj_dir.y * ft;
                     prj_pos.z += prj_dir.z * ft;
@@ -184,7 +185,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                 }
 
                 ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixTranslate(ray.normal.x*8.0, 10.0, ray.normal.z*8.0);
+                    = MatrixTranslate(ray.normal.x*8.0, BODY_OFFSET, ray.normal.z*8.0);
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI] 
                     = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);
@@ -219,7 +220,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                 }
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixTranslate(ray.normal.x*8.0, 10.0, ray.normal.z*8.0);
+                    = MatrixTranslate(ray.normal.x*8.0, BODY_OFFSET, ray.normal.z*8.0);
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI] 
                     = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);
@@ -243,11 +244,6 @@ void enemy_lvl0_render(struct state_t* gst, struct enemy_t* ent) {
     DrawMesh(ent->modelptr->meshes[0],
              ent->modelptr->materials[0],
              ent->matrix[ENEMY_LVL0_BODY_MI]);
-
-    // Turret body center joint
-    DrawMesh(ent->modelptr->meshes[2],
-             ent->modelptr->materials[0],
-             ent->matrix[ENEMY_LVL0_JOINT_MI]);
 
     // Turret legs
     DrawMesh(ent->modelptr->meshes[1],

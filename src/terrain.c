@@ -395,8 +395,9 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
         float position[4];
 
         float _reserved0[
-              4   // settings.
-            + 3*4 // rotation (mat3x4)
+              4   // Settings.
+            + 3*4 // Rotation (mat3x4)
+            + 4
         ];
     };
 
@@ -405,6 +406,10 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
         * (sizeof(struct grassdata_t));
 
     struct grassdata_t* data = malloc(data_size);
+
+    //float test_w = 0;
+
+    float grid_width = 0;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -420,31 +425,35 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
         // Making this loop backwards because it was a bit faster.
         for(size_t n = terrain->grass_instances_perchunk; n > 0; n--) {
 
+            float* xptr = &data[grasspos_index].position[0];
+            float* zptr = &data[grasspos_index].position[2];
+            //test_w += pincrement;
             //float grasspos[4] = { 0, 0, 0, 0 };
-            data[grasspos_index].position[0] = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
-            data[grasspos_index].position[2] = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
+            *xptr = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
+            *zptr = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
 
-            data[grasspos_index].position[1] 
-                = raycast_terrain(terrain, 
-                        data[grasspos_index].position[0],
-                        data[grasspos_index].position[2]).point.y;
-            
-            /*
-            grasspos[0] = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
-            grasspos[2] = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
-            grasspos[1] = raycast_terrain(terrain, grasspos[0], grasspos[2]).point.y;
-            */
-            /*
-            glBufferSubData(
-                    GL_SHADER_STORAGE_BUFFER,
-                    grasspos_index * GRASSDATA_STRUCT_SIZE,
-                    sizeof(float)*4,
-                    grasspos
+
+   
+
+            float freq = 0.0015;
+            float pn = (M_PI*2) * perlin_noise_2D(
+                    *xptr * freq, 
+                    *zptr * freq
                     );
-                    */
+
+            Vector2 direction = (Vector2){ cos(pn), sin(pn) };
+
+            *xptr += direction.x * 50;
+            *zptr += direction.y * 50;
+            
+            data[grasspos_index].position[1] 
+                = raycast_terrain(terrain, *xptr, *zptr).point.y;
+
+
             grasspos_index++;
         }
     }
+    printf("GRASS GRID WIDTH: %f\n", grid_width);
 
     glBufferSubData(
             GL_SHADER_STORAGE_BUFFER,
@@ -745,10 +754,10 @@ static void render_chunk_grass_lowres(
     const int mesh_triangle_count = terrain->grass_model_lowres.meshes[0].triangleCount;
     const int baseindex = (int)chunk->grass_baseindex;
     const int vao_id = terrain->grass_model_lowres.meshes[0].vaoId;
-    int instances = terrain->grass_instances_perchunk / 1.5;
+    int instances = terrain->grass_instances_perchunk / 2.0;
 
-    if(chunk->dst2player > 8000.0) {
-        instances = terrain->grass_instances_perchunk / 2.5;
+    if(chunk->dst2player > 1.15*(terrain->chunk_size * terrain->scaling)) {
+        instances = terrain->grass_instances_perchunk / 3.5;
     }
 
 
@@ -871,6 +880,82 @@ static void render_grass_group(
     terrain->num_rendered_grass += group->num_instances;
 }
 
+/*
+static void render_chunk_grass(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        struct chunk_t* chunk,
+        Matrix* mvp,
+        int render_pass
+){
+
+    int lowres = (chunk->dst2player > (terrain->chunk_size * terrain->scaling));
+
+    const int mesh_triangle_count =
+        lowres ? terrain->grass_model_lowres.meshes[0].triangleCount
+               : terrain->grass_model.meshes[0].triangleCount;
+
+    const int baseindex = (int)chunk->grass_baseindex;
+    const int vao_id = 
+        lowres ? terrain->grass_model_lowres.meshes[0].vaoId
+               : terrain->grass_model.meshes[0].vaoId;
+
+    int instances = terrain->grass_instances_perchunk;
+
+    if(lowres) {
+        instances /= 2.0;
+    }
+    
+
+    shader_setu_int(gst, 
+            GRASSDATA_COMPUTE_SHADER,
+            U_CHUNK_GRASS_BASEINDEX,
+            &baseindex
+            );
+
+    // Dispatch grassdata compute shader
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
+    dispatch_compute(gst,
+            GRASSDATA_COMPUTE_SHADER,
+            instances,  1, 1,
+            GL_SHADER_STORAGE_BARRIER_BIT
+            );
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+
+
+    int rshader_i = (render_pass == RENDERPASS_RESULT)
+        ? TERRAIN_GRASS_SHADER
+        : TERRAIN_GRASS_GBUFFER_SHADER;
+
+
+    shader_setu_matrix(gst, rshader_i, U_VIEWPROJ, *mvp);
+
+    rlEnableShader(gst->shaders[rshader_i].id);
+    rlEnableVertexArray(vao_id);
+    
+    shader_setu_int(gst,
+            rshader_i,
+            U_CHUNK_GRASS_BASEINDEX,
+            &baseindex
+            );
+
+    rlDisableBackfaceCulling();
+    glDrawElementsInstanced(
+            GL_TRIANGLES,
+            mesh_triangle_count * 3,
+            GL_UNSIGNED_SHORT,
+            0,
+            instances
+            );
+
+    rlEnableBackfaceCulling();
+    rlDisableVertexArray();
+    rlDisableShader();
+
+    terrain->num_rendered_grass += instances;
+}
+*/
 
 void render_terrain(
         struct state_t* gst,
@@ -936,6 +1021,9 @@ void render_terrain(
     int grass_perchunk = terrain->grass_instances_perchunk;
     int first_group_render = 1;
 
+    if(render_grass) {
+        upload_grass_force_vectors(gst);
+    }
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -1004,6 +1092,7 @@ void render_terrain(
 
         
         if(render_grass) {
+            //render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
 
             if(chunk->dst2player > (terrain->scaling * terrain->chunk_size)) {
                 // Render individual chunks grass but very low quality
@@ -1079,5 +1168,4 @@ void render_terrain(
             GetTime() - terrain_render_timestart);
 
 }
-
 

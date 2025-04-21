@@ -142,12 +142,14 @@
 #define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
+#define MAX_GRASS_FORCEVECTORS 16 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
 
 // Uniform buffer objects.
 #define FOG_UBO 0
 #define LIGHTS_UBO 1     // "Normal" lights
 #define PRJLIGHTS_UBO 2  // Projectile lights.
-#define MAX_UBOS 3
+#define FORCEVEC_UBO 3   // Used for grass.
+#define MAX_UBOS 4
 
 // Shader storage buffer objects.
 #define GRASSDATA_SSBO 0
@@ -308,6 +310,8 @@ struct state_t {
 
     Material energy_liquid_material;
 
+    Vector4   grass_force_vec_buffer[MAX_GRASS_FORCEVECTORS];
+    int       num_grass_force_vectors;
 
     int rseed; // Seed for randomgen functions.
     int debug;
@@ -382,10 +386,6 @@ struct state_t {
     Texture  colorpick_tex;
     Image    colorpick_img;
 
-    // Used for when player changes biome.
-    float biome_change;
-    struct biome_t* old_biome;  // TODO: Not needed.
-    struct biome_t* new_biome;  // TODO: Not needed.
 
     float timebuf            [TIMEBUF_MAX_ELEMS][TIMEBUF_SIZE];
     size_t timebuf_indices   [TIMEBUF_MAX_ELEMS];
@@ -406,6 +406,9 @@ void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
+
+void set_grass_force_vec(struct state_t* gst, Vector4 fvec); // 'fvec': X,Y,Z = Position, W = Strength.
+void upload_grass_force_vectors(struct state_t* gst);
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 void set_render_dist(struct state_t* gst, float new_dist);
 

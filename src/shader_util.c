@@ -47,7 +47,8 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_res_div\0",
     "u_energy_color\0",
     "u_energy_container_level\0",
-    "u_energy_container_capacity\0"
+    "u_energy_container_capacity\0",
+    "u_num_forcevectors\0"
 };
 
 

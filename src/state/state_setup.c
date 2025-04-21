@@ -228,7 +228,7 @@ static void state_setup_all_weapons(struct state_t* gst) {
         .prj_speed = 530.0,
         .prj_max_lifetime = 5.0,
         .prj_hitbox_size = (Vector3) { 1.5, 1.5, 1.5 },
-        .prj_scale = 1.0,
+        .prj_scale = 2.0,
         .color = (Color){ 255, 20, 120, 200 },
         .overheat_temp = -1,
         .lqmag = (struct lqmag_t) { .infinite = 1 }
@@ -958,6 +958,7 @@ static void state_setup_all_ubos(struct state_t* gst) {
     state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
+    state_create_ubo(gst, FORCEVEC_UBO,  6, MAX_GRASS_FORCEVECTORS * (4*4));
 
     gst->init_flags |= INITFLG_UBOS;
 }
@@ -1142,7 +1143,6 @@ int state_setup_everything(struct state_t* gst) {
     for(size_t i = 0; i < MAX_DECAY_LIGHTS; i++) {
         gst->decay_lights[i].enabled = 0;
     }
-
 
     gst->weather.wind_dir = (Vector3){ 0, 0, 1 };
     gst->weather.wind_strength = 100.0;

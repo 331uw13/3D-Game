@@ -84,10 +84,20 @@ void weapon_psys_prj_update(
     if(t_hit.point.y >= part->position.y) {
         disable_prj = 1;
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
-    
-        //create_explosion(gst, part->position, 100, 100);
     }
 
+    // Dont add force vector if its not near the terrain.
+    // They are pretty expensive at the moment. (i will improve later.)
+    if(part->position.y - t_hit.point.y < 50
+    && point_in_player_view(gst, &gst->player, part->position, 40.0)) {
+        set_grass_force_vec(gst, 
+                (Vector4){
+                    part->position.x,
+                    part->position.y,
+                    part->position.z,
+                    10.0
+                });
+    }
 
     BoundingBox part_boundingbox = (BoundingBox) {
         (Vector3) { // Min box corner

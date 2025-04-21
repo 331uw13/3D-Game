@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "state.h"
 #include "state/state_free.h"
@@ -431,6 +432,11 @@ void state_update_frame(struct state_t* gst) {
     }
 
 
+    memset(gst->grass_force_vec_buffer,
+            0, MAX_GRASS_FORCEVECTORS * sizeof *gst->grass_force_vec_buffer);
+    gst->num_grass_force_vectors = 0;
+
+
     // Enemies.
     if(!gst->player.powerup_shop.open) {
         for(size_t i = 0; i < gst->num_enemies; i++) {
@@ -441,6 +447,14 @@ void state_update_frame(struct state_t* gst) {
     }
     
     update_natural_item_spawns(gst);
+
+    set_grass_force_vec(gst, 
+            (Vector4){ 
+                gst->player.position.x,
+                gst->player.position.y - gst->player.height/2.0,
+                gst->player.position.z,
+                5.0
+            });
 
     // (updated only if needed)
     update_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS]);
@@ -518,6 +532,35 @@ static float get_explosion_effect(Vector3 exp_pos, Vector3 p, float radius) {
     return effect * effect;
 }
 
+// 'fvec': X,Y,Z = Position, W = Strength.
+void set_grass_force_vec(struct state_t* gst, Vector4 fvec) {
+
+    if(gst->num_grass_force_vectors >= MAX_GRASS_FORCEVECTORS) {
+        // Buffer is full for this frame.
+        return;
+    }
+
+    gst->grass_force_vec_buffer[gst->num_grass_force_vectors] = fvec;
+    gst->num_grass_force_vectors++;
+}
+
+void upload_grass_force_vectors(struct state_t* gst) { 
+    glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FORCEVEC_UBO]);
+    glBufferSubData(
+            GL_UNIFORM_BUFFER,
+            0,
+            gst->num_grass_force_vectors * (4*4),
+            gst->grass_force_vec_buffer
+            );
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    shader_setu_int(gst,
+            GRASSDATA_COMPUTE_SHADER,
+            U_NUM_FORCEVECTORS,
+            &gst->num_grass_force_vectors);
+}
+
 
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius) {
 
@@ -556,7 +599,6 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
         gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
     }
     
-
 
     SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, position));
     SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));

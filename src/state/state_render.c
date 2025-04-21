@@ -306,7 +306,7 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
             render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
             render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
-            //render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 35, 40, 50, 240 });
+            render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 35, 40, 50, 240 });
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
  
             render_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS], (Color){0});

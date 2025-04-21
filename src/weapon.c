@@ -25,7 +25,6 @@ void add_projectile(struct state_t* gst, struct psystem_t* psys, struct weapon_t
         }
 
         w->lqmag.ammo_level -= 1.0;
-        printf("%f\n", w->lqmag.ammo_level);
     }
     // Modify direction based on accuracy.
     float k = 0.1;

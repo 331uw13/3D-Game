@@ -311,7 +311,7 @@ void enemy_damage(
 
     hit_direction = Vector3Normalize(hit_direction);
 
-    ent->health -= damage;
+    ent->health -= damage * hitbox->damage_mult;
     hitbox->hits++;
 
     add_particles(gst,
@@ -454,17 +454,17 @@ void spawn_enemy(
 
                 // Head hitbox.
                 enemy_add_hitbox(ent,
-                        (Vector3){ 13.0, 8.0, 13.0 },
-                        (Vector3){ 0.0, 12.0, 0.0 },
+                        (Vector3){ 33.0, 18.0, 33.0 },
+                        (Vector3){ 0.0, 26.0, 0.0 },
                         1.758,
                         HITBOX_HEAD
                         );
 
                 // Legs hitbox.
                 enemy_add_hitbox(ent,
-                        (Vector3){ 10.0, 5.0, 10.0 }, // Size
-                        (Vector3){ 0.0, 3.0, 0.0 },   // Offset
-                        0.5,
+                        (Vector3){ 35.0, 12.0, 35.0 }, // Size
+                        (Vector3){ 0.0, 5.0, 0.0 },   // Offset
+                        0.25,
                         HITBOX_LEGS
                         );
 

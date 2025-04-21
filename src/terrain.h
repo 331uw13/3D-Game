@@ -52,7 +52,7 @@ struct foliage_rdata_t {
     int     render_backface;
 };
 
-#define GRASSDATA_STRUCT_SIZE (4*4/*position*/ + 4*4/*settings*/ + 48/*rotation (mat3x4)*/)
+#define GRASSDATA_STRUCT_SIZE (4*4/*position*/ + 4*4/*settings*/ + 48/*rotation (mat3x4)*/ + 4*4)
 
 
 struct terrain_t {
