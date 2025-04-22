@@ -64,6 +64,7 @@ mat3 rotate_m3(vec2 ang) {
 
 
 
+/*
 #define MAX_GRASS_FORCEVECTORS 16
 
 
@@ -73,6 +74,7 @@ layout (std140, binding = 6) uniform force_vec_ub {
     // W = Strength
     vec4 force_vectors[MAX_GRASS_FORCEVECTORS];
 };
+*/
 
 
 #define PI 3.14159
@@ -107,7 +109,7 @@ void main() {
 
 
     // Add force vectors.
-
+    /*
     for(int i = 0; i < u_num_forcevectors; i++) {
         if(force_vectors[i].w > 0.0) {
 
@@ -127,6 +129,7 @@ void main() {
 
         }
     }
+    */
     
     grassdata[id].rotation = mat3x4(rotation);
 
