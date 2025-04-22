@@ -34,17 +34,13 @@ struct chunk_foliage_data_t {
     size_t  num_foliage;     // Chunk may not generate the absolute max number of foliage.
 };
 
-/*
-// Points are rendered where grass blade should be.
-// Then those points are processed by geometry shader to build the grass blade
-// and bending with wind.
-struct chunk_grassdata_t {
-    unsigned int vao;
-    unsigned int vbo;
-    float* vertices;
-    size_t num_vertices;
+
+struct chunk_area_t {
+    float x_min;
+    float x_max;
+    float z_min;
+    float z_max;
 };
-*/
 
 struct chunk_t {
     size_t   index; // Index in 'terrain.chunks' array.
@@ -55,13 +51,42 @@ struct chunk_t {
     struct chunk_foliage_data_t foliage_data[MAX_FOLIAGE_TYPES];
     struct biome_t biome;
     size_t grass_baseindex; // Chunks first grass blade index.
-    //struct chunk_grassdata_t grassdata;
+
+    struct chunk_area_t area;
+
+    // Texture for grass force vectors.
+    // When chunk grass is going to be rendered
+    // force vectors are updated into force vector ubo
+    // the shaader then writes the vector as color into this texture.
+    // Then these textures are used in the compute shader
+    // to calculate the extra rotations for the grass blade.
+    // This will disable the need for big and expensive loop in the compute shader.
+    RenderTexture2D forcetex;
 };
 
 void load_foliage_models(struct state_t* gst, struct terrain_t* terrain);
 void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
 void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
 void delete_chunk(struct chunk_t* chunk);
+void load_chunk(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        struct chunk_t* chunk,
+        int chunk_x,
+        int chunk_z,
+        int chunk_triangle_count
+        );
+struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);
+
+void write_chunk_forcetex(struct state_t* gst, struct chunk_t* chunk);
+
+void render_chunk_grass(
+        struct state_t* gst,
+        struct terrain_t* terrain,
+        struct chunk_t* chunk,
+        Matrix* mvp,
+        int render_pass
+        );
 
 // These can be used for debug if needed.
 void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);

@@ -43,7 +43,11 @@ typedef short uloc_t;
 #define U_ENERGY_COLOR 31
 #define U_ENERGY_CONTAINER_LEVEL 32
 #define U_ENERGY_CONTAINER_CAPACITY 33
-#define U_NUM_FORCEVECTORS 34
+#define U_CHUNK_SIZE 34
+#define U_CHUNK_COORDS 35
+#define U_GRASS_SPACING 36
+#define U_TERRAIN_ORIGIN 37
+#define U_TERRAIN_SIZE 38
 
 #define U_NOTFOUND -1
 

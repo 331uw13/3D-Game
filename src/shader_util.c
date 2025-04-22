@@ -10,7 +10,7 @@
 #include <rlgl.h>
 
 
-#define DISABLE_ERROR_MSG 1
+#define DISABLE_ERROR_MSG 1 // TODO: Fix errors.
 
 // NOTE: This must match order with '#define U_...' in 'shader_util.h'
 static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
@@ -48,7 +48,11 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_energy_color\0",
     "u_energy_container_level\0",
     "u_energy_container_capacity\0",
-    "u_num_forcevectors\0"
+    "u_chunk_size\0",
+    "u_chunk_coords\0",
+    "u_grass_spacing\0",
+    "u_terrain_origin\0",
+    "u_terrain_size\0"
 };
 
 

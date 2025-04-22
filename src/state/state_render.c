@@ -222,6 +222,7 @@ void state_render(struct state_t* gst) {
         rlEnableColorBlend();
     }
 
+    Matrix mvp = MatrixIdentity();
     
     //  ------ Final pass.
 
@@ -280,7 +281,13 @@ void state_render(struct state_t* gst) {
         }
 
         // ------------
-        
+ 
+        mvp = MatrixMultiply(
+                rlGetMatrixModelview(),
+                rlGetMatrixProjection()
+                ); 
+
+       
         render_scene(gst, RENDERPASS_RESULT);
 
         /*
@@ -371,6 +378,31 @@ void state_render(struct state_t* gst) {
     }
     EndMode3D();
     EndTextureMode();
+    
+    if(gst->grass_enabled) {
+
+        // Update force textures.
+        for(size_t i = 0; i < gst->terrain.num_grass_chunks; i++) {
+            struct chunk_t* chunk = gst->terrain.grass_chunks[i];
+            if(chunk) {
+                write_chunk_forcetex(gst, chunk);
+            }
+        }
+
+        BeginTextureMode(gst->env_render_target);
+        BeginMode3D(gst->player.cam);
+        {
+            gst->terrain.num_rendered_grass = 0;
+            for(size_t i = 0; i < gst->terrain.num_grass_chunks; i++) {
+                struct chunk_t* chunk = gst->terrain.grass_chunks[i];
+                if(chunk) {
+                    render_chunk_grass(gst, &gst->terrain, chunk, &mvp, RENDERPASS_RESULT);
+                }
+            }
+        }
+        EndMode3D();
+        EndTextureMode();
+    }
     
     // Get bloom treshold.
  

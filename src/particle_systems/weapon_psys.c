@@ -86,6 +86,7 @@ void weapon_psys_prj_update(
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
+    /*
     // Dont add force vector if its not near the terrain.
     // They are pretty expensive at the moment. (i will improve later.)
     if(part->position.y - t_hit.point.y < 50
@@ -98,6 +99,7 @@ void weapon_psys_prj_update(
                     10.0
                 });
     }
+    */
 
     BoundingBox part_boundingbox = (BoundingBox) {
         (Vector3) { // Min box corner

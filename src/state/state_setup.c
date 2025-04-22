@@ -788,7 +788,15 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
-
+    // --- CHUNK_FORCETEX_SHADER ---
+    {
+        Shader* shader = &gst->shaders[CHUNK_FORCETEX_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/chunk_forcetex.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
@@ -1144,6 +1152,11 @@ int state_setup_everything(struct state_t* gst) {
         gst->decay_lights[i].enabled = 0;
     }
 
+    // Make sure all grass force vectors are disabled.
+    for(int i = 0; i < MAX_GRASS_FORCEVECTORS; i++) {
+        set_grass_forcevec(gst, i, (Vector4){ 0, 0, 0, -1.0 });
+    }
+
     gst->weather.wind_dir = (Vector3){ 0, 0, 1 };
     gst->weather.wind_strength = 100.0;
     //gst->weather.sun_color = (Color){ 255, 140, 30, 255 };
@@ -1181,35 +1194,60 @@ int state_setup_everything(struct state_t* gst) {
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
 
+
     // FOR TEST -------------
 
+    struct chunk_t* player_chunk = find_chunk(gst, gst->player.spawn_point);
+
+    float chunk_size      = (gst->terrain.chunk_size * gst->terrain.scaling);
+    float chunk_size_half = chunk_size / 2.0;
+
+
+    // Calculate force vector position.
+    Vector3 testpos = (Vector3){
+        player_chunk->area.x_min + chunk_size_half,
+            0,
+        player_chunk->area.z_min + chunk_size_half
+
+    };
+
+    printf("%p\n", player_chunk);
     /*
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
-
-    float test_x = 0;
-    float test_z = 0;
-    for(int i = 0; i < 100000; i++) {
-        size_t index = i * (GRASSDATA_STRUCT_SIZE);
-
-        float position[4] = {
-            test_x * 10, 0.0, test_z * 10,  0
-        };
-
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 
-                index,
-                sizeof(float) * 4,
-                position
-                );
-
-        test_x += 1.0;
-        if(test_x > 1000) {
-            test_x = 0;
-            test_z += 1.0;
-        }
-    }
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    // ----------------------
+    // Normalize force vector position.
+    testpos.x -= player_chunk->position.x;
+    testpos.y -= player_chunk->position.y;
+    testpos.z -= player_chunk->position.z;
+    testpos.x /= chunk_size;
+    testpos.y /= chunk_size;
+    testpos.z /= chunk_size;
     */
+
+    printf("testpos: %f, %f, %f\n", testpos.x, testpos.y, testpos.z);
+    printf("testpos - chunk_coords: %f, %f, %f\n",
+            testpos.x - player_chunk->position.x,
+            testpos.y - player_chunk->position.y,
+            testpos.z - player_chunk->position.z
+            );
+    printf("normalized testpos: %f, %f, %f\n",
+            (testpos.x - player_chunk->position.x) / chunk_size,
+            (testpos.y - player_chunk->position.y) / chunk_size,
+            (testpos.z - player_chunk->position.z) / chunk_size
+            );
+
+    set_grass_forcevec(gst,
+            0,
+            (Vector4){ 
+                testpos.x,
+                testpos.y,
+                testpos.z,
+                5.0
+            });  
+
+    
+    // -------------------------------
+
+
+    printf("\033[32m'%s': Done\033[0m\n", __func__);
     result = 1;
     return result;
 }

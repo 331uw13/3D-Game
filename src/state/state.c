@@ -333,7 +333,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     
     shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &resolution);
     shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &resolution);
-    
+
 
     // Update time
     shader_setu_float(gst, DEFAULT_SHADER,         U_TIME, &gst->time);
@@ -432,10 +432,6 @@ void state_update_frame(struct state_t* gst) {
     }
 
 
-    memset(gst->grass_force_vec_buffer,
-            0, MAX_GRASS_FORCEVECTORS * sizeof *gst->grass_force_vec_buffer);
-    gst->num_grass_force_vectors = 0;
-
 
     // Enemies.
     if(!gst->player.powerup_shop.open) {
@@ -448,13 +444,6 @@ void state_update_frame(struct state_t* gst) {
     
     update_natural_item_spawns(gst);
 
-    set_grass_force_vec(gst, 
-            (Vector4){ 
-                gst->player.position.x,
-                gst->player.position.y - gst->player.height/2.0,
-                gst->player.position.z,
-                5.0
-            });
 
     // (updated only if needed)
     update_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS]);
@@ -498,9 +487,6 @@ void state_update_frame(struct state_t* gst) {
             }
         }
     }
-
-
-
 }
 
 
@@ -533,34 +519,26 @@ static float get_explosion_effect(Vector3 exp_pos, Vector3 p, float radius) {
 }
 
 // 'fvec': X,Y,Z = Position, W = Strength.
-void set_grass_force_vec(struct state_t* gst, Vector4 fvec) {
+void set_grass_forcevec(struct state_t* gst, size_t index, Vector4 fvec) {
 
-    if(gst->num_grass_force_vectors >= MAX_GRASS_FORCEVECTORS) {
-        // Buffer is full for this frame.
+    if(index >= MAX_GRASS_FORCEVECTORS) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': 'index'(%li) is out of bounds\033[0m\n",
+                __func__, index);
         return;
     }
 
-    gst->grass_force_vec_buffer[gst->num_grass_force_vectors] = fvec;
-    gst->num_grass_force_vectors++;
-}
+    float shit[4] = { fvec.x, fvec.y, fvec.z, fvec.w };
 
-void upload_grass_force_vectors(struct state_t* gst) { 
     glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FORCEVEC_UBO]);
     glBufferSubData(
             GL_UNIFORM_BUFFER,
-            0,
-            gst->num_grass_force_vectors * (4*4),
-            gst->grass_force_vec_buffer
+            index * (4*4),
+            4*4,
+            shit
             );
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    shader_setu_int(gst,
-            GRASSDATA_COMPUTE_SHADER,
-            U_NUM_FORCEVECTORS,
-            &gst->num_grass_force_vectors);
 }
-
 
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius) {
 

@@ -34,7 +34,7 @@
 
 #define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
-#define MAX_VOLUME_DIST 720 // How far away can player hear sounds.?
+#define MAX_VOLUME_DIST 3000 // How far away can player hear sounds.?
 
 #define GRAVITY_CONST 500
 #define FONT_SPACING 1.0
@@ -114,7 +114,8 @@
 #define TERRAIN_GRASS_GBUFFER_SHADER 22
 #define GRASSDATA_COMPUTE_SHADER 23
 #define ENERGY_LIQUID_SHADER 24
-#define MAX_SHADERS 25
+#define CHUNK_FORCETEX_SHADER 25
+#define MAX_SHADERS 26
 // ...
 
 
@@ -202,7 +203,7 @@
 // So the average can be calculated.
 // How many to record?
 // If the 'TIME_ELEM_<something>' ends with _R it means its for rendering.
-#define TIMEBUF_SIZE 16
+#define TIMEBUF_SIZE 24
 #define TIMEBUF_ELEM_PSYSTEMS_R 0
 #define TIMEBUF_ELEM_TERRAIN_R 1
 #define TIMEBUF_MAX_ELEMS 2
@@ -282,6 +283,7 @@ struct state_t {
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
 
+
     // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
     struct light_t decay_lights[MAX_DECAY_LIGHTS];
     size_t next_explosion_light_index;
@@ -309,9 +311,6 @@ struct state_t {
     float         natural_item_spawn_timers[MAX_ITEM_TYPES];
 
     Material energy_liquid_material;
-
-    Vector4   grass_force_vec_buffer[MAX_GRASS_FORCEVECTORS];
-    int       num_grass_force_vectors;
 
     int rseed; // Seed for randomgen functions.
     int debug;
@@ -406,9 +405,9 @@ void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
+void set_grass_forcevec(struct state_t* gst, size_t index, Vector4 fvec);
 
-void set_grass_force_vec(struct state_t* gst, Vector4 fvec); // 'fvec': X,Y,Z = Position, W = Strength.
-void upload_grass_force_vectors(struct state_t* gst);
+
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 void set_render_dist(struct state_t* gst, float new_dist);
 

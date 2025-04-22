@@ -130,6 +130,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
     p->rotation_from_hit = (Vector3){ 0, 0, 0 };
     
+    SetTraceLogLevel(LOG_ALL);
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
 
     // Material for gun:
@@ -146,12 +147,14 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->hands_material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[PLAYER_HANDS_TEXID];
     p->hands_material.shader = gst->shaders[DEFAULT_SHADER];
        
+    SetTraceLogLevel(LOG_NONE);
 
 
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
     p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
     p->gunfx_timer = 1.0;
+    
 
     for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
         p->kills[i] = 0;
@@ -868,7 +871,8 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
-    if(p->any_gui_open || gst->devmenu_open) {
+
+    if(p->any_gui_open || (gst->devmenu_open && !IsMouseButtonDown(MOUSE_RIGHT_BUTTON))) {
         return;
     }
 

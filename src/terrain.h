@@ -54,6 +54,7 @@ struct foliage_rdata_t {
 
 #define GRASSDATA_STRUCT_SIZE (4*4/*position*/ + 4*4/*settings*/ + 48/*rotation (mat3x4)*/ + 4*4)
 
+#define MAX_GRASS_CHUNKS 32
 
 struct terrain_t {
     int seed;
@@ -72,12 +73,17 @@ struct terrain_t {
     Model  grass_model_lowres;
     size_t grass_instances_perchunk;
 
+    struct chunk_t* grass_chunks[MAX_GRASS_CHUNKS];
+    size_t num_grass_chunks;
+
     struct biome_t biomedata[MAX_BIOME_TYPES]; //<- Initialized from 'biome.c' 'setup_biomes()'
     Material biome_materials[MAX_BIOME_TYPES];
     Vector2  biome_ylevels[MAX_BIOME_TYPES]; // X(where the biome starts.) Y(where the biome ends.)
     
     // Area at biome edges
     float biomeshift_area; // NOTE: This value is set from 'biome.c' 'setup_biomes()'
+
+    float grass_spacing;
 
     // Information about specific type of "foliage"
     // Can be found from these arrays with foliage ID.
@@ -96,6 +102,9 @@ struct terrain_t {
     struct triangle2x_t* triangle_lookup;
 };
 
+// NOTE: Coordinates are not world coordinates for this function.
+// Use 'raycast_terrain' for that.
+float get_heightmap_value(struct terrain_t* terrain, float x, float z);
 
 // More optimized way to raycast the terrain instead of raycasting on the whole terrain mesh.
 // it uses triangle lookup table.

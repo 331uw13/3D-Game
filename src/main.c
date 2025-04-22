@@ -41,7 +41,6 @@ void loop(struct state_t* gst) {
 
         BeginDrawing();
         {
-            ClearBackground(BLACK);
 
             // Finally post process everything.
             //
@@ -53,7 +52,7 @@ void loop(struct state_t* gst) {
                 SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_final.texture);
-
+                
                 DrawTexturePro(gst->env_render_target.texture,
                         (Rectangle){
                             0, 0, gst->env_render_target.texture.width, -gst->env_render_target.texture.height
@@ -133,6 +132,10 @@ void loop(struct state_t* gst) {
                 next_y += y_inc;
 
                 DrawText(TextFormat("NumRenderedEnemies: %li / %li", gst->num_enemies_rendered, gst->num_enemies),
+                        dtext_x, next_y, 20, PURPLE);
+                next_y += y_inc;
+                
+                DrawText(TextFormat("GrassChunks: %li", gst->terrain.num_grass_chunks),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
 

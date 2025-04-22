@@ -26,11 +26,10 @@ static size_t get_heightmap_index(struct terrain_t* terrain, float x, float z) {
     return (size_t)i;
 }
 
-static float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
+float get_heightmap_value(struct terrain_t* terrain, float x, float z) {
     size_t index = get_heightmap_index(terrain, x, z);
     return terrain->heightmap.data[index];
 }
-
 
 
 
@@ -153,8 +152,6 @@ static void render_loading_info(struct state_t* gst, const char* text, int step,
 
 static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain) {
     
-    printf("--------- LOADING CHUNKS ---------\n\n");
-
     int terrain_size = terrain->heightmap.size;
 
     terrain->chunk_size = CHUNK_SIZE;
@@ -188,192 +185,26 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     printf(" Chunk triangle count: %i\n", chunk_triangle_count);
     int chunk_x = 0;
     int chunk_z = 0;
-
     
-    Vector3 scale = (Vector3) { terrain->scaling, 1.0, terrain->scaling };
-
-    // Allocate memory for chunks and fill them with terrain vertices and normals.
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         *chunk = (struct chunk_t) { 0 };
         chunk->index = i;
   
-
+        
         render_loading_info(gst, "Loading chunks",
                 i, terrain->num_chunks);
-
-        chunk->mesh.triangleCount = chunk_triangle_count;
-        chunk->mesh.vertexCount = chunk->mesh.triangleCount * 3;
-
-        chunk->mesh.vertices = malloc(chunk->mesh.vertexCount * 3 * sizeof(float));
-        chunk->mesh.normals  = malloc(chunk->mesh.vertexCount * 3 * sizeof(float));
-        /*TODO*/chunk->mesh.texcoords = malloc(chunk->mesh.vertexCount * 2 * sizeof(float));
-
-        // Used for calculating normals.
-        Vector3 vA = { 0 };
-        Vector3 vB = { 0 };
-        Vector3 vC = { 0 };
-
-        int v_counter = 0; // Count vertices.
-        int n_counter = 0; // Count normals.
-        int tc_counter = 0; // Count texcoords.
-
-        // Figure chunk Y position by taking avarage of all chunk y vertices.
-        // (Chunk Y is not used in rendering because the y level is just from the heightmap)
-        chunk->position = (Vector3){ 
-            (chunk_x * (terrain->scaling)) - ((terrain_size/2) * terrain->scaling),
-            0, 
-            (chunk_z * (terrain->scaling)) - ((terrain_size/2) * terrain->scaling)
-        };
-
-        chunk->center_pos = (Vector3) {
-            chunk->position.x
-                + (terrain->scaling * terrain->chunk_size / 2),
-            0,
-            chunk->position.z
-                + (terrain->scaling * terrain->chunk_size / 2)
-        };
-
-        // Used to get average Y position of chunk.
-        float vertex_y_points = 0.0;
-        float num_vertex_y_points = 0.0;
-
-        for(int z = 0; z < terrain->chunk_size; z++) {
-            for(int x = 0; x < terrain->chunk_size; x++) {
        
-
-                float X = (float)(x + chunk_x);
-                float Z = (float)(z + chunk_z);
-
-                // TODO: Remove this shit and fix the heightmap size.
-                int last_x = (X+1 >= terrain_size);
-                int last_z = (Z+1 >= terrain_size);
-                X = CLAMP(X - last_x, 0, terrain_size);
-                Z = CLAMP(Z - last_z, 0, terrain_size);
-
-                // Left up corner triangle
-
-                chunk->mesh.vertices[v_counter]   = (float)x * scale.x;
-                chunk->mesh.vertices[v_counter+1] = get_heightmap_value(terrain, X, Z);
-                chunk->mesh.vertices[v_counter+2] = (float)z * scale.z;
-                
-                chunk->mesh.vertices[v_counter+3] = (float)x * scale.x;
-                chunk->mesh.vertices[v_counter+4] = get_heightmap_value(terrain, X, Z+1);
-                chunk->mesh.vertices[v_counter+5] = (float)(z+1) * scale.z;
-                
-                chunk->mesh.vertices[v_counter+6] = (float)(x+1) * scale.x;
-                chunk->mesh.vertices[v_counter+7] = get_heightmap_value(terrain, X+1, Z);
-                chunk->mesh.vertices[v_counter+8] = (float)z * scale.z;
-
-                // Average of the quad y points.
-                // Then later take avarage of those.
-                vertex_y_points += 
-                    ( chunk->mesh.vertices[v_counter+1]
-                    + chunk->mesh.vertices[v_counter+4]
-                    + chunk->mesh.vertices[v_counter+7]) / 3.0;
-
-                num_vertex_y_points += 1.0;
-
-                // Right bottom corner triangle
-
-                chunk->mesh.vertices[v_counter+9] = chunk->mesh.vertices[v_counter+6];
-                chunk->mesh.vertices[v_counter+10] = chunk->mesh.vertices[v_counter+7];
-                chunk->mesh.vertices[v_counter+11] = chunk->mesh.vertices[v_counter+8];
-                
-                chunk->mesh.vertices[v_counter+12] = chunk->mesh.vertices[v_counter+3];
-                chunk->mesh.vertices[v_counter+13] = chunk->mesh.vertices[v_counter+4];
-                chunk->mesh.vertices[v_counter+14] = chunk->mesh.vertices[v_counter+5];
-                
-                chunk->mesh.vertices[v_counter+15] = (float)(x+1) * scale.x;
-                chunk->mesh.vertices[v_counter+16] = get_heightmap_value(terrain, X+1, Z+1);
-                chunk->mesh.vertices[v_counter+17] = (float)(z+1) * scale.z;
-
-
-
-                v_counter += 18;
-
-                
-                // Calulcate normals
-
-                for(int i = 0; i < 18; i += 9) {
-                    vA.x = chunk->mesh.vertices[n_counter + i];
-                    vA.y = chunk->mesh.vertices[n_counter + i+1];
-                    vA.z = chunk->mesh.vertices[n_counter + i+2];
-
-                    vB.x = chunk->mesh.vertices[n_counter + i+3];
-                    vB.y = chunk->mesh.vertices[n_counter + i+4];
-                    vB.z = chunk->mesh.vertices[n_counter + i+5];
-                    
-                    vC.x = chunk->mesh.vertices[n_counter + i+6];
-                    vC.y = chunk->mesh.vertices[n_counter + i+7];
-                    vC.z = chunk->mesh.vertices[n_counter + i+8];
-
-                    Vector3 vN 
-                        = Vector3Normalize(
-                            Vector3CrossProduct(
-                                Vector3Subtract(vB, vA),
-                                Vector3Subtract(vC, vA)
-                                )
-                            );
-
-                    chunk->mesh.normals[n_counter + i]   = vN.x;
-                    chunk->mesh.normals[n_counter + i+1] = vN.y;
-                    chunk->mesh.normals[n_counter + i+2] = vN.z;
-                    chunk->mesh.normals[n_counter + i+3] = vN.x;
-                    chunk->mesh.normals[n_counter + i+4] = vN.y;
-                    chunk->mesh.normals[n_counter + i+5] = vN.z;
-                    chunk->mesh.normals[n_counter + i+6] = vN.x;
-                    chunk->mesh.normals[n_counter + i+7] = vN.y;
-                    chunk->mesh.normals[n_counter + i+8] = vN.z;
-                }
-
-                // Texture coordinates.
-                const float m_s = (float)8 - 1;
-
-                float tx = (float)x;
-                float tz = (float)z;
-
-                chunk->mesh.texcoords[tc_counter]   = tx / m_s;
-                chunk->mesh.texcoords[tc_counter+1] = tz / m_s;
-                
-                chunk->mesh.texcoords[tc_counter+2] = tx / m_s;
-                chunk->mesh.texcoords[tc_counter+3] = (tz+1) / m_s;
-                
-                chunk->mesh.texcoords[tc_counter+4] = (tx+1) / m_s;
-                chunk->mesh.texcoords[tc_counter+5] = tz / m_s;
-                
-                chunk->mesh.texcoords[tc_counter+6] = chunk->mesh.texcoords[tc_counter + 4];
-                chunk->mesh.texcoords[tc_counter+7] = chunk->mesh.texcoords[tc_counter + 5];
-                
-                chunk->mesh.texcoords[tc_counter+8] = chunk->mesh.texcoords[tc_counter + 2];
-                chunk->mesh.texcoords[tc_counter+9] = chunk->mesh.texcoords[tc_counter + 3];
-                
-                chunk->mesh.texcoords[tc_counter+10] = (tx+1) / m_s;
-                chunk->mesh.texcoords[tc_counter+11] = (tz+1) / m_s;
-
-                tc_counter += 12;
-
-                n_counter += 18;
-            }
-        }
-
-        chunk->position.y = vertex_y_points / num_vertex_y_points;
-        chunk->center_pos.y = chunk->position.y;
-
-        decide_chunk_biome(gst, terrain, chunk);
-        load_chunk_foliage(gst, terrain, chunk);
-
-        UploadMesh(&chunk->mesh, 0);
-
+        load_chunk(gst, terrain, chunk, chunk_x, chunk_z, chunk_triangle_count);
+        
         chunk_x += terrain->chunk_size;
         if(chunk_x >= terrain_size) {
             chunk_x = 0;
             chunk_z += terrain->chunk_size;
         }
-    }
 
-    printf("\n----------------\n");
+    }
 }
 
 // Write all constant information about grass blades
@@ -407,21 +238,27 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
 
     struct grassdata_t* data = malloc(data_size);
 
-    //float test_w = 0;
 
-    float grid_width = 0;
+    // TODO: Create valid grid. and randomize grass positions for that
+    //       so number of rendered instances can be decreased for far away chunks.
 
+    terrain->grass_spacing
+        = (float)terrain->grass_instances_perchunk
+        / (float)(terrain->chunk_size * terrain->scaling);
+
+
+    shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_GRASS_SPACING, &terrain->grass_spacing);
+   
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         chunk->grass_baseindex = grasspos_index;
 
-        const float chunk_x_min = chunk->position.x;
-        const float chunk_x_max = chunk->position.x + (terrain->chunk_size * terrain->scaling);
-        const float chunk_z_min = chunk->position.z;
-        const float chunk_z_max = chunk->position.z + (terrain->chunk_size * terrain->scaling);
 
         render_loading_info(gst, "Loading grass", i, terrain->num_chunks);
 
+        float next_x = chunk->area.x_min;
+        float next_z = chunk->area.z_min;
+  
         // Making this loop backwards because it was a bit faster.
         for(size_t n = terrain->grass_instances_perchunk; n > 0; n--) {
 
@@ -429,23 +266,20 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
             float* zptr = &data[grasspos_index].position[2];
             //test_w += pincrement;
             //float grasspos[4] = { 0, 0, 0, 0 };
-            *xptr = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
-            *zptr = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
+            //*xptr = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
+            //*zptr = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
+
+            *xptr = next_x;
+            *zptr = next_z;
+
+            next_x += terrain->grass_spacing;
+            if(next_x >= chunk->area.x_max) {
+                next_x = chunk->area.x_min;
+                next_z += terrain->grass_spacing;
+            }
 
 
-   
 
-            float freq = 0.0015;
-            float pn = (M_PI*2) * perlin_noise_2D(
-                    *xptr * freq, 
-                    *zptr * freq
-                    );
-
-            Vector2 direction = (Vector2){ cos(pn), sin(pn) };
-
-            *xptr += direction.x * 50;
-            *zptr += direction.y * 50;
-            
             data[grasspos_index].position[1] 
                 = raycast_terrain(terrain, *xptr, *zptr).point.y;
 
@@ -453,7 +287,6 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
             grasspos_index++;
         }
     }
-    printf("GRASS GRID WIDTH: %f\n", grid_width);
 
     glBufferSubData(
             GL_SHADER_STORAGE_BUFFER,
@@ -681,7 +514,17 @@ void generate_terrain(
     terrain->material.shader = gst->shaders[DEFAULT_SHADER];
     terrain->material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[TERRAIN_TEXID];
 
+    Vector2 terrain_origin = (Vector2){
+        terrain->transform.m12,
+        terrain->transform.m14
+    };
+    shader_setu_vec2(gst, CHUNK_FORCETEX_SHADER, U_TERRAIN_ORIGIN, &terrain_origin);
 
+    float terrain_size_F = (float)terrain_size;
+    shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_TERRAIN_SIZE, &terrain_size_F);
+
+
+    // (NOT CURRENTLY USED)
     // Create plane for water
     //const float waterplane_size = (CHUNK_SIZE * (1+terrain->num_max_visible_chunks/4)) * terrain->scaling;
     terrain->waterplane = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
@@ -742,73 +585,6 @@ void delete_terrain(struct terrain_t* terrain) {
 }
 
 
-// Render individual chunks grass. Low quality and less grass.
-// (For chunks who are far away)
-static void render_chunk_grass_lowres(
-        struct state_t* gst,
-        struct terrain_t* terrain,
-        struct chunk_t* chunk,
-        Matrix* mvp,
-        int render_pass
-){
-    const int mesh_triangle_count = terrain->grass_model_lowres.meshes[0].triangleCount;
-    const int baseindex = (int)chunk->grass_baseindex;
-    const int vao_id = terrain->grass_model_lowres.meshes[0].vaoId;
-    int instances = terrain->grass_instances_perchunk / 2.0;
-
-    if(chunk->dst2player > 1.15*(terrain->chunk_size * terrain->scaling)) {
-        instances = terrain->grass_instances_perchunk / 3.5;
-    }
-
-
-    shader_setu_int(gst, 
-            GRASSDATA_COMPUTE_SHADER,
-            U_CHUNK_GRASS_BASEINDEX,
-            &baseindex
-            );
-
-    // Dispatch grassdata compute shader
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
-    dispatch_compute(gst,
-            GRASSDATA_COMPUTE_SHADER,
-            instances,  1, 1,
-            GL_SHADER_STORAGE_BARRIER_BIT
-            );
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-
-    int rshader_i = (render_pass == RENDERPASS_RESULT)
-        ? TERRAIN_GRASS_SHADER
-        : TERRAIN_GRASS_GBUFFER_SHADER;
-
-
-    shader_setu_matrix(gst, rshader_i, U_VIEWPROJ, *mvp);
-
-    rlEnableShader(gst->shaders[rshader_i].id);
-    rlEnableVertexArray(vao_id);
-    
-    shader_setu_int(gst,
-            rshader_i,
-            U_CHUNK_GRASS_BASEINDEX,
-            &baseindex
-            );
-
-    rlDisableBackfaceCulling();
-    glDrawElementsInstanced(
-            GL_TRIANGLES,
-            mesh_triangle_count * 3,
-            GL_UNSIGNED_SHORT,
-            0,
-            instances
-            );
-
-    rlEnableBackfaceCulling();
-    rlDisableVertexArray();
-    rlDisableShader();
-
-    terrain->num_rendered_grass += instances;
-}
 
 
 struct grass_group_t {
@@ -820,6 +596,7 @@ struct grass_group_t {
 };
 
 
+/*
 // Render group of grass chunks. High quality.
 static void render_grass_group(
         struct state_t* gst,
@@ -879,6 +656,7 @@ static void render_grass_group(
 
     terrain->num_rendered_grass += group->num_instances;
 }
+*/
 
 /*
 static void render_chunk_grass(
@@ -976,7 +754,7 @@ void render_terrain(
 
     //terrain->water_ylevel += sin(gst->time)*0.001585;
     float trender_dist = 0;
-    int render_grass = 1;
+    //int render_grass = 1;
 
 
     // Reduce render distance for ssao and shadow cams.
@@ -991,39 +769,27 @@ void render_terrain(
 
         case RENDERPASS_SHADOWS:
             trender_dist = (terrain->scaling * (terrain->chunk_size));
-            render_grass = 0;
+            //render_grass = 0;
             break;
     }
 
-    render_grass *= (gst->grass_enabled);
+    //render_grass *= (gst->grass_enabled);
 
 
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
 
 
-    Matrix mvp = MatrixMultiply(
-            rlGetMatrixModelview(),
-            rlGetMatrixProjection()
-            );  
    
-    terrain->num_rendered_grass = 0;
+    terrain->num_grass_chunks = 0;
 
 
-    // Add new chunk base index and increase instance count on the group.
-    // If chunk Z Position changes Render current group and start collecting new group info.
-    // This will reduce draw calls and compute dispatches.
-
+    /*
     struct chunk_t* prev_chunk = &terrain->chunks[0];
-    struct grass_group_t grass_group = { -1, 0, 0 };
-
+    struct grass_group_t grass_group = { -1, 0, 0, 0 };
+    */
 
     int grass_perchunk = terrain->grass_instances_perchunk;
-    int first_group_render = 1;
-
-    if(render_grass) {
-        upload_grass_force_vectors(gst);
-    }
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -1087,13 +853,20 @@ void render_terrain(
         // Render chunk ground.
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
-
-
-
         
-        if(render_grass) {
+
+        if(gst->grass_enabled) {
             //render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
 
+            if(gst->terrain.num_grass_chunks < MAX_GRASS_CHUNKS) {
+                gst->terrain.grass_chunks[gst->terrain.num_grass_chunks] = chunk;
+                gst->terrain.num_grass_chunks++;
+            }
+
+            //write_chunk_forcetex(gst, chunk);
+            //render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
+            
+            /*
             if(chunk->dst2player > (terrain->scaling * terrain->chunk_size)) {
                 // Render individual chunks grass but very low quality
                 // And it reduces the number of instances.
@@ -1110,7 +883,7 @@ void render_terrain(
                 // Render high quality grass blade.
                 render_grass_group(gst, terrain, &grass_group, &mvp, render_pass);
 
-                grass_group = (struct grass_group_t) { -1, 0, 0 };
+                grass_group = (struct grass_group_t) { -1, 0, 0, 0 };
             }
            
             if(grass_group.base_index < 0) {
@@ -1119,9 +892,11 @@ void render_terrain(
             }
             
             prev_chunk = chunk;
+            */
         }
     }
 
+    /*
     if(render_grass) {
 
         // Finish last grass group if valid.
@@ -1130,6 +905,7 @@ void render_terrain(
             render_grass_group(gst, terrain, &grass_group, &mvp, render_pass);
         }
     }
+    */
 
     ground_pass = 0;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
