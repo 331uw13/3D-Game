@@ -7,7 +7,7 @@ out vec4 finalColor;
 
 
 // NOTE: This must be same as in 'src/state/state.h'
-#define MAX_GRASS_FORCEVECTORS 16 
+#define MAX_GRASS_FORCEVECTORS 64 
 
 
 layout (std140, binding = 6) uniform force_vec_ub {
@@ -16,36 +16,42 @@ layout (std140, binding = 6) uniform force_vec_ub {
     vec4 force_vectors[MAX_GRASS_FORCEVECTORS];
 };
 
-uniform float u_chunk_size;
+uniform int u_chunk_size;
 uniform vec2 u_terrain_origin;
 uniform vec2 u_chunk_coords;
 uniform float u_grass_spacing;
-uniform float u_terrain_size;
+uniform float u_terrain_scaling;
+
 
 float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
     return (t - src_min) * (dst_max - dst_min) / (src_max - src_min) + dst_min;
 }
 
 
-
 void main()
 {
     finalColor = vec4(0.0, 0.0, 0.0, 1.0);
     
-    float chunk_size = float(u_chunk_size);
-    //vec2 chunk_coords = u_chunk_coords - u_terrain_origin;
-
+    float chunk_size_scaled = float(u_chunk_size) * u_terrain_scaling;
 
     for(int i = 0; i < MAX_GRASS_FORCEVECTORS; i++) {
         if(force_vectors[i].w <= 0.0) {
             continue;
         }
 
-        vec2 fd = (gl_FragCoord.xy) / 128.0;
-        vec2 d = (force_vectors[i].xz - u_chunk_coords) / chunk_size;
+        vec2 p = (gl_FragCoord.xy) / float(u_chunk_size);
+        vec2 fv = (force_vectors[i].xz - u_chunk_coords) / chunk_size_scaled;
 
-        finalColor.r = length(fd - d);
-        break;
+        float strength = 45.0 - force_vectors[i].w;
+        float dist = length(p - fv) * max(strength, 1.0);
+        dist = 1.0 - clamp(dist, 0.0, 1.0);
+
+        vec2 dir = normalize(p - fv)+1.0;
+        finalColor.r += dir.x * dist;
+        finalColor.g += dir.y * dist;
+        //finalColor.rg = clamp(finalColor.rg, vec2(0.0), vec2(1.0));
+
+        finalColor.b += dist;
     }
 
 }

@@ -7,6 +7,12 @@ uniform float u_wind_strength;
 uniform float u_time;
 uniform vec3  u_wind_dir;
 uniform int   u_num_forcevectors;
+uniform vec2      u_chunk_coords;
+uniform int       u_chunk_size;
+//uniform vec2      u_terrain_origin;
+uniform int     u_num_grass_perchunk;
+
+layout (rgba8, binding = 0) uniform readonly image2D chunk_forcetex;
 
 #include "res/shaders/grass/grassdata.glsl"
 
@@ -76,9 +82,15 @@ layout (std140, binding = 6) uniform force_vec_ub {
 };
 */
 
+mat3 rotate_to_dir(vec3 dir) {
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 a = normalize(dir);
+    vec3 b = normalize(cross(a, up));
+    vec3 c = normalize(cross(b, a));
+    return mat3(a, b, c);
+}
 
 #define PI 3.14159
-
 
 void main() {
     
@@ -92,20 +104,42 @@ void main() {
 
     // Calculate rotation.
 
+
     // First rotate towards the wind direction.
+    /*
     vec3 windno_y = vec3(u_wind_dir.x, 0, u_wind_dir.z);
     vec3 up = vec3(0.0, 1.0, 0.0);
     vec3 wx = normalize(u_wind_dir);
     vec3 wy = normalize(cross(wx, up));
     vec3 wz = normalize(cross(wy, wx));
-
-    mat3 rotation = mat3(wx, wy, wz);
+    */
+    mat3 rotation = rotate_to_dir(u_wind_dir);//mat3(wx, wy, wz);
 
     float shift = pNoise(grassdata[id].position.xz*2.0, 1)*1.5;
     rotation *= rotate_m3(vec2(1.5, shift));
     rotation *= rotate_m3(vec2(0.0, 1.5));
 
-    
+
+    // ?????? has to be easier way to do this.. dont better solution yet.
+    float num = float(u_num_grass_perchunk);
+    float huh = num / sqrt(u_chunk_size) / (u_chunk_size*4);
+    vec2 localcoord = 
+        (grassdata[id].position.xz - u_chunk_coords)
+        / (u_chunk_size
+        / (((num / sqrt(u_chunk_size)) / (u_chunk_size * huh)) + 0.25)
+        );
+
+        /// (u_chunk_size / (u_grass_spacing / 2.0 - 0.1));
+
+    localcoord = clamp(localcoord, vec2(0.0), vec2(u_chunk_size));
+    vec3 fvec = imageLoad(chunk_forcetex, ivec2(localcoord)).xyz;
+
+
+
+    //grassdata[id].settings.y = fvec.z * 10;
+
+    //vec3 fvec = texture(u_chunk_forcetex, vec2(0.5, 0.5)).rgb;
+    //grassdata[id].settings.y = fvec.x;
 
 
     // Add force vectors.
@@ -138,7 +172,6 @@ void main() {
     float pn = pNoise(noisepos*0.2, 1) * 1.235;
 
     GRASSDATA_BEND_VALUE(id) = pn + 0.1;
-    
 }
 
 

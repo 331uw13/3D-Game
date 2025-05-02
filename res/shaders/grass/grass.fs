@@ -3,6 +3,7 @@
 in vec3  fragPosition;
 in float grassblade_base_y;
 in vec3  force_vector;
+in float test_shit;
 
 out vec4 finalColor;
 
@@ -60,6 +61,8 @@ void main()
                 );
 
     color = g_lightcolor*0.258 + grass_color;
+
+    //color *= test_shit;
 
     // Gamma correction.
     color = pow(color, vec3(1.0/0.54));

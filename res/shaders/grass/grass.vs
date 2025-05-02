@@ -6,6 +6,7 @@ in vec3 vertexPosition;
 out vec3 fragNormal_f;
 out vec3 fragPosition;
 out vec3 force_vector;
+out float test_shit;
 
 out float grassblade_base_y; // Terrain ylevel at grass blade position.
 
@@ -39,6 +40,8 @@ void main()
     grassblade_base_y = fragPosition.y;
 
     force_vector = grassdata[id].ext_force.xyz;
+
+    //test_shit = grassdata[id].settings.y;
 
     
     float bend = ((fragPosition.y+vertexPosition.y) - grassblade_base_y) / 10.0;
