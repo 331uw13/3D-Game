@@ -23,7 +23,8 @@ struct particle_t {
     Vector3 velocity;
     Vector3 accel;
     Color   color; // (Not used if 'psystem->color_vbo' is not setup)
-    
+
+
     float   lifetime;
     float   max_lifetime;
     float   n_lifetime; // Normalized lifetime.
@@ -53,6 +54,8 @@ struct particle_t {
     struct light_t light;
     int has_light;
     int last_update;
+    
+    short int forcevec_index;
 
     short   user_i[PSYS_MAX_USER_I];
     float   user_f[PSYS_MAX_USER_F];

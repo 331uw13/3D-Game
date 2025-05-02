@@ -330,38 +330,6 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
-
-    // FOR TEST
-   
-    /*
-    set_grass_forcevec(gst, 
-            (Vector4){ 
-                gst->player.position.x,
-                gst->player.position.y - gst->player.height/2.0,
-                gst->player.position.z,
-                5.0
-            });
-            */
- 
-    struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
-    int tex_x = gst->screen_size.x-gst->terrain.chunk_size-30;
-    int tex_y = gst->screen_size.y/2;
-    DrawTexture(player_chunk->forcetex.texture, tex_x, tex_y, WHITE);
-    DrawTextEx(gst->font, TextFormat("Chunk:%p", player_chunk), (Vector2){ tex_x-150, tex_y-15 }, 15, FONT_SPACING, WHITE);
-
-    /*
-    for(int i = 0; i < gst->num_grass_force_vectors; i++) {
-        printf("(%i) = %0.2f, %0.2f, %0.2f,  %0.2f\n",
-                i,
-                gst->grass_force_vec_buffer[i].x - gst->terrain.transform.m12,
-                gst->grass_force_vec_buffer[i].y,
-                gst->grass_force_vec_buffer[i].z - gst->terrain.transform.m14,
-                gst->grass_force_vec_buffer[i].w
-                );
-    }
-    */
-
-
     /*
     // ------------ Color pickers -----------
 

@@ -379,6 +379,10 @@ void state_render(struct state_t* gst) {
     EndMode3D();
     EndTextureMode();
     
+    // Grass has to rendered now, because 'write_chunk_forcetex()'
+    // uses BeginTextureMode() to write the texture.
+    // Then that texture can be used in the compute shader 
+    // for the chunk to rotate grass blades.
     if(gst->grass_enabled) {
 
         // Update force textures.
@@ -405,7 +409,9 @@ void state_render(struct state_t* gst) {
     }
     
     // Get bloom treshold.
- 
+
+    // TODO: Clean this up..
+
     BeginTextureMode(gst->bloomtresh_target);
     ClearBackground((Color){ 0, 0, 0, 255 });
     BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);

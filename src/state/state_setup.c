@@ -1129,12 +1129,12 @@ int state_setup_everything(struct state_t* gst) {
     int result = 0;
 
     gst->init_flags = 0;
-
     // TODO: Is this used?
     gst->ssao_res_x = 0;
     gst->ssao_res_y = 0;
     
-
+    gst->num_prj_forcevecs = 0;
+    gst->num_env_forcevecs = MAX_PRJ_FORCEVECTORS;
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
@@ -1193,59 +1193,6 @@ int state_setup_everything(struct state_t* gst) {
 
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
-
-
-    // FOR TEST -------------
-
-    struct chunk_t* player_chunk = find_chunk(gst, gst->player.spawn_point);
-
-    float chunk_size      = (gst->terrain.chunk_size * gst->terrain.scaling);
-    float chunk_size_half = chunk_size / 2.0;
-
-
-    // Calculate force vector position.
-    Vector3 testpos = (Vector3){
-        player_chunk->area.x_min + chunk_size_half,
-            0,
-        player_chunk->area.z_min + chunk_size_half
-
-    };
-
-    printf("%p\n", player_chunk);
-    /*
-    // Normalize force vector position.
-    testpos.x -= player_chunk->position.x;
-    testpos.y -= player_chunk->position.y;
-    testpos.z -= player_chunk->position.z;
-    testpos.x /= chunk_size;
-    testpos.y /= chunk_size;
-    testpos.z /= chunk_size;
-    */
-
-    printf("testpos: %f, %f, %f\n", testpos.x, testpos.y, testpos.z);
-    printf("testpos - chunk_coords: %f, %f, %f\n",
-            testpos.x - player_chunk->position.x,
-            testpos.y - player_chunk->position.y,
-            testpos.z - player_chunk->position.z
-            );
-    printf("normalized testpos: %f, %f, %f\n",
-            (testpos.x - player_chunk->position.x) / chunk_size,
-            (testpos.y - player_chunk->position.y) / chunk_size,
-            (testpos.z - player_chunk->position.z) / chunk_size
-            );
-
-    set_grass_forcevec(gst,
-            0,
-            (Vector4){ 
-                testpos.x,
-                testpos.y,
-                testpos.z,
-                5.0
-            });  
-
-    
-    // -------------------------------
-
 
     printf("\033[32m'%s': Done\033[0m\n", __func__);
     result = 1;

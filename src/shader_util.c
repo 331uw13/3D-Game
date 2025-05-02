@@ -52,7 +52,10 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_chunk_coords\0",
     "u_grass_spacing\0",
     "u_terrain_origin\0",
-    "u_terrain_size\0"
+    "u_terrain_size\0",
+    "u_chunk_forcetex\0",
+    "u_terrain_scaling\0",
+    "u_num_grass_perchunk\0"
 };
 
 

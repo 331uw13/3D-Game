@@ -32,11 +32,43 @@ void loop(struct state_t* gst) {
                     " Change it in config file.\033[0m\n");
         }
 
-            
+     
       
         state_update_frame(gst);
         state_update_shader_uniforms(gst);
         state_render(gst);
+
+
+        /*
+        // FOR TEST -------------
+
+        struct chunk_t* player_chunk = find_chunk(gst, gst->player.spawn_point);
+
+        float chunk_size      = (gst->terrain.chunk_size * gst->terrain.scaling);
+        float chunk_size_half = chunk_size / 2.0;
+
+
+        // Calculate force vector position.
+        Vector3 testpos = (Vector3){
+            player_chunk->area.x_min + chunk_size_half,
+                0,
+            player_chunk->area.z_min + chunk_size_half
+
+        };
+
+        float stren = (sin(gst->time)*0.5+0.5) * 40.0;
+        set_grass_forcevec(gst,
+                0,
+                (Vector4){ 
+                    testpos.x,
+                    testpos.y,
+                    testpos.z,
+                    stren
+                });  
+
+        
+        // -------------------------------
+        */
 
 
         BeginDrawing();
@@ -65,6 +97,28 @@ void loop(struct state_t* gst) {
                         ); 
             }
             EndShaderMode();
+
+            struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
+            int tex_x = gst->screen_size.x-gst->terrain.chunk_size-110;
+            int tex_y = gst->screen_size.y/2;
+            DrawTexturePro(
+                    player_chunk->forcetex.texture,
+                    (Rectangle){
+                        0,
+                        0,
+                        CHUNK_SIZE,
+                        -CHUNK_SIZE
+                    },
+                    (Rectangle){
+                        tex_x,
+                        tex_y,
+                        200, -200
+                    },
+                    (Vector2){0}, 0, WHITE);
+            DrawTextEx(gst->font,
+                    TextFormat("Chunk: %i", player_chunk->index),
+                    (Vector2){ tex_x, tex_y-15 }, 15, FONT_SPACING, WHITE);
+
 
 
             render_inventory(gst, &gst->player);

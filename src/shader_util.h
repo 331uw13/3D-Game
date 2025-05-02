@@ -48,6 +48,9 @@ typedef short uloc_t;
 #define U_GRASS_SPACING 36
 #define U_TERRAIN_ORIGIN 37
 #define U_TERRAIN_SIZE 38
+#define U_CHUNK_FORCETEX 39
+#define U_TERRAIN_SCALING 40
+#define U_NUM_GRASS_PERCHUNK 41
 
 #define U_NOTFOUND -1
 

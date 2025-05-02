@@ -256,33 +256,16 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
 
         render_loading_info(gst, "Loading grass", i, terrain->num_chunks);
 
-        float next_x = chunk->area.x_min;
-        float next_z = chunk->area.z_min;
-  
         // Making this loop backwards because it was a bit faster.
         for(size_t n = terrain->grass_instances_perchunk; n > 0; n--) {
 
             float* xptr = &data[grasspos_index].position[0];
             float* zptr = &data[grasspos_index].position[2];
-            //test_w += pincrement;
-            //float grasspos[4] = { 0, 0, 0, 0 };
-            //*xptr = RSEEDRANDOMF(chunk_x_min, chunk_x_max);
-            //*zptr = RSEEDRANDOMF(chunk_z_min, chunk_z_max);
+            *xptr = RSEEDRANDOMF(chunk->area.x_min, chunk->area.x_max);
+            *zptr = RSEEDRANDOMF(chunk->area.z_min, chunk->area.z_max);
 
-            *xptr = next_x;
-            *zptr = next_z;
-
-            next_x += terrain->grass_spacing;
-            if(next_x >= chunk->area.x_max) {
-                next_x = chunk->area.x_min;
-                next_z += terrain->grass_spacing;
-            }
-
-
-
-            data[grasspos_index].position[1] 
-                = raycast_terrain(terrain, *xptr, *zptr).point.y;
-
+            RayCollision tray = raycast_terrain(terrain, *xptr, *zptr);
+            data[grasspos_index].position[1] = tray.point.y;
 
             grasspos_index++;
         }
@@ -547,9 +530,6 @@ void generate_terrain(
 void delete_terrain(struct terrain_t* terrain) {
     if(terrain->chunks) {
         for(size_t i = 0; i < terrain->num_chunks; i++) {
-            for(int j = 0; j < MAX_FOLIAGE_TYPES; j++) {
-                free(terrain->chunks[i].foliage_data[j].matrices);
-            }
 
             delete_chunk(&terrain->chunks[i]);
         }

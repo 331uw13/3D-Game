@@ -143,7 +143,8 @@
 #define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
 
-#define MAX_GRASS_FORCEVECTORS 16 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
+#define MAX_GRASS_FORCEVECTORS 64 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
+#define MAX_PRJ_FORCEVECTORS 32 // Rest are reserved for something else.
 
 // Uniform buffer objects.
 #define FOG_UBO 0
@@ -270,6 +271,8 @@ struct state_t {
     unsigned int ubo[MAX_UBOS];
     unsigned int ssbo[MAX_SSBOS];
 
+    size_t num_prj_forcevecs;
+    size_t num_env_forcevecs;
     size_t num_prj_lights;
 
     struct fog_t      fog;

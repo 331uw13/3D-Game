@@ -306,6 +306,7 @@ static struct particle_t* _add_particle(struct psystem_t* psys) {
     struct particle_t* p = &psys->particles[psys->nextpart_index];
     p->transform = &psys->transforms[psys->nextpart_index];
 
+    p->forcevec_index = 0;
     p->position = (Vector3){ 0, 0, 0 };
     p->prev_position = (Vector3){ 0, 0, 0 };
     p->origin = (Vector3){ 0, 0, 0 };

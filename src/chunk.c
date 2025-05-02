@@ -101,7 +101,9 @@ void load_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
 
 
 void delete_chunk(struct chunk_t* chunk) {
-   
+    for(int j = 0; j < MAX_FOLIAGE_TYPES; j++) {
+        free(chunk->foliage_data[j].matrices);
+    }
     UnloadRenderTexture(chunk->forcetex);
     UnloadMesh(chunk->mesh);
 }
@@ -479,10 +481,11 @@ void write_chunk_forcetex(struct state_t* gst, struct chunk_t* chunk) {
         chunk->position.z
     };
 
-    float chunk_size = (gst->terrain.chunk_size * gst->terrain.scaling);
+    //float chunk_size = (gst->terrain.chunk_size * gst->terrain.scaling);
 
     shader_setu_vec2(gst, CHUNK_FORCETEX_SHADER, U_CHUNK_COORDS, &chunk_coords);
-    shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_CHUNK_SIZE, &chunk_size);
+    shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_TERRAIN_SCALING, &gst->terrain.scaling);
+    shader_setu_int(gst, CHUNK_FORCETEX_SHADER, U_CHUNK_SIZE, &gst->terrain.chunk_size);
 
     DrawRectangle(0, 0, chunk->forcetex.texture.width, chunk->forcetex.texture.height, WHITE);
 
@@ -507,20 +510,70 @@ void render_chunk_grass(
         instances = terrain->grass_instances_perchunk / 3.5;
     }
     */
+    
 
-    shader_setu_int(gst, 
-            GRASSDATA_COMPUTE_SHADER,
-            U_CHUNK_GRASS_BASEINDEX,
-            &baseindex
-            );
+    // Input for compute shader
+    {
+        // Base index.
+        shader_setu_int(gst, 
+                GRASSDATA_COMPUTE_SHADER,
+                U_CHUNK_GRASS_BASEINDEX,
+                &baseindex
+                );
+
+        // Chunk coords.
+        Vector2 chunk_coords = (Vector2){ chunk->position.x, chunk->position.z };
+        shader_setu_vec2(gst,
+                GRASSDATA_COMPUTE_SHADER,
+                U_CHUNK_COORDS,
+                &chunk_coords);
+
+        /*
+        // Terrain coords.
+        Vector2 terrain_origin = (Vector2){ terrain->transform.m12, terrain->transform.m14 };
+        shader_setu_vec2(gst,
+                GRASSDATA_COMPUTE_SHADER,
+                U_TERRAIN_ORIGIN,
+                &terrain_origin);
+        */
+
+        shader_setu_int(gst,
+                GRASSDATA_COMPUTE_SHADER,
+                U_NUM_GRASS_PERCHUNK,
+                ((int*)&terrain->grass_instances_perchunk));
+
+        // Grass spacing.
+        shader_setu_float(gst,
+                GRASSDATA_COMPUTE_SHADER,
+                U_GRASS_SPACING,
+                &terrain->grass_spacing);
+
+        // Chunk size.
+        shader_setu_int(gst,
+                GRASSDATA_COMPUTE_SHADER,
+                U_CHUNK_SIZE,
+                &terrain->chunk_size);
+    
+        // Force vectors texture.
+        glBindImageTexture(
+                0, // Binding point
+                chunk->forcetex.texture.id,
+                0, // Mipmap.
+                GL_FALSE,
+                0, // Not layered.
+                GL_READ_ONLY,
+                GL_RGBA8
+                );
+    }
 
     // Dispatch grassdata compute shader
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
     dispatch_compute(gst,
             GRASSDATA_COMPUTE_SHADER,
             instances,  1, 1,
-            GL_SHADER_STORAGE_BARRIER_BIT
+            GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
             );
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 

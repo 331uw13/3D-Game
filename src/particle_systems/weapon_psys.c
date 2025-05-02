@@ -86,6 +86,15 @@ void weapon_psys_prj_update(
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
+    set_grass_forcevec(gst,
+            part->forcevec_index,
+            (Vector4){
+                part->position.x,
+                part->position.y,
+                part->position.z,
+                20.0
+            });
+
     /*
     // Dont add force vector if its not near the terrain.
     // They are pretty expensive at the moment. (i will improve later.)
@@ -193,21 +202,20 @@ void weapon_psys_prj_init(
         .type = LIGHT_POINT,
         .color = weapon->color,
         .strength = 1.25,
-        .index = gst->num_prj_lights,
-        .radius = 10.0
+        .radius = 10.0,
+        .index = gst->num_prj_lights
         // position is updated later.
     };
 
-    gst->num_prj_lights++;
-    if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
-        gst->num_prj_lights = 0;
-    }
 
+
+    part->forcevec_index = gst->num_prj_forcevecs;
     part->scale = weapon->prj_scale;
     part->color = weapon->color;
     part->has_light = 1;
     part->max_lifetime = weapon->prj_max_lifetime;
 
+    // Projectile trail.
     add_particles(gst, 
             &gst->psystems[PRJ_TRAIL_PSYS], 
             16,
@@ -216,5 +224,17 @@ void weapon_psys_prj_init(
 
     if(psys->groupid == PSYS_GROUPID_PLAYER) {
         call_prjmods_init(gst, psys, part);
+    }
+
+
+
+    gst->num_prj_lights++;
+    if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
+        gst->num_prj_lights = 0;
+    }
+
+    gst->num_prj_forcevecs++;
+    if(gst->num_prj_forcevecs >= MAX_PRJ_FORCEVECTORS) {
+        gst->num_prj_forcevecs = 0;
     }
 }

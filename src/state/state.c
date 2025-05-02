@@ -439,7 +439,7 @@ void state_update_frame(struct state_t* gst) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        update_enemy_spawn_systems(gst); 
+        //update_enemy_spawn_systems(gst); 
     }
     
     update_natural_item_spawns(gst);
@@ -527,14 +527,14 @@ void set_grass_forcevec(struct state_t* gst, size_t index, Vector4 fvec) {
         return;
     }
 
-    float shit[4] = { fvec.x, fvec.y, fvec.z, fvec.w };
+    fvec.w = CLAMP(fvec.w, 0.0, 40.0);
 
     glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FORCEVEC_UBO]);
     glBufferSubData(
             GL_UNIFORM_BUFFER,
             index * (4*4),
             4*4,
-            shit
+            &fvec
             );
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -568,6 +568,22 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
         .radius = 10.0,
         .index = gst->next_explosion_light_index
     };
+
+
+    set_grass_forcevec(gst,
+            gst->num_env_forcevecs,
+            (Vector4){
+                position.x,
+                position.y,
+                position.z,
+                35.0
+            }
+            );
+
+    gst->num_env_forcevecs++;
+    if(gst->num_env_forcevecs >= MAX_GRASS_FORCEVECTORS) {
+        gst->num_env_forcevecs = MAX_PRJ_FORCEVECTORS;
+    }
 
     set_light(gst, &exp_light, LIGHTS_UBO);
     add_decay_light(gst, &exp_light, 8.0);
