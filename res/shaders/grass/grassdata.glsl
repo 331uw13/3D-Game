@@ -6,14 +6,12 @@ struct grassdata_t {
     // X = How much the grass should bend?
     // Y = ..
     // Z = ..
-    // W = ..
+    // W = Force vector radius.
     vec4 settings;
 
-    // TODO: External force variable
 
     mat3x4 rotation;
 
-    vec4 ext_force;
 };
 
 layout(std430, binding = 5) buffer grassdata_ssbo {
@@ -22,7 +20,7 @@ layout(std430, binding = 5) buffer grassdata_ssbo {
 
 
 #define GRASSDATA_BEND_VALUE(id) grassdata[id].settings.x
-
+#define GRASSDATA_FVEC_RADIUS(id) grassdata[id].settings.w
 
 
 

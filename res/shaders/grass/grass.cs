@@ -92,6 +92,15 @@ mat3 rotate_to_dir(vec3 dir) {
 
 #define PI 3.14159
 
+
+float map(float t, float src_min, float src_max, float dst_min, float dst_max) {
+    return (t - src_min) * (dst_max - dst_min) / (src_max - src_min) + dst_min;
+}
+
+
+// How far away Y axis will start to scale radius?
+#define MAX_YSCALE_DIST  45.0
+
 void main() {
     
     uint id = gl_GlobalInvocationID.x + uint(u_chunk_grass_baseindex);
@@ -104,74 +113,37 @@ void main() {
 
     // Calculate rotation.
 
-
-    // First rotate towards the wind direction.
-    /*
-    vec3 windno_y = vec3(u_wind_dir.x, 0, u_wind_dir.z);
-    vec3 up = vec3(0.0, 1.0, 0.0);
-    vec3 wx = normalize(u_wind_dir);
-    vec3 wy = normalize(cross(wx, up));
-    vec3 wz = normalize(cross(wy, wx));
-    */
-    mat3 rotation = rotate_to_dir(u_wind_dir);//mat3(wx, wy, wz);
+    mat3 rotation = rotate_to_dir(u_wind_dir);
 
     float shift = pNoise(grassdata[id].position.xz*2.0, 1)*1.5;
     rotation *= rotate_m3(vec2(1.5, shift));
     rotation *= rotate_m3(vec2(0.0, 1.5));
 
 
-    // ?????? has to be easier way to do this.. dont better solution yet.
     float num = float(u_num_grass_perchunk);
-    float huh = num / sqrt(u_chunk_size) / (u_chunk_size*4);
+    float sqrt_chunk_size = sqrt(u_chunk_size);
+    float scale_factor = num / sqrt_chunk_size / (u_chunk_size*4);
     vec2 localcoord = 
         (grassdata[id].position.xz - u_chunk_coords)
         / (u_chunk_size
-        / (((num / sqrt(u_chunk_size)) / (u_chunk_size * huh)) + 0.25)
+        / (((num / sqrt_chunk_size) / (u_chunk_size * scale_factor)) + 0.25)
         );
 
-        /// (u_chunk_size / (u_grass_spacing / 2.0 - 0.1));
-
     localcoord = clamp(localcoord, vec2(0.0), vec2(u_chunk_size));
-    vec3 fvec = imageLoad(chunk_forcetex, ivec2(localcoord)).xyz;
+
+    vec4 fvec = imageLoad(chunk_forcetex, ivec2(localcoord));
+   
+    float yscale = 1.0; /* TODO */
+
+    GRASSDATA_FVEC_RADIUS(id) = fvec.x * (yscale);
 
 
-
-    //grassdata[id].settings.y = fvec.z * 10;
-
-    //vec3 fvec = texture(u_chunk_forcetex, vec2(0.5, 0.5)).rgb;
-    //grassdata[id].settings.y = fvec.x;
-
-
-    // Add force vectors.
-    /*
-    for(int i = 0; i < u_num_forcevectors; i++) {
-        if(force_vectors[i].w > 0.0) {
-
-            vec3 dir = grassdata[id].position.xyz - force_vectors[i].xyz;
-            float len = length(dir); // Distance.
-
-            len = clamp(len, 0.0, 50.0);
-            len = 1.0-(len/50.0);
-
-            vec3 diff = force_vectors[i].xyz - grassdata[id].position.xyz;
-            float dz = -(atan(diff.x, diff.z))*len;
-
-            mat3 rot =  rotate_m3(vec2(1.5*len, 0.0));
-                 rot *= rotate_m3(vec2(0.0, dz));
-
-            rotation *= rot;
-
-        }
-    }
-    */
-    
     grassdata[id].rotation = mat3x4(rotation);
-
-
+    
     noisepos -= u_wind_strength * vec2(u_wind_dir.x * u_time, u_wind_dir.z * u_time);
     float pn = pNoise(noisepos*0.2, 1) * 1.235;
 
-    GRASSDATA_BEND_VALUE(id) = pn + 0.1;
+    GRASSDATA_BEND_VALUE(id) = pn + 0.1 ;
 }
 
 
