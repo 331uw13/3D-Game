@@ -83,8 +83,6 @@ struct terrain_t {
     // Area at biome edges
     float biomeshift_area; // NOTE: This value is set from 'biome.c' 'setup_biomes()'
 
-    float grass_spacing;
-
     // Information about specific type of "foliage"
     // Can be found from these arrays with foliage ID.
     size_t                 foliage_max_perchunk  [MAX_FOLIAGE_TYPES];

@@ -142,6 +142,7 @@
 
 #define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
+#define GRASS_FVEC_UB_STRUCT_SIZE (4*4)
 
 #define MAX_GRASS_FORCEVECTORS 64 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
 #define MAX_PRJ_FORCEVECTORS 32 // Rest are reserved for something else.
@@ -158,12 +159,6 @@
 #define MAX_SSBOS 1
 
 
-// TODO: Move these.
-#define ENEMY_LVL0_WEAPON 0
-#define ENEMY_LVL1_WEAPON 1
-#define MAX_ENEMY_WEAPONS 2
-#define MAX_ALL_ENEMIES 64 // Total max enemies.
-#define MAX_ENEMY_MODELS 2
 
 #define NUM_BLOOM_DOWNSAMPLES 2
 

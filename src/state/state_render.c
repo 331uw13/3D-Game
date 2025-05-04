@@ -318,11 +318,9 @@ void state_render(struct state_t* gst) {
  
             render_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS], (Color){0});
             render_psystem(gst, &gst->psystems[ENEMY_WEAPON_PSYS], (Color){0});
-            render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
 
             render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
             render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
         }
 
         state_timebuf_add(gst, 
@@ -347,34 +345,6 @@ void state_render(struct state_t* gst) {
         }
         */
 
-        // Player Gun FX
-        {
-
-            struct player_t* p = &gst->player;
-
-            if(p->gunfx_timer < 1.0) {
-            
- 
-                p->gunfx_model.transform = p->gunmodel.transform;
-               
-                // Offset and rotate plane.
-                p->gunfx_model.transform 
-                    = MatrixMultiply(MatrixTranslate(0.35, -0.176, -4.0), p->gunfx_model.transform);
-                p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
-
-                float st = lerp(p->gunfx_timer, 2.0, 0.0);
-                p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
-                
-                shader_setu_color(gst, GUNFX_SHADER, U_GUNFX_COLOR, &gst->player.weapon.color);
-                DrawMesh(
-                        p->gunfx_model.meshes[0],
-                        p->gunfx_model.materials[0],
-                        p->gunfx_model.transform
-                        );
-
-                p->gunfx_timer += gst->dt*7.0;
-            }
-        }
     }
     EndMode3D();
     EndTextureMode();
@@ -403,6 +373,13 @@ void state_render(struct state_t* gst) {
                     render_chunk_grass(gst, &gst->terrain, chunk, &mvp, RENDERPASS_RESULT);
                 }
             }
+
+            // Render all gunfx very last.
+            render_player_gunfx(gst, &gst->player);
+            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
+        
+            // Projectile environment hit also needs to be rendered after grass.
+            render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
         }
         EndMode3D();
         EndTextureMode();

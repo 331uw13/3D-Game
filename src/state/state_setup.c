@@ -203,7 +203,7 @@ static void state_setup_all_weapons(struct state_t* gst) {
         .damage = 10.0,
         .critical_chance = 10,
         .critical_mult = 1.85,
-        .prj_speed = 530.0,
+        .prj_speed = 500.0,
         .prj_max_lifetime = 15.0,
         .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
         .prj_scale = 1.0,
@@ -966,7 +966,7 @@ static void state_setup_all_ubos(struct state_t* gst) {
     state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
-    state_create_ubo(gst, FORCEVEC_UBO,  6, MAX_GRASS_FORCEVECTORS * (4*4));
+    state_create_ubo(gst, FORCEVEC_UBO,  6, MAX_GRASS_FORCEVECTORS * GRASS_FVEC_UB_STRUCT_SIZE);
 
     gst->init_flags |= INITFLG_UBOS;
 }

@@ -38,6 +38,44 @@ static void set_foliage_texture(
         .texture = gst->textures[texture_index];
 }
 
+static RenderTexture2D LoadRenderTextureHighp(int width, int height)
+{
+    RenderTexture2D target = { 0 };
+
+    target.id = rlLoadFramebuffer(); // Load an empty framebuffer
+
+    if (target.id > 0)
+    {
+        rlEnableFramebuffer(target.id);
+
+        // Create color texture (default to RGBA)
+        target.texture.id = rlLoadTexture(NULL, width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+        target.texture.width = width;
+        target.texture.height = height;
+        target.texture.format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32;
+        target.texture.mipmaps = 1;
+
+        // Create depth renderbuffer/texture
+        target.depth.id = rlLoadTextureDepth(width, height, true);
+        target.depth.width = width;
+        target.depth.height = height;
+        target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
+        target.depth.mipmaps = 1;
+
+        // Attach color texture and depth renderbuffer/texture to FBO
+        rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
+        rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
+
+        // Check if fbo is complete with attachments (valid)
+        if 
+   (rlFramebufferComplete(target.id)) TRACELOG(LOG_INFO, "FBO: [ID %i] Framebuffer object created successfully", target.id);
+
+        rlDisableFramebuffer();
+    }
+    else TRACELOG(LOG_WARNING, "FBO: Framebuffer object can not be created");
+
+    return target;
+}
 
 
 static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
@@ -52,8 +90,10 @@ static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, s
     
     decide_chunk_biome(gst, terrain, chunk);
     load_chunk_foliage(gst, terrain, chunk);
-    
-    chunk->forcetex = LoadRenderTexture(terrain->chunk_size, terrain->chunk_size);
+   
+    // RGBA32F Needs to be used otherwise the output values from shader
+    // will be clamped to 0.0 - 1.0.
+    chunk->forcetex = LoadRenderTextureHighp(terrain->chunk_size, terrain->chunk_size);
 }
 
 
@@ -363,9 +403,6 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
     }
 
 
-    struct chunk_foliage_data_t* chunk_fdata = NULL;
-    //load_chunk_grassdata(gst, terrain, chunk, &chunk_area);
-    
     switch(chunk->biome.id) {
     
         case BIOMEID_COMFY:
@@ -528,25 +565,11 @@ void render_chunk_grass(
                 U_CHUNK_COORDS,
                 &chunk_coords);
 
-        /*
-        // Terrain coords.
-        Vector2 terrain_origin = (Vector2){ terrain->transform.m12, terrain->transform.m14 };
-        shader_setu_vec2(gst,
-                GRASSDATA_COMPUTE_SHADER,
-                U_TERRAIN_ORIGIN,
-                &terrain_origin);
-        */
-
+       
         shader_setu_int(gst,
                 GRASSDATA_COMPUTE_SHADER,
                 U_NUM_GRASS_PERCHUNK,
                 ((int*)&terrain->grass_instances_perchunk));
-
-        // Grass spacing.
-        shader_setu_float(gst,
-                GRASSDATA_COMPUTE_SHADER,
-                U_GRASS_SPACING,
-                &terrain->grass_spacing);
 
         // Chunk size.
         shader_setu_int(gst,
@@ -562,7 +585,7 @@ void render_chunk_grass(
                 GL_FALSE,
                 0, // Not layered.
                 GL_READ_ONLY,
-                GL_RGBA8
+                GL_RGBA32F
                 );
     }
 

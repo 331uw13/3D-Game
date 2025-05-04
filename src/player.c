@@ -9,7 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
-#define NOCLIP_SPEED 25
+#define NOCLIP_SPEED 13
 
 static void set_player_default_stats(struct player_t* p) {
 
@@ -366,7 +366,6 @@ int playerin_biomeshift_area(struct state_t* gst, struct player_t* p) {
     int inarea = -1;
     const float shiftarea = gst->terrain.biomeshift_area;
     const float py = p->position.y;
-    const float biome_div = gst->terrain.highest_point / (float)MAX_BIOME_TYPES;
     for(int i = 0; i < MAX_BIOME_TYPES; i++) {
         Vector2 biome_ylevel = gst->terrain.biome_ylevels[i];
         
@@ -868,6 +867,18 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     if(biomeid_by_y != p->current_biome->id) {
         change_to_biome(gst, biomeid_by_y);
     }
+
+    /*
+    // Update force vector.
+    set_grass_forcevec(gst,
+            0,
+            (Vector4){
+                p->position.x,
+                p->position.y,
+                p->position.z,
+                20.0
+            });
+            */
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
@@ -931,6 +942,30 @@ static void draw_stats_bar(
         *y += bar_height + 10.0;
     }
 }
+
+void render_player_gunfx(struct state_t* gst, struct player_t* p) {
+    if(p->gunfx_timer < 1.0) {
+        p->gunfx_model.transform = p->gunmodel.transform;
+       
+        // Offset and rotate plane.
+        p->gunfx_model.transform 
+            = MatrixMultiply(MatrixTranslate(0.35, -0.176, -4.0), p->gunfx_model.transform);
+        p->gunfx_model.transform = MatrixMultiply(MatrixRotateX(1.5), p->gunfx_model.transform);
+
+        float st = lerp(p->gunfx_timer, 2.0, 0.0);
+        p->gunfx_model.transform = MatrixMultiply(MatrixScale(st, st, st), p->gunfx_model.transform);
+        
+        shader_setu_color(gst, GUNFX_SHADER, U_GUNFX_COLOR, &gst->player.weapon.color);
+        DrawMesh(
+                p->gunfx_model.meshes[0],
+                p->gunfx_model.materials[0],
+                p->gunfx_model.transform
+                );
+
+        p->gunfx_timer += gst->dt*7.0;
+    }
+}
+
 
 void render_player_stats(struct state_t* gst, struct player_t* p) {
   

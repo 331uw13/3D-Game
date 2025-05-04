@@ -529,12 +529,17 @@ void set_grass_forcevec(struct state_t* gst, size_t index, Vector4 fvec) {
 
     fvec.w = CLAMP(fvec.w, 0.0, 40.0);
 
+    float fdata[8] = {
+        fvec.x, fvec.y, fvec.z, fvec.w,
+
+    };
+
     glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[FORCEVEC_UBO]);
     glBufferSubData(
             GL_UNIFORM_BUFFER,
-            index * (4*4),
-            4*4,
-            &fvec
+            index * GRASS_FVEC_UB_STRUCT_SIZE,
+            GRASS_FVEC_UB_STRUCT_SIZE,
+            &fdata
             );
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);

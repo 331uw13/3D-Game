@@ -50,7 +50,6 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_energy_container_capacity\0",
     "u_chunk_size\0",
     "u_chunk_coords\0",
-    "u_grass_spacing\0",
     "u_terrain_origin\0",
     "u_terrain_size\0",
     "u_chunk_forcetex\0",
@@ -58,7 +57,7 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_num_grass_perchunk\0"
 };
 
-
+// TODO: Remove unused uniform names.
 // TODO: Clean shader directory, 'mkdir psystems'... blabla.
 // TODO: Automatically set needed shader uniforms (for instance shaders).
 

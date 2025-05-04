@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 
+
+
 // PARTICLE UPDATE
 void projectile_envhit_psys_update(
         struct state_t* gst,
@@ -17,7 +19,12 @@ void projectile_envhit_psys_update(
         part->scale += gst->dt;
     }
 
-    float st = lerp(part->scale / scale_duration, 0.0, 20.0);
+    float st = lerp(part->scale / scale_duration, 0.0, 60.0);
+    float alpha = lerp(normalize(part->lifetime, 0, part->max_lifetime), 1.0, 0.0);
+
+    alpha = 1.0-pow(1.0-alpha, 5.0);
+
+    part->color.a = alpha * 255;
 
     Matrix scale_matrix = MatrixScale(st, st, st);
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);

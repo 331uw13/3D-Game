@@ -228,7 +228,6 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
         float _reserved0[
               4   // Settings.
             + 3*4 // Rotation (mat3x4)
-            + 4
         ];
     };
 
@@ -239,15 +238,7 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
     struct grassdata_t* data = malloc(data_size);
 
 
-    // TODO: Create valid grid. and randomize grass positions for that
-    //       so number of rendered instances can be decreased for far away chunks.
-
-    terrain->grass_spacing
-        = (float)terrain->grass_instances_perchunk
-        / (float)(terrain->chunk_size * terrain->scaling);
-
-
-    shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_GRASS_SPACING, &terrain->grass_spacing);
+    //shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_GRASS_SPACING, &terrain->grass_spacing);
    
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
@@ -310,7 +301,7 @@ void generate_terrain(
     terrain->seed = seed;
 
     terrain->highest_point = 0.0;
-    terrain->lowest_point = 999999;
+    terrain->lowest_point = 999999.9;
     terrain->num_visible_chunks = 0;
 
     terrain->water_ylevel = WATER_INITIAL_YLEVEL;
@@ -769,7 +760,6 @@ void render_terrain(
     struct grass_group_t grass_group = { -1, 0, 0, 0 };
     */
 
-    int grass_perchunk = terrain->grass_instances_perchunk;
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];

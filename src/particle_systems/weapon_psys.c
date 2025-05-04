@@ -78,21 +78,20 @@ void weapon_psys_prj_update(
     int disable_prj = 0;
 
     // Check collision with terrain
-
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
-
     if(t_hit.point.y >= part->position.y) {
         disable_prj = 1;
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
+    // Grass can now respond to the projectile.
     set_grass_forcevec(gst,
             part->forcevec_index,
             (Vector4){
                 part->position.x,
                 part->position.y,
                 part->position.z,
-                20.0
+                3.0
             });
 
     /*
@@ -168,6 +167,13 @@ void weapon_psys_prj_update(
                 part->color,
                 NULL, NO_EXTRADATA, NO_IDB);
         disable_projectile(gst, part);
+   
+        /*
+        set_grass_forcevec(gst,
+                part->forcevec_index,
+                (Vector4){
+                    0, 0, 0, -1
+                });*/
     }
 
 }
@@ -206,7 +212,6 @@ void weapon_psys_prj_init(
         .index = gst->num_prj_lights
         // position is updated later.
     };
-
 
 
     part->forcevec_index = gst->num_prj_forcevecs;

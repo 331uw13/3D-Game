@@ -48,6 +48,12 @@
 
 #define ENEMY_XP_GAIN_MAX_BONUS 10
 
+#define ENEMY_LVL0_WEAPON 0
+#define ENEMY_LVL1_WEAPON 1
+#define MAX_ENEMY_WEAPONS 2
+#define MAX_ALL_ENEMIES 64 // Total max enemies.
+#define MAX_ENEMY_MODELS 2
+
 // This handles all basic behaviour for enemies.
 // Then calls 'enemies/enemy_lvl*.c ...' (depending on "enemy type") to handle the rest.
 
