@@ -282,11 +282,6 @@ void state_render(struct state_t* gst) {
 
         // ------------
  
-        mvp = MatrixMultiply(
-                rlGetMatrixModelview(),
-                rlGetMatrixProjection()
-                ); 
-
        
         render_scene(gst, RENDERPASS_RESULT);
 
@@ -321,11 +316,19 @@ void state_render(struct state_t* gst) {
 
             render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
             render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
+        
+            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
+        
+            // Projectile environment hit also needs to be rendered after grass.
+            render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
         }
 
         state_timebuf_add(gst, 
                 TIMEBUF_ELEM_PSYSTEMS_R,
                 GetTime() - psys_render_timestart);
+            
+
+        render_player_gunfx(gst, &gst->player);
 
         /*
         Color cube_color = (Color){ 0, 0, 0, 255 };
@@ -348,7 +351,8 @@ void state_render(struct state_t* gst) {
     }
     EndMode3D();
     EndTextureMode();
-    
+   
+    /*
     // Grass has to rendered now, because 'write_chunk_forcetex()'
     // uses BeginTextureMode() to write the texture.
     // Then that texture can be used in the compute shader 
@@ -375,15 +379,11 @@ void state_render(struct state_t* gst) {
             }
 
             // Render all gunfx very last.
-            render_player_gunfx(gst, &gst->player);
-            render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
-        
-            // Projectile environment hit also needs to be rendered after grass.
-            render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
         }
         EndMode3D();
         EndTextureMode();
     }
+    */
     
     // Get bloom treshold.
 

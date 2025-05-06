@@ -788,15 +788,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
-    // --- CHUNK_FORCETEX_SHADER ---
-    {
-        Shader* shader = &gst->shaders[CHUNK_FORCETEX_SHADER];
-        load_shader(gst,
-            "res/shaders/default.vs",
-            "res/shaders/chunk_forcetex.fs",
-            NO_GEOMETRY_SHADER,
-            shader);
-    }
+    
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
@@ -966,7 +958,6 @@ static void state_setup_all_ubos(struct state_t* gst) {
     state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
     state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
-    state_create_ubo(gst, FORCEVEC_UBO,  6, MAX_GRASS_FORCEVECTORS * GRASS_FVEC_UB_STRUCT_SIZE);
 
     gst->init_flags |= INITFLG_UBOS;
 }
@@ -1133,8 +1124,6 @@ int state_setup_everything(struct state_t* gst) {
     gst->ssao_res_x = 0;
     gst->ssao_res_y = 0;
     
-    gst->num_prj_forcevecs = 0;
-    gst->num_env_forcevecs = MAX_PRJ_FORCEVECTORS;
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
@@ -1150,11 +1139,6 @@ int state_setup_everything(struct state_t* gst) {
     }
     for(size_t i = 0; i < MAX_DECAY_LIGHTS; i++) {
         gst->decay_lights[i].enabled = 0;
-    }
-
-    // Make sure all grass force vectors are disabled.
-    for(int i = 0; i < MAX_GRASS_FORCEVECTORS; i++) {
-        set_grass_forcevec(gst, i, (Vector4){ 0, 0, 0, -1.0 });
     }
 
     gst->weather.wind_dir = (Vector3){ 0, 0, 1 };

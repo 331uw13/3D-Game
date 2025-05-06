@@ -55,8 +55,6 @@ struct particle_t {
     int has_light;
     int last_update;
     
-    short int forcevec_index;
-
     short   user_i[PSYS_MAX_USER_I];
     float   user_f[PSYS_MAX_USER_F];
     Vector3 user_v[PSYS_MAX_USER_V];

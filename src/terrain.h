@@ -52,7 +52,6 @@ struct foliage_rdata_t {
     int     render_backface;
 };
 
-#define GRASSDATA_STRUCT_SIZE (4*4/*position*/ + 4*4/*settings*/ + 48/*rotation (mat3x4)*/ + 4*4)
 
 #define MAX_GRASS_CHUNKS 32
 
@@ -72,9 +71,6 @@ struct terrain_t {
     Model  grass_model;
     Model  grass_model_lowres;
     size_t grass_instances_perchunk;
-
-    struct chunk_t* grass_chunks[MAX_GRASS_CHUNKS];
-    size_t num_grass_chunks;
 
     struct biome_t biomedata[MAX_BIOME_TYPES]; //<- Initialized from 'biome.c' 'setup_biomes()'
     Material biome_materials[MAX_BIOME_TYPES];

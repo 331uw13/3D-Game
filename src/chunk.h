@@ -54,6 +54,7 @@ struct chunk_t {
 
     struct chunk_area_t area;
 
+    /*
     // Texture for grass force vectors.
     // When chunk grass is going to be rendered
     // force vectors are updated into force vector ubo
@@ -62,6 +63,7 @@ struct chunk_t {
     // to calculate the extra rotations for the grass blade.
     // This will disable the need for big and expensive loop in the compute shader.
     RenderTexture2D forcetex;
+    */
 };
 
 void load_foliage_models(struct state_t* gst, struct terrain_t* terrain);
@@ -78,7 +80,6 @@ void load_chunk(
         );
 struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);
 
-void write_chunk_forcetex(struct state_t* gst, struct chunk_t* chunk);
 
 void render_chunk_grass(
         struct state_t* gst,

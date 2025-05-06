@@ -224,11 +224,7 @@ void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrai
    
     struct grassdata_t {
         float position[4];
-
-        float _reserved0[
-              4   // Settings.
-            + 3*4 // Rotation (mat3x4)
-        ];
+        float _reserved0[GRASSDATA_NUM_FLOATS_RESERVED];
     };
 
     const size_t data_size = 
@@ -488,6 +484,7 @@ void generate_terrain(
     terrain->material.shader = gst->shaders[DEFAULT_SHADER];
     terrain->material.maps[MATERIAL_MAP_DIFFUSE].texture = gst->textures[TERRAIN_TEXID];
 
+    /*
     Vector2 terrain_origin = (Vector2){
         terrain->transform.m12,
         terrain->transform.m14
@@ -496,7 +493,7 @@ void generate_terrain(
 
     float terrain_size_F = (float)terrain_size;
     shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_TERRAIN_SIZE, &terrain_size_F);
-
+    */
 
     // (NOT CURRENTLY USED)
     // Create plane for water
@@ -725,7 +722,7 @@ void render_terrain(
 
     //terrain->water_ylevel += sin(gst->time)*0.001585;
     float trender_dist = 0;
-    //int render_grass = 1;
+    int render_grass = 1;
 
 
     // Reduce render distance for ssao and shadow cams.
@@ -740,25 +737,23 @@ void render_terrain(
 
         case RENDERPASS_SHADOWS:
             trender_dist = (terrain->scaling * (terrain->chunk_size));
-            //render_grass = 0;
+            render_grass = 0;
             break;
     }
 
-    //render_grass *= (gst->grass_enabled);
+    render_grass *= (gst->grass_enabled);
 
 
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
 
-
    
-    terrain->num_grass_chunks = 0;
+    Matrix mvp = MatrixMultiply(
+        rlGetMatrixModelview(),
+        rlGetMatrixProjection()
+        ); 
 
 
-    /*
-    struct chunk_t* prev_chunk = &terrain->chunks[0];
-    struct grass_group_t grass_group = { -1, 0, 0, 0 };
-    */
 
 
     for(size_t i = 0; i < terrain->num_chunks; i++) {
@@ -825,57 +820,11 @@ void render_terrain(
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
         
 
-        if(gst->grass_enabled) {
-            //render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
-
-            if(gst->terrain.num_grass_chunks < MAX_GRASS_CHUNKS) {
-                gst->terrain.grass_chunks[gst->terrain.num_grass_chunks] = chunk;
-                gst->terrain.num_grass_chunks++;
-            }
-
-            //write_chunk_forcetex(gst, chunk);
-            //render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
-            
-            /*
-            if(chunk->dst2player > (terrain->scaling * terrain->chunk_size)) {
-                // Render individual chunks grass but very low quality
-                // And it reduces the number of instances.
-                render_chunk_grass_lowres(gst, terrain, chunk, &mvp, render_pass);
-                continue;
-            }
-
-
-            grass_group.num_chunks++;
-
-            if(!FloatEquals(prev_chunk->center_pos.z, chunk->center_pos.z)) {
-                grass_group.num_instances = (grass_group.num_chunks * grass_perchunk);
-
-                // Render high quality grass blade.
-                render_grass_group(gst, terrain, &grass_group, &mvp, render_pass);
-
-                grass_group = (struct grass_group_t) { -1, 0, 0, 0 };
-            }
-           
-            if(grass_group.base_index < 0) {
-                grass_group.base_index = chunk->grass_baseindex;
-                grass_group.dst2player = chunk->dst2player;
-            }
-            
-            prev_chunk = chunk;
-            */
+        if(render_grass) {
+            render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
         }
     }
 
-    /*
-    if(render_grass) {
-
-        // Finish last grass group if valid.
-        if(grass_group.base_index >= 0) {
-            grass_group.num_instances = ((1+grass_group.num_chunks) * grass_perchunk);
-            render_grass_group(gst, terrain, &grass_group, &mvp, render_pass);
-        }
-    }
-    */
 
     ground_pass = 0;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);

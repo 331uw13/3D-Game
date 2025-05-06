@@ -114,7 +114,7 @@
 #define TERRAIN_GRASS_GBUFFER_SHADER 22
 #define GRASSDATA_COMPUTE_SHADER 23
 #define ENERGY_LIQUID_SHADER 24
-#define CHUNK_FORCETEX_SHADER 25
+//#define CHUNK_FORCETEX_SHADER 25
 #define MAX_SHADERS 26
 // ...
 
@@ -140,24 +140,33 @@
 #define PLAYER_GUN_NLIGHT 1
 // ...
 
-#define LIGHT_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4 + 4*4)
-#define FOG_UB_STRUCT_SIZE (4*4 + 4*4 + 4*4)
-#define GRASS_FVEC_UB_STRUCT_SIZE (4*4)
+// Uniform buffer objects structs sizes.
+#define LIGHT_UB_STRUCT_SIZE        (4*4 + 4*4 + 4*4 + 4*4)
+#define FOG_UB_STRUCT_SIZE          (4*4 + 4*4 + 4*4)
+//#define GRASS_FVEC_UB_STRUCT_SIZE   (4*4)
 
-#define MAX_GRASS_FORCEVECTORS 64 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
-#define MAX_PRJ_FORCEVECTORS 32 // Rest are reserved for something else.
+//#define MAX_GRASS_FORCEVECTORS 64 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
+//#define MAX_PRJ_FORCEVECTORS 32 // Rest are reserved for something else.
 
 // Uniform buffer objects.
 #define FOG_UBO 0
 #define LIGHTS_UBO 1     // "Normal" lights
 #define PRJLIGHTS_UBO 2  // Projectile lights.
-#define FORCEVEC_UBO 3   // Used for grass.
+//#define FORCEVEC_UBO 3   // Used for grass.
 #define MAX_UBOS 4
 
 // Shader storage buffer objects.
 #define GRASSDATA_SSBO 0
 #define MAX_SSBOS 1
 
+#define GRASSDATA_STRUCT_SIZE \
+        ( 4*4/*position*/\
+        + 4*4/*settings*/\
+        + 48 /*rotation (mat3x4)*/)
+
+#define GRASSDATA_NUM_FLOATS_RESERVED \
+          4   /*settings*/\
+        + 3*4 /*rotation (mat3x4)*/
 
 
 #define NUM_BLOOM_DOWNSAMPLES 2
@@ -266,8 +275,6 @@ struct state_t {
     unsigned int ubo[MAX_UBOS];
     unsigned int ssbo[MAX_SSBOS];
 
-    size_t num_prj_forcevecs;
-    size_t num_env_forcevecs;
     size_t num_prj_lights;
 
     struct fog_t      fog;
@@ -402,8 +409,6 @@ void state_update_shader_uniforms(struct state_t* gst);
 void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
-
-void set_grass_forcevec(struct state_t* gst, size_t index, Vector4 fvec);
 
 
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);

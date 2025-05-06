@@ -84,31 +84,7 @@ void weapon_psys_prj_update(
         call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
-    // Grass can now respond to the projectile.
-    set_grass_forcevec(gst,
-            part->forcevec_index,
-            (Vector4){
-                part->position.x,
-                part->position.y,
-                part->position.z,
-                3.0
-            });
-
-    /*
-    // Dont add force vector if its not near the terrain.
-    // They are pretty expensive at the moment. (i will improve later.)
-    if(part->position.y - t_hit.point.y < 50
-    && point_in_player_view(gst, &gst->player, part->position, 40.0)) {
-        set_grass_force_vec(gst, 
-                (Vector4){
-                    part->position.x,
-                    part->position.y,
-                    part->position.z,
-                    10.0
-                });
-    }
-    */
-
+   
     BoundingBox part_boundingbox = (BoundingBox) {
         (Vector3) { // Min box corner
             part->position.x - weapon->prj_hitbox_size.x/2,
@@ -214,7 +190,6 @@ void weapon_psys_prj_init(
     };
 
 
-    part->forcevec_index = gst->num_prj_forcevecs;
     part->scale = weapon->prj_scale;
     part->color = weapon->color;
     part->has_light = 1;
@@ -238,8 +213,4 @@ void weapon_psys_prj_init(
         gst->num_prj_lights = 0;
     }
 
-    gst->num_prj_forcevecs++;
-    if(gst->num_prj_forcevecs >= MAX_PRJ_FORCEVECTORS) {
-        gst->num_prj_forcevecs = 0;
-    }
 }

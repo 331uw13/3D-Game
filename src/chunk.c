@@ -38,46 +38,6 @@ static void set_foliage_texture(
         .texture = gst->textures[texture_index];
 }
 
-static RenderTexture2D LoadRenderTextureHighp(int width, int height)
-{
-    RenderTexture2D target = { 0 };
-
-    target.id = rlLoadFramebuffer(); // Load an empty framebuffer
-
-    if (target.id > 0)
-    {
-        rlEnableFramebuffer(target.id);
-
-        // Create color texture (default to RGBA)
-        target.texture.id = rlLoadTexture(NULL, width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
-        target.texture.width = width;
-        target.texture.height = height;
-        target.texture.format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32;
-        target.texture.mipmaps = 1;
-
-        // Create depth renderbuffer/texture
-        target.depth.id = rlLoadTextureDepth(width, height, true);
-        target.depth.width = width;
-        target.depth.height = height;
-        target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
-        target.depth.mipmaps = 1;
-
-        // Attach color texture and depth renderbuffer/texture to FBO
-        rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
-        rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
-
-        // Check if fbo is complete with attachments (valid)
-        if 
-   (rlFramebufferComplete(target.id)) TRACELOG(LOG_INFO, "FBO: [ID %i] Framebuffer object created successfully", target.id);
-
-        rlDisableFramebuffer();
-    }
-    else TRACELOG(LOG_WARNING, "FBO: Framebuffer object can not be created");
-
-    return target;
-}
-
-
 static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
 
     chunk->area = (struct chunk_area_t) {
@@ -91,9 +51,6 @@ static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, s
     decide_chunk_biome(gst, terrain, chunk);
     load_chunk_foliage(gst, terrain, chunk);
    
-    // RGBA32F Needs to be used otherwise the output values from shader
-    // will be clamped to 0.0 - 1.0.
-    chunk->forcetex = LoadRenderTextureHighp(terrain->chunk_size, terrain->chunk_size);
 }
 
 
@@ -144,7 +101,6 @@ void delete_chunk(struct chunk_t* chunk) {
     for(int j = 0; j < MAX_FOLIAGE_TYPES; j++) {
         free(chunk->foliage_data[j].matrices);
     }
-    UnloadRenderTexture(chunk->forcetex);
     UnloadMesh(chunk->mesh);
 }
 
@@ -509,26 +465,6 @@ struct chunk_t* find_chunk(struct state_t* gst, Vector3 position) {
     return chunk;
 }
 
-void write_chunk_forcetex(struct state_t* gst, struct chunk_t* chunk) {
-    BeginTextureMode(chunk->forcetex);
-    BeginShaderMode(gst->shaders[CHUNK_FORCETEX_SHADER]);
-    
-    Vector2 chunk_coords = (Vector2) {
-        chunk->position.x,
-        chunk->position.z
-    };
-
-    //float chunk_size = (gst->terrain.chunk_size * gst->terrain.scaling);
-
-    shader_setu_vec2(gst, CHUNK_FORCETEX_SHADER, U_CHUNK_COORDS, &chunk_coords);
-    shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_TERRAIN_SCALING, &gst->terrain.scaling);
-    shader_setu_int(gst, CHUNK_FORCETEX_SHADER, U_CHUNK_SIZE, &gst->terrain.chunk_size);
-
-    DrawRectangle(0, 0, chunk->forcetex.texture.width, chunk->forcetex.texture.height, WHITE);
-
-    EndShaderMode();
-    EndTextureMode();
-}
 
 void render_chunk_grass(
         struct state_t* gst,
@@ -537,16 +473,25 @@ void render_chunk_grass(
         Matrix* mvp,
         int render_pass
 ){
-    const int mesh_triangle_count = terrain->grass_model.meshes[0].triangleCount;
-    const int vao_id = terrain->grass_model.meshes[0].vaoId;
+
+
+    int mesh_triangle_count = terrain->grass_model.meshes[0].triangleCount;
+    int vao_id = terrain->grass_model.meshes[0].vaoId;
+    
     int baseindex = (int)chunk->grass_baseindex;
     int instances = terrain->grass_instances_perchunk;
 
-    /*
-    if(chunk->dst2player > 1.15*(terrain->chunk_size * terrain->scaling)) {
-        instances = terrain->grass_instances_perchunk / 3.5;
+    if(chunk->dst2player > 7500) {
+        return;
     }
-    */
+
+    if(chunk->dst2player > 1.15*(terrain->chunk_size * terrain->scaling)) {
+        // Lower resolution is chosen for far away chunks.
+
+        instances = terrain->grass_instances_perchunk / 3.5;
+        mesh_triangle_count = terrain->grass_model_lowres.meshes[0].triangleCount;
+        vao_id = terrain->grass_model_lowres.meshes[0].vaoId;
+    }
     
 
     // Input for compute shader
@@ -577,16 +522,6 @@ void render_chunk_grass(
                 U_CHUNK_SIZE,
                 &terrain->chunk_size);
     
-        // Force vectors texture.
-        glBindImageTexture(
-                0, // Binding point
-                chunk->forcetex.texture.id,
-                0, // Mipmap.
-                GL_FALSE,
-                0, // Not layered.
-                GL_READ_ONLY,
-                GL_RGBA32F
-                );
     }
 
     // Dispatch grassdata compute shader

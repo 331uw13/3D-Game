@@ -39,6 +39,7 @@ void loop(struct state_t* gst) {
         state_render(gst);
 
 
+
         /*
         // FOR TEST -------------
 
@@ -98,29 +99,7 @@ void loop(struct state_t* gst) {
             }
             EndShaderMode();
 
-            struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
-            int tex_x = gst->screen_size.x-gst->terrain.chunk_size-110;
-            int tex_y = gst->screen_size.y/2;
-            DrawTexturePro(
-                    player_chunk->forcetex.texture,
-                    (Rectangle){
-                        0,
-                        0,
-                        CHUNK_SIZE,
-                        -CHUNK_SIZE
-                    },
-                    (Rectangle){
-                        tex_x,
-                        tex_y,
-                        200, -200
-                    },
-                    (Vector2){0}, 0, WHITE);
-            DrawTextEx(gst->font,
-                    TextFormat("Chunk: %i", player_chunk->index),
-                    (Vector2){ tex_x, tex_y-15 }, 15, FONT_SPACING, WHITE);
-
-
-
+            
             render_inventory(gst, &gst->player);
 
             // Draw Crosshair if player is aiming.
@@ -189,9 +168,6 @@ void loop(struct state_t* gst) {
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
                 
-                DrawText(TextFormat("GrassChunks: %li", gst->terrain.num_grass_chunks),
-                        dtext_x, next_y, 20, PURPLE);
-                next_y += y_inc;
 
                 DrawText(TextFormat("NumRenderedGrass: %li", gst->terrain.num_rendered_grass),
                         dtext_x, next_y, 20, PURPLE);
