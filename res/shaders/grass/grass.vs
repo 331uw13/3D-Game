@@ -41,9 +41,6 @@ void main()
     fragPosition = grassdata[id].position.xyz;
     grassblade_base_y = fragPosition.y;
 
-    //force_vector = grassdata[id].ext_force.xyz;
-    //test_shit = grassdata[id].settings.y;
-
     
     float bend = ((fragPosition.y+vertexPosition.y) - grassblade_base_y) / 10.0;
     bend *= GRASSDATA_BEND_VALUE(id);
@@ -57,12 +54,30 @@ void main()
     mat3 rnd_rotation = rotate_m3(vec2(0.0, rnd));
     
 
+    /*
+    // Calculate rotation away from force vector..
+    {
+
+        vec3 diff = grassdata[id].ext_force.xyz - grassdata[id].position.xyz;
+        float ang = -(atan(diff.x, diff.z));
+
+        float dist = length(grassdata[id].position.xyz - grassdata[id].ext_force.xyz);
+        dist = clamp(dist, 0.0, 80.0);
+        dist = 1.0 - (dist / 80.0);
+
+        mat3 rot 
+            = rotate_m3(vec2(dist * (bend * 3.5), 0.0))
+            * rotate_m3(vec2(bend,        ang * (dist)));
+        rotation *= rot;
+    }
+    */
 
     // TODO: Rename.
     vec3 test = vec3(
             sin(u_time*5.0 + vertexPosition.y*10.0)*0.25,
-            -GRASSDATA_FVEC_RADIUS(id) * 10,
-            0.0);
+            0.0,
+            0.0
+            );
 
     fragPosition += (test + vertexPosition) * (rnd_rotation *  ((bend_rotation) * (rotation)));
     gl_Position = u_viewproj * vec4(fragPosition, 1.0);

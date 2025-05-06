@@ -131,11 +131,10 @@ void main() {
 
     localcoord = clamp(localcoord, vec2(0.0), vec2(u_chunk_size));
 
-    vec4 fvec = imageLoad(chunk_forcetex, ivec2(localcoord));
-   
-    float yscale = 1.0; /* TODO */
 
-    GRASSDATA_FVEC_RADIUS(id) = fvec.x * (yscale);
+    //grassdata[id].ext_force = imageLoad(chunk_forcetex, ivec2(localcoord));
+ 
+
 
 
     grassdata[id].rotation = mat3x4(rotation);

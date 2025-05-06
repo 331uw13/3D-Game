@@ -46,18 +46,21 @@ void main()
         vec2 p = (gl_FragCoord.xy) / float(u_chunk_size);
         vec2 fv = (force_vectors[i].xz - u_chunk_coords) / chunk_size_scaled;
 
+
+        float dist = length(p - fv) * 20.0;
+        dist = 1.0 - clamp(dist, 0.0, 1.0);
+
+        finalColor.r += dist;
+
+        /*
         // Radius.
         float strength = 45.0 - force_vectors[i].w;
         float dist = length(p - fv) * max(strength, 1.0);
-        dist = 1.0 - clamp(dist, 0.0, 1.0);
+        dist = clamp(dist, 0.0, 1.0);
 
-
-        finalColor.x += dist;
-        finalColor.x = clamp(finalColor.x, 0.0, 2.0);
-
-        // Save ylevel so radius can be scaled later
-        // with how much distance is there in Y axis.
-        finalColor.y += force_vectors[i].y * dist;
+        float sr = step(dist, 0.5);
+        finalColor.xyz += force_vectors[i].xyz * sr;
+        */
     }
 }
 
