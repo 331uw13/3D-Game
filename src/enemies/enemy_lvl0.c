@@ -135,7 +135,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                         // Projectile travel time to target.
                         float prj_time = ent->dist_to_player / (gst->enemy_weapons[ENEMY_LVL0].prj_speed * gst->dt); 
 
-                        player_vel.y *= 0.7;
+                        player_vel.y *= 0.567;
                         player_pos.x = player_pos.x + (player_vel.x * prj_time);
                         //player_pos.y = player_pos.y + (player_vel.y * prj_time);
                         player_pos.z = player_pos.z + (player_vel.z * prj_time);
@@ -185,7 +185,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                 }
 
                 ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixTranslate(ray.normal.x*8.0, BODY_OFFSET, ray.normal.z*8.0);
+                    = MatrixTranslate(ray.normal.x*BODY_OFFSET, BODY_OFFSET, ray.normal.z*BODY_OFFSET);
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI] 
                     = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);
@@ -220,7 +220,7 @@ void enemy_lvl0_update(struct state_t* gst, struct enemy_t* ent) {
                 }
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI]
-                    = MatrixTranslate(ray.normal.x*8.0, BODY_OFFSET, ray.normal.z*8.0);
+                    = MatrixTranslate(ray.normal.x*BODY_OFFSET, BODY_OFFSET, ray.normal.z*BODY_OFFSET);
                 
                 ent->matrix[ENEMY_LVL0_BODY_MI] 
                     = MatrixMultiply(QuaternionToMatrix(Q), ent->matrix[ENEMY_LVL0_BODY_MI]);

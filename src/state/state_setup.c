@@ -39,19 +39,6 @@ static void state_setup_all_enemy_models(struct state_t* gst) {
     PRINT_CURRENT_SETUP_DONE;
 }
 
-static void state_setup_all_item_models(struct state_t* gst) {
-    PRINT_CURRENT_SETUP;
-    for(size_t i = 0; i < MAX_ALL_ITEMS; i++) {
-        gst->items[i].enabled = 0;
-    }
-
-    load_item_model(gst, ITEM_APPLE, "res/models/apple.glb", APPLE_TEXID);
-    load_item_model(gst, ITEM_METALPIECE, "res/models/metal_piece.glb", METALPIECE_TEXID);
-    
-
-    gst->init_flags |= INITFLG_ITEM_MODELS;
-    PRINT_CURRENT_SETUP_DONE;
-}
 
 
 static int state_setup_all_sounds(struct state_t* gst) {
@@ -154,19 +141,13 @@ static void state_setup_all_textures(struct state_t* gst) {
     load_texture(gst, "res/textures/gun_0.png", GUN_0_TEXID);
     load_texture(gst, "res/textures/enemy_lvl0.png", ENEMY_LVL0_TEXID);
     load_texture(gst, "res/textures/arms.png", PLAYER_ARMS_TEXID);
-    load_texture(gst, "res/textures/critical_hit.png", CRITICALHIT_TEXID);
     load_texture(gst, "res/textures/tree_bark.png", TREEBARK_TEXID);
     load_texture(gst, "res/textures/leaf.jpg", LEAF_TEXID);
     load_texture(gst, "res/textures/rock_type0.jpg", ROCK_TEXID);
     load_texture(gst, "res/textures/moss2.png", TERRAIN_TEXID);
-    load_texture(gst, "res/textures/grass.png", GRASS_TEXID);
-    load_texture(gst, "res/textures/apple_inv.png", APPLE_INV_TEXID);
     load_texture(gst, "res/textures/apple.png", APPLE_TEXID);
-    load_texture(gst, "res/textures/blue_metal.png", METALPIECE_TEXID);
-    load_texture(gst, "res/textures/metalpiece_inv.png", METALPIECE_INV_TEXID);
     load_texture(gst, "res/textures/cloth.png", PLAYER_HANDS_TEXID);
     load_texture(gst, "res/textures/player_skin.png", PLAYER_SKIN_TEXID);
-    load_texture(gst, "res/textures/gun_metal.png", METAL2_TEXID);
     load_texture(gst, "res/textures/enemy_lvl1.png", ENEMY_LVL1_TEXID);
     load_texture(gst, "res/textures/mushroom_body.png", MUSHROOM_BODY_TEXID);
     load_texture(gst, "res/textures/mushroom_hat.png", MUSHROOM_HAT_TEXID);
@@ -182,7 +163,6 @@ static void state_setup_all_textures(struct state_t* gst) {
     SetTextureWrap(gst->textures[TREEBARK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[LEAF_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[ROCK_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
-    SetTextureWrap(gst->textures[GRASS_TEXID], TEXTURE_WRAP_CLAMP);
     SetTextureWrap(gst->textures[TERRAIN_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[HAZYBIOME_GROUND_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
     SetTextureWrap(gst->textures[EVILBIOME_GROUND_TEXID], TEXTURE_WRAP_MIRROR_REPEAT);
@@ -749,35 +729,6 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
-
-    // --- TERRAIN_GRASS_SHADER ---
-    {
-        Shader* shader = &gst->shaders[TERRAIN_GRASS_SHADER];
-        load_shader(gst,
-            "res/shaders/grass/grass.vs",
-            "res/shaders/grass/grass.fs",
-            NO_GEOMETRY_SHADER,
-            shader);
-    }
-
-    // --- TERRAIN_GRASS_GBUFFER_SHADER ---
-    {
-        Shader* shader = &gst->shaders[TERRAIN_GRASS_GBUFFER_SHADER];
-        load_shader(gst,
-            "res/shaders/grass/grass.vs",
-            "res/shaders/grass/grass_gbuffer.fs",
-            NO_GEOMETRY_SHADER,
-            shader);
-    }
-
-    // --- GRASSDATA_COMPUTE_SHADER ---
-    {
-        load_compute_shader(gst,
-                "res/shaders/grass/grass.cs",
-                GRASSDATA_COMPUTE_SHADER);
-    }
-
-
     // --- ENEGY_LIQUID_SHADER ---
     {
         Shader* shader = &gst->shaders[ENERGY_LIQUID_SHADER];
@@ -914,20 +865,16 @@ static void state_setup_all_gbuffers(struct state_t* gst) {
 static void state_setup_all_render_targets(struct state_t* gst) {
     PRINT_CURRENT_SETUP;
     SetTraceLogLevel(LOG_ALL);
-    
-    gst->env_render_target = LoadRenderTexture(
-            gst->res_x / gst->cfg.res_div,
-            gst->res_y / gst->cfg.res_div
-            );
 
-    gst->bloomtresh_target = LoadRenderTexture(
-            gst->res_x / gst->cfg.res_div,
-            gst->res_y / gst->cfg.res_div
-            );
+
+    int dres_x = gst->res_x / gst->cfg.res_div;
+    int dres_y = gst->res_y / gst->cfg.res_div;
+    
+    gst->env_render_target = LoadRenderTexture(dres_x, dres_y);
+    gst->inv_render_target = LoadRenderTexture(dres_x, dres_y);
+    gst->bloomtresh_target = LoadRenderTexture(dres_x, dres_y);
 
     gst->env_render_downsample = LoadRenderTexture(gst->ssao_res_x, gst->ssao_res_y);
-    //gst->shadow_map            = LoadRenderTextureHighp(gst->res_x, gst->res_y);
-
 
     gst->ssao_final = LoadRenderTexture(
             gst->res_x,
@@ -962,21 +909,6 @@ static void state_setup_all_ubos(struct state_t* gst) {
     gst->init_flags |= INITFLG_UBOS;
 }
 
-static void state_setup_all_ssbos(struct state_t* gst) {
-
-    size_t num_all_grassblades = gst->terrain.grass_instances_perchunk * gst->terrain.num_chunks;
-
-    size_t grassdata_ssbo_size = num_all_grassblades * GRASSDATA_STRUCT_SIZE;
-    state_create_ssbo(gst, GRASSDATA_SSBO, 5, grassdata_ssbo_size);
-    gst->init_flags |= INITFLG_SSBOS;
-
-    printf("'%s':\n"
-            "   Number of grass blades in world: %li\n"
-            "   Grass SSBO size: %li(KB) / %li(MB)\n", 
-            __func__, num_all_grassblades, 
-            grassdata_ssbo_size/1000,
-            grassdata_ssbo_size/1000000);
-}
 
 static void state_setup_ssao(struct state_t* gst) {
     
@@ -1101,17 +1033,19 @@ static void state_setup_terrain(struct state_t* gst) {
             );
 
     gst->init_flags |= INITFLG_TERRAIN;
+}
 
-    SetTraceLogLevel(LOG_ALL);
-    gst->terrain.grass_model = LoadModel("res/models/grassblade.glb");
-    gst->terrain.grass_model.materials[0] = LoadMaterialDefault();
+
+static void state_setup_all_item_models(struct state_t* gst) {
+
+    if(!load_item_model(gst, ITEM_APPLE, APPLE_TEXID, "res/models/apple.glb"))
+    { state_abort(gst); }
+    add_item_namedesc(gst, ITEM_APPLE, "Apple", "Healthy food.");
     
-    gst->terrain.grass_model_lowres = LoadModel("res/models/grassblade_lowres.glb");
-    gst->terrain.grass_model_lowres.materials[0] = LoadMaterialDefault();
-    SetTraceLogLevel(LOG_NONE);
-    
-    //gst->terrain.grass_instances_perchunk = 500;
-    gst->terrain.grass_instances_perchunk = 100000;
+
+
+
+    gst->init_flags |= INITFLG_ITEM_MODELS;
 }
 
 
@@ -1149,15 +1083,11 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_terrain(gst);
     state_setup_ssao(gst);
     
-    state_setup_all_ssbos(gst);
-    write_terrain_grass_positions(gst, &gst->terrain);
-
     state_setup_all_psystems(gst);
     state_setup_all_weapons(gst);
     state_setup_all_sounds(gst);
-    state_setup_all_enemy_models(gst);
     state_setup_all_item_models(gst);
-    //state_setup_all_lqmag_models(gst);
+    state_setup_all_enemy_models(gst);
 
     state_setup_all_gbuffers(gst);
     state_setup_all_render_targets(gst);
@@ -1174,6 +1104,10 @@ int state_setup_everything(struct state_t* gst) {
 
     shader_setu_float(gst, SSAO_SHADER, U_RES_DIV, &gst->cfg.res_div);
 
+    // For inventories
+    gst->inventory_box_model = LoadModel("res/models/inventory_box.glb");
+    gst->inventory_box_model.materials[0] = LoadMaterialDefault();
+    gst->inventory_box_model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];

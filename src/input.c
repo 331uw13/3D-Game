@@ -30,23 +30,20 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(IsKeyPressed(KEY_F)) {
-        player_respawn(gst, &gst->player);
-    }
-
     if(IsKeyPressed(KEY_E)) {
         gst->player.weapon.lqmag.ammo_level = gst->player.weapon.lqmag.capacity;
+    }
+
+    if(IsKeyPressed(KEY_F)) {
+        gst->player.wants_to_pickup_item = 1;
     }
 
     if(IsKeyPressed(KEY_X)) {
         gst->player.weapon_firetype = !gst->player.weapon_firetype;
     }
 
-    if(IsKeyPressed(KEY_C)) {
-        spawn_item(gst, ITEM_METALPIECE, gst->player.cam.position);
-    }
-    if(IsKeyPressed(KEY_V)) {
-        spawn_item(gst, ITEM_APPLE, gst->player.cam.position);
+    if(IsKeyPressed(KEY_U)) {
+        spawn_item(gst, NULL, gst->player.position, ITEM_APPLE, 1);
     }
 
     if(gst->gamepad.id >= 0) {
@@ -135,11 +132,14 @@ void handle_userinput(struct state_t* gst) {
 
     }
 
+    if(IsKeyPressed(KEY_TAB) && gst->player.alive) {
+        toggle_gui(&gst->player.inventory.open);
+        gst->player.powerup_shop.open = 0;
+        gst->devmenu_open = 0;
+    }
 
     if(IsKeyPressed(KEY_ESCAPE) && gst->player.alive) {
         toggle_gui(&gst->menu_open);
-        gst->player.powerup_shop.open = 0;
-        gst->player.inventory.open = 0;
         gst->player.powerup_shop.open = 0;
         gst->devmenu_open = 0;
     }
@@ -148,7 +148,6 @@ void handle_userinput(struct state_t* gst) {
     if(IsKeyPressed(KEY_TWO)) {
         toggle_gui(&gst->player.powerup_shop.open);
         gst->player.powerup_shop.selected_index = -1;
-        gst->player.inventory.open = 0;
         gst->devmenu_open = 0;
     }
    

@@ -53,8 +53,6 @@ struct foliage_rdata_t {
 };
 
 
-#define MAX_GRASS_CHUNKS 32
-
 struct terrain_t {
     int seed;
     Material  material;  // <-TODO: Remove this
@@ -66,11 +64,9 @@ struct terrain_t {
     size_t num_chunks;
     int    num_max_visible_chunks;
     int    num_visible_chunks;
-    int    num_rendered_grass;
 
-    Model  grass_model;
-    Model  grass_model_lowres;
-    size_t grass_instances_perchunk;
+    struct chunk_t** rendered_chunks;
+    int num_rendered_chunks;
 
     struct biome_t biomedata[MAX_BIOME_TYPES]; //<- Initialized from 'biome.c' 'setup_biomes()'
     Material biome_materials[MAX_BIOME_TYPES];

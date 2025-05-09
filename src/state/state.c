@@ -323,7 +323,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst, FOG_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, CLOUD_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, SKY_SHADER,            U_CAMPOS, &gst->player.cam.position);
-    shader_setu_vec3(gst, TERRAIN_GRASS_SHADER,  U_CAMPOS, &gst->player.cam.position);
 
     // Update screen size.
 
@@ -344,8 +343,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, WATER_SHADER,           U_TIME, &gst->time);
     shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
-    shader_setu_float(gst, TERRAIN_GRASS_SHADER,   U_TIME, &gst->time);
-    shader_setu_float(gst, GRASSDATA_COMPUTE_SHADER,   U_TIME, &gst->time);
     shader_setu_float(gst, ENERGY_LIQUID_SHADER,   U_TIME, &gst->time);
 
     // Update water level
@@ -355,8 +352,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
 
     // Update misc.
-   
-    shader_setu_vec3(gst, TERRAIN_GRASS_SHADER, U_CAMFORWARD, &gst->player.cam_forward);
 
     shader_setu_float(gst, SSAO_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_int(gst, POSTPROCESS_SHADER, U_SSAO_ENABLED, &gst->ssao_enabled);
@@ -370,9 +365,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
     shader_setu_vec3(gst,  GBUFFER_FOLIAGE_WIND_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
     
-    shader_setu_float(gst, GRASSDATA_COMPUTE_SHADER, U_WIND_STRENGTH, &gst->weather.wind_strength);
-    shader_setu_vec3(gst,  GRASSDATA_COMPUTE_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
-    shader_setu_vec3(gst,  TERRAIN_GRASS_SHADER, U_WIND_DIR, &gst->weather.wind_dir);
     // -------
 
     shader_setu_color(gst, ENERGY_LIQUID_SHADER, U_ENERGY_COLOR, &gst->player.weapon.color);
@@ -418,10 +410,9 @@ void state_update_shadow_cams(struct state_t* gst) {
 void state_update_frame(struct state_t* gst) {
     
     gst->player.any_gui_open = (
-            gst->menu_open 
-            //|| gst->devmenu_open
-            || gst->player.inventory.open
+               gst->menu_open 
             || gst->player.powerup_shop.open
+            || gst->player.inventory.open
          );
 
 
@@ -433,18 +424,23 @@ void state_update_frame(struct state_t* gst) {
 
 
 
-    // Enemies.
+    // Update Enemies.
     if(!gst->player.powerup_shop.open) {
         for(size_t i = 0; i < gst->num_enemies; i++) {
             update_enemy(gst, &gst->enemies[i]);
         }
 
-        update_enemy_spawn_systems(gst); 
+        //update_enemy_spawn_systems(gst); 
+    }
+
+
+    // Update Items.
+    for(int i = 0; i < gst->terrain.num_rendered_chunks; i++) {
+        chunk_update_items(gst, gst->terrain.rendered_chunks[i]);
     }
     
-    update_natural_item_spawns(gst);
 
-
+    // Particle Systems.
     // (updated only if needed)
     update_psystem(gst, &gst->psystems[PLAYER_WEAPON_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_WEAPON_PSYS]);
@@ -458,19 +454,20 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
     update_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS]);
 
+    // Update Misc.
     update_biome_envblend(gst);
-    update_items(gst);
     update_decay_lights(gst);
-    update_inventory(gst, &gst->player);
     update_npc(gst, &gst->npc);
     player_update(gst, &gst->player);
     state_update_shadow_cams(gst);
 
-    if(!gst->xp_update_done) {
-        
+
+    // XP.
+    if(!gst->xp_update_done) {    
         gst->xp_update_timer += gst->dt;
-        if(gst->xp_update_timer >= 0.001) {
-           
+        if(gst->xp_update_timer >= 0.01) {
+            gst->xp_update_timer = 0;
+
             if(gst->xp_update_target < gst->player.xp) {
                 gst->player.xp -= gst->xp_update_add;
                 if(gst->player.xp <= gst->xp_update_target) {
@@ -487,29 +484,11 @@ void state_update_frame(struct state_t* gst) {
             }
         }
     }
+
+    gst->player.wants_to_pickup_item = 0;
 }
 
 
-
-/*
-void state_add_crithit_marker(struct state_t* gst, Vector3 position) {
-    struct crithit_marker_t* marker = &gst->crithit_markers[gst->num_crithit_markers];
-
-    marker->visible = 1;
-    marker->lifetime = 0.0;
-    marker->position = position;
-
-    const float r = 10.0;
-    marker->position.x += RSEEDRANDOMF(-r, r);
-    marker->position.z += RSEEDRANDOMF(-r, r);
-    marker->position.y += RSEEDRANDOMF(r*1.5, r*2)*0.2;
-
-    gst->num_crithit_markers++;
-    if(gst->num_crithit_markers >= MAX_RENDER_CRITHITS) {
-        gst->num_crithit_markers = 0;
-    }
-}
-*/
 
 static float get_explosion_effect(Vector3 exp_pos, Vector3 p, float radius) {
     float dist = Vector3Distance(exp_pos, p);
@@ -608,28 +587,6 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
                 exp_knockback_to_ent);
     }
 
-
-    /*
-    // Bend chunk vertices.
-
-    struct chunk_t* chunk = NULL;
-    int found_chunk = 0;
-    for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
-        chunk = &gst->terrain.chunks[i];
-        float chunk_x_min = chunk->position.x;
-        float chunk_x_max = chunk->position.x + (gst->terrain.chunk_size * gst->terrain.scaling);
-        float chunk_z_min = chunk->position.z;
-        float chunk_z_max = chunk->position.z + (gst->terrain.chunk_size * gst->terrain.scaling);
-
-        if((position.x > chunk_x_min && position.x < chunk_x_max)
-        && (position.z > chunk_z_min && position.z < chunk_z_max)) {
-            found_chunk = 1;
-            break;
-        }
-    }
-    */
-
-
 }
 
 
@@ -681,6 +638,15 @@ void set_render_dist(struct state_t* gst, float new_dist) {
         printf("\033[35m(%p)\033[0m\n", f_rdata->matrices);
     }
 
+    // Allocate/Reallocate space for rendered chunks
+    if(gst->terrain.rendered_chunks) {
+        free(gst->terrain.rendered_chunks);
+        gst->terrain.rendered_chunks = NULL;
+    }
+
+    gst->terrain.rendered_chunks = malloc(
+            gst->terrain.num_max_visible_chunks * sizeof *gst->terrain.rendered_chunks);
+
 
     // Strech water plane to match render distance.
     gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);
@@ -715,4 +681,28 @@ void resample_texture(struct state_t* gst,
     }
     EndTextureMode();
 }
+
+void add_item_namedesc(struct state_t* gst, int item_type, const char* name, const char* desc) {
+
+    if(!name) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Name must be set.\033[0m\n",
+                __func__);
+        return;
+    }
+
+    struct item_info_t* itemi = &gst->item_info[item_type];
+
+    itemi->desc_size = 0;
+    itemi->name_size = 0;
+
+    itemi->name_size = strlen(name);
+    memmove(itemi->name, name, itemi->name_size);
+
+    if(desc) {
+        itemi->desc_size = strlen(desc);
+        memmove(itemi->desc, desc, itemi->desc_size);
+    }
+
+}
+
 

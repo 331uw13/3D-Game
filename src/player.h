@@ -45,6 +45,8 @@ struct player_t {
     Camera   cam;
     Vector3  cam_forward;
 
+    struct inventory_t inventory;
+
     float cam_yaw;
     float cam_pitch;
     Vector3  position;  // "Read only" change the camera position instead.
@@ -62,7 +64,7 @@ struct player_t {
     // Movement related.
     float    speed; // "Read only". Updated from 'input.c'
     float    walkspeed;
-    /*TODO*/float walkspeed_aim_mult; // Multiply speed when aiming
+    float    walkspeed_aim_mult; // Multiply speed when aiming
     float    run_speed_mult; // Multiply speed when running
     float    air_speed_mult; // Multiply 
     float    ground_friction;
@@ -90,6 +92,8 @@ struct player_t {
     float max_armor;
     float armor_damage_dampen;
 
+    int wants_to_pickup_item;
+
     // External force may be applied to player.
     Vector3  ext_force_vel;
     Vector3  ext_force_acc;
@@ -115,21 +119,19 @@ struct player_t {
     float aim_button_hold_timer; 
     int holding_gun;
 
-    struct item_t* item_in_crosshair;
    
     struct powerup_shop_t powerup_shop;
-    struct inventory_t inventory;
 
+    /*
     Model gunmodel;
     Material arms_material;
     Material hands_material;
 
-    struct item_t  gun_item; // Used for inventory
-    struct light_t gun_light;
-
     //Vector3 gunmodel_offset;
     Matrix gunmodel_aim_offset_m;
     Matrix gunmodel_rest_offset_m;
+    */
+    struct light_t gun_light;
 
     Vector3 rotation_from_hit; // Rotate player camera when player gets hit.
 
@@ -185,6 +187,7 @@ struct player_t {
     int any_gui_open;
 
 };
+
 
 
 void init_player_struct(struct state_t* gst, struct player_t* p);

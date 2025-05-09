@@ -249,7 +249,6 @@ void enemy_damage(
         float knockback
 );
 
-void enemy_drop_random_item(struct state_t* gst, struct enemy_t* ent);
 
 int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, 
         int* num_in_world/* report back how many in total? (can be NULL)*/);

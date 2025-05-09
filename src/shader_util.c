@@ -55,6 +55,7 @@ static const char* g_shader_uniform_names[MAX_UNIFORM_LOCS] = {
     "u_chunk_forcetex\0",
     "u_terrain_scaling\0",
     "u_num_grass_perchunk\0"
+    "u_inventory_open\0"
 };
 
 // TODO: Remove unused uniform names.

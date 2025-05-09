@@ -64,21 +64,11 @@ static void state_delete_enemy_models(struct state_t* gst) {
     printf("\033[35m -> Deleted Enemy models.\033[0m\n");
 }
 
-static void state_delete_item_models(struct state_t* gst) {
-    if(!(gst->init_flags & INITFLG_ITEM_MODELS)) { return; }
-    for(int i = 0; i < MAX_ITEM_MODELS; i++) {
-        if(IsModelValid(gst->item_models[i])) {
-            UnloadModel(gst->item_models[i]);
-        }
-    }
-
-    printf("\033[35m -> Deleted Item models.\033[0m\n");
-}
-
 static void state_delete_render_targets(struct state_t* gst) {
     if(!(gst->init_flags & INITFLG_RENDERTARGETS)) { return; }
     UnloadRenderTexture(gst->env_render_target);
     UnloadRenderTexture(gst->env_render_downsample);
+    UnloadRenderTexture(gst->inv_render_target);
     UnloadRenderTexture(gst->bloomtresh_target);
     UnloadRenderTexture(gst->ssao_target);
     UnloadRenderTexture(gst->ssao_final);
@@ -119,17 +109,18 @@ static void state_delete_ubos(struct state_t* gst) {
     printf("\033[35m -> Deleted Uniform buffers.\033[0m\n");
 }
 
-static void state_delete_ssbos(struct state_t* gst) {
-    if(!(gst->init_flags & INITFLG_SSBOS)) { return; }
-    for(int i = 0; i < MAX_SSBOS; i++) {
-        glDeleteBuffers(1, &gst->ssbo[i]);
+static void state_delete_item_models(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_ITEM_MODELS)) { return; }
+    for(int i = 0; i < MAX_ITEM_TYPES; i++) {
+        UnloadModel(gst->item_models[i]);
     }
 
-    printf("\033[35m -> Deleted Shader storage buffers.\033[0m\n");
+    printf("\033[35m -> Deleted Item Models.\033[0m\n");
 }
 
 
 void state_free_everything(struct state_t* gst) {
+    delete_terrain(&gst->terrain);
     state_delete_shaders(gst);
     state_delete_psystems(gst);
     state_delete_textures(gst);
@@ -141,14 +132,13 @@ void state_free_everything(struct state_t* gst) {
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
     state_delete_ubos(gst);
-    state_delete_ssbos(gst);
+
    
     delete_player(gst, &gst->player);
     delete_prjmods(gst);
     delete_npc(gst, &gst->npc);
 
-    UnloadModel(gst->terrain.grass_model);
-    UnloadModel(gst->terrain.grass_model_lowres);
+    UnloadModel(gst->inventory_box_model);
 }
 
 

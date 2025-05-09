@@ -44,14 +44,11 @@ static void set_player_default_stats(struct player_t* p) {
 
     // Misc
 
-    // (skip first because it is the gun.)
-    for(size_t i = 1; i < INV_SIZE; i++) {
-        p->inventory.items[i] = NULL;
-    }
-
     for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
         p->kills[i] = 0;
     }
+
+    inventory_init(&p->inventory);
 
     p->xp = 999999;
 }
@@ -73,7 +70,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->cam.position = p->spawn_point;
     p->cam.target = (Vector3){ 0, 0, 0 };
     p->cam.up = (Vector3){ 0.0, 1.0, 0.0 };
-    p->cam.fovy = 60.0;
+    p->cam.fovy = 70.0;
     p->cam.projection = CAMERA_PERSPECTIVE;
     
     /*
@@ -88,8 +85,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     printf("Spawn point: %0.2f, %0.2f, %0.2f\n", 
             p->cam.position.x, p->cam.position.y, p->cam.position.z);
 
+    p->wants_to_pickup_item = 0;
     p->position = (Vector3) { 0.0, 0.0, 0.0 };
-    p->height = 30.5;
+    p->height = 12.0;
     p->hitbox_size = (Vector3){ 1.5, 2.8, 1.5 };
     p->hitbox_y_offset = -1.0;
     p->velocity = (Vector3){ 0.0, 0.0, 0.0 };
@@ -104,7 +102,6 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->dash_timer = 0.0;
     p->enable_fov_effect = 1;
     p->fovy_change = 0.0;
-    p->item_in_crosshair = NULL;
     p->speed = 0.0;
     p->onground = 1;
     p->num_jumps_inair = 0;
@@ -123,13 +120,13 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
     p->powerup_shop.open = 0;
     p->powerup_shop.selected_index = -1;
-    p->inventory.selected_index = 0;
     p->holding_gun = 1;
 
     p->aim_idle_timer = 0.0;
     p->weapon_firetype = PLAYER_WEAPON_FULLAUTO;
     p->rotation_from_hit = (Vector3){ 0, 0, 0 };
     
+    /*
     SetTraceLogLevel(LOG_ALL);
     p->gunmodel = LoadModel("res/models/gun_v1.glb");
 
@@ -149,12 +146,12 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
        
     SetTraceLogLevel(LOG_NONE);
 
+    */
 
     p->gunfx_model = LoadModelFromMesh(GenMeshPlane(1.0, 1.0, 1, 1));
     p->gunfx_model.materials[0] = LoadMaterialDefault();
     p->gunfx_model.materials[0].shader = gst->shaders[GUNFX_SHADER];
     p->gunfx_timer = 1.0;
-    
 
     for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
         p->kills[i] = 0;
@@ -165,17 +162,9 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
     }
 
 
-    p->gun_item = (struct item_t) {
-        .rarity = ITEM_SPECIAL,
-        .type = -1,
-        .consumable = 0,
-        .can_be_dropped = 0,
-        .inv_tex = LoadTexture("res/textures/gun_inv.png")
-    };
-    inv_add_item(gst, p, &p->gun_item);
-
     // Calculate matrices for when player is aiming and not aiming.
-    
+   
+    /*
     // (Not aiming)
     {
         p->gunmodel_rest_offset_m
@@ -190,6 +179,7 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
         p->gunmodel_aim_offset_m 
             = MatrixTranslate(0.3, 0.3, -0.6);
     }
+    */
 
     set_player_default_stats(p);
 
@@ -200,16 +190,17 @@ void delete_player(struct state_t* gst, struct player_t* p) {
     if(!(gst->init_flags & INITFLG_PLAYER)) {
         return;
     }
+    /*
     UnloadModel(p->gunmodel);
+    */
     UnloadModel(p->gunfx_model);
-    UnloadTexture(p->gun_item.inv_tex);
     // ...
     
     printf("\033[35m -> Deleted Player\033[0m\n");
 }
 
 void player_shoot(struct state_t* gst, struct player_t* p) {
-
+/*
     if(!p->is_aiming) {
         return;
     }
@@ -259,6 +250,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     }
 
     p->gunfx_timer = 0.0;
+    */
 }
 
 void player_damage(struct state_t* gst, struct player_t* p, float damage) {
@@ -409,9 +401,7 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
 
 void player_update(struct state_t* gst, struct player_t* p) {
 
-    p->holding_gun = (p->inventory.selected_index == 0);
-    //rainbow_palette(sin(gst->time*0.75), &p->weapon.color.r, &p->weapon.color.g, &p->weapon.color.b);
-
+    /*
     int fireprj_hold = (gst->gamepad.id < 0) 
                     ? IsMouseButtonDown(MOUSE_BUTTON_LEFT) 
                     : IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_RIGHT_TRIGGER_1);
@@ -516,19 +506,6 @@ void player_update(struct state_t* gst, struct player_t* p) {
     p->cam.target.y += p->rotation_from_hit.y * gst->dt;
     p->cam.target.x += p->rotation_from_hit.z * gst->dt;
 
-    /*
-    if((p->cam.position.y < gst->terrain.water_ylevel) && !p->in_water) {
-        p->in_water = 1;
-        gst->fog_density = 6.5;
-        update_fog_settings(gst);
-    }
-    else
-    if((p->cam.position.y > gst->terrain.water_ylevel) && p->in_water) {
-        p->in_water = 0;
-        gst->fog_density = 1.0;
-        update_fog_settings(gst);
-    }
-    */
 
     // FOV Effect. Change FOV smoothly based on player velocity.
     if(p->enable_fov_effect) {
@@ -545,12 +522,14 @@ void player_update(struct state_t* gst, struct player_t* p) {
         p->fovy_change = CLAMP(p->fovy_change, 0.0, 1.0);
         p->cam.fovy = map(p->fovy_change, 0.0, 1.0, 60.0, 66.0) + sin(gst->time)*0.85;
     }
+        */
 }
 
 #include <rlgl.h>
 
 void render_player(struct state_t* gst, struct player_t* p) {
 
+    /*
     if(!p->render) {
         return;
     }
@@ -672,6 +651,7 @@ void render_player(struct state_t* gst, struct player_t* p) {
                 );
 
     }
+                */
 }
 
 
@@ -766,9 +746,6 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     CameraMoveForward (&p->cam, (p->dash_velocity.z) * gst->dt, 1);
     CameraMoveRight   (&p->cam, (p->dash_velocity.x) * gst->dt, 1);
     
-
-    //CameraMoveForward (&gst->shadow_cam, (p->speed * p->velocity.z) * gst->dt, 1);
-    //CameraMoveRight   (&gst->shadow_cam, (p->speed * p->velocity.x) * gst->dt, 1);
 
     // Friction.
     float friction = (p->onground || p->noclip) ? p->ground_friction : p->air_friction;
@@ -867,18 +844,6 @@ void player_update_movement(struct state_t* gst, struct player_t* p) {
     if(biomeid_by_y != p->current_biome->id) {
         change_to_biome(gst, biomeid_by_y);
     }
-
-    /*
-    // Update force vector.
-    set_grass_forcevec(gst,
-            0,
-            (Vector4){
-                p->position.x,
-                p->position.y,
-                p->position.z,
-                20.0
-            });
-            */
 }
 
 void player_update_camera(struct state_t* gst, struct player_t* p) {
@@ -944,6 +909,7 @@ static void draw_stats_bar(
 }
 
 void render_player_gunfx(struct state_t* gst, struct player_t* p) {
+    /*
     if(p->gunfx_timer < 1.0) {
         p->gunfx_model.transform = p->gunmodel.transform;
        
@@ -964,6 +930,7 @@ void render_player_gunfx(struct state_t* gst, struct player_t* p) {
 
         p->gunfx_timer += gst->dt*7.0;
     }
+    */
 }
 
 

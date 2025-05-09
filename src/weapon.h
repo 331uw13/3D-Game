@@ -46,7 +46,7 @@ struct lqmag_t {
     float condition_value; // 0.0 - 100.0
     int   condition;
 
-    // Liquid magazine may leak
+    // Liquid magazine may leak  (TODO)
     // after the condition is below 'LQMAG_CONDITION_POOR'
     float leak_value;
 

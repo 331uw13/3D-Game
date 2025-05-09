@@ -12,18 +12,17 @@
 #define MAX_NORMAL_LIGHTS 16
 #define MAX_DECAY_LIGHTS 32
 
-
-// Shader uniform locations index.
-#define LIGHT_ENABLED_LOC 0
-#define LIGHT_TYPE_LOC 1
-#define LIGHT_POSITION_LOC 2
-#define LIGHT_COLOR_LOC 3
-#define LIGHT_STRENGTH_LOC 4
-#define MAX_LIGHT_LOCS 5
-
 // Light types.
 #define LIGHT_DIRECTIONAL 0
 #define LIGHT_POINT 1
+
+
+// Static lights in lights ubo
+#define SUN_LIGHT_ID 0
+#define PLAYER_GUN_LIGHT_ID 1
+#define INVENTORY_LIGHT_ID 2
+#define MAX_STATIC_LIGHTS 3
+
 
 
 struct state_t;

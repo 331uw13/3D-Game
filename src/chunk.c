@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "chunk.h"
 #include "state/state.h"
@@ -120,6 +121,8 @@ void load_chunk(
     chunk->mesh.vertices = malloc(chunk->mesh.vertexCount * 3 * sizeof(float));
     chunk->mesh.normals  = malloc(chunk->mesh.vertexCount * 3 * sizeof(float));
     chunk->mesh.texcoords = malloc(chunk->mesh.vertexCount * 2 * sizeof(float));
+
+    chunk->num_items = 0;
 
     int terrain_size = terrain->heightmap.size;
 
@@ -454,118 +457,107 @@ void render_chunk_borders2x(struct state_t* gst, struct chunk_t* chunk, Color co
 
 struct chunk_t* find_chunk(struct state_t* gst, Vector3 position) {
     struct chunk_t* chunk = NULL;
-    for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
-        chunk = &gst->terrain.chunks[i];
-        if((position.x > chunk->area.x_min) && (position.x < chunk->area.x_max)
-        && (position.z > chunk->area.z_min) && (position.z < chunk->area.z_max)) {
-            break;
-        }
+
+    // Normalize coordinates to chunk positions.
+
+    int c_x = gst->player.position.x - gst->terrain.transform.m12;
+    int c_z = gst->player.position.z - gst->terrain.transform.m14;
+    c_x /= (gst->terrain.chunk_size * gst->terrain.scaling);
+    c_z /= (gst->terrain.chunk_size * gst->terrain.scaling);
+    
+    
+    int chunks_inrow = (gst->terrain.heightmap.size / gst->terrain.chunk_size);
+
+    c_x = CLAMP(c_x, 0, chunks_inrow-1);
+    c_z = CLAMP(c_z, 0, chunks_inrow-1);
+
+
+    size_t chunk_index = c_z * chunks_inrow + c_x;
+    if(chunk_index >= gst->terrain.num_chunks) {
+        chunk_index = gst->terrain.num_chunks;
+    }
+
+    chunk = &gst->terrain.chunks[chunk_index];
+    if(chunk->index != chunk_index) {
+        fprintf(stderr, "\033[35m(WARNING) '%s': Mismatch in found chunk index\033[0m\n",
+                __func__);
     }
 
     return chunk;
 }
 
-
-void render_chunk_grass(
-        struct state_t* gst,
-        struct terrain_t* terrain,
-        struct chunk_t* chunk,
-        Matrix* mvp,
-        int render_pass
-){
-
-
-    int mesh_triangle_count = terrain->grass_model.meshes[0].triangleCount;
-    int vao_id = terrain->grass_model.meshes[0].vaoId;
-    
-    int baseindex = (int)chunk->grass_baseindex;
-    int instances = terrain->grass_instances_perchunk;
-
-    if(chunk->dst2player > 7500) {
+void chunk_add_item(struct chunk_t* chunk, struct item_t* item) {
+    if(!chunk) {
         return;
     }
 
-    if(chunk->dst2player > 1.15*(terrain->chunk_size * terrain->scaling)) {
-        // Lower resolution is chosen for far away chunks.
 
-        instances = terrain->grass_instances_perchunk / 3.5;
-        mesh_triangle_count = terrain->grass_model_lowres.meshes[0].triangleCount;
-        vao_id = terrain->grass_model_lowres.meshes[0].vaoId;
+    // If the chunk is not full just add it to next index.
+    if(chunk->num_items+1 < MAX_ITEMS_PERCHUNK) {
+        memmove(
+                &chunk->items[chunk->num_items],
+                item,
+                sizeof *item
+                );
+        chunk->num_items++;
     }
-    
+    // The chunk may not have active item in all elements.
+    // Check if there is one free to use.
+    else {
+        int item_added = 0;
+        for(int i = 0; i < chunk->num_items; i++) {
+            struct item_t* chunk_item = &chunk->items[i];
+            if(!chunk_item->empty) {
+                continue;
+            }
+            
+            memmove(
+                    &chunk->items[i],
+                    item,
+                    sizeof *item
+                    );
+            item_added = 1;
+            break;
+        }
 
-    // Input for compute shader
-    {
-        // Base index.
-        shader_setu_int(gst, 
-                GRASSDATA_COMPUTE_SHADER,
-                U_CHUNK_GRASS_BASEINDEX,
-                &baseindex
+        if(!item_added) {
+            fprintf(stderr, "\033[31m(ERROR) '%s': Chunk %li has too many items. Cant add new one\033[0m\n",
+                    __func__, chunk->index);
+        }
+    }
+}
+
+void chunk_update_items(struct state_t* gst, struct chunk_t* chunk) {
+    struct item_t* item = NULL;
+    for(int i = 0; i < chunk->num_items; i++) {
+        item = &chunk->items[i];
+        if(item->empty || (item->state != ITEM_STATE_DROPPED)) {
+            continue;
+        }
+
+        update_item(gst, item);
+    }
+}
+
+void chunk_render_items(struct chunk_t* chunk) {
+    
+    struct item_t* item = NULL;
+    for(int i = 0; i < chunk->num_items; i++) {
+        item = &chunk->items[i];
+        if(item->empty || (item->state != ITEM_STATE_DROPPED)) {
+            continue;
+        }
+
+        DrawMesh(
+                item->modelptr->meshes[0],
+                item->modelptr->materials[0],
+                item->transform
                 );
 
-        // Chunk coords.
-        Vector2 chunk_coords = (Vector2){ chunk->position.x, chunk->position.z };
-        shader_setu_vec2(gst,
-                GRASSDATA_COMPUTE_SHADER,
-                U_CHUNK_COORDS,
-                &chunk_coords);
-
-       
-        shader_setu_int(gst,
-                GRASSDATA_COMPUTE_SHADER,
-                U_NUM_GRASS_PERCHUNK,
-                ((int*)&terrain->grass_instances_perchunk));
-
-        // Chunk size.
-        shader_setu_int(gst,
-                GRASSDATA_COMPUTE_SHADER,
-                U_CHUNK_SIZE,
-                &terrain->chunk_size);
-    
     }
 
-    // Dispatch grassdata compute shader
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
-    dispatch_compute(gst,
-            GRASSDATA_COMPUTE_SHADER,
-            instances,  1, 1,
-            GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
-            );
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-
-    int rshader_i = (render_pass == RENDERPASS_RESULT)
-        ? TERRAIN_GRASS_SHADER
-        : TERRAIN_GRASS_GBUFFER_SHADER;
-
-
-    shader_setu_matrix(gst, rshader_i, U_VIEWPROJ, *mvp);
-
-    rlEnableShader(gst->shaders[rshader_i].id);
-    rlEnableVertexArray(vao_id);
-    
-    shader_setu_int(gst,
-            rshader_i,
-            U_CHUNK_GRASS_BASEINDEX,
-            &baseindex
-            );
-
-    rlDisableBackfaceCulling();
-    glDrawElementsInstanced(
-            GL_TRIANGLES,
-            mesh_triangle_count * 3,
-            GL_UNSIGNED_SHORT,
-            0,
-            instances
-            );
-
-    rlEnableBackfaceCulling();
-    rlDisableVertexArray();
-    rlDisableShader();
-
-    terrain->num_rendered_grass += instances;
 }
+
+
 
 

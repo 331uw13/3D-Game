@@ -368,7 +368,6 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
     printf("xp-gain: %i\n", ent->xp_gain + xp_gain_bonus);
     
     player_add_xp(gst, ent->xp_gain + xp_gain_bonus);
-    enemy_drop_random_item(gst, ent);
 
     if(ent->death_callback) {
         ent->death_callback(gst, ent);
@@ -614,20 +613,6 @@ struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy
     return result;
 }
 
-void enemy_drop_random_item(struct state_t* gst, struct enemy_t* ent) {
-
-    int item_type = ITEM_METALPIECE;
-
-    if(GetRandomValue(ITEM_DROP_CHANCE_MIN, ITEM_DROP_CHANCE_MAX)
-            > get_item_drop_chance(item_type)) {
-        return;
-    }
-
-    spawn_item(gst, ITEM_METALPIECE, 
-            (Vector3) {
-                ent->position.x, ent->position.y+5.0, ent->position.z
-            });
-}
 
 int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int* num_in_world) {
     int num = 0;

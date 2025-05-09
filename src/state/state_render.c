@@ -116,26 +116,20 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
     gst->terrain.foliage_models[TF_COMFY_TREE_1].materials[1].shader = gst->shaders[rp_shader_foliage_wind_i];
 
 
-    // Prepare player.
-    gst->player.gunmodel.materials[0].shader = gst->shaders[rp_shader_i];
-    gst->player.arms_material.shader = gst->shaders[rp_shader_i];
-    gst->player.hands_material.shader = gst->shaders[rp_shader_i];
-
-    
-    // Prepare "skybox"
-    gst->skybox.materials[0].shader = gst->shaders[rp_shader_skybox_i];
-
-    // Prepare items.
-    for(size_t i = 0; i < MAX_ITEM_MODELS; i++) {
+    // Prepare items
+    for(int i = 0; i < MAX_ITEM_TYPES; i++) {
         gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
     }
 
     /*
-    // Prepare liquid magazine models.
-    for(size_t i = 0; i < MAX_LQMAG_TYPES; i++) {
-        gst->lqmag_models[i].materials[0].shader = gst->shaders[rp_shader_i];
-    }
+    // Prepare player.
+    gst->player.gunmodel.materials[0].shader = gst->shaders[rp_shader_i];
+    gst->player.arms_material.shader = gst->shaders[rp_shader_i];
+    gst->player.hands_material.shader = gst->shaders[rp_shader_i];
     */
+    
+    // Prepare "skybox"
+    gst->skybox.materials[0].shader = gst->shaders[rp_shader_skybox_i];
 
     // Prepare npc
     gst->npc.model.materials[0].shader = gst->shaders[rp_shader_i];
@@ -171,9 +165,13 @@ static void render_scene(struct state_t* gst, int renderpass) {
             RENDER_TERRAIN_FOR_SHADOWS : RENDER_TERRAIN_FOR_PLAYER;
     */
     render_terrain(gst, &gst->terrain, renderpass);
-    render_items(gst);
     render_npc(gst, &gst->npc);
     render_player(gst, &gst->player);
+
+    // Render chunks items.
+    for(int i = 0; i < gst->terrain.num_rendered_chunks; i++) {
+        chunk_render_items(gst->terrain.rendered_chunks[i]);
+    }
 }
 
 
@@ -277,6 +275,11 @@ void state_render(struct state_t* gst) {
                 if(chunk->dst2player > gst->render_dist) { continue; }
                 render_chunk_borders(gst, chunk, RED);
             }
+
+            
+            struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
+            render_chunk_borders(gst, player_chunk, GREEN);
+
             DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
         }
 
@@ -284,7 +287,6 @@ void state_render(struct state_t* gst) {
  
        
         render_scene(gst, RENDERPASS_RESULT);
-
         /*
         // Water
         {
@@ -351,7 +353,18 @@ void state_render(struct state_t* gst) {
     }
     EndMode3D();
     EndTextureMode();
-   
+ 
+    BeginTextureMode(gst->inv_render_target);
+    ClearBackground((Color){ 0, 0, 0, 0 });
+    BeginMode3D(gst->player.cam);
+    {
+        if(gst->player.inventory.open) {
+            inventory_render(gst, &gst->player.inventory);
+        }
+    }
+    EndMode3D();
+    EndTextureMode();
+      
     /*
     // Grass has to rendered now, because 'write_chunk_forcetex()'
     // uses BeginTextureMode() to write the texture.

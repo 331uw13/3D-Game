@@ -207,70 +207,6 @@ static void _load_terrain_chunks(struct state_t* gst, struct terrain_t* terrain)
     }
 }
 
-// Write all constant information about grass blades
-// for grass data ssbo (shader storage buffer object).
-void write_terrain_grass_positions(struct state_t* gst, struct terrain_t* terrain) {
-    if((gst->init_flags & INITFLG_GRASSDATA)) {
-        fprintf(stderr, "\033[35m(WARNING) '%s': Trying to overwrite grass data\033[0m\n",
-                __func__);
-        return;
-    }
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
-    size_t grasspos_index = 0;
-
-
-    float time_start = GetTime();
-   
-    struct grassdata_t {
-        float position[4];
-        float _reserved0[GRASSDATA_NUM_FLOATS_RESERVED];
-    };
-
-    const size_t data_size = 
-        (terrain->num_chunks * terrain->grass_instances_perchunk)
-        * (sizeof(struct grassdata_t));
-
-    struct grassdata_t* data = malloc(data_size);
-
-
-    //shader_setu_float(gst, CHUNK_FORCETEX_SHADER, U_GRASS_SPACING, &terrain->grass_spacing);
-   
-    for(size_t i = 0; i < terrain->num_chunks; i++) {
-        struct chunk_t* chunk = &terrain->chunks[i];
-        chunk->grass_baseindex = grasspos_index;
-
-
-        render_loading_info(gst, "Loading grass", i, terrain->num_chunks);
-
-        // Making this loop backwards because it was a bit faster.
-        for(size_t n = terrain->grass_instances_perchunk; n > 0; n--) {
-
-            float* xptr = &data[grasspos_index].position[0];
-            float* zptr = &data[grasspos_index].position[2];
-            *xptr = RSEEDRANDOMF(chunk->area.x_min, chunk->area.x_max);
-            *zptr = RSEEDRANDOMF(chunk->area.z_min, chunk->area.z_max);
-
-            RayCollision tray = raycast_terrain(terrain, *xptr, *zptr);
-            data[grasspos_index].position[1] = tray.point.y;
-
-            grasspos_index++;
-        }
-    }
-
-    glBufferSubData(
-            GL_SHADER_STORAGE_BUFFER,
-            0,
-            data_size,
-            data
-            );
-
-    free(data);
-
-    gst->init_flags |= INITFLG_GRASSDATA;
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    printf("'%s': Done %li, In %0.2f seconds\n", __func__, grasspos_index, GetTime() - time_start);
-}
 
 
 void generate_terrain(
@@ -299,6 +235,8 @@ void generate_terrain(
     terrain->highest_point = 0.0;
     terrain->lowest_point = 999999.9;
     terrain->num_visible_chunks = 0;
+    terrain->rendered_chunks = NULL;
+    terrain->num_rendered_chunks = 0;
 
     terrain->water_ylevel = WATER_INITIAL_YLEVEL;
 
@@ -555,153 +493,6 @@ void delete_terrain(struct terrain_t* terrain) {
 
 
 
-struct grass_group_t {
-    int base_index;
-    int num_instances;
-
-    int num_chunks;
-    float dst2player;
-};
-
-
-/*
-// Render group of grass chunks. High quality.
-static void render_grass_group(
-        struct state_t* gst,
-        struct terrain_t* terrain,
-        struct grass_group_t* group,
-        Matrix* mvp,
-        int render_pass
-){
-
-
-    const int mesh_triangles = terrain->grass_model.meshes[0].triangleCount;
-    const int vao_id = terrain->grass_model.meshes[0].vaoId;
-
-    shader_setu_int(gst,
-            GRASSDATA_COMPUTE_SHADER,
-            U_CHUNK_GRASS_BASEINDEX,
-            &group->base_index
-            );
-
-    // Dispatch grassdata compute shader
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
-    dispatch_compute(gst,
-            GRASSDATA_COMPUTE_SHADER,
-            group->num_instances,  1, 1,
-            GL_SHADER_STORAGE_BARRIER_BIT
-            );
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-    int rshader_i = (render_pass == RENDERPASS_RESULT)
-        ? TERRAIN_GRASS_SHADER
-        : TERRAIN_GRASS_GBUFFER_SHADER;
-
-    shader_setu_matrix(gst, rshader_i, U_VIEWPROJ, *mvp);
-
-    rlEnableShader(gst->shaders[rshader_i].id);
-    rlEnableVertexArray(vao_id);
-
-    shader_setu_int(gst,
-            rshader_i,
-            U_CHUNK_GRASS_BASEINDEX,
-            &group->base_index
-            );
-
-    rlDisableBackfaceCulling();
-    glDrawElementsInstanced(
-            GL_TRIANGLES,
-            mesh_triangles * 3,
-            GL_UNSIGNED_SHORT,
-            0,
-            group->num_instances
-            );
-
-    rlEnableBackfaceCulling();
-    rlDisableVertexArray();
-    rlDisableShader();
-
-    terrain->num_rendered_grass += group->num_instances;
-}
-*/
-
-/*
-static void render_chunk_grass(
-        struct state_t* gst,
-        struct terrain_t* terrain,
-        struct chunk_t* chunk,
-        Matrix* mvp,
-        int render_pass
-){
-
-    int lowres = (chunk->dst2player > (terrain->chunk_size * terrain->scaling));
-
-    const int mesh_triangle_count =
-        lowres ? terrain->grass_model_lowres.meshes[0].triangleCount
-               : terrain->grass_model.meshes[0].triangleCount;
-
-    const int baseindex = (int)chunk->grass_baseindex;
-    const int vao_id = 
-        lowres ? terrain->grass_model_lowres.meshes[0].vaoId
-               : terrain->grass_model.meshes[0].vaoId;
-
-    int instances = terrain->grass_instances_perchunk;
-
-    if(lowres) {
-        instances /= 2.0;
-    }
-    
-
-    shader_setu_int(gst, 
-            GRASSDATA_COMPUTE_SHADER,
-            U_CHUNK_GRASS_BASEINDEX,
-            &baseindex
-            );
-
-    // Dispatch grassdata compute shader
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[GRASSDATA_SSBO]);
-    dispatch_compute(gst,
-            GRASSDATA_COMPUTE_SHADER,
-            instances,  1, 1,
-            GL_SHADER_STORAGE_BARRIER_BIT
-            );
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-
-    int rshader_i = (render_pass == RENDERPASS_RESULT)
-        ? TERRAIN_GRASS_SHADER
-        : TERRAIN_GRASS_GBUFFER_SHADER;
-
-
-    shader_setu_matrix(gst, rshader_i, U_VIEWPROJ, *mvp);
-
-    rlEnableShader(gst->shaders[rshader_i].id);
-    rlEnableVertexArray(vao_id);
-    
-    shader_setu_int(gst,
-            rshader_i,
-            U_CHUNK_GRASS_BASEINDEX,
-            &baseindex
-            );
-
-    rlDisableBackfaceCulling();
-    glDrawElementsInstanced(
-            GL_TRIANGLES,
-            mesh_triangle_count * 3,
-            GL_UNSIGNED_SHORT,
-            0,
-            instances
-            );
-
-    rlEnableBackfaceCulling();
-    rlDisableVertexArray();
-    rlDisableShader();
-
-    terrain->num_rendered_grass += instances;
-}
-*/
 
 void render_terrain(
         struct state_t* gst,
@@ -722,7 +513,6 @@ void render_terrain(
 
     //terrain->water_ylevel += sin(gst->time)*0.001585;
     float trender_dist = 0;
-    int render_grass = 1;
 
 
     // Reduce render distance for ssao and shadow cams.
@@ -737,25 +527,15 @@ void render_terrain(
 
         case RENDERPASS_SHADOWS:
             trender_dist = (terrain->scaling * (terrain->chunk_size));
-            render_grass = 0;
             break;
     }
-
-    render_grass *= (gst->grass_enabled);
 
 
     int ground_pass = 1;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
 
+    terrain->num_rendered_chunks = 0;
    
-    Matrix mvp = MatrixMultiply(
-        rlGetMatrixModelview(),
-        rlGetMatrixProjection()
-        ); 
-
-
-
-
     for(size_t i = 0; i < terrain->num_chunks; i++) {
         struct chunk_t* chunk = &terrain->chunks[i];
         chunk->dst2player = 
@@ -778,7 +558,6 @@ void render_terrain(
         int skip_view_test = (chunk->dst2player < (terrain->chunk_size * terrain->scaling));
         if(!skip_view_test && !point_in_player_view(gst, &gst->player, chunk->center_pos, 70.0)) {
             continue;
-            //goto skip_chunk_ground;
         }
 
         terrain->num_visible_chunks++;
@@ -814,20 +593,22 @@ void render_terrain(
             f_rdata->num_render += chunk_fdata->num_foliage;
 
         }
+        
 
         // Render chunk ground.
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
+   
         
+        terrain->rendered_chunks[terrain->num_rendered_chunks] = chunk;
+        terrain->num_rendered_chunks++;
 
-        if(render_grass) {
-            render_chunk_grass(gst, terrain, chunk, &mvp, render_pass);
-        }
     }
 
 
     ground_pass = 0;
     shader_setu_int(gst, DEFAULT_SHADER, U_GROUND_PASS, &ground_pass);
+
     
 
     // Render foliage.

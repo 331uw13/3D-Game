@@ -62,9 +62,6 @@ void gui_render_menu_screen(struct state_t* gst) {
     gui_checkbox(gst, "Ambient Occlusion", 20.0, btn_pos, &gst->ssao_enabled);
     btn_pos.y += 50.0;
     
-    gui_checkbox(gst, "Render Grass", 20.0, btn_pos, &gst->grass_enabled);
-    btn_pos.y += 50.0;
-
     gui_slider_float(gst, "Render Distance", 20.0, btn_pos, 530,
             &gst->menu_slider_render_dist_v, MIN_RENDERDIST, MAX_RENDERDIST);
     if(gui_button(gst, "Apply", 20.0, (Vector2){ btn_pos.x+600, btn_pos.y })) {

@@ -17,6 +17,7 @@
 #include "../npc.h"
 #include "../config.h"
 #include "../fog.h"
+#include "../item.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -28,6 +29,7 @@
 
 #define RESOLUTION_X 1500
 #define RESOLUTION_Y 800
+#define FONT_SPACING 1.0
 
 #define MAX_RENDERDIST 15000.0
 #define MIN_RENDERDIST 2200.0
@@ -37,39 +39,31 @@
 #define MAX_VOLUME_DIST 3000 // How far away can player hear sounds.?
 
 #define GRAVITY_CONST 500
-#define FONT_SPACING 1.0
 
 #define FOG_MIN 1.0
 #define FOG_MAX 10.0
 
 // Index for 'textures'.
-#define NONE_TEXID -1 // TODO: remove this <-
 #define GRID4x4_TEXID 0
 #define GRID6x6_TEXID 1
 #define GRID9x9_TEXID 2
 #define GUN_0_TEXID 3
 #define ENEMY_LVL0_TEXID 4
 #define PLAYER_ARMS_TEXID 5
-#define CRITICALHIT_TEXID 6
-#define TREEBARK_TEXID 7
-#define LEAF_TEXID 8
-#define ROCK_TEXID 9
-#define TERRAIN_TEXID 10
-#define GRASS_TEXID 11
-#define APPLE_INV_TEXID 12
-#define APPLE_TEXID 13
-#define METALPIECE_INV_TEXID 14
-#define METALPIECE_TEXID 15
-#define PLAYER_SKIN_TEXID 16
-#define PLAYER_HANDS_TEXID 17
-#define METAL2_TEXID 18
-#define ENEMY_LVL1_TEXID 19
-#define MUSHROOM_HAT_TEXID 20
-#define MUSHROOM_BODY_TEXID 21
-#define TERRAIN_MUSHROOM_TEXID 22
-#define HAZYBIOME_GROUND_TEXID 23
-#define EVILBIOME_GROUND_TEXID 24
-#define MAX_TEXTURES 25
+#define TREEBARK_TEXID 6
+#define LEAF_TEXID 7
+#define ROCK_TEXID 8
+#define TERRAIN_TEXID 9
+#define APPLE_TEXID 10
+#define PLAYER_SKIN_TEXID 11
+#define PLAYER_HANDS_TEXID 12
+#define ENEMY_LVL1_TEXID 12
+#define MUSHROOM_HAT_TEXID 13
+#define MUSHROOM_BODY_TEXID 14
+#define TERRAIN_MUSHROOM_TEXID 15
+#define HAZYBIOME_GROUND_TEXID 16
+#define EVILBIOME_GROUND_TEXID 17
+#define MAX_TEXTURES 18
 // ...
 
 
@@ -110,9 +104,9 @@
 #define SKY_SHADER 18
 #define CLOUD_PARTICLE_SHADER 19
 #define FOLIAGE_WIND_SHADER 20
-#define TERRAIN_GRASS_SHADER 21
-#define TERRAIN_GRASS_GBUFFER_SHADER 22
-#define GRASSDATA_COMPUTE_SHADER 23
+//#define TERRAIN_GRASS_SHADER 21
+//#define TERRAIN_GRASS_GBUFFER_SHADER 22
+//#define GRASSDATA_COMPUTE_SHADER 23
 #define ENERGY_LIQUID_SHADER 24
 //#define CHUNK_FORCETEX_SHADER 25
 #define MAX_SHADERS 26
@@ -159,23 +153,8 @@
 #define GRASSDATA_SSBO 0
 #define MAX_SSBOS 1
 
-#define GRASSDATA_STRUCT_SIZE \
-        ( 4*4/*position*/\
-        + 4*4/*settings*/\
-        + 48 /*rotation (mat3x4)*/)
-
-#define GRASSDATA_NUM_FLOATS_RESERVED \
-          4   /*settings*/\
-        + 3*4 /*rotation (mat3x4)*/
-
 
 #define NUM_BLOOM_DOWNSAMPLES 2
-
-
-// Static lights in lights ubo
-#define SUN_LIGHT_ID 0
-#define PLAYER_GUN_LIGHT_ID 1
-#define MAX_STATIC_LIGHTS 2
 
 // Dynamic lights in lights ubo
 #define EXPLOSION_LIGHTS_ID 3
@@ -201,8 +180,6 @@
 #define INITFLG_PLAYER        (1<<11)
 #define INITFLG_NPC           (1<<12)
 #define INITFLG_PRJMODS       (1<<13)
-#define INITFLG_SSBOS         (1<<14)
-#define INITFLG_GRASSDATA     (1<<15) // Grass positions have been written?
 
 // 'Time buffer' is for saving render times and processing times
 // So the average can be calculated.
@@ -289,6 +266,9 @@ struct state_t {
     unsigned int  num_textures;
 
 
+    Model  item_models[MAX_ITEM_MODELS];
+    struct item_info_t item_info[MAX_ITEM_TYPES];
+
     // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
     struct light_t decay_lights[MAX_DECAY_LIGHTS];
     size_t next_explosion_light_index;
@@ -308,12 +288,6 @@ struct state_t {
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
 
-
-    struct item_t items[MAX_ALL_ITEMS];
-    Model         item_models[MAX_ITEM_MODELS];
-    size_t        num_items;
-
-    float         natural_item_spawn_timers[MAX_ITEM_TYPES];
 
     Material energy_liquid_material;
 
@@ -359,12 +333,12 @@ struct state_t {
     // and then post processed.
     RenderTexture2D env_render_target;
     RenderTexture2D env_render_downsample;
-    
+    RenderTexture2D inv_render_target; // Inventory is rendered here.
+
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
     
-    int       grass_enabled;
     int       ssao_enabled;
     Texture   ssao_noise_tex;
     Vector3*  ssao_kernel;
@@ -394,6 +368,8 @@ struct state_t {
     float timebuf            [TIMEBUF_MAX_ELEMS][TIMEBUF_SIZE];
     size_t timebuf_indices   [TIMEBUF_MAX_ELEMS];
 
+    Model inventory_box_model;
+
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
 };
 
@@ -410,6 +386,7 @@ void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
+void add_item_namedesc(struct state_t* gst, int item_type, const char* name, const char* desc);
 
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 void set_render_dist(struct state_t* gst, float new_dist);

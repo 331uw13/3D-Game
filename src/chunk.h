@@ -4,6 +4,7 @@
 #include <raylib.h>
 
 #include "biome.h"
+#include "item.h"
 
 struct state_t;
 struct terrain_t;
@@ -21,6 +22,7 @@ struct terrain_t;
 
 #define MAX_FOLIAGE_TYPES 6
 
+#define MAX_ITEMS_PERCHUNK 64
 
 
 // This data is not directly being used to render foliages from.
@@ -50,20 +52,11 @@ struct chunk_t {
     float    dst2player;
     struct chunk_foliage_data_t foliage_data[MAX_FOLIAGE_TYPES];
     struct biome_t biome;
-    size_t grass_baseindex; // Chunks first grass blade index.
 
     struct chunk_area_t area;
 
-    /*
-    // Texture for grass force vectors.
-    // When chunk grass is going to be rendered
-    // force vectors are updated into force vector ubo
-    // the shaader then writes the vector as color into this texture.
-    // Then these textures are used in the compute shader
-    // to calculate the extra rotations for the grass blade.
-    // This will disable the need for big and expensive loop in the compute shader.
-    RenderTexture2D forcetex;
-    */
+    struct item_t items[MAX_ITEMS_PERCHUNK];
+    int num_items;
 };
 
 void load_foliage_models(struct state_t* gst, struct terrain_t* terrain);
@@ -78,16 +71,13 @@ void load_chunk(
         int chunk_z,
         int chunk_triangle_count
         );
+
+void position_to_chunk_index(Vector3 positon, size_t* out_index);
 struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);
 
-
-void render_chunk_grass(
-        struct state_t* gst,
-        struct terrain_t* terrain,
-        struct chunk_t* chunk,
-        Matrix* mvp,
-        int render_pass
-        );
+void chunk_add_item(struct chunk_t* chunk, struct item_t* item);
+void chunk_update_items(struct state_t* gst, struct chunk_t* chunk);
+void chunk_render_items(struct chunk_t* chunk);
 
 // These can be used for debug if needed.
 void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);

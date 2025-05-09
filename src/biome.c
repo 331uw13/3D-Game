@@ -5,8 +5,9 @@
 #include "biome.h"
 
 
-void setup_biomes(struct state_t* gst) {
 
+
+void setup_biomes(struct state_t* gst) {
 
     // COMFY BIOME
     struct biome_t* comfy_biome = &gst->terrain.biomedata[BIOMEID_COMFY];
@@ -176,11 +177,12 @@ void update_biome_envblend(struct state_t* gst) {
             return;
         }
        
+        
         if(biomeshift_id == 0) {
             // Blend BIOMEID_COMFY <-> BIOMEID_HAZY
             struct biome_t* comfy_biome = &gst->terrain.biomedata[BIOMEID_COMFY];
             struct biome_t* hazy_biome  = &gst->terrain.biomedata[BIOMEID_HAZY];
-            
+        
             // This function calls 'set_fog_settings()'.
             fog_blend(gst, &gst->fog, T, &hazy_biome->fog, &comfy_biome->fog);
             

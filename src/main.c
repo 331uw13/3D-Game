@@ -40,37 +40,6 @@ void loop(struct state_t* gst) {
 
 
 
-        /*
-        // FOR TEST -------------
-
-        struct chunk_t* player_chunk = find_chunk(gst, gst->player.spawn_point);
-
-        float chunk_size      = (gst->terrain.chunk_size * gst->terrain.scaling);
-        float chunk_size_half = chunk_size / 2.0;
-
-
-        // Calculate force vector position.
-        Vector3 testpos = (Vector3){
-            player_chunk->area.x_min + chunk_size_half,
-                0,
-            player_chunk->area.z_min + chunk_size_half
-
-        };
-
-        float stren = (sin(gst->time)*0.5+0.5) * 40.0;
-        set_grass_forcevec(gst,
-                0,
-                (Vector4){ 
-                    testpos.x,
-                    testpos.y,
-                    testpos.z,
-                    stren
-                });  
-
-        
-        // -------------------------------
-        */
-
 
         BeginDrawing();
         {
@@ -86,6 +55,12 @@ void loop(struct state_t* gst) {
                         GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
                             "ssao_texture"), gst->ssao_final.texture);
                 
+                SetShaderValueTexture(gst->shaders[POSTPROCESS_SHADER],
+                        GetShaderLocation(gst->shaders[POSTPROCESS_SHADER],
+                            "inventory_texture"), gst->inv_render_target.texture);
+               
+                shader_setu_int(gst, POSTPROCESS_SHADER, U_INVENTORY_OPEN, &gst->player.inventory.open);
+
                 DrawTexturePro(gst->env_render_target.texture,
                         (Rectangle){
                             0, 0, gst->env_render_target.texture.width, -gst->env_render_target.texture.height
@@ -100,7 +75,6 @@ void loop(struct state_t* gst) {
             EndShaderMode();
 
             
-            render_inventory(gst, &gst->player);
 
             // Draw Crosshair if player is aiming.
             if(gst->player.is_aiming) {
@@ -134,7 +108,8 @@ void loop(struct state_t* gst) {
             if(gst->devmenu_open) {
                 gui_render_devmenu(gst);
             }
-            
+           
+            /*
             if(gst->player.item_in_crosshair && !gst->player.inventory.open) {
                 struct item_t* item = gst->player.item_in_crosshair;
 
@@ -152,6 +127,7 @@ void loop(struct state_t* gst) {
                     item->enabled = !inv_add_item(gst, &gst->player, item);
                 }
             }
+            */
 
 
             if(gst->debug) {
@@ -167,12 +143,11 @@ void loop(struct state_t* gst) {
                 DrawText(TextFormat("NumRenderedEnemies: %li / %li", gst->num_enemies_rendered, gst->num_enemies),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
-                
-
-                DrawText(TextFormat("NumRenderedGrass: %li", gst->terrain.num_rendered_grass),
+ 
+                DrawText(TextFormat("NumItemsInChunk: %i", find_chunk(gst, gst->player.position)->num_items),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
-
+                
 
                 DrawText(TextFormat("X=%0.3f", gst->player.cam.position.x),
                         dtext_x, next_y, 20, (Color){ 150, 80, 200, 255 });
@@ -225,7 +200,6 @@ void loop(struct state_t* gst) {
 
 void cleanup(struct state_t* gst) {
     
-    delete_terrain(&gst->terrain);
 
     state_free_everything(gst);
     UnloadModel(gst->skybox);
@@ -347,10 +321,6 @@ int read_config(struct state_t* gst) {
         gst->ssao_enabled = cfgbool_to_int(buf);
     }
 
-    if(read_cfgvar(&cfgfile, "render_grass", buf, CFGBUF_SIZE)) {
-        gst->grass_enabled = cfgbool_to_int(buf);
-    }
-
     // Render distance?
     if(read_cfgvar(&cfgfile, "render_distance", buf, CFGBUF_SIZE)) {
         gst->cfg.render_dist = CLAMP(atoi(buf), MIN_RENDERDIST, MAX_RENDERDIST);
@@ -445,7 +415,6 @@ void first_setup(struct state_t* gst) {
     gst->skybox.materials[0] = LoadMaterialDefault();
 
    
-    setup_natural_item_spawn_settings(gst);
     setup_default_enemy_spawn_settings(gst);
 
     set_powerup_defaults(gst, &gst->player.powerup_shop);
