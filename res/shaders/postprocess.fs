@@ -9,6 +9,7 @@ in vec4 fragColor;
 uniform sampler2D texture0;
 uniform sampler2D u_bloomtresh_tex;
 uniform sampler2D ssao_texture;
+uniform sampler2D inventory_texture;
 
 uniform vec4 colDiffuse;
 uniform float u_time;
@@ -17,6 +18,7 @@ uniform vec2 u_screen_size;
 uniform int u_ssao_enabled;
 uniform int u_anygui_open;
 uniform int u_only_ssao;
+uniform int u_inventory_open;
 
 
 // Output fragment color
@@ -58,7 +60,7 @@ void main()
 
     vec4 color = texture(texture0, fragTexCoord);
     color.rgb += texture(u_bloomtresh_tex, fragTexCoord).rgb;
- 
+
     if(u_anygui_open == 1) {
         vec2 texelsize = 1.0/(u_screen_size*0.5);
         const int r = 3;
@@ -80,6 +82,12 @@ void main()
     if(u_ssao_enabled == 1 && u_anygui_open == 0) {
         color.rgb *= texture(ssao_texture, fragTexCoord).rgb;
     }
+
+    vec4 invtex = texture(inventory_texture, fragTexCoord);
+    if(invtex.w > 0.01) {
+        color.rgb = invtex.rgb;
+    }
+
     finalColor = color;
 
 }
