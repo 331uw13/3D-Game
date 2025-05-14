@@ -371,6 +371,13 @@ struct state_t {
     Model inventory_box_model;
 
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
+
+
+    float fractal_rx;
+    float fractal_ry;
+    float fractal_rz;
+    float fractal_height;
+
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!

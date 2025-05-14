@@ -1016,8 +1016,8 @@ static void state_setup_terrain(struct state_t* gst) {
     gst->terrain = (struct terrain_t) { 0 };
     setup_biomes(gst);
 
-    const int terrain_seed = GetRandomValue(0, 9999999);
-    //const int terrain_seed = 2010357;
+    //const int terrain_seed = GetRandomValue(0, 9999999);
+    const int terrain_seed = 4685102;
 
     printf("'%s': Terrain seed = %i\n",
             __func__, terrain_seed);
@@ -1098,6 +1098,10 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
     
+    gst->fractal_rx = 0.3;
+    gst->fractal_ry = 0.2;
+    gst->fractal_rz = 0.0;
+
 
     gst->show_only_ssao = 0;
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);

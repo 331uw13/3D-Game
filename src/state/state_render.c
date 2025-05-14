@@ -175,6 +175,124 @@ static void render_scene(struct state_t* gst, int renderpass) {
 }
 
 
+
+struct line_t {
+    Vector3 a;
+    Vector3 b;
+    Color color;
+};
+
+
+static int branch_counter = 0;
+
+#define NUM_BRANCHES 2
+#define N_INCREMENT ((2*M_PI)/(float)NUM_BRANCHES)
+
+#define POSITIVE 1.0
+#define NEGATIVE -1.0
+
+static struct line_t lines[1024*15] = { 0 };
+static size_t num_lines = 0;
+static float branch_N = 0.0;
+
+void branch(struct state_t* gst, Matrix mtx, float height, int depth, Vector3 rotation) {
+
+    Vector3 p0 = (Vector3) {
+        mtx.m12, mtx.m13, mtx.m14
+    };
+
+    Matrix offset = MatrixTranslate(0, height, 0);
+    Matrix rotm = MatrixRotateXYZ(rotation);
+    mtx = MatrixMultiply(offset, mtx);
+    mtx = MatrixMultiply(rotm, mtx);
+
+    Vector3 p1 = (Vector3) { 0, 0, 0 };
+    p1 = Vector3Transform(p1, mtx);
+
+    //DrawSphere(p1, 0.15, BLUE);
+
+
+    Color color = ColorLerp(
+        (Color){ 200, 50, 10, 255},
+        (Color){ 20, 180, 200, 255},
+        pow(normalize(depth, 0, 12), 0.7)
+    );
+
+    DrawLine3D(
+            p0, p1,
+            color
+            );
+    /*
+    lines[num_lines] = (struct line_t) {
+        p0, p1,
+
+        ColorLerp(
+                )
+    };
+    */
+    
+    //num_lines++;
+
+
+    if(depth > 0) {
+
+        height *= gst->fractal_height;
+
+        Vector3 rot = (Vector3) {
+            gst->fractal_rx,
+            gst->fractal_ry,
+            gst->fractal_rz
+        };
+
+        branch(gst, mtx, height, depth-1,  rot);
+        branch(gst, mtx, height, depth-1,  Vector3Negate(rot));
+ 
+
+        rot = (Vector3) {
+            gst->fractal_rx,
+            gst->fractal_ry + 1.57,
+            gst->fractal_rz
+        };
+
+        branch(gst, mtx, height, depth-1,  rot);
+        branch(gst, mtx, height, depth-1,  Vector3Negate(rot));
+        
+
+
+    }
+
+
+}
+
+
+// Generate fractal.
+void fractal_tree_test(struct state_t* gst) {
+    
+    glLineWidth(1.5);
+    
+
+    Vector3 p = gst->player.spawn_point;
+    p.y = raycast_terrain(&gst->terrain, p.x, p.z).point.y;
+
+    branch_counter = 0;
+    branch_N = 0;
+
+    p.y -= 20.0;
+
+    int depth = 8;
+    branch(gst, MatrixTranslate(p.x, p.y, p.z), 20, depth, (Vector3){0});
+
+    /*
+    for(size_t i = 2; i < num_lines; i++) {
+        DrawLine3D(lines[i].a, lines[i].b, lines[i].color);
+    }
+    */
+    num_lines = 0;
+
+
+}
+
+
 void state_render(struct state_t* gst) {
 
     // ------ Shadow map.
@@ -331,6 +449,16 @@ void state_render(struct state_t* gst) {
             
 
         render_player_gunfx(gst, &gst->player);
+
+
+        // TEST FRACTAL TREE
+        {
+
+            fractal_tree_test(gst);
+
+        }
+
+
 
         /*
         Color cube_color = (Color){ 0, 0, 0, 255 };

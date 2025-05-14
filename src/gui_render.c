@@ -327,6 +327,31 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
+    Vector2 frctsliderpos = (Vector2){
+        gst->screen_size.x - 400,
+        gst->screen_size.y - 200
+    };
+
+    gui_slider_float(gst, "Fractal X Rotation", fontsize,frctsliderpos, 300,
+            &gst->fractal_rx, -M_PI, M_PI);
+    frctsliderpos.y += btn_y_inc+5;
+    
+    gui_slider_float(gst, "Fractal Y Rotation", fontsize,frctsliderpos, 300,
+            &gst->fractal_ry, -M_PI, M_PI);
+    frctsliderpos.y += btn_y_inc+5;
+    
+    gui_slider_float(gst, "Fractal Z Rotation", fontsize, frctsliderpos, 300,
+            &gst->fractal_rz, -M_PI, M_PI);
+    frctsliderpos.y += btn_y_inc+5;
+
+    gui_slider_float(gst, "Fractal Height Dampen", fontsize, frctsliderpos, 300,
+            &gst->fractal_height, 0.01, 1.0);
+    frctsliderpos.y += btn_y_inc+5;
+
+
+
+
+
     /*
     // ------------ Color pickers -----------
 

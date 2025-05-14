@@ -7,6 +7,10 @@
 void inventory_init(struct inventory_t* inv) {
     inv->open = 0;
 
+    for(int i = 0; i < INV_SIZE; i++) {
+        inv->items[i].empty = 1;
+    }
+
 }
 
 
@@ -59,7 +63,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     for(int y = 0;  y < INV_NUM_ROWS; y++) {
         for(int x = 0; x < INV_NUM_COLUMNS; x++) {
             
-            float depth_offset = 1.0 - (0.5+0.5*sin(x_zeroto_pi*1.3+M_PI/2.0));
+            float depth_offset = 1.0 - (0.5+0.5*cos(x_zeroto_pi*1.3));
             depth_offset = pow(depth_offset, 0.5);
             x_zeroto_pi += x_zeroto_pi_inc;
 
@@ -100,6 +104,39 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
         x_zeroto_pi = 0.0;
         yf += box_size + box_padding;
         xf = 0.0;
+    }
+}
+
+static int find_free_space(struct inventory_t* inv) {
+    int index = -1;
+
+    for(int i = 0; i < INV_SIZE; i++) {
+        if(!inv->items[i].empty) {
+            continue;
+        }
+        index = i;
+        break;
+    }
+
+    return index;
+}
+
+
+void inventory_add_item(struct inventory_t* inv, struct item_t* item, int setting) {
+   
+    int index = find_free_space(inv);
+    if(index < 0) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Inventory is full.\033[0m\n",
+                __func__);
+        return;
+    }
+
+    if(setting == INV_MOVE_SOURCE) {
+         
+    }
+    else
+    if(setting == INV_COPY_SOURCE) {
+        
     }
 
 }

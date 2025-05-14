@@ -60,6 +60,8 @@ struct item_t {
     Vector3 position; // Read only position.
     Vector3 velocity;
     float lifetime;
+
+    int inv_index; // Index in inventory, set to '-1' if the item is not in inventory.
 };
 
 

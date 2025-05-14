@@ -69,7 +69,8 @@ void spawn_item(struct state_t* gst,
         .transform = MatrixTranslate(position.x, position.y, position.z),
         .position = position,
         .velocity = (Vector3) { 0, 1.0, 0 },
-        .info = &gst->item_info[type]
+        .info = &gst->item_info[type],
+        .inv_index = -1
     };
 
     chunk_add_item(chunk, &new_item);

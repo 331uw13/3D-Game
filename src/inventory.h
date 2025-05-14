@@ -14,18 +14,22 @@ struct player_t;
 // 32 spaces for items.
 #define INV_NUM_COLUMNS 8
 #define INV_NUM_ROWS 4
+#define INV_SIZE (INV_NUM_COLUMNS * INV_NUM_ROWS)
 
 
 struct inventory_t {
     int open;
 
-
-
+    struct item_t items[INV_SIZE];
 };
 
 void inventory_init(struct inventory_t* inv);
 void inventory_render(struct state_t* gst, struct inventory_t* inv);
 
+// 'setting' for 'inventory_add_item'
+#define INV_COPY_SOURCE 0  // Item is copied original is left untouched.
+#define INV_MOVE_SOURCE 1  // Item is moved. removed from source location.
+void inventory_add_item(struct inventory_t* inv, struct item_t* item, int setting);
 
 
 #endif
