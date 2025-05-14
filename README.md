@@ -22,22 +22,13 @@
 
 -------------
 ### Controls
-* 2: Open powerup shop menu.
+* WASD and Shift: Movement.
+* 2: Open powerup shop menu. (Refactoring in progress so this doesnt work now)
 * ESC: Open menu.
+* T: Debug info
+* R: Development menu
 -------------
-### Currently Working Powerups
-* Accuracy boost
-* Faster firerate
-* Max health boost
-* Max armor boost
-* Movement boost
-* Damage boost
-* Projectile speed boost
-* Bigger projectiles
-* FMJ Projectile ability (projectiles go trough enemies)
-* Gravity projectiles (projectiles gravitate towards enemies)
-* Better recoil control
-* Projectile cloudburst (projectiles fall from the sky sometimes when something was hit)
+
 -------------
 ### Compiling the game.
 > [!NOTE]
