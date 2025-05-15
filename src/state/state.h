@@ -18,6 +18,7 @@
 #include "../config.h"
 #include "../fog.h"
 #include "../item.h"
+#include "../fractalgen.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -104,11 +105,8 @@
 #define SKY_SHADER 18
 #define CLOUD_PARTICLE_SHADER 19
 #define FOLIAGE_WIND_SHADER 20
-//#define TERRAIN_GRASS_SHADER 21
-//#define TERRAIN_GRASS_GBUFFER_SHADER 22
-//#define GRASSDATA_COMPUTE_SHADER 23
 #define ENERGY_LIQUID_SHADER 24
-//#define CHUNK_FORCETEX_SHADER 25
+#define FRACTAL_MODEL_SHADER 25
 #define MAX_SHADERS 26
 // ...
 
@@ -260,6 +258,9 @@ struct state_t {
 
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
+
+    struct fractal_t  test_fractal;
+
 
 
     Texture       textures[MAX_TEXTURES];

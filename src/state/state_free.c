@@ -138,6 +138,11 @@ void state_free_everything(struct state_t* gst) {
     delete_prjmods(gst);
     delete_npc(gst, &gst->npc);
 
+    // FOR TEST
+    {
+        delete_fractal_model(&gst->test_fractal);
+    }
+
     UnloadModel(gst->inventory_box_model);
 }
 

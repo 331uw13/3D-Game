@@ -9,7 +9,7 @@
 #include "particle_systems/weapon_psys.h"
 #include "projectile_mod/prjmod_test.h"
 
-#define NOCLIP_SPEED 13
+#define NOCLIP_SPEED  3
 
 static void set_player_default_stats(struct player_t* p) {
 

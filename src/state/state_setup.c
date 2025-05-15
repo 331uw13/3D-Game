@@ -739,6 +739,15 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
+    // --- FRACTAL_MODEL_SHADER ---
+    {
+        Shader* shader = &gst->shaders[FRACTAL_MODEL_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/fractal_model.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
     
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
@@ -1098,9 +1107,16 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
     
-    gst->fractal_rx = 0.3;
-    gst->fractal_ry = 0.2;
-    gst->fractal_rz = 0.0;
+    // FOR TEST
+    {
+        gst->fractal_rx = 0.3;
+        gst->fractal_ry = 0.2;
+        gst->fractal_rz = 0.0;
+
+        fractalgen_tree(gst, &gst->test_fractal);
+
+    }
+
 
 
     gst->show_only_ssao = 0;
