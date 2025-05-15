@@ -44,7 +44,9 @@ out vec4 finalColor;
 void main()
 {
     finalColor = vec4(0.0, 0.0, 0.0, 1.0);
-   
+
+
+
     vec4 texel_color = texture(texture0, fragTexCoord);
 
 
@@ -84,7 +86,6 @@ void main()
     finalColor = (texel_color * ((colDiffuse + vec4(g_lightspecular, 1.0)) * vec4(g_lightcolor,1.0)));
     finalColor.xyz += texel_color.xyz * AMBIENT;
     finalColor.xyz *= get_shadows();
-
 
     // Create effect around water.
    

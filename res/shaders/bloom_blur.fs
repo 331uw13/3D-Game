@@ -26,7 +26,6 @@ void main()
 
 
     int size = 15;
-    float weight_sum = 0.0;
 
     for(int x = -size; x <= size; x++) {
         for(int y = -size; y <= size; y++) {
@@ -37,11 +36,10 @@ void main()
             texelpos = clamp(texelpos, vec2(0.0), vec2(1.0));
             color += weight * texture(texture0, texelpos).rgb;
         
-            weight_sum += weight;
         }
     }
 
-    color /= (float(size)*float(size))*4.75;
+    color /= (float(size)*float(size))*4.95;
 
 
     finalColor = vec4(color, clamp(length(color), 0.0, 1.0));
