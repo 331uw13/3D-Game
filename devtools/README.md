@@ -58,7 +58,7 @@ int prjmod_newmod__enemy_hit(struct state_t* gst, struct psystem_t* psys, struct
     part->transform = MatrixTranslate(part->position.x, part->position.y, part->position.z);
   }
 
-  void cloud_psys_init(
+  void new_psys_init(
     struct state_t* gst,
     struct psystem_t* psys,
     struct particle_t* part,
