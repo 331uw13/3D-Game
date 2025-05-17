@@ -4,15 +4,16 @@
 in vec3 fragPosition;
 in vec2 fragTexCoord;
 in vec4 fragColor;
-in vec3 fragNormal;
+in vec3 fragNormal_A;
 
-in float time;
 
 uniform sampler2D texture0;
 uniform vec3 u_campos;
+uniform float u_time;
 
 out vec4 finalColor;
 
+vec3 fragNormal = vec3(0);
 
 #include "res/shaders/voronoi.glsl"
 #include "res/shaders/light.glsl"
@@ -22,5 +23,20 @@ out vec4 finalColor;
 
 void main()
 {
-    finalColor = vec4(fragColor.rgb, 1.0);
+    vec3 view_dir = normalize(u_campos - fragPosition);
+    vec3 dx = dFdx(fragPosition);
+    vec3 dy = dFdy(fragPosition);
+
+    fragNormal = normalize(cross(dx, dy));
+    
+    compute_lights(view_dir);
+
+
+    vec3 ambient = fragColor.rgb * (AMBIENT/3.0);
+    vec3 color = g_lightcolor * fragColor.rgb + ambient;
+
+
+    finalColor = vec4(color, 1.0);
+
+
 }
