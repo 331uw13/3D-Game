@@ -18,7 +18,17 @@ void render_fractal_model(struct fractal_t* fmodel);
 void delete_fractal_model(struct fractal_t* fmodel);
 
 
-void fractalgen_tree(struct state_t* gst, struct fractal_t* fmodel);
+void fractalgen_tree(
+        struct state_t* gst,
+        struct fractal_t* fmodel,
+        Vector3 rotation_weights,
+        float start_height,
+        float dampen_height,
+        float start_cube_scale,
+        float dampen_cube_scale,
+        Color start_color,
+        Color end_color
+        );
 
 
 

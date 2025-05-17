@@ -323,7 +323,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst, FOG_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, CLOUD_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, SKY_SHADER,            U_CAMPOS, &gst->player.cam.position);
-
+    shader_setu_vec3(gst, FRACTAL_MODEL_SHADER,  U_CAMPOS, &gst->player.cam.position);
     // Update screen size.
 
     Vector2 resolution = (Vector2) {
@@ -344,6 +344,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
     shader_setu_float(gst, ENERGY_LIQUID_SHADER,   U_TIME, &gst->time);
+    shader_setu_float(gst, FRACTAL_MODEL_SHADER,   U_TIME, &gst->time);
 
     // Update water level
     shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);

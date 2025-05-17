@@ -373,12 +373,16 @@ struct state_t {
 
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
 
+    float fractal_start_height;
+    float fractal_dampen_height;
+    float fractal_start_scale;
+    float fractal_dampen_scale;
+    Vector3 fractal_rotation_weights;
+    Color fractal_start_color;
+    Color fractal_end_color;
 
-    float fractal_rx;
-    float fractal_ry;
-    float fractal_rz;
-    float fractal_height;
-
+    float fractal_yscale;
+    float fractal_xzscale;
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!

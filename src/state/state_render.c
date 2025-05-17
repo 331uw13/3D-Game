@@ -387,7 +387,7 @@ void state_render(struct state_t* gst) {
 
             gst->test_fractal.transform = 
                 MatrixMultiply(
-                        MatrixScale(10, 10, 10),
+                        MatrixScale(gst->fractal_xzscale, gst->fractal_yscale, gst->fractal_xzscale),
                         gst->test_fractal.transform
                         );
 

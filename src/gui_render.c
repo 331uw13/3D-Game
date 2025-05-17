@@ -327,30 +327,81 @@ void gui_render_devmenu(struct state_t* gst) {
     btn_pos.y += btn_y_inc;
 
 
-    Vector2 frctsliderpos = (Vector2){
+    Vector2 fractal_spos = (Vector2){
         gst->screen_size.x - 400,
-        gst->screen_size.y - 200
+        gst->screen_size.y - 450
     };
 
-    gui_slider_float(gst, "Fractal X Rotation", fontsize,frctsliderpos, 300,
-            &gst->fractal_rx, -M_PI, M_PI);
-    frctsliderpos.y += btn_y_inc+5;
     
-    gui_slider_float(gst, "Fractal Y Rotation", fontsize,frctsliderpos, 300,
-            &gst->fractal_ry, -M_PI, M_PI);
-    frctsliderpos.y += btn_y_inc+5;
+    if(gui_button(gst, "Regenerate Fractal", fontsize, fractal_spos)) {
+        delete_fractal_model(&gst->test_fractal);
+        fractalgen_tree(gst,
+                &gst->test_fractal,
+                gst->fractal_rotation_weights,
+                
+                // Height
+                gst->fractal_start_height,
+                gst->fractal_dampen_height,
+                
+                // Scale
+                gst->fractal_start_scale,
+                gst->fractal_dampen_scale,
+                
+                // Color
+                gst->fractal_start_color,
+                gst->fractal_end_color
+                );
+    }
+    fractal_spos.y += btn_y_inc+3;
+
+
+    gui_slider_float(gst, "X Rotation Weight", fontsize, fractal_spos, 300,
+            &gst->fractal_rotation_weights.x, 0.0, 1.0);
+    fractal_spos.y += btn_y_inc+3;
     
-    gui_slider_float(gst, "Fractal Z Rotation", fontsize, frctsliderpos, 300,
-            &gst->fractal_rz, -M_PI, M_PI);
-    frctsliderpos.y += btn_y_inc+5;
+    gui_slider_float(gst, "Y Rotation Weight", fontsize, fractal_spos, 300,
+            &gst->fractal_rotation_weights.y, 0.0, 1.0);
+    fractal_spos.y += btn_y_inc+3;
+    
+    gui_slider_float(gst, "Z Rotation Weight", fontsize, fractal_spos, 300,
+            &gst->fractal_rotation_weights.z, 0.0, 1.0);
+    fractal_spos.y += btn_y_inc+3;
+   
+    fractal_spos.y += 8;
 
-    gui_slider_float(gst, "Fractal Height Dampen", fontsize, frctsliderpos, 300,
-            &gst->fractal_height, 0.01, 1.0);
-    frctsliderpos.y += btn_y_inc+5;
+    gui_slider_float(gst, "Start Height", fontsize, fractal_spos, 300,
+            &gst->fractal_start_height, 0.0, 30.0);
+    fractal_spos.y += btn_y_inc+3;
+    
+    gui_slider_float(gst, "Dampen Height", fontsize, fractal_spos, 300,
+            &gst->fractal_dampen_height, 0.0, 1.0);
+    fractal_spos.y += btn_y_inc+3;
 
+    fractal_spos.y += 8;
 
+    gui_slider_float(gst, "Start Scale", fontsize, fractal_spos, 300,
+            &gst->fractal_start_scale, 0.0, 5.0);
+    fractal_spos.y += btn_y_inc+3;
+    
+    gui_slider_float(gst, "Dampen Scale", fontsize, fractal_spos, 300,
+            &gst->fractal_dampen_scale, 0.0, 1.0);
+    fractal_spos.y += btn_y_inc+3;
+    
+    gui_slider_float(gst, "Y Scale", fontsize, fractal_spos, 300,
+            &gst->fractal_yscale, 3.0, 30.0);
+    fractal_spos.y += btn_y_inc+3;
+    
+    gui_slider_float(gst, "XZ Scale", fontsize, fractal_spos, 300,
+            &gst->fractal_xzscale, 3.0, 30.0);
+    fractal_spos.y += btn_y_inc+3;
 
+    gui_colorpicker(gst, "Fractal Start", 
+                (Vector2){ gst->res_x-600, 20 }, (Vector2){ 200, 200 },
+                &gst->fractal_start_color);
 
+    gui_colorpicker(gst, "Fractal End", 
+                (Vector2){ gst->res_x-300, 20 }, (Vector2){ 200, 200 },
+                &gst->fractal_end_color);
 
     /*
     // ------------ Color pickers -----------

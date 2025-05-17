@@ -1109,11 +1109,33 @@ int state_setup_everything(struct state_t* gst) {
     
     // FOR TEST
     {
-        gst->fractal_rx = 0.3;
-        gst->fractal_ry = 0.2;
-        gst->fractal_rz = 0.0;
+        gst->fractal_start_color = (Color){ 200, 30, 120, 255 };
+        gst->fractal_end_color = (Color){ 30, 180, 200, 255 };
+        gst->fractal_rotation_weights = (Vector3){ 0.645, 0.0, 0.0 };
+        
+        gst->fractal_start_scale = 1.5;
+        gst->fractal_dampen_scale = 0.85;
+        gst->fractal_start_height = 10.0;
+        gst->fractal_dampen_height = 0.75;
 
-        fractalgen_tree(gst, &gst->test_fractal);
+        gst->fractal_xzscale = 10.0;
+        gst->fractal_yscale = 10.0;
+
+        fractalgen_tree(gst,
+                &gst->test_fractal,
+                gst->fractal_rotation_weights,
+                // Height
+                gst->fractal_start_height,
+                gst->fractal_dampen_height,
+                
+                // Scale
+                gst->fractal_start_scale,
+                gst->fractal_dampen_scale,
+
+                // Color
+                gst->fractal_start_color,
+                gst->fractal_end_color
+                );
 
     }
 
