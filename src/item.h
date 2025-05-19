@@ -4,6 +4,7 @@
 #include <raylib.h>
 #include <stddef.h>
 
+#include "weapon_model.h"
 #include "typedefs.h"
 
 // IMPORTANT NOTE: 
@@ -14,13 +15,16 @@
 
 struct state_t;
 struct chunk_t;
-
+struct weapon_model_t;
 
 #define MAX_ITEM_MODELS 16
 
 #define ITEM_APPLE 0
 // ...
 #define MAX_ITEM_TYPES 1
+
+// Special item types.
+#define ITEM_ASSAULT_RIFLE_0 (MAX_ITEM_TYPES + 0)
 
 
 #define ITEM_GROUND_YAXIS_PADDING 3.85
@@ -40,12 +44,8 @@ struct item_info_t {
 };
 
 
-#define ITEM_STATE_DROPPED 0
-#define ITEM_STATE_PICKEDUP 1
-
 struct item_t {
 
-    int state;
     int type;
     int count;
     int empty;
@@ -62,21 +62,43 @@ struct item_t {
     float lifetime;
 
     int inv_index; // Index in inventory, set to '-1' if the item is not in inventory.
+
+    int is_weapon_item;
+    struct weapon_model_t weapon_model;
 };
 
 
 
-int load_item_model(struct state_t* gst, 
+int load_item_model(
+        struct state_t* gst, 
         int to_index,     // Index in 'gst->item_models' array.
         int tex_index,    // Index in 'gst->textures' array.
-        const char* model_filepath);
+        const char* model_filepath
+        );
 
 
-void spawn_item(struct state_t* gst,
+struct item_t get_weapon_model_item(
+            struct state_t* gst,
+            int weapon_model_index
+            );
+
+
+
+#define FIND_ITEM_CHUNK NULL
+
+void spawn_item_type(
+        struct state_t* gst,
         struct chunk_t* chunk, // If chunk is set to NULL, it has to be found by this function.
         Vector3 position,
         int type,
         int count);
+
+void drop_item(
+        struct state_t* gst,
+        struct chunk_t* chunk,
+        Vector3 position,
+        struct item_t* item);
+
 
 void update_item(struct state_t* gst, struct item_t* item);
 

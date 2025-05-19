@@ -531,7 +531,7 @@ void chunk_update_items(struct state_t* gst, struct chunk_t* chunk) {
     struct item_t* item = NULL;
     for(int i = 0; i < chunk->num_items; i++) {
         item = &chunk->items[i];
-        if(item->empty || (item->state != ITEM_STATE_DROPPED)) {
+        if(item->empty || (item->inv_index >= 0)) {
             continue;
         }
 
@@ -539,20 +539,25 @@ void chunk_update_items(struct state_t* gst, struct chunk_t* chunk) {
     }
 }
 
-void chunk_render_items(struct chunk_t* chunk) {
+void chunk_render_items(struct state_t* gst, struct chunk_t* chunk) {
     
     struct item_t* item = NULL;
     for(int i = 0; i < chunk->num_items; i++) {
         item = &chunk->items[i];
-        if(item->empty || (item->state != ITEM_STATE_DROPPED)) {
+        if(item->empty || (item->inv_index >= 0)) {
             continue;
         }
 
-        DrawMesh(
-                item->modelptr->meshes[0],
-                item->modelptr->materials[0],
-                item->transform
-                );
+        if(item->is_weapon_item) {
+            render_weapon_model(gst, &item->weapon_model, item->transform);
+        }
+        else {
+            DrawMesh(
+                    item->modelptr->meshes[0],
+                    item->modelptr->materials[0],
+                    item->transform
+                    );
+        }
 
     }
 

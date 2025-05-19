@@ -50,8 +50,6 @@ void delete_fractal_model(struct fractal_t* fmodel) {
 
     free(fmodel->mesh.colors);
     free(fmodel->mesh.vertices);
-
-    printf("%s\n", __func__);
 }
 
 
@@ -150,10 +148,6 @@ void fractalgen_tree_branch(
                 __func__);
         return;
     }
-
-    Vector3 p0 = (Vector3) {
-        mtx.m12, mtx.m13, mtx.m14
-    };
 
 
     Matrix offset = MatrixTranslate(0, height, 0);
@@ -261,10 +255,6 @@ void fractalgen_tree(
             &num_elems
             );
 
-    printf("\033[32m< %s >\033[0m\n", __func__);
-    printf("  -> Triangles: %li\n", num_elems);
-
-
     // Fill mesh data.
     
     const int tr_count_inone = 8; // Triangle count in one shape.
@@ -279,16 +269,10 @@ void fractalgen_tree(
 
     mesh->colors = malloc(mesh->vertexCount * (sizeof(unsigned char) * 4));
 
-    // Used for calculating normals.
-    Vector3 vA = { 0 };
-    Vector3 vB = { 0 };
-    Vector3 vC = { 0 };
-
     size_t vc = 0; // Used to count vertices.
 
     for(size_t i = 0; i < num_elems; i++) {
         int tr_i = 0; // Offset.
-        int color_i = 0;
 
 
         for(int k = 0; k < tr_count_inone; k++) { 
@@ -315,6 +299,8 @@ void fractalgen_tree(
         vc += (9 * tr_count_inone);
     }
 
+
+    // Colors.
     for(int i = 0; i < mesh->vertexCount; i++) {
         int color_i = i * 4;
 
@@ -326,7 +312,6 @@ void fractalgen_tree(
         mesh->colors[color_i+1] = color.g;  
         mesh->colors[color_i+2] =color.b;  
         mesh->colors[color_i+3] = 255;  
-
     }
 
    

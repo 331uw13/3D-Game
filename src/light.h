@@ -50,7 +50,6 @@ void set_light(
         );
 
 void disable_light(struct state_t* gst, struct light_t* light, int ubo_index);
-
 void add_decay_light(struct state_t* gst, struct light_t* light, float decay_time_mult);
 void update_decay_lights(struct state_t* gst);
 

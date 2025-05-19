@@ -19,17 +19,15 @@ struct player_t;
 
 struct inventory_t {
     int open;
-
+    struct item_t* selected_item;
     struct item_t items[INV_SIZE];
 };
 
 void inventory_init(struct inventory_t* inv);
 void inventory_render(struct state_t* gst, struct inventory_t* inv);
 
-// 'setting' for 'inventory_add_item'
-#define INV_COPY_SOURCE 0  // Item is copied original is left untouched.
-#define INV_MOVE_SOURCE 1  // Item is moved. removed from source location.
-void inventory_add_item(struct inventory_t* inv, struct item_t* item, int setting);
+#define INV_INDEX_NEXT_FREE -1
+void inventory_move_item(struct inventory_t* inv, struct item_t* item, int index);
 
 
 #endif

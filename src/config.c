@@ -38,7 +38,7 @@ int read_cfgvar(platform_file_t* cfgfile, const char* name, char* outbuf, size_t
             tbuf[tbuf_i] = c;
             //printf("\033[90m'%s'\033[0m\n", tbuf);
             if(strcmp(tbuf, name) == 0) {
-                printf("Found variable name: '%s'\n", tbuf);
+                //printf("Found variable name: '%s'\n", tbuf);
                 read = READ_VALUE;
                 memset(tbuf, 0, tbuf_i);
                 tbuf_i = 0;

@@ -19,6 +19,7 @@
 #include "../fog.h"
 #include "../item.h"
 #include "../fractalgen.h"
+#include "../weapon_model.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -119,11 +120,10 @@
 #define FOG_EFFECT_PSYS 4
 #define PLAYER_HIT_PSYS 5
 #define EXPLOSION_PSYS 6
-#define WATER_SPLASH_PSYS 7
-#define ENEMY_GUNFX_PSYS 8
-#define CLOUD_PSYS 9
-#define PRJ_TRAIL_PSYS 10
-#define MAX_PSYSTEMS 11
+#define ENEMY_GUNFX_PSYS 7
+#define CLOUD_PSYS 8
+#define PRJ_TRAIL_PSYS 9
+#define MAX_PSYSTEMS 10
 // ...
 
 
@@ -164,20 +164,21 @@
 #define MAX_SHADOW_LEVELS 3
 
 // Used to know what has been succesfully initialized.
-#define INITFLG_TERRAIN      (1<<0)
-#define INITFLG_ENEMY_MODELS (1<<1)
-#define INITFLG_ITEM_MODELS  (1<<2)
-#define INITFLG_PSYSTEMS     (1<<3)
-#define INITFLG_SHADERS      (1<<4)
-#define INITFLG_UBOS          (1<<5)
-#define INITFLG_RENDERTARGETS (1<<6)
-#define INITFLG_GBUFFERS      (1<<7)
-#define INITFLG_SOUNDS        (1<<8)
-#define INITFLG_TEXTURES      (1<<9)
-#define INITFLG_SSAO          (1<<10)
-#define INITFLG_PLAYER        (1<<11)
-#define INITFLG_NPC           (1<<12)
-#define INITFLG_PRJMODS       (1<<13)
+#define INITFLG_TERRAIN       (1<<0)
+#define INITFLG_ENEMY_MODELS  (1<<1)
+#define INITFLG_ITEM_MODELS   (1<<2)
+#define INITFLG_WEAPON_MODELS (1<<3)
+#define INITFLG_PSYSTEMS      (1<<4)
+#define INITFLG_SHADERS       (1<<5)
+#define INITFLG_UBOS          (1<<6)
+#define INITFLG_RENDERTARGETS (1<<7)
+#define INITFLG_GBUFFERS      (1<<8)
+#define INITFLG_SOUNDS        (1<<9)
+#define INITFLG_TEXTURES      (1<<10)
+#define INITFLG_SSAO          (1<<11)
+#define INITFLG_PLAYER        (1<<12)
+#define INITFLG_NPC           (1<<13)
+
 
 // 'Time buffer' is for saving render times and processing times
 // So the average can be calculated.
@@ -241,35 +242,47 @@ struct gamepad_t {
 struct state_t {
     float time;
     float dt; // Previous frame time.
-    struct player_t player;
     Font font;
     platform_file_t cfgfile;
     struct config_t cfg;
     struct gamepad_t gamepad;
 
     unsigned int ubo[MAX_UBOS];
-    unsigned int ssbo[MAX_SSBOS];
-
+    unsigned int ssbo[MAX_SSBOS]; // <- (NOTE: CURRENTLY NOT USED)
     size_t num_prj_lights;
+
+    
+    struct player_t player;
+
+
+    // ---- Weather Stuff ----
 
     struct fog_t      fog;
     struct light_t    sun;
     struct weather_t  weather;
 
+
+    // ---- Shaders ----
     Shader               shaders[MAX_SHADERS];
     struct shaderutil_t  shader_u[MAX_SHADERS]; // Store uniform locations for shaders.
 
-    struct fractal_t  test_fractal;
 
-
-
+    // ---- Textures ----
     Texture       textures[MAX_TEXTURES];
     unsigned int  num_textures;
 
 
+    // ---- Item Models ----
     Model  item_models[MAX_ITEM_MODELS];
-    struct item_info_t item_info[MAX_ITEM_TYPES];
+    struct item_info_t item_info[MAX_ITEM_TYPES + MAX_WEAPON_MODELS];
+    struct item_info_t* crosshair_item_info;
+    float  item_info_screen_time;
 
+    // ---- Weapon Models ----
+    struct weapon_model_t weapon_models[MAX_WEAPON_MODELS];
+
+
+    // ---- Lights ----
     // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
     struct light_t decay_lights[MAX_DECAY_LIGHTS];
     size_t next_explosion_light_index;
@@ -278,6 +291,9 @@ struct state_t {
     struct terrain_t terrain;
 
     struct npc_t npc;
+
+    
+    // ---- Enemies -----
 
     //struct spawn_system_t spawnsys;
     struct ent_spawnsys_t enemy_spawn_systems[MAX_ENEMY_TYPES];
@@ -290,29 +306,7 @@ struct state_t {
     size_t num_enemy_weapons;
 
 
-    Material energy_liquid_material;
-
-    int rseed; // Seed for randomgen functions.
-    int debug;
-
-    float render_dist; // Render distance.
-
-    /*
-    struct crithit_marker_t crithit_markers[MAX_RENDER_CRITHITS];
-    size_t num_crithit_markers;
-    float  crithit_marker_maxlifetime;
-    */
-
-    int xp_update_done;
-    int xp_update_target;
-    int xp_update_add;
-    float xp_update_timer;
-    float xp_value_f;
-
-    int    has_audio;
-    Sound  sounds[MAX_SOUNDS];
-
-    // Resolutions
+    // ---- Resolutions ----
     int res_x;
     int res_y;
     int ssao_res_x;
@@ -320,7 +314,17 @@ struct state_t {
     int shadow_res_x;
     int shadow_res_y;
 
-    Vector2 screen_size;
+    Vector2 screen_size; // "window size"
+
+
+    // ---- Misc Models ----
+
+    Model inventory_box_model;
+    Model inventory_box_selected_model;
+
+    // ---- For Rendering ----
+    
+    float render_dist; // Render distance.
 
     struct gbuffer_t gbuffer;  
     struct gbuffer_t shadow_gbuffers[MAX_SHADOW_LEVELS];
@@ -361,28 +365,36 @@ struct state_t {
 
     RenderTexture2D bloom_downsamples[NUM_BLOOM_DOWNSAMPLES];
 
+
+
+    // ---- Misc ----
+
     // This is for gui component.
     Texture  colorpick_tex;
     Image    colorpick_img;
 
+    Material energy_liquid_material;
+
+    int rseed; // Seed for randomgen functions.
+    int debug;
+
+    int xp_update_done;
+    int xp_update_target;
+    int xp_update_add;
+    float xp_update_timer;
+    float xp_value_f;
+
+    int    has_audio;
+    Sound  sounds[MAX_SOUNDS];
 
     float timebuf            [TIMEBUF_MAX_ELEMS][TIMEBUF_SIZE];
     size_t timebuf_indices   [TIMEBUF_MAX_ELEMS];
 
-    Model inventory_box_model;
-
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
+    int default_weapon_dropped;
 
-    float fractal_start_height;
-    float fractal_dampen_height;
-    float fractal_start_scale;
-    float fractal_dampen_scale;
-    Vector3 fractal_rotation_weights;
-    Color fractal_start_color;
-    Color fractal_end_color;
-
-    float fractal_yscale;
-    float fractal_xzscale;
+    Vector3 test_model_offset;
+    Vector3 test_model_rotation;
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!

@@ -118,6 +118,16 @@ static void state_delete_item_models(struct state_t* gst) {
     printf("\033[35m -> Deleted Item Models.\033[0m\n");
 }
 
+static void state_delete_weapon_models(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_WEAPON_MODELS)) { return; }
+
+    for(int i = 0; i < MAX_WEAPON_MODELS; i++) {
+        delete_weapon_model(gst, &gst->weapon_models[i]);
+    }
+
+    printf("\033[35m -> Deleted Weapon Models.\033[0m\n");
+}
+
 
 void state_free_everything(struct state_t* gst) {
     delete_terrain(&gst->terrain);
@@ -135,15 +145,10 @@ void state_free_everything(struct state_t* gst) {
 
    
     delete_player(gst, &gst->player);
-    delete_prjmods(gst);
     delete_npc(gst, &gst->npc);
-
-    // FOR TEST
-    {
-        delete_fractal_model(&gst->test_fractal);
-    }
-
+    
     UnloadModel(gst->inventory_box_model);
+    UnloadModel(gst->inventory_box_selected_model);
 }
 
 

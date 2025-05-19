@@ -340,15 +340,10 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, FOLIAGE_WIND_SHADER,    U_TIME, &gst->time);
     shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER,    U_TIME, &gst->time);
     shader_setu_float(gst, POSTPROCESS_SHADER,     U_TIME, &gst->time);
-    shader_setu_float(gst, WATER_SHADER,           U_TIME, &gst->time);
     shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
     shader_setu_float(gst, ENERGY_LIQUID_SHADER,   U_TIME, &gst->time);
     shader_setu_float(gst, FRACTAL_MODEL_SHADER,   U_TIME, &gst->time);
-
-    // Update water level
-    shader_setu_float(gst, DEFAULT_SHADER, U_WATERLEVEL, &gst->terrain.water_ylevel);
-
 
 
 
@@ -368,7 +363,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     
     // -------
 
-    shader_setu_color(gst, ENERGY_LIQUID_SHADER, U_ENERGY_COLOR, &gst->player.weapon.color);
+    //shader_setu_color(gst, ENERGY_LIQUID_SHADER, U_ENERGY_COLOR, &gst->player.weapon.color);
 
     shader_setu_float(gst, SKY_SHADER, U_RENDER_DIST, &gst->render_dist);
     shader_setu_color(gst, SKY_SHADER, U_SUN_COLOR, &gst->sun.color);
@@ -412,7 +407,6 @@ void state_update_frame(struct state_t* gst) {
     
     gst->player.any_gui_open = (
                gst->menu_open 
-            || gst->player.powerup_shop.open
             || gst->player.inventory.open
          );
 
@@ -423,16 +417,20 @@ void state_update_frame(struct state_t* gst) {
         return;
     }
 
+    gst->crosshair_item_info = NULL;
 
+    if(gst->time > 1.5 && !gst->default_weapon_dropped) {
+        struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_ASSAULT_RIFLE_0);
+        drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
+        gst->default_weapon_dropped = 1;
+    }
 
     // Update Enemies.
-    if(!gst->player.powerup_shop.open) {
-        for(size_t i = 0; i < gst->num_enemies; i++) {
-            update_enemy(gst, &gst->enemies[i]);
-        }
-
-        //update_enemy_spawn_systems(gst); 
+    for(size_t i = 0; i < gst->num_enemies; i++) {
+        update_enemy(gst, &gst->enemies[i]);
     }
+
+    //update_enemy_spawn_systems(gst); 
 
 
     // Update Items.
@@ -450,7 +448,6 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS]);
     update_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS]);
     update_psystem(gst, &gst->psystems[EXPLOSION_PSYS]);
-    update_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS]);
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
     update_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS]);

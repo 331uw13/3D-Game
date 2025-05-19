@@ -1,0 +1,59 @@
+#ifndef PLAYER_WEAPON_MODEL_H
+#define PLAYER_WEAPON_MODEL_H
+
+#include "weapon.h"
+
+// 'weapon.h' Holds some stats about a weapon.
+// 'weapon_model.' Holds info about the model so player can have different weapons.
+
+// Only player and items uses this.
+// Enemies dont need it.
+
+
+#define WMODEL_ASSAULT_RIFLE_0  0
+#define MAX_WEAPON_MODELS 1
+
+
+struct weapon_model_t {
+    int incomplete;
+
+    Model model;
+    struct weapon_t stats;
+
+    float firerate;
+    float firerate_timer;
+    
+    Vector3 aim_offset;
+    Vector3 rest_offset;
+    Vector3 rest_rotation;
+    Vector3 inspect_offset;
+    Vector3 inspect_rotation;
+    Vector3 energy_light_offset;
+
+    float prjfx_offset;
+  
+    int   recoil_anim_done;
+    float recoil_anim_value;
+    float recoil_anim_timer;
+
+    int item_info_index;
+  
+};
+
+
+void delete_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_model);
+
+void load_weapon_model(
+        struct state_t* gst,
+        int weapon_model_index, // Index in 'gst->weapon_models' array.
+        const char* config_file_path,
+        const char* weapon_name,
+        const char* weapon_desc
+        );
+
+void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_model, Matrix transform);
+
+
+
+
+#endif

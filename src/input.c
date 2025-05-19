@@ -20,8 +20,6 @@ static void toggle_gui(int* gui_open) {
     }
 }
 
-#include "projectile_mod/prjmod_fmj_ability.h"
-
 void handle_userinput(struct state_t* gst) {
     
     if(gst->player.alive) {
@@ -30,21 +28,28 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(IsKeyPressed(KEY_E)) {
-        gst->player.weapon.lqmag.ammo_level = gst->player.weapon.lqmag.capacity;
-    }
-
-    if(IsKeyPressed(KEY_F)) {
+    if(!gst->player.any_gui_open && IsKeyPressed(KEY_E)) {
         gst->player.wants_to_pickup_item = 1;
     }
 
-    if(IsKeyPressed(KEY_X)) {
-        gst->player.weapon_firetype = !gst->player.weapon_firetype;
+    // FOR TESTING
+    {
+        if(IsKeyPressed(KEY_U)) {
+            spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_APPLE, 1);
+        }
+
     }
 
-    if(IsKeyPressed(KEY_U)) {
-        spawn_item(gst, NULL, gst->player.position, ITEM_APPLE, 1);
+
+    if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && !gst->player.inspecting_weapon) {
+        gst->player.is_aiming = !gst->player.is_aiming;
     }
+    
+    gst->player.inspecting_weapon = 0;
+    if(IsKeyDown(KEY_F)) {
+        gst->player.inspecting_weapon = 1;
+    }
+
 
     if(gst->gamepad.id >= 0) {
         gst->gamepad.Lstick = (Vector2) {
@@ -85,72 +90,16 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(gst->gamepad.id < 0) {
-        // When controller is not detected use mouse input.
-
-        if(IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
-            gst->player.aim_button_hold_timer += gst->dt;
-            if(gst->player.aim_button_hold_timer >= 0.485/* <- Treshold */) {
-                gst->player.disable_aim_mode = DISABLE_AIM_WHEN_RELEASED;
-            }
-        }
-        else {
-            gst->player.aim_button_hold_timer = 0.0;
-            
-        }
-
-        if(gst->player.alive && gst->player.holding_gun) {
-            if((IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) 
-            && !gst->player.any_gui_open
-            && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_MOUSERIGHT)) {
-                gst->player.is_aiming =! gst->player.is_aiming;
-                gst->player.aim_idle_timer = 0.0;
-            }
-            else
-            if((!IsMouseButtonDown(MOUSE_RIGHT_BUTTON)
-            && (gst->player.disable_aim_mode == DISABLE_AIM_WHEN_RELEASED))) {
-                gst->player.is_aiming = 0;
-            }
-        }
-    }
-    else {
-        // Controller should have different system.
-
-        int gamepad_aim_hold = (gst->gamepad.id >= 0 
-                && IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_LEFT_TRIGGER_1));
-
-        if(gamepad_aim_hold) {
-            if(!gst->player.is_aiming) {
-                gst->player.is_aiming = 1;
-                gst->player.aim_idle_timer = 0.0;
-            }
-        }
-        else {
-            gst->player.is_aiming = 0;
-        }
-
-
-    }
-
     if(IsKeyPressed(KEY_TAB) && gst->player.alive) {
         toggle_gui(&gst->player.inventory.open);
-        gst->player.powerup_shop.open = 0;
         gst->devmenu_open = 0;
     }
 
     if(IsKeyPressed(KEY_ESCAPE) && gst->player.alive) {
         toggle_gui(&gst->menu_open);
-        gst->player.powerup_shop.open = 0;
         gst->devmenu_open = 0;
+        gst->player.inventory.open = 0;
     }
-
-    // TODO: remove this.
-    if(IsKeyPressed(KEY_TWO)) {
-        toggle_gui(&gst->player.powerup_shop.open);
-        gst->player.powerup_shop.selected_index = -1;
-        gst->devmenu_open = 0;
-    }
-   
 
 
     // Dev mode input.
@@ -179,16 +128,6 @@ void handle_userinput(struct state_t* gst) {
         }
         toggle_gui(&gst->devmenu_open);
     }
-
-    /*
-    if(IsKeyPressed(KEY_FOUR)) {
-        SetTargetFPS(500);
-    }
-    if(IsKeyPressed(KEY_FIVE)) {
-        SetTargetFPS(28);
-    }
-    */
-
 }
 
 

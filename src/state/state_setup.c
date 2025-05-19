@@ -14,7 +14,6 @@
 #include "../particle_systems/fog_effect_psys.h"
 #include "../particle_systems/player_hit_psys.h"
 #include "../particle_systems/explosion_psys.h"
-#include "../particle_systems/water_splash_psys.h"
 #include "../particle_systems/enemy_gunfx_psys.h"
 #include "../particle_systems/cloud_psys.h"
 #include "../particle_systems/prj_trail_psys.h"
@@ -173,30 +172,7 @@ static void state_setup_all_textures(struct state_t* gst) {
 
 
 
-static void state_setup_all_weapons(struct state_t* gst) {
-
-   
-    // Player's weapon.
-    gst->player.weapon = (struct weapon_t) {
-        .gid = PLAYER_WEAPON_GID,
-        .accuracy = 8.35,
-        .damage = 10.0,
-        .critical_chance = 10,
-        .critical_mult = 1.85,
-        .prj_speed = 500.0,
-        .prj_max_lifetime = 15.0,
-        .prj_hitbox_size = (Vector3) { 1.0, 1.0, 1.0 },
-        .prj_scale = 1.0,
-        .color = (Color) { 20, 255, 200, 255 },
-        
-        // TODO -----
-        .overheat_temp = 100.0,
-        .heat_increase = 2.0,
-        .cooling_level = 20.0
-    };
-
-    init_weapon_lqmag(gst, &gst->player.weapon, LQMAG_TYPE_SMALL);
- 
+static void state_setup_all_enemy_weapons(struct state_t* gst) {
 
     // Enemy lvl0 weapon.
     gst->enemy_weapons[ENEMY_LVL0_WEAPON] = (struct weapon_t) {
@@ -366,26 +342,6 @@ static void state_setup_all_psystems(struct state_t* gst) {
         add_particles(gst, psystem, num_fog_effect_parts, 
                 (Vector3){0}, (Vector3){0}, (Color){0},
                 NULL, NO_EXTRADATA, NO_IDB);
-    }
-
-
-    // Create WATER_SPLASH_PSYS.
-    { // (when something hits water)
-        struct psystem_t* psystem = &gst->psystems[WATER_SPLASH_PSYS];
-        create_psystem(
-                gst,
-                PSYS_GROUPID_ENV,
-                PSYS_ONESHOT,
-                psystem,
-                256,
-                water_splash_psys_update,
-                water_splash_psys_init,
-                PRJ_ENVHIT_PSYS_SHADER
-                );
-
-        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.45, 8, 8));
-        psystem->userptr = &gst->player.weapon;
-        setup_psystem_color_vbo(gst, psystem);
     }
 
     // Create EXPLOSION_PSYS.
@@ -1049,12 +1005,27 @@ static void state_setup_all_item_models(struct state_t* gst) {
 
     if(!load_item_model(gst, ITEM_APPLE, APPLE_TEXID, "res/models/apple.glb"))
     { state_abort(gst); }
-    add_item_namedesc(gst, ITEM_APPLE, "Apple", "Healthy food.");
+    add_item_namedesc(gst, ITEM_APPLE, "Apple", "Healthy food.\n+25 Health boost when eaten.");
     
 
-
-
     gst->init_flags |= INITFLG_ITEM_MODELS;
+}
+
+
+static void state_setup_all_weapon_models(struct state_t* gst) {
+    PRINT_CURRENT_SETUP;
+
+    load_weapon_model(gst, 
+            WMODEL_ASSAULT_RIFLE_0,
+            "weapons_cfg/assault_rifle_0.cfg",
+            // Item name and description:
+            "Assault rifle",
+            "Great for short and medium distances.");
+
+
+    gst->init_flags |= INITFLG_WEAPON_MODELS;
+
+    PRINT_CURRENT_SETUP_DONE;
 }
 
 
@@ -1093,10 +1064,11 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_ssao(gst);
     
     state_setup_all_psystems(gst);
-    state_setup_all_weapons(gst);
+    state_setup_all_enemy_weapons(gst);
     state_setup_all_sounds(gst);
     state_setup_all_item_models(gst);
     state_setup_all_enemy_models(gst);
+    state_setup_all_weapon_models(gst);
 
     state_setup_all_gbuffers(gst);
     state_setup_all_render_targets(gst);
@@ -1106,40 +1078,9 @@ int state_setup_everything(struct state_t* gst) {
     
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
-    
-    // FOR TEST
-    {
-        gst->fractal_start_color = (Color){ 200, 30, 120, 255 };
-        gst->fractal_end_color = (Color){ 30, 180, 200, 255 };
-        gst->fractal_rotation_weights = (Vector3){ 0.645, 0.0, 0.0 };
-        
-        gst->fractal_start_scale = 1.5;
-        gst->fractal_dampen_scale = 0.85;
-        gst->fractal_start_height = 10.0;
-        gst->fractal_dampen_height = 0.75;
-
-        gst->fractal_xzscale = 10.0;
-        gst->fractal_yscale = 10.0;
-
-        fractalgen_tree(gst,
-                &gst->test_fractal,
-                gst->fractal_rotation_weights,
-                // Height
-                gst->fractal_start_height,
-                gst->fractal_dampen_height,
-                
-                // Scale
-                gst->fractal_start_scale,
-                gst->fractal_dampen_scale,
-
-                // Color
-                gst->fractal_start_color,
-                gst->fractal_end_color
-                );
-
-    }
-
-
+  
+    gst->crosshair_item_info = NULL;
+    gst->item_info_screen_time = 0;
 
     gst->show_only_ssao = 0;
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);
@@ -1151,8 +1092,16 @@ int state_setup_everything(struct state_t* gst) {
     gst->inventory_box_model.materials[0] = LoadMaterialDefault();
     gst->inventory_box_model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
+    gst->inventory_box_selected_model = LoadModelFromMesh(GenMeshCube(1.3, 1.3, 1.3));
+    gst->inventory_box_selected_model.materials[0].maps[0].color = (Color){ 40, 240, 200, 70 };
+
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
+
+    gst->test_model_offset = (Vector3){ 0, 0, 0 };
+    gst->test_model_rotation = (Vector3){ 0, 0, 0 };
+
+    gst->default_weapon_dropped = 0;
 
     printf("\033[32m'%s': Done\033[0m\n", __func__);
     result = 1;

@@ -29,13 +29,5 @@ void weapon_psys_prj_init(
         void* extradata, int has_extradata
 );
 
-// For player's powerups.
-// TODO: comment better.
-
-#define PWRUP_ENT_PASSED_I               0 // For: 'particle->user_i' Used by 'POWERUP_FMJPRJ_ABILITY'
-#define PWRUP_PRJ_HAS_GRAVITY_TARGET_I   1 // For: 'partilce->user_i' Used by 'POWERUP_GRAVITY_PROJECTILES'
-#define PWRUP_PRJ_GRAVITY_TARGET_I       2 // For: 'particle->user_i' Used by 'POWERUP_GRAVITY_PROJECTILES'
-#define PWRUP_PRJ_CLOUDBURST_TIMER_I     0 // For: 'particle->user_f' Used by 'POWERUP_CLOUDBURST'
-
 
 #endif

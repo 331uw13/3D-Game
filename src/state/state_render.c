@@ -121,13 +121,11 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
         gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
     }
 
-    /*
-    // Prepare player.
-    gst->player.gunmodel.materials[0].shader = gst->shaders[rp_shader_i];
-    gst->player.arms_material.shader = gst->shaders[rp_shader_i];
-    gst->player.hands_material.shader = gst->shaders[rp_shader_i];
-    */
-    
+    // Prepare weapon models.
+    for(int i = 0; i < MAX_WEAPON_MODELS; i++) {
+        gst->weapon_models[i].model.materials[0].shader = gst->shaders[rp_shader_i];
+    }
+   
     // Prepare "skybox"
     gst->skybox.materials[0].shader = gst->shaders[rp_shader_skybox_i];
 
@@ -170,7 +168,7 @@ static void render_scene(struct state_t* gst, int renderpass) {
 
     // Render chunks items.
     for(int i = 0; i < gst->terrain.num_rendered_chunks; i++) {
-        chunk_render_items(gst->terrain.rendered_chunks[i]);
+        chunk_render_items(gst, gst->terrain.rendered_chunks[i]);
     }
 }
 
@@ -310,7 +308,6 @@ void state_render(struct state_t* gst) {
         rlEnableColorBlend();
     }
 
-    Matrix mvp = MatrixIdentity();
     
     //  ------ Final pass.
 
@@ -375,6 +372,7 @@ void state_render(struct state_t* gst) {
 
         // ------------
 
+        /*
         // FOR TEST
         {
             rlDisableBackfaceCulling();
@@ -395,20 +393,10 @@ void state_render(struct state_t* gst) {
             
             rlEnableBackfaceCulling();
         }
+        */
+
        
         render_scene(gst, RENDERPASS_RESULT);
-        /*
-        // Water
-        {
-            rlDisableBackfaceCulling();
-            DrawModel(gst->terrain.waterplane, 
-                    (Vector3){gst->player.position.x, gst->terrain.water_ylevel, gst->player.position.z},
-                    gst->render_dist*2,
-                    (Color){ 255, 255, 255, 255 });
-            
-            rlEnableBackfaceCulling();
-        }
-        */
     
 
         float psys_render_timestart = GetTime();
@@ -418,7 +406,6 @@ void state_render(struct state_t* gst) {
 
             // Environment
             render_psystem(gst, &gst->psystems[FOG_EFFECT_PSYS], (Color){ 50, 50, 50, 255});
-            render_psystem(gst, &gst->psystems[WATER_SPLASH_PSYS], (Color){ 30, 80, 170, 200});
             render_psystem(gst, &gst->psystems[EXPLOSION_PSYS], (Color){ 255, 50, 10, 255});
             render_psystem(gst, &gst->psystems[CLOUD_PSYS], (Color){ 35, 40, 50, 240 });
             render_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS], (Color){ 0 });
@@ -486,40 +473,8 @@ void state_render(struct state_t* gst) {
     }
     EndMode3D();
     EndTextureMode();
-      
-    /*
-    // Grass has to rendered now, because 'write_chunk_forcetex()'
-    // uses BeginTextureMode() to write the texture.
-    // Then that texture can be used in the compute shader 
-    // for the chunk to rotate grass blades.
-    if(gst->grass_enabled) {
+   
 
-        // Update force textures.
-        for(size_t i = 0; i < gst->terrain.num_grass_chunks; i++) {
-            struct chunk_t* chunk = gst->terrain.grass_chunks[i];
-            if(chunk) {
-                write_chunk_forcetex(gst, chunk);
-            }
-        }
-
-        BeginTextureMode(gst->env_render_target);
-        BeginMode3D(gst->player.cam);
-        {
-            gst->terrain.num_rendered_grass = 0;
-            for(size_t i = 0; i < gst->terrain.num_grass_chunks; i++) {
-                struct chunk_t* chunk = gst->terrain.grass_chunks[i];
-                if(chunk) {
-                    render_chunk_grass(gst, &gst->terrain, chunk, &mvp, RENDERPASS_RESULT);
-                }
-            }
-
-            // Render all gunfx very last.
-        }
-        EndMode3D();
-        EndTextureMode();
-    }
-    */
-    
     // Get bloom treshold.
 
     // TODO: Clean this up..

@@ -75,7 +75,7 @@ void loop(struct state_t* gst) {
             EndShaderMode();
 
             
-
+            /*
             // Draw Crosshair if player is aiming.
             if(gst->player.is_aiming) {
                 int center_x = GetScreenWidth() / 2;
@@ -92,16 +92,13 @@ void loop(struct state_t* gst) {
                 DrawPixel(center_x+2, center_y, GRAY);
                 DrawPixel(center_x, center_y+2, GRAY);
             }
+            */
 
             if(gst->menu_open) {
                 gui_render_menu_screen(gst);
             }
-            else
-            if(gst->player.powerup_shop.open) {
-                gui_render_powerup_shop(gst);
-            }
-
-            if(!gst->menu_open && !gst->player.powerup_shop.open) {
+            
+            if(!gst->menu_open) {
                 render_player_stats(gst, &gst->player);
             }
 
@@ -129,6 +126,16 @@ void loop(struct state_t* gst) {
             }
             */
 
+            if(gst->player.inventory.open) {
+                gui_render_inventory_controls(gst, &gst->player.inventory);
+            }
+
+            if(!gst->player.any_gui_open && gst->crosshair_item_info) {
+                render_item_info(gst);
+            }
+            else {
+                gst->item_info_screen_time = 0;
+            }
 
             if(gst->debug) {
                 int next_y = 50;
@@ -389,14 +396,6 @@ void first_setup(struct state_t* gst) {
 
     init_shaderutil(gst);
 
-    /*
-    gst->num_crithit_markers = 0;
-    gst->crithit_marker_maxlifetime = 1.5;
-
-    memset(gst->crithit_markers, 0, MAX_RENDER_CRITHITS * sizeof *gst->crithit_markers);
-    */
-
-
     printf("Screen size: %0.0fx%0.0f\n", gst->screen_size.x, gst->screen_size.y);
     
 
@@ -417,10 +416,6 @@ void first_setup(struct state_t* gst) {
    
     setup_default_enemy_spawn_settings(gst);
 
-    set_powerup_defaults(gst, &gst->player.powerup_shop);
-    update_powerup_shop_offers(gst);
-
-
 
     int seed = time(0);
     gst->rseed = seed;
@@ -432,41 +427,6 @@ void first_setup(struct state_t* gst) {
         gst->enemies[i].alive = 0;
         gst->enemies[i].enabled = 0;
     }
-
-
-    /*
-    struct light_t SUN = (struct light_t) {
-        .type = LIGHT_DIRECTIONAL,
-        .enabled = 1,
-        .color = (Color){ 240, 210, 200, 255 },
-        .position = (Vector3){ 0, 1, 0 },
-        .strength = 0.4,
-        .index = SUN_LIGHT_ID
-    };
-    */
-
-    // TODO: Rename this.
-    gst->player.gun_light = (struct light_t) {
-        .type = LIGHT_POINT,
-        .enabled = 1,
-        .strength = 0.75,
-        .radius = 0.35,
-        .index = PLAYER_GUN_LIGHT_ID
-    }; // Player's gun light is updated from 'src/player.c'
-
-
-    /*
-    // Setup fog.
-    gst->fog = (struct fog_t) {
-        .mode = FOG_MODE_RENDERDIST,
-        .color_top = (Color){ 16, 0, 25, 255 },
-        .color_bottom = (Color){ 39, 0, 37, 255 },
-        .density = 0.0 // Density is ignored when fog mode is RENDERDIST
-    };
-    */
-
-    //set_light(gst, &SUN, LIGHTS_UBO);
-    //set_fog_settings(gst, &gst->fog);
 
 
     gst->gamepad.id = -1;

@@ -42,9 +42,6 @@ void weapon_psys_prj_update(
     }
     */
    
-    if(psys->groupid == PSYS_GROUPID_PLAYER) {
-        call_prjmods_update(gst, psys, part);
-    }
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
@@ -81,7 +78,6 @@ void weapon_psys_prj_update(
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
     if(t_hit.point.y >= part->position.y) {
         disable_prj = 1;
-        call_prjmods_env_hit(gst, psys, part, t_hit.normal);
     }
 
    
@@ -113,14 +109,10 @@ void weapon_psys_prj_update(
 
             struct hitbox_t* hitbox = check_collision_hitboxes(&part_boundingbox, enemy);
             if(hitbox) {
-                int cancel_defdamage = 0;
-                disable_prj = call_prjmods_enemy_hit(gst, psys, part, enemy, hitbox, &cancel_defdamage);
-                
-                if(!cancel_defdamage) {
-                    float damage = get_weapon_damage(weapon);
-                    float knockback = 0.35;
-                    enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, knockback);
-                }
+                float damage = get_weapon_damage(weapon);
+                float knockback = 0.35;
+                enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, knockback);
+                disable_prj = 1;
             }
         }
     }
@@ -174,9 +166,6 @@ void weapon_psys_prj_init(
     part->extradata = extradata;
     part->velocity = velocity;
     part->position = origin;
-    part->user_i[PWRUP_ENT_PASSED_I] = 0;
-    part->user_i[PWRUP_PRJ_HAS_GRAVITY_TARGET_I] = 0;
-    part->user_p[PWRUP_PRJ_GRAVITY_TARGET_I] = 0;
 
     // Add projectile light
     part->light = (struct light_t) {
@@ -201,11 +190,6 @@ void weapon_psys_prj_init(
             16,
             (Vector3){0}, (Vector3){0}, (Color){0},
             part, HAS_EXTRADATA, NO_IDB);
-
-    if(psys->groupid == PSYS_GROUPID_PLAYER) {
-        call_prjmods_init(gst, psys, part);
-    }
-
 
 
     gst->num_prj_lights++;

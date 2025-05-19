@@ -77,7 +77,7 @@ struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);
 
 void chunk_add_item(struct chunk_t* chunk, struct item_t* item);
 void chunk_update_items(struct state_t* gst, struct chunk_t* chunk);
-void chunk_render_items(struct chunk_t* chunk);
+void chunk_render_items(struct state_t* gst, struct chunk_t* chunk);
 
 // These can be used for debug if needed.
 void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);
