@@ -405,10 +405,8 @@ void state_update_shadow_cams(struct state_t* gst) {
 // NOTE: DO NOT RENDER FROM HERE:
 void state_update_frame(struct state_t* gst) {
     
-    gst->player.any_gui_open = (
-               gst->menu_open 
-            || gst->player.inventory.open
-         );
+    gst->player.any_gui_open = 
+        gst->menu_open || gst->player.inventory.open;
 
 
     handle_userinput(gst);
@@ -419,9 +417,35 @@ void state_update_frame(struct state_t* gst) {
 
     gst->crosshair_item_info = NULL;
 
+
+    use_weapon_model_test_offsets(gst, &gst->weapon_models[WMODEL_SNIPER_RIFLE_0]);
+
+    // For testing purposes drop all weapon types on first update.
     if(gst->time > 1.5 && !gst->default_weapon_dropped) {
+
+        /*
         struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_ASSAULT_RIFLE_0);
         drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
+        */
+
+        float drop_xoff =  0.0;
+        float drop_zoff =  10.0;
+
+        for(int type = 0; type < MAX_WEAPON_MODELS; type++) {
+
+            Vector3 pos = (Vector3) {
+                gst->player.position.x + drop_xoff,
+                gst->player.position.y + 8.0,
+                gst->player.position.z + drop_zoff
+            };
+
+            drop_xoff += 20;
+
+            struct item_t weapon_item = get_weapon_model_item(gst, type);
+            drop_item(gst, FIND_ITEM_CHUNK, pos, &weapon_item);
+        }
+
+        
         gst->default_weapon_dropped = 1;
     }
 

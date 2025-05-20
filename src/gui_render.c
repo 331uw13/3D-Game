@@ -10,239 +10,98 @@
 
 
 static void render_num_kills(struct state_t* gst) {
-    DrawTextEx(gst->font, 
-           "Kills:",
-           (Vector2){ 30, 50.0 },
-           20.0,
-           FONT_SPACING,
-           (Color){ 180, 230, 240, 255 }
-           );
 
-
-    float kills_text_y = 80.0;
-    for(size_t i = 0; i < MAX_ENEMY_TYPES; i++) {
-        DrawTextEx(gst->font, 
-                TextFormat("Enemy LVL%i: %i", i, gst->player.kills[i]),
-                (Vector2){ 50, kills_text_y },
-                15.0,
-                FONT_SPACING,
-                TEXT_COLOR
-                );
-        kills_text_y += 23.0;
-    }
 }
 
 
 void gui_render_respawn_screen(struct state_t* gst) {
-    
-    
     render_num_kills(gst);
 
-    if(gui_button(gst, "Respawn", 30.0, (Vector2){100, gst->res_y/2})) {
-        player_respawn(gst, &gst->player);
-    }
 
-    if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->res_y/2 + 70})) {
-        gst->running = 0;
-    }
 }
 
+static int test_check = 0;
+static int test_check2 = 1;
+static float test_value = 32.0;
+static float test_value2 = 0.0;
+static float test_value3 = 0.0;
+static int container_open = 1;
+static int container2_open = 0;
+static int container3_open = 1;
+
+#include <rlgl.h>
 
 void gui_render_menu_screen(struct state_t* gst) {
-    
-    DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 10, 10, 10, 150 });
     render_num_kills(gst);
 
-    if(gui_button(gst, "Exit", 30.0, (Vector2){100, gst->res_y/2})) {
-        gst->running = 0;
-    }
 
-    Vector2 btn_pos = (Vector2){ 100, gst->res_y/2+80 };
+    struct guicfg_t guicfg;
+    gui_load_default_cfg(&guicfg);
+    guicfg.next_x = 100;
+    guicfg.next_y = 100;
+    guicfg.font_size = 21;
 
-    gui_checkbox(gst, "Ambient Occlusion", 20.0, btn_pos, &gst->ssao_enabled);
-    btn_pos.y += 50.0;
-    
-    gui_slider_float(gst, "Render Distance", 20.0, btn_pos, 530,
-            &gst->menu_slider_render_dist_v, MIN_RENDERDIST, MAX_RENDERDIST);
-    if(gui_button(gst, "Apply", 20.0, (Vector2){ btn_pos.x+600, btn_pos.y })) {
-        set_render_dist(gst, gst->menu_slider_render_dist_v);
+
+    gui_begin(gst);
+    gui_text(gst, &guicfg, "Hello GUI?");
+
+
+    gui_container(gst, &guicfg, "First Container", GUI_CONTAINER_AUTO_SIZE, &container_open);
+    {
+
+        if(gui_button(gst, &guicfg, "Test Button!")) {
+            printf("Test button was clicked! %f\n", gst->time);
+        }
+
+        if(gui_checkbox(gst, &guicfg, "Checkbox", &test_check)) {
+            printf("Checkbox: %i\n", test_check);
+        }
+
+        gui_checkbox(gst, &guicfg, "Enable", &test_check2);
+        gui_checkbox(gst, &guicfg, "?", &test_check2);
+        gui_button(gst, &guicfg, "Button");
+
     }
-    btn_pos.y += 50.0;
-    
-    gui_slider_float(gst, "Controller Sensetivity", 20.0, btn_pos, 530,
-            &gst->gamepad.sensetivity, 1.0, 10.0);
+    gui_end_container(gst, &guicfg);
+
+
+    gui_container(gst, &guicfg, "Container2", GUI_CONTAINER_AUTO_SIZE, &container2_open);
+    {
+        if(gui_button(gst, &guicfg, "Hello!")) {
+            printf("Hello :)\n");
+        }
+    }
+    gui_end_container(gst, &guicfg);
+
+
+    gui_container(gst, &guicfg, "Container3", GUI_CONTAINER_AUTO_SIZE, &container3_open);
+    {
+        gui_text(gst, &guicfg, "Magic numbers");
+    }
+    gui_end_container(gst, &guicfg);
+
+
+
+    gui_sliderF(gst, &guicfg, 0, "Angle", SLIDER_DEF_WIDTH, &test_value, 0.0, 100.0);
+    gui_sliderF(gst, &guicfg, 1, "Distance", SLIDER_DEF_WIDTH, &test_value2, -1000.0, 10000.0);
+
+    gui_next_x__previous(&guicfg);
+    gui_next_y__previous(&guicfg);
+    gui_sliderF(gst, &guicfg, 2, "Hmm", SLIDER_DEF_WIDTH, &test_value3, -M_PI, M_PI);
+
+    gui_next_x__saved(&guicfg, 0);
+
+    guicfg.next_y += 20;
+    gui_text(gst, &guicfg, "Another text");
+
+
+    gui_end(gst);
 
 }
 
 
 
 void gui_render_devmenu(struct state_t* gst) {
-    const float fontsize = 15;
-    //DrawRectangle(0, 0, gst->res_x, gst->res_y, (Color){ 10, 30, 30, 200 });
-    const char* menu_text = "[ Development menu ]";
-    const float menu_text_fontsize = 20.0;
-    DrawTextEx(gst->font, menu_text, 
-            (Vector2){ gst->res_x - MeasureText(menu_text, menu_text_fontsize)*2, 10 },
-            menu_text_fontsize, FONT_SPACING, TEXT_COLOR);
-
-
-    const float btn_y_inc = 34.0;
-    const float space_y = 20.0;
-    Vector2 btn_pos = (Vector2){ 100, 150 };
-
-
-    if(gui_button(gst, "Telport to spawn point", fontsize, btn_pos)) {
-        gst->player.cam.position = gst->player.spawn_point;
-    }
-    btn_pos.y += btn_y_inc;
-    if(gui_button(gst, "Telport to zero", fontsize, btn_pos)) {
-        gst->player.cam.position = (Vector3){ 0, 0, 0 };
-    }
-    btn_pos.y += btn_y_inc;
- 
-    if(gui_button(gst, "Telport to first chunk", fontsize, btn_pos)) {
-        gst->player.cam.position = gst->terrain.chunks[0].center_pos;
-    }
-    btn_pos.y += btn_y_inc;
- 
-    if(gui_button(gst, "Toggle SSAO View", fontsize, btn_pos)) {
-        gst->show_only_ssao = !gst->show_only_ssao;
-        shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);
-        printf("vitun vitun vittu\n");
-    }
-    btn_pos.y += btn_y_inc;
-
-
-    if(gui_button(gst, "Kill player", fontsize, btn_pos)) {
-        player_damage(gst, &gst->player, 99999999);
-        gst->devmenu_open = 0;
-    }
-    btn_pos.y += btn_y_inc;
-    btn_pos.y += space_y;
-
-    if(gui_button(gst, "Spawn NPC", fontsize, btn_pos)) {
-        gst->npc.position = (Vector3){
-            gst->player.position.x + RSEEDRANDOMF(-30, 30),
-            0,
-            gst->player.position.z + RSEEDRANDOMF(-30, 30)
-        };
-        gst->npc.travel.dest_reached = 1;
-        gst->npc.active = 1;
-    }
-    btn_pos.y += btn_y_inc;
-
-
-
-    const float spawn_rad = 300.0;
-
-    for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
-        if(gui_button(gst, TextFormat("Spawn Enemy LVL%i (friendly)", i), fontsize, btn_pos)) {
-            spawn_enemy(gst, i, ENT_FRIENDLY, (Vector3){
-                        gst->player.position.x + RSEEDRANDOMF(-spawn_rad, spawn_rad),
-                        0,
-                        gst->player.position.z + RSEEDRANDOMF(-spawn_rad, spawn_rad)
-                    });
-        }
-        btn_pos.y += btn_y_inc;
-    }
-
-    btn_pos.y += space_y;
-
-    for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
-        if(gui_button(gst, TextFormat("Spawn Enemy LVL%i (hostile)", i), fontsize, btn_pos)) {
-            spawn_enemy(gst, i, ENT_HOSTILE, (Vector3){
-                        gst->player.position.x + RSEEDRANDOMF(-spawn_rad+100, spawn_rad+100),
-                        0,
-                        gst->player.position.z + RSEEDRANDOMF(-spawn_rad+100, spawn_rad+100)
-                    });
-        }
-        btn_pos.y += btn_y_inc;
-    }
-    
-    btn_pos.y += space_y*2;
-
-    gui_slider_float(gst, "Wind Direction X", fontsize, btn_pos, 300,
-            &gst->weather.wind_dir.x, -1.0, 1.0);
-    btn_pos.y += btn_y_inc+5;
-    
-    gui_slider_float(gst, "Wind Direction Z", fontsize, btn_pos, 300,
-            &gst->weather.wind_dir.z, -1.0, 1.0);
-    btn_pos.y += btn_y_inc+5;
-
-    gui_slider_float(gst, "Wind Strength", fontsize, btn_pos, 300,
-            &gst->weather.wind_strength, 0.0, 600.0);
-    btn_pos.y += btn_y_inc+5;
-
-
-    btn_pos.x = gst->screen_size.x-400;
-    btn_pos.y = 200;
-
-    gui_slider_float(gst, "OffsetX", fontsize, btn_pos, 300,
-            &gst->test_model_offset.x, -10.0, 10.0);
-    btn_pos.y += btn_y_inc+5;
-    gui_slider_float(gst, "OffsetY", fontsize, btn_pos, 300,
-            &gst->test_model_offset.y, -10.0, 10.0);
-    btn_pos.y += btn_y_inc+5;
-    gui_slider_float(gst, "OffsetZ", fontsize, btn_pos, 300,
-            &gst->test_model_offset.z, -10.0, 10.0);
-    btn_pos.y += btn_y_inc+5;
-
-
-    gui_slider_float(gst, "RotationX", fontsize, btn_pos, 300,
-            &gst->test_model_rotation.x, -M_PI, M_PI);
-    btn_pos.y += btn_y_inc+5;
-    gui_slider_float(gst, "RotationY", fontsize, btn_pos, 300,
-            &gst->test_model_rotation.y, -M_PI, M_PI);
-    btn_pos.y += btn_y_inc+5;
-    gui_slider_float(gst, "RotationZ", fontsize, btn_pos, 300,
-            &gst->test_model_rotation.z, -M_PI, M_PI);
-    btn_pos.y += btn_y_inc+5;
-
-
-    if(gui_button(gst, "^- Print", fontsize, btn_pos)) {
-        printf("Offset: (%0.4f, %0.4f, %0.4f)\n",
-                gst->test_model_offset.x,
-                gst->test_model_offset.y,
-                gst->test_model_offset.z
-                );
-
-        printf("Rotation: (%0.4f, %0.4f, %0.4f)\n",
-                gst->test_model_rotation.x,
-                gst->test_model_rotation.y,
-                gst->test_model_rotation.z
-                );
-    }
-
-    
-    btn_pos.y += btn_y_inc;
-
-    /*
-    // ------------ Color pickers -----------
-
-    if(gui_colorpicker(gst, "Fog Top color", 
-                (Vector2){ gst->res_x-300, 100 }, (Vector2){ 200, 200 },
-                &gst->fog.color_top)) {      
-        //printf("%i, %i, %i\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
-        set_fog_settings(gst, &gst->fog);
-        printf("Fog top color: (%i, %i, %i)\n", gst->fog.color_top.r, gst->fog.color_top.g, gst->fog.color_top.b);
-    }
-
-    if(gui_colorpicker(gst, "Fog Bottom color", 
-                (Vector2){ gst->res_x-300, 350 }, (Vector2){ 200, 200 },
-                &gst->fog.color_bottom)) {      
-        //printf("%i, %i, %i\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
-        set_fog_settings(gst, &gst->fog);
-        printf("Fog bottom color: (%i, %i, %i)\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
-    }
-
-    if(gui_colorpicker(gst, "Sun color", 
-                (Vector2){ gst->res_x-550, 100 }, (Vector2){ 200, 200 },
-                &gst->weather.sun_color)) {      
-        //printf("%i, %i, %i\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
-        set_fog_settings(gst, &gst->fog);
-        printf("Fog bottom color: (%i, %i, %i)\n", gst->fog.color_bottom.r, gst->fog.color_bottom.g, gst->fog.color_bottom.b);
-    }
-    */
 
 }
 
@@ -329,6 +188,7 @@ void gui_render_inventory_controls(struct state_t* gst, struct inventory_t* inv)
     pos.y += 40;
 
 
+    /*
     if(gui_button(gst, "Drop", fontsize, pos)) {
         inv->selected_item->inv_index = -1;
         
@@ -338,6 +198,7 @@ void gui_render_inventory_controls(struct state_t* gst, struct inventory_t* inv)
 
         drop_item(gst, FIND_ITEM_CHUNK, drop_pos, inv->selected_item);
     }
+    */
 
 
 }

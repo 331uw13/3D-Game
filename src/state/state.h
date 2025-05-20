@@ -343,7 +343,9 @@ struct state_t {
     // Bloom treshold is written here.
     // when post processing. bloom is aplied and mixed into 'env_render_target' texture
     RenderTexture2D bloomtresh_target;
-    
+
+    RenderTexture2D gui_render_target;
+
     int       ssao_enabled;
     Texture   ssao_noise_tex;
     Vector3*  ssao_kernel;
@@ -393,8 +395,14 @@ struct state_t {
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
     int default_weapon_dropped;
 
-    Vector3 test_model_offset;
-    Vector3 test_model_rotation;
+    // For fine tuning weapon model offsets.
+    Vector3 testmd_aim_offset;
+    Vector3 testmd_rest_offset;
+    Vector3 testmd_rest_rotation;
+    Vector3 testmd_inspect_offset;
+    Vector3 testmd_inspect_rotation;
+    Vector3 testmd_energy_light_pos;
+
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!

@@ -11,7 +11,8 @@
 
 
 #define WMODEL_ASSAULT_RIFLE_0  0
-#define MAX_WEAPON_MODELS 1
+#define WMODEL_SNIPER_RIFLE_0   1
+#define MAX_WEAPON_MODELS 2
 
 
 struct weapon_model_t {
@@ -53,6 +54,9 @@ void load_weapon_model(
 
 void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_model, Matrix transform);
 
+
+// This is for fine tuning the offsets.
+void use_weapon_model_test_offsets(struct state_t* gst, struct weapon_model_t* weapon_model);
 
 
 

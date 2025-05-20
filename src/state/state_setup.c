@@ -704,7 +704,7 @@ static void state_setup_all_shaders(struct state_t* gst) {
             NO_GEOMETRY_SHADER,
             shader);
     }
-    
+ 
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
@@ -854,6 +854,7 @@ static void state_setup_all_render_targets(struct state_t* gst) {
     gst->bloom_downsamples[0] = LoadRenderTexture(909, 485);    
     gst->bloom_downsamples[1] = LoadRenderTexture(638, 340);
 
+    gst->gui_render_target = LoadRenderTexture(gst->screen_size.x, gst->screen_size.y);
 
     SetTextureFilter(gst->bloom_downsamples[0].texture, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
@@ -1022,6 +1023,12 @@ static void state_setup_all_weapon_models(struct state_t* gst) {
             "Assault rifle",
             "Great for short and medium distances.");
 
+    load_weapon_model(gst,
+            WMODEL_SNIPER_RIFLE_0,
+            "weapons_cfg/sniper_rifle_0.cfg",
+            // Item name and description:
+            "Sniper rifle",
+            "< no description >");
 
     gst->init_flags |= INITFLG_WEAPON_MODELS;
 
@@ -1098,10 +1105,16 @@ int state_setup_everything(struct state_t* gst) {
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
 
-    gst->test_model_offset = (Vector3){ 0, 0, 0 };
-    gst->test_model_rotation = (Vector3){ 0, 0, 0 };
 
     gst->default_weapon_dropped = 0;
+
+
+    gst->testmd_aim_offset = (Vector3){0};
+    gst->testmd_rest_offset = (Vector3){0};
+    gst->testmd_rest_rotation = (Vector3){0};
+    gst->testmd_inspect_offset = (Vector3){0};
+    gst->testmd_inspect_rotation = (Vector3){0};
+    gst->testmd_energy_light_pos = (Vector3){0};
 
     printf("\033[32m'%s': Done\033[0m\n", __func__);
     result = 1;

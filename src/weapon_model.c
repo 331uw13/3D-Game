@@ -278,12 +278,21 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
     Vector3 light_pos = weapon_model->energy_light_offset;
     light_pos = Vector3Transform(light_pos, transform);
 
+    float strength = map(
+            weapon_model->stats.lqmag.ammo_level,
+            /* src min */ 0.0,
+            /* src max */ weapon_model->stats.lqmag.capacity,
+            /* dst min */ 0.0,
+            /* dst max */ 0.5);
+
+
+
     // TODO: This can be optimized. not all info needs to be set every frame.
     struct light_t energy_light = (struct light_t) {
         .type = LIGHT_POINT,
         .enabled = 1,
         .color = weapon_model->stats.color,
-        .strength = 0.5,
+        .strength = strength,
         .radius = 0.65,
         .index = PLAYER_GUN_LIGHT_ID,
         .position = light_pos
@@ -316,5 +325,14 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
             );
 
 }
+
+void use_weapon_model_test_offsets(struct state_t* gst, struct weapon_model_t* weapon_model) {
+    
+
+
+}
+
+
+
 
 

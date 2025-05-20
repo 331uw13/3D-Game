@@ -102,6 +102,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
 
 
             { // TODO: This dont need to be updated every frame.
+              //         ^ Only position.
 
                 Color lcolor = light_color;
 
@@ -121,7 +122,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                     .type = LIGHT_POINT,
                     .enabled = 1,
                     .color = (item->inv_index < 0) ? light_color_empty : lcolor,
-                    .strength = 0.4,
+                    .strength = 0.42,
                     .radius = 1.2,
                     .index = INVENTORY_LIGHT_ID,
                     .position = (Vector3){ light_matrix.m12, light_matrix.m13, light_matrix.m14 }

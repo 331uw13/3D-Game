@@ -72,6 +72,7 @@ static void state_delete_render_targets(struct state_t* gst) {
     UnloadRenderTexture(gst->bloomtresh_target);
     UnloadRenderTexture(gst->ssao_target);
     UnloadRenderTexture(gst->ssao_final);
+    UnloadRenderTexture(gst->gui_render_target);
 
     for(int i = 0; i < NUM_BLOOM_DOWNSAMPLES; i++) {
         UnloadRenderTexture(gst->bloom_downsamples[i]);
@@ -138,6 +139,7 @@ void state_free_everything(struct state_t* gst) {
     
     state_delete_enemy_models(gst);
     state_delete_item_models(gst);
+    state_delete_weapon_models(gst);
 
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
