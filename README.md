@@ -12,14 +12,6 @@
 
 > ### ( Adding screenshots here later... )
 
----------------------
-
-* Gain XP by shooting enemy robots and upgrade your powerups.  **(Some powerups are not yet implemented)**
-
-* Enemies may drop metal pieces which can be used to fix armor.
-
-* Apples spawn in the world naturally which can be used to heal the player.
-
 -------------
 ### Controls
 | Key           |  Description |
