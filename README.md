@@ -10,7 +10,7 @@
 
 ---------------------
 
-### ( Adding screenshots here later... )
+> ### ( Adding screenshots here later... )
 
 ---------------------
 
@@ -22,21 +22,26 @@
 
 -------------
 ### Controls
-* WASD and Shift: Movement.
-* 2: Open powerup shop menu. (Refactoring in progress so this doesnt work now)
-* ESC: Open menu.
-* T: Debug info
-* R: Development menu
--------------
-
+| Key           |  Description |
+| ------------- | ------------
+| `ESCAPE`      |  Open menu |
+| `WASD`        |  Movement  |
+| `Shift`       |  Run |
+| `MouseRight`  |  Aim |
+| `Tab`         |  Open inventory |
+| `F`           |  Pickup item |
+| `T`           |  Debug info |
+| `R`           |  Development menu |
+| `G`           |  No clip |
 -------------
 ### Compiling the game.
-> [!NOTE]
-> Raylib must be installed on your system.
->
-> For Linux: Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux
->
-> For Windows: Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-Windows
+> [!IMPORTANT]
+> * Raylib must be installed on your system.
+> > 
+> > For Linux: Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux
+> 
+> > For Windows: Follow the instructions from https://github.com/raysan5/raylib/wiki/Working-on-Windows
+> 
 
 #### Windows/Linux/macOS
 ```bash
