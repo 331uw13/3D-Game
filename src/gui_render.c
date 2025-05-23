@@ -20,16 +20,6 @@ void gui_render_respawn_screen(struct state_t* gst) {
 
 }
 
-static int test_check = 0;
-static int test_check2 = 1;
-static float test_value = 32.0;
-static float test_value2 = 0.0;
-static float test_value3 = 0.0;
-static int container_open = 1;
-static int container2_open = 0;
-static int container3_open = 1;
-
-#include <rlgl.h>
 
 void gui_render_menu_screen(struct state_t* gst) {
     render_num_kills(gst);
@@ -38,14 +28,45 @@ void gui_render_menu_screen(struct state_t* gst) {
     struct guicfg_t guicfg;
     gui_load_default_cfg(&guicfg);
     guicfg.next_x = 100;
-    guicfg.next_y = 100;
+    guicfg.next_y = 200;
     guicfg.font_size = 21;
 
 
     gui_begin(gst);
-    gui_text(gst, &guicfg, "Hello GUI?");
 
 
+    guicfg.font_size = 30;
+    gui_text(gst, &guicfg, "Main Menu");
+
+    guicfg.font_size = 15;
+    gui_text(gst, &guicfg, "(Paused)");
+    
+    guicfg.font_size = 20;
+
+    if(gui_button(gst, &guicfg, "Quit")) {
+        gst->running = 0;
+    }
+
+
+    guicfg.next_y = gst->screen_size.y / 2;
+
+
+    gui_sliderF(gst, &guicfg, /*ID*/0, "Render Distance", 500,
+            &gst->menu_slider_render_dist_v,
+            MIN_RENDERDIST, MAX_RENDERDIST);
+    gui_next_x__previous(&guicfg);
+    gui_next_y__previous(&guicfg);
+    if(gui_button(gst, &guicfg, "Apply")) {
+        set_render_dist(gst, gst->menu_slider_render_dist_v);
+    }
+
+    gui_next_x__saved(&guicfg, 0);
+    
+    gui_checkbox(gst, &guicfg, "Ambient Occlusion", &gst->ssao_enabled);
+
+    guicfg.next_y += 20;
+
+    /*
     gui_container(gst, &guicfg, "First Container", GUI_CONTAINER_AUTO_SIZE, &container_open);
     {
 
@@ -93,16 +114,143 @@ void gui_render_menu_screen(struct state_t* gst) {
 
     guicfg.next_y += 20;
     gui_text(gst, &guicfg, "Another text");
-
+    */
 
     gui_end(gst);
 
 }
 
 
+static int g_wmodel_offset_settings_open = 0;
+static int g_wmodel_stats_settings_open = 0;
 
 void gui_render_devmenu(struct state_t* gst) {
 
+    struct guicfg_t guicfg;
+    gui_load_default_cfg(&guicfg);
+
+    guicfg.font_size = 15;
+
+    gui_begin(gst);
+
+    guicfg.next_x = gst->screen_size.x - 450;
+    
+    // This is for creating a config for new weapon models in run time.
+    // NOTE: (remember to uncomment section from 'state/state.c' update_frame() to apply these into current model.)
+    gui_container(gst, &guicfg, "Weapon Model Offsets", GUI_CONTAINER_AUTO_SIZE, &g_wmodel_offset_settings_open);
+    {
+        
+        gui_sliderF(gst, &guicfg, /*ID*/0, "aim_offset X", 400, &gst->testmd_aim_offset.x, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/1, "aim_offset Y", 400, &gst->testmd_aim_offset.y, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/2, "aim_offset Z", 400, &gst->testmd_aim_offset.z, -10.0, 10.0);
+
+
+        gui_sliderF(gst, &guicfg, /*ID*/3, "rest_offset X", 400, &gst->testmd_rest_offset.x, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/4, "rest_offset Y", 400, &gst->testmd_rest_offset.y, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/5, "rest_offset Z", 400, &gst->testmd_rest_offset.z, -10.0, 10.0);
+
+
+        gui_sliderF(gst, &guicfg, /*ID*/6, "rest_rotation X", 400, &gst->testmd_rest_rotation.x, -M_PI, M_PI);
+        gui_sliderF(gst, &guicfg, /*ID*/7, "rest_rotation Y", 400, &gst->testmd_rest_rotation.y, -M_PI, M_PI);
+        gui_sliderF(gst, &guicfg, /*ID*/8, "rest_rotation Z", 400, &gst->testmd_rest_rotation.z, -M_PI, M_PI);
+
+        gui_sliderF(gst, &guicfg, /*ID*/9, "inspect_offset X", 400, &gst->testmd_inspect_offset.x, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/10, "inspect_offset Y", 400, &gst->testmd_inspect_offset.y, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/11, "inspect_offset Z", 400, &gst->testmd_inspect_offset.z, -10.0, 10.0);
+
+
+        gui_sliderF(gst, &guicfg, /*ID*/12, "inspect_rotation X", 400, &gst->testmd_inspect_rotation.x, -M_PI, M_PI);
+        gui_sliderF(gst, &guicfg, /*ID*/13, "inspect_rotation Y", 400, &gst->testmd_inspect_rotation.y, -M_PI, M_PI);
+        gui_sliderF(gst, &guicfg, /*ID*/14, "inspect_rotation Z", 400, &gst->testmd_inspect_rotation.z, -M_PI, M_PI);
+
+
+        gui_sliderF(gst, &guicfg, /*ID*/15, "light_offset X", 400, &gst->testmd_energy_light_pos.x, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/16, "light_offset Y", 400, &gst->testmd_energy_light_pos.y, -10.0, 10.0);
+        gui_sliderF(gst, &guicfg, /*ID*/17, "light_offset Z", 400, &gst->testmd_energy_light_pos.z, -10.0, 10.0);
+        
+        gui_sliderF(gst, &guicfg, /*ID*/18, "prjfx_offset", 400, &gst->testmd_prjfx_offset, -30.0, 0.0);
+    }
+    gui_end_container(gst, &guicfg);
+    
+
+    gui_container(gst, &guicfg, "Weapon Model Stats", GUI_CONTAINER_AUTO_SIZE, &g_wmodel_stats_settings_open);
+    {
+        gui_sliderI(gst, &guicfg, /*ID*/19, "firerate", 400, &gst->testmd_firerate, 0, 30);
+        gui_sliderI(gst, &guicfg, /*ID*/20, "accuracy", 400, &gst->testmd_accuracy, 0, 100);
+        gui_sliderI(gst, &guicfg, /*ID*/21, "prj_speed", 400, &gst->testmd_prj_speed, 100, 1000);
+
+    }
+    gui_end_container(gst, &guicfg);
+
+    if(g_wmodel_offset_settings_open || g_wmodel_stats_settings_open) {
+        if(gui_button(gst, &guicfg, "config to stdout")) {
+            printf(
+                    "accuracy = %i;\n"
+                    "firerate = %i;\n"
+                    "projectile_speed = %i;\n"
+                    "\n"
+                    "aim_offset_x = %0.3f;\n"
+                    "aim_offset_y = %0.3f;\n"
+                    "aim_offset_z = %0.3f;\n"
+                    "\n"
+                    "rest_offset_x = %0.3f;\n"
+                    "rest_offset_y = %0.3f;\n"
+                    "rest_offset_z = %0.3f;\n"
+                    "\n"
+                    "rest_rotation_x = %0.3f;\n"
+                    "rest_rotation_y = %0.3f;\n"
+                    "rest_rotation_z = %0.3f;\n"
+                    "\n"
+                    "inspect_offset_x = %0.3f;\n"
+                    "inspect_offset_y = %0.3f;\n"
+                    "inspect_offset_z = %0.3f;\n"
+                    "\n"
+                    "inspect_rotation_x = %0.3f;\n"
+                    "inspect_rotation_y = %0.3f;\n"
+                    "inspect_rotation_z = %0.3f;\n"
+                    "\n"
+                    "energy_light_offset_x = %0.3f;\n"
+                    "energy_light_offset_y = %0.3f;\n"
+                    "energy_light_offset_z = %0.3f;\n"
+                    "\n"
+                    "prjfx_offset = %0.3f;\n"
+                    ,
+
+                    gst->testmd_accuracy,
+                    gst->testmd_firerate,
+                    gst->testmd_prj_speed,
+
+                    gst->testmd_aim_offset.x,
+                    gst->testmd_aim_offset.y,
+                    gst->testmd_aim_offset.z,
+                    
+                    gst->testmd_rest_offset.x,
+                    gst->testmd_rest_offset.y,
+                    gst->testmd_rest_offset.z,
+                    
+                    gst->testmd_rest_rotation.x,
+                    gst->testmd_rest_rotation.y,
+                    gst->testmd_rest_rotation.z,
+
+                    gst->testmd_inspect_offset.x,
+                    gst->testmd_inspect_offset.y,
+                    gst->testmd_inspect_offset.z,
+                    
+                    gst->testmd_inspect_rotation.x,
+                    gst->testmd_inspect_rotation.y,
+                    gst->testmd_inspect_rotation.z,
+
+                    gst->testmd_energy_light_pos.x,
+                    gst->testmd_energy_light_pos.y,
+                    gst->testmd_energy_light_pos.z,
+
+                    gst->testmd_prjfx_offset
+                    );
+        }
+    }
+
+
+    gui_end(gst);
 }
 
 
@@ -166,41 +314,136 @@ void render_item_info(struct state_t* gst) {
 }
 
 void gui_render_inventory_controls(struct state_t* gst, struct inventory_t* inv) {
-    float fontsize = 15;
-    Vector2 pos = (Vector2) { 25, 200 };
 
-    DrawRectangle(0, pos.y-20, 250, 400, (Color){ 20, 20, 20, 200 });
-
-    if(!inv->selected_item) {
+    if(!inv->hovered_item) {
         return;
     }
 
-    if(inv->selected_item->inv_index < 0) {
+    if(inv->hovered_item->empty || inv->hovered_item->inv_index < 0) {
         return;
     }
 
-    DrawTextEx(gst->font, inv->selected_item->info->name, pos,
-            15, FONT_SPACING,
-            (Color){ 200, 200, 200, 255 });
+    if(!inv->hovered_item->info) {
+        return;
+    }
 
 
-    pos.x += 20;
-    pos.y += 40;
+    const float desc_font_size = 13;
+    const float name_font_size = 15;
 
 
-    /*
-    if(gui_button(gst, "Drop", fontsize, pos)) {
-        inv->selected_item->inv_index = -1;
+    Vector2 mouse = GetMousePosition();
+    Vector2 desc_size = MeasureTextEx(gst->font, inv->hovered_item->info->desc, desc_font_size, FONT_SPACING);
+    Vector2 name_size = MeasureTextEx(gst->font, inv->hovered_item->info->name, name_font_size, FONT_SPACING);
+
+    float info_box_width = (desc_size.x > name_size.x) ? desc_size.x : name_size.x;
+    float info_box_height = desc_size.y + name_size.y;
+    
+    float info_box_x = mouse.x + 5;
+    float info_box_y = mouse.y + 20;
+    
+    float padding = 10;
+
+
+
+#define ADDTNBUF_MAX 1024
+    // Additional info.
+    char addtn_info[ADDTNBUF_MAX+1] = { 0 };
+    size_t addtn_info_size = 0;
+
+    if(inv->hovered_item->is_weapon_item) {
+        struct weapon_model_t* weapon_model = &inv->hovered_item->weapon_model;
+
+        append_str(addtn_info, ADDTNBUF_MAX, &addtn_info_size, 
+                TextFormat("Ammo: %i/%i\n", (int)weapon_model->stats.lqmag.ammo_level, (int)weapon_model->stats.lqmag.capacity));
+
+        append_str(addtn_info, ADDTNBUF_MAX, &addtn_info_size,
+                "Condition: (TODO!)\n");
         
-        Vector3 drop_pos = gst->player.position;
-        drop_pos.x += RSEEDRANDOMF(-3.0, 3.0);
-        drop_pos.z += RSEEDRANDOMF(-3.0, 3.0);
 
-        drop_item(gst, FIND_ITEM_CHUNK, drop_pos, inv->selected_item);
+        addtn_info[addtn_info_size+1] = '\0';
+        
+        Vector2 addtn_info_size = MeasureTextEx(gst->font, addtn_info, desc_font_size, FONT_SPACING);
+        if(info_box_width < addtn_info_size.x) {
+            info_box_width = addtn_info_size.x;
+        }
+
+        info_box_height += addtn_info_size.y;
     }
-    */
 
 
+    float right_edge = info_box_x + info_box_width + padding + 20;
+
+    if(right_edge > gst->screen_size.x) {
+        info_box_x -= right_edge - gst->screen_size.x;
+    }
+
+    const Color line_color = (Color){ 0x74, 0x7A, 0x7A, 240 };
+    const Color line2_color = (Color){ 0x46, 0x4D, 0x4D, 230 };
+    float line_y = 0;
+
+
+    DrawRectangle(
+            info_box_x,
+            info_box_y,
+            info_box_width + padding * 2,
+            info_box_height + padding * 2,
+            (Color){ 23, 25, 27, 200 });
+
+
+    // Item name.
+    Vector2 name_pos = (Vector2){
+        info_box_x + padding,
+        info_box_y + padding
+    };
+    DrawTextEx(
+            gst->font,
+            inv->hovered_item->info->name,
+            name_pos,
+            name_font_size,
+            FONT_SPACING,
+            (Color){ 0x9E, 0xB2, 0xB6, 230 });
+
+
+    line_y = name_pos.y + name_size.y + 1;
+    DrawLine(info_box_x + 5, line_y, info_box_x + name_size.x + 20, line_y, line_color);
+
+
+    // Item description.
+    Vector2 desc_pos = (Vector2){
+        info_box_x + padding,
+        info_box_y + padding  + name_size.y + 5
+    };
+    DrawTextEx(
+            gst->font,
+            inv->hovered_item->info->desc,
+            desc_pos,
+            desc_font_size,
+            FONT_SPACING,
+            (Color){ 0x7E, 0x86, 0x86, 230 });
+
+    // Additional info.
+    if(addtn_info_size > 0) {
+
+        line_y = desc_pos.y + desc_size.y + 3;
+        DrawLine(info_box_x + 5, line_y, info_box_x + info_box_width + padding*2 - 10, line_y, line2_color);
+
+        DrawTextEx(
+                gst->font,
+                addtn_info,
+                (Vector2){
+                    info_box_x + padding,
+                    info_box_y + padding  + name_size.y + desc_size.y + 15
+                },
+                desc_font_size,
+                FONT_SPACING,
+                (Color){ 0x6E, 0x7D, 0x7D, 230 });
+
+    }
 }
+
+
+
+
 
 

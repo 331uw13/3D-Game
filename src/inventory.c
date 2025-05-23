@@ -14,6 +14,9 @@ void inventory_init(struct inventory_t* inv) {
         inv->items[i].inv_index = -1;
     }
 
+    inv->selected_item = NULL;
+    inv->hovered_item = NULL;
+
 }
 
 
@@ -33,7 +36,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     float inv_depth = 4.0;
     float box_size = 2.0 * box_scale;
 
-    // Figure out frustrum depth at inventory's depth.
+    // Figure out frustrum depth at inventory's box depth.
     
     float aspect_ratio = (gst->screen_size.x / gst->cfg.res_div) / (gst->screen_size.y / gst->cfg.res_div);
     float fov_y = gst->player.cam.fovy * (M_PI/180.0);
@@ -51,6 +54,8 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
 
     const Color light_color = (Color) { 198, 220, 230, 255 };
     const Color light_color_empty = (Color){ light_color.r/3, light_color.g/3, light_color.b/3, 255 };
+
+    inv->hovered_item = NULL;
 
     for(int y = 0;  y < INV_NUM_ROWS; y++) {
         for(int x = 0; x < INV_NUM_COLUMNS; x++) {
@@ -147,9 +152,16 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 current);
 
             if(rayhit.hit) {
+                inv->hovered_item = item;
+
                 if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                     inv->selected_item = item;
                 }
+
+                if(gst->mouse_double_click) {
+                    player_change_holding_item(gst, &gst->player, item);
+                }
+
                 DrawMesh(
                         gst->inventory_box_selected_model.meshes[0],
                         gst->inventory_box_selected_model.materials[0],
@@ -193,7 +205,6 @@ void inventory_move_item(struct inventory_t* inv, struct item_t* item, int index
     item->lifetime = 0.0;
     item->inv_index = index;
     inv->items[index] = *item;
-    
 
 }
 

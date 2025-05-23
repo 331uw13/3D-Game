@@ -485,17 +485,24 @@ int gui_checkbox(
 }
 
 
+
+#define SLIDER_TEXT_TYPE_FLOAT 0
+#define SLIDER_TEXT_TYPE_INT 1
+
+
 // Returns positive number when active.
-int gui_sliderF(
+static int gui_slider_type(
         struct state_t* gst,
         struct guicfg_t* guicfg,
         int id,
         const char* text,
         float  width,
-        float* value,
+        float*  value,
         float  min_value,
-        float  max_value
+        float  max_value,
+        int slider_text_type
 ){
+
     if(guicfg->in_container && !guicfg->container.open) {
         return 0;
     }
@@ -520,7 +527,7 @@ int gui_sliderF(
 
     if(is_changing) {
         // Map mouse position to value.
-        *value = map(
+        (*value) = (float)map(
                 mouse.x, 
                 pos.x,
                 pos.x+size.x,
@@ -589,7 +596,13 @@ int gui_sliderF(
     // Slider value text.
 
     const float value_font_size = guicfg->font_size / 1.25;
-    const char* value_text = TextFormat("%0.2f", *value);
+
+
+    const char* value_text = 
+        (slider_text_type == SLIDER_TEXT_TYPE_FLOAT)
+        ? (TextFormat("%0.2f", *value))
+        : (TextFormat("%i", (int)*value));
+
     Vector2 value_text_size = MeasureTextEx(gst->font, value_text, value_font_size, FONT_SPACING);
     
     Vector2 value_text_pos = (Vector2) {
@@ -611,6 +624,37 @@ int gui_sliderF(
 }
 
 
+int gui_sliderF(
+        struct state_t* gst,
+        struct guicfg_t* guicfg,
+        int id, 
+        const char* text,
+        float  width,
+        float* value,
+        float min_value,
+        float max_value
+){
+    return gui_slider_type(gst, guicfg, id, text, width, value, min_value, max_value, SLIDER_TEXT_TYPE_FLOAT);
+}
+
+
+int gui_sliderI(
+        struct state_t* gst,
+        struct guicfg_t* guicfg,
+        int id, 
+        const char* text,
+        float  width,
+        int* value,
+        int  min_value,
+        int  max_value
+){
+
+    float f_value = (float)*value;
+    int res = gui_slider_type(gst, guicfg, id, text, width, &f_value, min_value, max_value, SLIDER_TEXT_TYPE_INT);
+    *value = (int)f_value;
+
+    return res;
+}
 
 
 

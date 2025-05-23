@@ -3,6 +3,7 @@
 
 #include <raylib.h>
 #include <raymath.h>
+#include <stddef.h>
 
 struct state_t;
 
@@ -41,6 +42,8 @@ Color color_lerp(float t, Color a, Color b);
 
 float get_volume_dist(Vector3 player_pos, Vector3 sound_pos);
 float inout_cubic(float x);
+
+void append_str(char* buffer, size_t buf_max_size, size_t* buf_size, const char* str);
 
 #define RSEEDRANDOMF(min, max) randomf(&gst->rseed, min, max)
 #define CLAMP(v, min, max) ((v < min) ? min : (v > max) ? max : v)

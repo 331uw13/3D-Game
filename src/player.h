@@ -89,27 +89,32 @@ struct player_t {
     float weapon_inspect_interp;
 
     float weapon_offset_interp;
-    struct item_t* item_in_hands;
-
     Matrix last_weapon_matrix;
 
-    //int   in_water;
+    
+    // Pointers to items in inventory.
+    struct item_t* item_in_hands;
+    struct item_t* item_to_change;
+    float item_change_timer;
+    int   changing_item;
 
-    int      noclip;
-    int      alive;
-    //int      is_aiming;
+
+
+    int noclip;
+    int alive;
 
     float armor;
     float max_armor;
     float armor_damage_dampen;
-
+    
     int wants_to_pickup_item;
+
 
     // External force may be applied to player.
     Vector3  ext_force_vel;
     Vector3  ext_force_acc;
 
-    Vector2 cam_random_dir;
+    Vector2 cam_random_dir; // For recoil.
 
     float accuracy_modifier; // This changes based on player movement.
 
@@ -233,8 +238,10 @@ int  point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point
 //          BIOMEID_HAZY <-> BIOMEID_EVIL.
 int  playerin_biomeshift_area(struct state_t* gst, struct player_t* p);
 
+// Change currently holding item.
+void player_change_holding_item(struct state_t* gst, struct player_t* p, struct item_t* item);
+
 // TODO: Rename these.
-// updates player's variables. not movement for movement see (input.c)
 void player_update(struct state_t* gst, struct player_t* p);
 void render_player(struct state_t* gst, struct player_t* p);
 void render_player_gunfx(struct state_t* gst, struct player_t* p);

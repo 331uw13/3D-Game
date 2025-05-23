@@ -19,7 +19,11 @@ struct player_t;
 
 struct inventory_t {
     int open;
+    
     struct item_t* selected_item;
+    struct item_t* hovered_item;
+
+
     struct item_t items[INV_SIZE];
 };
 

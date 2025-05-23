@@ -41,13 +41,20 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && !gst->player.inspecting_weapon) {
-        gst->player.is_aiming = !gst->player.is_aiming;
-    }
-    
-    gst->player.inspecting_weapon = 0;
-    if(IsKeyDown(KEY_F)) {
-        gst->player.inspecting_weapon = 1;
+    if(gst->player.item_in_hands) {
+        if(gst->player.item_in_hands->is_weapon_item) {
+            if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+            && !gst->player.inspecting_weapon
+            && !gst->player.changing_item
+            ){
+                gst->player.is_aiming = !gst->player.is_aiming;
+            }
+            
+            gst->player.inspecting_weapon = 0;
+            if(IsKeyDown(KEY_F)) {
+                gst->player.inspecting_weapon = 1;
+            }
+        }
     }
 
 

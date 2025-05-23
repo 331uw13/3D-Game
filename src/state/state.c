@@ -418,15 +418,18 @@ void state_update_frame(struct state_t* gst) {
     gst->crosshair_item_info = NULL;
 
 
-    use_weapon_model_test_offsets(gst, &gst->weapon_models[WMODEL_SNIPER_RIFLE_0]);
+    // For testing new weapon model configs.
+    /*
+    if(gst->player.item_in_hands) {
+        if(gst->player.item_in_hands->is_weapon_item) {
+            use_weapon_model_test_offsets(gst, &gst->player.item_in_hands->weapon_model);
+        }
+    }
+    */
+
 
     // For testing purposes drop all weapon types on first update.
-    if(gst->time > 1.5 && !gst->default_weapon_dropped) {
-
-        /*
-        struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_ASSAULT_RIFLE_0);
-        drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
-        */
+    if((gst->time - gst->loading_time) > 1.0 && !gst->default_weapon_dropped) {
 
         float drop_xoff =  0.0;
         float drop_zoff =  10.0;

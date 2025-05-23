@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "util.h"
 #include "state/state.h"
@@ -103,3 +104,23 @@ float get_volume_dist(Vector3 player_pos, Vector3 sound_pos) {
 float inout_cubic(float x) {
     return x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2;
 }
+
+void append_str(char* buf, size_t buf_max_size, size_t* buf_size, const char* str) {
+    size_t len = strlen(str);
+    if(len + *buf_size >= buf_max_size) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Not enough memory allocated for buffer(%p) to append text(%li bytes)\033[0m\n",
+                __func__, buf, len);
+        return;
+    }
+
+    memmove(
+            buf + *buf_size,
+            str,
+            len
+            );
+
+    *buf_size += len;
+}
+
+
+

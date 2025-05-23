@@ -211,10 +211,16 @@ void load_weapon_model(
     weapon_model->prjfx_offset = atof(buf);
 
 
-    if(!read_cfgvar(&cfgfile, "recoil_animation", buf, CFGBUF_SIZE)) {
+    if(!read_cfgvar(&cfgfile, "recoil_anim_kickback", buf, CFGBUF_SIZE)) {
         return;
     }
-    weapon_model->recoil_anim_value = atof(buf);
+    weapon_model->recoil_anim_kickback = atof(buf);
+
+    if(!read_cfgvar(&cfgfile, "recoil", buf, CFGBUF_SIZE)) {
+        return;
+    }
+    weapon_model->recoil = atof(buf);
+
 
 
 
@@ -244,6 +250,7 @@ void load_weapon_model(
 
     weapon_model->recoil_anim_done = 0;
     weapon_model->recoil_anim_timer = 0.0;
+    weapon_model->recoil_anim_value = 0.0;
     weapon_model->firerate_timer = 0.0;
     weapon_model->firerate = firerate_f;
 
@@ -327,9 +334,35 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
 }
 
 void use_weapon_model_test_offsets(struct state_t* gst, struct weapon_model_t* weapon_model) {
-    
 
+    weapon_model->aim_offset = gst->testmd_aim_offset;
+    weapon_model->rest_offset = gst->testmd_rest_offset;
+    weapon_model->rest_rotation = gst->testmd_rest_rotation;
+    weapon_model->inspect_offset = gst->testmd_inspect_offset;
+    weapon_model->inspect_rotation = gst->testmd_inspect_rotation;
+    weapon_model->energy_light_offset = gst->testmd_energy_light_pos;
+    weapon_model->prjfx_offset = gst->testmd_prjfx_offset;
+    weapon_model->stats.prj_speed = gst->testmd_prj_speed;
 
+    float firerate_f = map(
+            (float)gst->testmd_firerate,
+            CFG_FIRERATE_MIN,
+            CFG_FIRERATE_MAX,
+            0.07,
+            1.0
+            );
+
+    float accuracy_f = map(
+            (float)gst->testmd_accuracy,
+            CFG_ACCURACY_MIN,
+            CFG_ACCURACY_MAX,
+            WEAPON_ACCURACY_MIN,
+            WEAPON_ACCURACY_MAX
+            );
+
+    weapon_model->firerate = firerate_f;
+    weapon_model->stats.accuracy = accuracy_f;
+ 
 }
 
 

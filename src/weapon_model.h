@@ -32,10 +32,13 @@ struct weapon_model_t {
     Vector3 energy_light_offset;
 
     float prjfx_offset;
-  
+ 
     int   recoil_anim_done;
     float recoil_anim_value;
     float recoil_anim_timer;
+    float recoil_anim_kickback;
+
+    float recoil;
 
     int item_info_index;
   

@@ -34,7 +34,7 @@
 #define FONT_SPACING 1.0
 
 #define MAX_RENDERDIST 15000.0
-#define MIN_RENDERDIST 2200.0
+#define MIN_RENDERDIST 3400.0
 
 #define TARGET_FPS 500
 #define CAMERA_SENSETIVITY 0.00125
@@ -241,6 +241,8 @@ struct gamepad_t {
 // Game state "gst".
 struct state_t {
     float time;
+    float loading_time;
+
     float dt; // Previous frame time.
     Font font;
     platform_file_t cfgfile;
@@ -251,7 +253,9 @@ struct state_t {
     unsigned int ssbo[MAX_SSBOS]; // <- (NOTE: CURRENTLY NOT USED)
     size_t num_prj_lights;
 
-    
+    float mouse_click_time_point;
+    int mouse_double_click;
+
     struct player_t player;
 
 
@@ -395,13 +399,18 @@ struct state_t {
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
     int default_weapon_dropped;
 
-    // For fine tuning weapon model offsets.
+
+    // For fine tuning weapon model config.
     Vector3 testmd_aim_offset;
     Vector3 testmd_rest_offset;
     Vector3 testmd_rest_rotation;
     Vector3 testmd_inspect_offset;
     Vector3 testmd_inspect_rotation;
     Vector3 testmd_energy_light_pos;
+    float   testmd_prjfx_offset;
+    int     testmd_accuracy;
+    int     testmd_prj_speed;
+    int     testmd_firerate;
 
 };
 

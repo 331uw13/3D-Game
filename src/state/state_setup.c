@@ -1039,7 +1039,9 @@ static void state_setup_all_weapon_models(struct state_t* gst) {
 
 int state_setup_everything(struct state_t* gst) {
     int result = 0;
-
+    
+    const float loading_time_start = GetTime();
+    gst->loading_time = 0;
     gst->init_flags = 0;
     // TODO: Is this used?
     gst->ssao_res_x = 0;
@@ -1115,8 +1117,18 @@ int state_setup_everything(struct state_t* gst) {
     gst->testmd_inspect_offset = (Vector3){0};
     gst->testmd_inspect_rotation = (Vector3){0};
     gst->testmd_energy_light_pos = (Vector3){0};
+    gst->testmd_prj_speed = 300;
+    gst->testmd_prjfx_offset = -10.0;
+    gst->testmd_accuracy = 60;
+    gst->testmd_firerate = 3;
 
-    printf("\033[32m'%s': Done\033[0m\n", __func__);
+    gst->mouse_click_time_point = GetTime();
+    gst->mouse_double_click = 0;
+
+    gst->loading_time = GetTime() - loading_time_start;
+    printf("\033[32m'%s': Done (loading time: %0.3f)\033[0m\n", __func__, gst->loading_time);
+    
+
     result = 1;
     return result;
 }

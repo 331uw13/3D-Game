@@ -140,6 +140,20 @@ int gui_sliderF(
         float  max_value
         );
 
+// Returns positive number when active.
+// ID Can be any unique number.
+int gui_sliderI(
+        struct state_t* gst,
+        struct guicfg_t* guicfg,
+        int id, 
+        const char* text,
+        float  width,
+        int* value,
+        int  min_value,
+        int  max_value
+        );
+
+
 
 
 

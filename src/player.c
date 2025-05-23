@@ -43,10 +43,16 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     }
 
     inventory_init(&p->inventory);
-    p->item_in_hands = &p->inventory.items[0];
+
     p->weapon_offset_interp = 0.0;
     p->weapon_inspect_interp = 0.0;
     p->accuracy_modifier = 0.0;        
+
+    p->changing_item = 0;
+    p->item_change_timer = 0.0;
+    p->item_to_change = NULL;
+    
+    p->item_in_hands = NULL;//&p->inventory.items[0];
 
     p->xp = 999999;
 }
@@ -254,130 +260,13 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
 }
 
 
-void player_update(struct state_t* gst, struct player_t* p) {
-
-    /*
-    int fireprj_hold = (gst->gamepad.id < 0) 
-                    ? IsMouseButtonDown(MOUSE_BUTTON_LEFT) 
-                    : IsGamepadButtonDown(gst->gamepad.id, GAMEPAD_BUTTON_RIGHT_TRIGGER_1);
-
-    // 'any_gui_open' is set from state/state.c 'state_update_frame()'
-    if(!p->any_gui_open
-       && p->alive
-       && p->holding_gun
-       && ((gst->player.weapon_firetype == PLAYER_WEAPON_FULLAUTO)
-        ? fireprj_hold
-        : (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) {
-
-        player_shoot(gst, &gst->player);
+static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
+    if(!p->item_in_hands) {
+        return;
     }
-
-   
-    // aim idle timer should not be used if controller is detected.
-    if(gst->gamepad.id < 0 && (((p->aim_idle_timer > 2.75) && p->is_aiming) || (!p->holding_gun))) {
-        p->is_aiming = 0;
+    if(!p->item_in_hands->is_weapon_item) {
+        return;
     }
-
-    if(!p->is_aiming) {
-        p->ready_to_shoot = 0;
-        p->disable_aim_mode = DISABLE_AIM_WHEN_MOUSERIGHT;
-    }
-
-    if(p->is_aiming) {
-        p->aim_idle_timer += gst->dt;
-        p->gun_draw_timer += p->gun_draw_speed * gst->dt;
-        if(p->gun_draw_timer > 1.0) {
-            p->gun_draw_timer = 1.0;
-            p->ready_to_shoot = 1;
-        }
-    }
-    else
-    if(p->gun_draw_timer > 0) {
-        p->gun_draw_timer -= p->gun_draw_speed * gst->dt;
-    }
-
-
-    if(p->firerate_timer < p->firerate) {
-        p->firerate_timer += gst->dt;
-    }
-
-    p->firerate_timer = CLAMP(p->firerate_timer, 0.0, p->firerate);
-    p->time_from_last_shot += gst->dt;
-
-    if(p->dash_timer < p->dash_timer_max) {
-        p->dash_timer += gst->dt;
-    }
-
-    // Move accuracy modifier back to normal value.
-    // TODO: "player->weapon_control" variable for this time?
-    if(p->time_from_last_shot > 0.15) {
-        p->accuracy_modifier -= gst->dt * 20.0;
-        p->accuracy_modifier = CLAMP(p->accuracy_modifier, WEAPON_ACCURACY_MIN, WEAPON_ACCURACY_MAX);
-    
-        p->gun_light.strength -= gst->dt*0.5;
-        p->gun_light.strength = CLAMP(p->gun_light.strength, 0.35, 1.0);
-    }
-
-    p->gunmodel_aim_offset_m 
-            = MatrixTranslate((0.1 + p->recoil*0.07), -0.1, (-0.4 + p->recoil));
-   
-    if(p->recoil_in_progress) {
-        const float tf = 15.0;
-        if(!p->recoil_done) {
-            p->recoil_timer += gst->dt*tf;
-
-            float i = (p->recoil_timer);
-            i *= i;
-            p->recoil = lerp(i, 0.0, p->recoil_strength);
-            if(p->recoil_timer >= 1.0) {
-                p->recoil_done = 1;
-            }
-        }
-
-        if(p->recoil_done) {
-            p->recoil_timer -= gst->dt*tf;
-            p->recoil = lerp(p->recoil_timer, 0.0, p->recoil_strength);
-            if(p->recoil_timer <= 0.0) {
-                p->recoil_in_progress = 0;
-            }
-        }
-
-    }
-
-    p->is_moving 
-         = !(FloatEquals(p->velocity.x, 0.0)
-        && FloatEquals(p->velocity.y, 0.0)
-        && FloatEquals(p->velocity.z, 0.0));
-
-
-
-    float ratio = pow(0.28, gst->dt * 5.0);
-  
-    p->rotation_from_hit.x *= ratio;
-    p->rotation_from_hit.y *= ratio;
-    p->rotation_from_hit.z *= ratio;
-
-    p->cam.target.x += p->rotation_from_hit.x * gst->dt;
-    p->cam.target.y += p->rotation_from_hit.y * gst->dt;
-    p->cam.target.x += p->rotation_from_hit.z * gst->dt;
-
-
-    // FOV Effect. Change FOV smoothly based on player velocity.
-    if(p->enable_fov_effect) {
-        float vlen = Vector3Length((Vector3){ p->velocity.x, 0.0, p->velocity.z });
-        vlen = CLAMP(vlen, 0, 5.0);
-        
-        if(vlen > 1.5) {
-            p->fovy_change += gst->dt * 2.5;
-        }
-        else {
-            p->fovy_change -= gst->dt * 1.2;
-        }
-
-        p->fovy_change = CLAMP(p->fovy_change, 0.0, 1.0);
-        p->cam.fovy = map(p->fovy_change, 0.0, 1.0, 60.0, 66.0) + sin(gst->time)*0.85;
-    }
-    */
 
     if(!p->any_gui_open
         && !p->inventory.open
@@ -387,27 +276,25 @@ void player_update(struct state_t* gst, struct player_t* p) {
         player_shoot(gst, &gst->player);
     }
 
-    if(p->item_in_hands->is_weapon_item) {
-        struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
-        weapon_model->firerate_timer += gst->dt;
+
+    struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
+
+    weapon_model->firerate_timer += gst->dt;
 
 
-        // Update weapon recoil animation.
-
-        if(!weapon_model->recoil_anim_done) {
-            if(weapon_model->recoil_anim_value < 1.0) {
-                weapon_model->recoil_anim_value += gst->dt * 10.0;
-            }
-            else {
-                weapon_model->recoil_anim_done = 1;
-            }
+    // Update weapon recoil animation.
+    if(!weapon_model->recoil_anim_done) {
+        if(weapon_model->recoil_anim_value < 1.0) {
+            weapon_model->recoil_anim_value += gst->dt * 10.0;
         }
         else {
-            if(weapon_model->recoil_anim_value > 0.0) {
-                weapon_model->recoil_anim_value -= gst->dt * 10.0;
-            }
+            weapon_model->recoil_anim_done = 1;
         }
-
+    }
+    else {
+        if(weapon_model->recoil_anim_value > 0.0) {
+            weapon_model->recoil_anim_value -= gst->dt * 10.0;
+        }
     }
 
 
@@ -443,10 +330,41 @@ void player_update(struct state_t* gst, struct player_t* p) {
     }
     p->weapon_inspect_interp = CLAMP(p->weapon_inspect_interp, 0.0, 1.0);
 
+
+}
+
+void player_update(struct state_t* gst, struct player_t* p) {
+
+
+    // Update item changing animation.
+    if(p->changing_item) {
+        p->item_change_timer += gst->dt * 3;
+
+        if(!p->item_to_change) {
+            fprintf(stderr, "\033[31m(ERROR) '%s': Cant change to NULL item\033[0m\n",
+                    __func__);
+            p->changing_item = 0;
+        }
+
+        // Change the item when item model is out of view.
+        if(p->item_change_timer > 0.5
+        && (p->item_in_hands != p->item_to_change)) {
+            p->item_in_hands = p->item_to_change;
+        }
+        
+
+        if(p->item_change_timer >= 1.0) {
+            p->changing_item = 0;
+        }
+    }
+    update_weapon_in_hands(gst, p);
 }
 
 void player_shoot(struct state_t* gst, struct player_t* p) {
     if(!p->is_aiming) {
+        return;
+    }
+    if(!p->item_in_hands) {
         return;
     }
     if(!p->item_in_hands->is_weapon_item) {
@@ -455,6 +373,10 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     if(p->weapon_inspect_interp > 0.01) {
         return;
     }
+    if(p->any_gui_open || gst->devmenu_open) {
+        return;
+    }
+
 
     struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
 
@@ -492,13 +414,20 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         PlaySound(gst->sounds[PLAYER_GUN_SOUND]);
     }
 
-    p->cam_random_dir.x += RSEEDRANDOMF(-0.001, 0.001);
-    p->cam_random_dir.y += RSEEDRANDOMF(0.0, 0.002);
+
+    const float recoil_half = weapon_model->recoil / 2.0;
+
+    p->cam_random_dir.x += RSEEDRANDOMF(-recoil_half, recoil_half);
+    p->cam_random_dir.y += RSEEDRANDOMF(recoil_half, weapon_model->recoil);
 }
 
 
 void render_player(struct state_t* gst, struct player_t* p) {
     if(!p->alive) {
+        return;
+    }
+
+    if(!p->item_in_hands) {
         return;
     }
 
@@ -510,26 +439,30 @@ void render_player(struct state_t* gst, struct player_t* p) {
     Matrix transform = MatrixIdentity();
 
 
+    float item_change_yoff = 0;
+    if(p->changing_item) {
+        item_change_yoff = sin(p->item_change_timer * M_PI) * 3.0;
+    }
+
 
     if(p->item_in_hands->is_weapon_item) {
-        // Weapons have different offsets for aim and rest position.
-        
         struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
-        
+
+
         Matrix rest_rotation = MatrixRotateXYZ(weapon_model->rest_rotation);
         float interp = inout_cubic(p->weapon_offset_interp);
 
         Vector3 rest_offset = weapon_model->rest_offset;
         Vector3 aim_offset = weapon_model->aim_offset;
-        
+   
+        rest_offset.y -= item_change_yoff; 
+
 
         if(p->is_aiming) {
-            aim_offset.z += inout_cubic(weapon_model->recoil_anim_value) * 0.65;
+            aim_offset.z += inout_cubic(weapon_model->recoil_anim_value) * weapon_model->recoil_anim_kickback;
         }
 
         Matrix model_inspect = MatrixIdentity();
-
-
 
         Vector3 offset = Vector3Lerp(
                 rest_offset,
@@ -574,8 +507,10 @@ void render_player(struct state_t* gst, struct player_t* p) {
     }
     else {
         // The item is probably normal item.
-        // This offset should work for all of them.
-        Matrix model_offset = MatrixTranslate(2.8333, -1.3333, -5.5000);
+        // This offset should work for all of them. (?)
+        // TODO: (Item model config?)
+
+        Matrix model_offset = MatrixTranslate(2.8333, -2.3333 - item_change_yoff, -5.5000);
         transform = MatrixMultiply(model_offset, icam_matrix);        
 
         DrawMesh(
@@ -583,14 +518,21 @@ void render_player(struct state_t* gst, struct player_t* p) {
                 p->item_in_hands->modelptr->materials[0],
                 transform
                 );
-
-
     }
-
-
 
 }
 
+void player_change_holding_item(struct state_t* gst, struct player_t* p, struct item_t* item) {
+    if(p->changing_item) {
+        return;
+    }
+
+    p->is_aiming = 0;
+    p->changing_item = 1;
+    p->item_to_change = item;
+    p->item_change_timer = 0.0;
+
+}
 
 void player_update_movement(struct state_t* gst, struct player_t* p) {
     if(gst->menu_open) {
@@ -855,6 +797,9 @@ static void draw_stats_bar(
 }
 
 void render_player_gunfx(struct state_t* gst, struct player_t* p) {
+    if(!p->item_in_hands) {
+        return;
+    }
     if(!p->item_in_hands->is_weapon_item) {
         return;
     }

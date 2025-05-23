@@ -20,7 +20,9 @@
 
 void cleanup(struct state_t* gst);
 
+
 void loop(struct state_t* gst) {
+
 
     while(!WindowShouldClose() && gst->running) {
 
@@ -32,7 +34,22 @@ void loop(struct state_t* gst) {
                     " Change it in config file.\033[0m\n");
         }
 
-     
+
+        gst->mouse_double_click = 0;
+        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            
+            // Measure the time difference between mouse clicks.
+            // if its less than treshold we can know double click happened.
+
+            float click_time_diff = GetTime() - gst->mouse_click_time_point;
+            gst->mouse_click_time_point = GetTime();
+
+            if(click_time_diff < 0.25) {
+                gst->mouse_double_click = 1;
+            }
+
+        }
+    
       
         state_update_frame(gst);
         state_update_shader_uniforms(gst);
@@ -106,26 +123,6 @@ void loop(struct state_t* gst) {
                 gui_render_devmenu(gst);
             }
            
-            /*
-            if(gst->player.item_in_crosshair && !gst->player.inventory.open) {
-                struct item_t* item = gst->player.item_in_crosshair;
-
-                Vector2 item_name_pos = (Vector2) {
-                    gst->res_x/2 - item->name_width / 2 - 200,
-                    gst->res_y/2 + 100,
-                };
-
-                DrawText(item->name, item_name_pos.x, item_name_pos.y, 20, WHITE);
-                DrawText("< Press (F) to pickup >\0", 
-                        item_name_pos.x, item_name_pos.y+30, 20,
-                        (Color){ 100, 100, 100, 255 });
-
-                if(IsKeyPressed(KEY_F)) {
-                    item->enabled = !inv_add_item(gst, &gst->player, item);
-                }
-            }
-            */
-
             if(gst->player.inventory.open) {
                 gui_render_inventory_controls(gst, &gst->player.inventory);
             }
