@@ -8,9 +8,8 @@
 
 > Try changing render settings from the menu and `game.cfg` if you experience issues with performance
 
----------------------
 
-> ### ( Adding screenshots here later... )
+### Adding screenshots later...
 
 -------------
 ### Controls
@@ -21,10 +20,12 @@
 | `Shift`       |  Run |
 | `MouseRight`  |  Aim |
 | `Tab`         |  Open inventory |
-| `F`           |  Pickup item |
+| `F`           |  Inspect weapon |
+| `E`           |  Pickup item |
 | `T`           |  Debug info |
 | `R`           |  Development menu |
 | `G`           |  No clip |
+* Double click item in inventory to select it.
 -------------
 ### Compiling the game.
 > [!IMPORTANT]
