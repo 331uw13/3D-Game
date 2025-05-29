@@ -441,7 +441,7 @@ void generate_terrain(
     terrain->waterplane.materials[0].shader = gst->shaders[WATER_SHADER];
 
  
-    load_foliage_models(gst, terrain); // See 'chunk.c'
+    load_chunk_foliage_models(gst, terrain); // See 'chunk.c'
 
     //_load_terrain_foliage_models(gst, terrain);
     _load_terrain_chunks(gst, terrain);
@@ -502,8 +502,9 @@ void render_terrain(
     const float terrain_render_timestart = GetTime();
 
     terrain->num_visible_chunks = 0;
-    // Clear foliage render data from previous frame.
 
+
+    // Clear foliage render data from previous frame.
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
     struct foliage_rdata_t* f_rdata = &terrain->foliage_rdata[i];
         memset(f_rdata->matrices, 0, f_rdata->matrices_size * sizeof *f_rdata->matrices);
@@ -521,7 +522,7 @@ void render_terrain(
             trender_dist = gst->render_dist;
             break;
 
-        case RENDERPASS_GBUFFER: // SSAO
+        case RENDERPASS_GBUFFER:
             trender_dist = (terrain->scaling * (terrain->chunk_size));
             break;
 

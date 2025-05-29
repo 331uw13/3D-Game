@@ -99,6 +99,13 @@ void handle_userinput(struct state_t* gst) {
 
     if(IsKeyPressed(KEY_TAB) && gst->player.alive) {
         toggle_gui(&gst->player.inventory.open);
+
+        if(gst->player.inventory.open) {
+            inventory_open_event(gst, &gst->player.inventory);
+        }
+        else {
+            inventory_close_event(gst, &gst->player.inventory);
+        }
         gst->devmenu_open = 0;
     }
 

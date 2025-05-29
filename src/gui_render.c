@@ -249,6 +249,35 @@ void gui_render_devmenu(struct state_t* gst) {
         }
     }
 
+    guicfg.next_x = 10;
+    guicfg.next_y = 100;
+
+    gui_save_pos(&guicfg, 1);
+
+    for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
+        if(gui_button(gst, &guicfg, TextFormat("Spawn ENEMY_LVL%i", i))) {
+            const float radius = 200;
+            Vector3 pos = (Vector3) {
+                gst->player.position.x + RSEEDRANDOMF(-radius, radius),
+                gst->player.position.y + RSEEDRANDOMF(-radius, radius),
+                gst->player.position.z + RSEEDRANDOMF(-radius, radius)
+            };
+            spawn_enemy(gst, ENEMY_LVL0 + i, ENT_FRIENDLY, pos);
+        }
+    }
+
+
+    gui_next_x__previous(&guicfg);
+    
+    guicfg.next_y = 100;
+
+    if(gui_button(gst, &guicfg, "Limit FPS 25")) {
+        SetTargetFPS(25);
+    }
+    if(gui_button(gst, &guicfg, "Limit FPS 500")) {
+        SetTargetFPS(500);
+    }
+
 
     gui_end(gst);
 }

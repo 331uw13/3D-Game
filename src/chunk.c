@@ -50,12 +50,11 @@ static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, s
     };
     
     decide_chunk_biome(gst, terrain, chunk);
-    load_chunk_foliage(gst, terrain, chunk);
+    setup_chunk_foliage(gst, terrain, chunk);
    
 }
 
-
-void load_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
+void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
     SetTraceLogLevel(LOG_ALL);
 
     // BIOMEID_COMFY
@@ -91,7 +90,6 @@ void load_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
     terrain->foliage_max_perchunk[TF_HAZY_ROCK_0] = 45;
     load_foliage_model(gst, &terrain->foliage_models[TF_HAZY_ROCK_0], "res/models/biomes/hazy/rock_type0.glb");
     set_foliage_texture(gst, TF_HAZY_ROCK_0, 0, ROCK_TEXID);
-
 
 
     SetTraceLogLevel(LOG_NONE);
@@ -343,7 +341,7 @@ static void fill_chunk_fdata_matrices(
 }
 
 
-void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
+void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
 
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
         size_t max_perchunk = terrain->foliage_max_perchunk[i];
@@ -363,7 +361,6 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
 
 
     switch(chunk->biome.id) {
-    
         case BIOMEID_COMFY:
             {
                 fill_chunk_fdata_matrices(gst, 
@@ -374,7 +371,6 @@ void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct c
                         (Vector3){ 0, 0, 0 }, // Random rotation for all instances.
                         NO_PERLIN_NOISE, (Vector2){ 0, 0 }, 0
                         );
-
 
                 fill_chunk_fdata_matrices(gst, 
                         TF_COMFY_TREE_1,

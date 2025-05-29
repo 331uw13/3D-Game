@@ -42,6 +42,7 @@ struct triangle2x_t { // holds 2 triangles (1 quad).
     Vector3 b2;
 };
 
+
 // "Foliage render data"
 // Matrices from all visible chunks to player.
 struct foliage_rdata_t {
@@ -78,8 +79,9 @@ struct terrain_t {
     // Information about specific type of "foliage"
     // Can be found from these arrays with foliage ID.
     size_t                 foliage_max_perchunk  [MAX_FOLIAGE_TYPES];
-    Model                  foliage_models [MAX_FOLIAGE_TYPES];
+    Model                  foliage_models [MAX_FOLIAGE_TYPES]; // Loaded models.
     struct foliage_rdata_t foliage_rdata  [MAX_FOLIAGE_TYPES]; // Used for rendering.
+
 
     float highest_point;
     float lowest_point;

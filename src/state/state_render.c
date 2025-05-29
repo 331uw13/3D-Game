@@ -173,6 +173,60 @@ static void render_scene(struct state_t* gst, int renderpass) {
 }
 
 
+static void render_debug_lines(struct state_t* gst) {
+
+    glLineWidth(2.0);
+
+    for(size_t i = 0; i < gst->num_enemies; i++) {
+        struct enemy_t* ent = &gst->enemies[i];
+        if(!ent->alive) {
+            continue;
+        }
+  
+
+        // Hitboxes
+        {
+            for(size_t i = 0; i < ent->num_hitboxes; i++) {
+                DrawCubeWiresV(
+                        Vector3Add(ent->position, ent->hitboxes[i].offset),
+                        ent->hitboxes[i].size,
+                        RED
+                        );
+            }
+        }
+
+        // Target range.
+        {
+            DrawCircle3D(ent->position, ent->target_range, 
+                    (Vector3){1.0, 0.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
+            
+            DrawCircle3D(ent->position, ent->target_range, 
+                    (Vector3){0.0, 0.0, 0.0}, 0.0, (Color){ 30, 150, 255, 200 });
+            
+            DrawCircle3D(ent->position, ent->target_range, 
+                    (Vector3){0.0, 1.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
+        }
+
+    }
+
+    // Chunk borders.
+    for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
+        struct chunk_t* chunk = &gst->terrain.chunks[i];
+        if(chunk->dst2player > gst->render_dist) { continue; }
+        render_chunk_borders(gst, chunk, RED);
+    }
+
+    
+    struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
+    render_chunk_borders(gst, player_chunk, GREEN);
+
+    DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
+        
+    
+    glLineWidth(1.0);
+}
+
+
 /*
 static int branch_counter = 0;
 
@@ -323,77 +377,10 @@ void state_render(struct state_t* gst) {
         
         // Render debug info if needed. --------
         if(gst->debug) {
-
-            glLineWidth(2.0);
-
-            for(size_t i = 0; i < gst->num_enemies; i++) {
-                struct enemy_t* ent = &gst->enemies[i];
-                if(!ent->alive) {
-                    continue;
-                }
-                
-                // Hitboxes
-                {
-                    for(size_t i = 0; i < ent->num_hitboxes; i++) {
-                        DrawCubeWiresV(
-                                Vector3Add(ent->position, ent->hitboxes[i].offset),
-                                ent->hitboxes[i].size,
-                                RED
-                                );
-                    }
-                }
-
-                // Target range.
-                {
-                    DrawCircle3D(ent->position, ent->target_range, 
-                            (Vector3){1.0, 0.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
-                    
-                    DrawCircle3D(ent->position, ent->target_range, 
-                            (Vector3){0.0, 0.0, 0.0}, 0.0, (Color){ 30, 150, 255, 200 });
-                    
-                    DrawCircle3D(ent->position, ent->target_range, 
-                            (Vector3){0.0, 1.0, 0.0}, 90.0, (Color){ 30, 150, 255, 200 });
-                }
-            }
-
-            // Chunk borders.
-            for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
-                struct chunk_t* chunk = &gst->terrain.chunks[i];
-                if(chunk->dst2player > gst->render_dist) { continue; }
-                render_chunk_borders(gst, chunk, RED);
-            }
-
-            
-            struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
-            render_chunk_borders(gst, player_chunk, GREEN);
-
-            DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
+            render_debug_lines(gst);
         }
 
         // ------------
-
-        /*
-        // FOR TEST
-        {
-            rlDisableBackfaceCulling();
-           
-            gst->test_fractal.transform = MatrixTranslate(
-                    gst->player.spawn_point.x,
-                    raycast_terrain(&gst->terrain, gst->player.spawn_point.x, gst->player.spawn_point.z).point.y,
-                    gst->player.spawn_point.z
-                    );
-
-            gst->test_fractal.transform = 
-                MatrixMultiply(
-                        MatrixScale(gst->fractal_xzscale, gst->fractal_yscale, gst->fractal_xzscale),
-                        gst->test_fractal.transform
-                        );
-
-            render_fractal_model(&gst->test_fractal);
-            
-            rlEnableBackfaceCulling();
-        }
-        */
 
        
         render_scene(gst, RENDERPASS_RESULT);
@@ -428,16 +415,6 @@ void state_render(struct state_t* gst) {
             
 
         render_player_gunfx(gst, &gst->player);
-
-
-        /*
-        // TEST FRACTAL TREE
-        {
-
-            fractal_tree_test(gst);
-
-        }
-        */
 
 
 

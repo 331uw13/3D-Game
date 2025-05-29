@@ -129,6 +129,24 @@ static void state_delete_weapon_models(struct state_t* gst) {
     printf("\033[35m -> Deleted Weapon Models.\033[0m\n");
 }
 
+/*
+static void state_delete_fractals(struct state_t* gst) {
+    if(!(gst->init_flags & INITFLG_FRACTAL_MODELS)) { return; }
+   
+    for(int i = 0; i < MAX_FRACTAL_MODELS; i++) {
+        for(int lod = 0; lod < NUM_FRACTAL_LOD; lod++) {
+            
+            UnloadModel(gst->fractal_models[i][lod]);
+            //delete_fractal_model(&gst->fractals[i][lod]);
+
+        }
+    }
+    
+    printf("\033[35m -> Deleted Fractal Models.\033[0m\n");
+}
+*/
+
+
 
 void state_free_everything(struct state_t* gst) {
     delete_terrain(&gst->terrain);
@@ -140,11 +158,12 @@ void state_free_everything(struct state_t* gst) {
     state_delete_enemy_models(gst);
     state_delete_item_models(gst);
     state_delete_weapon_models(gst);
+    //state_delete_fractals(gst);
 
     state_delete_render_targets(gst);
     state_delete_gbuffers(gst);
     state_delete_ubos(gst);
-
+    
    
     delete_player(gst, &gst->player);
     delete_npc(gst, &gst->npc);

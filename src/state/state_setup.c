@@ -1125,6 +1125,9 @@ int state_setup_everything(struct state_t* gst) {
     gst->mouse_click_time_point = GetTime();
     gst->mouse_double_click = 0;
 
+
+    
+
     gst->loading_time = GetTime() - loading_time_start;
     printf("\033[32m'%s': Done (loading time: %0.3f)\033[0m\n", __func__, gst->loading_time);
     

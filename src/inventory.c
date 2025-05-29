@@ -19,7 +19,30 @@ void inventory_init(struct inventory_t* inv) {
 
 }
 
+void inventory_open_event(struct state_t* gst, struct inventory_t* inv) {
+    inv->open = 1;
 
+    inv->light = (struct light_t) {
+        .type = LIGHT_POINT,
+        .enabled = 1,
+        .color = (Color){ 255, 255, 255, 255 },
+        .strength = 0.42,
+        .radius = 0.7,
+        .index = INVENTORY_LIGHT_ID,
+        .position = (Vector3){ 0 }
+    };
+
+    set_light(gst, &inv->light, LIGHTS_UBO);
+    printf("%s\n", __func__);
+}
+
+void inventory_close_event(struct state_t* gst, struct inventory_t* inv) {
+    inv->open = 0;
+
+    inv->light.enabled = 0;
+    set_light(gst, &inv->light, LIGHTS_UBO);
+    printf("%s\n", __func__);
+}
 
 // 3D - Inventory.
 void inventory_render(struct state_t* gst, struct inventory_t* inv) {
@@ -56,6 +79,15 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     const Color light_color_empty = (Color){ light_color.r/3, light_color.g/3, light_color.b/3, 255 };
 
     inv->hovered_item = NULL;
+
+
+
+    Vector3 light_pos = 
+        Vector3Add(gst->player.cam.position,
+                Vector3Multiply(mouse_ray.direction, (Vector3){ 4, 4, 4 })); 
+    set_light_pos(gst, &inv->light, light_pos);
+
+
 
     for(int y = 0;  y < INV_NUM_ROWS; y++) {
         for(int x = 0; x < INV_NUM_COLUMNS; x++) {
@@ -109,9 +141,9 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
             { // TODO: This dont need to be updated every frame.
               //         ^ Only position.
 
+                /*
                 Color lcolor = light_color;
 
-                
                 if(inv->selected_item) {
                     if(inv->selected_item->inv_index == item->inv_index) {
                         lcolor = (Color){ 60, 250, 255, 255 };
@@ -133,6 +165,9 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                     .position = (Vector3){ light_matrix.m12, light_matrix.m13, light_matrix.m14 }
                 };
                 set_light(gst, &inv_light, LIGHTS_UBO);
+                */
+
+
             }
 
             if(!item->empty && item->inv_index >= 0) {
@@ -174,6 +209,8 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
         yf += box_size + box_padding;
         xf = 0.0;
     }
+
+
 }
 
 static int find_free_space(struct inventory_t* inv) {

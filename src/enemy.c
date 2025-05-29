@@ -211,6 +211,8 @@ struct enemy_t* create_enemy(
     entptr->weaponptr = weaponptr;
     entptr->weapon_psysptr = weapon_psysptr;
 
+    entptr->ccheck_radius = 80.0;
+
     entptr->time_from_target_found = 0.0;
     entptr->time_from_target_lost = 0.0;
 
@@ -582,37 +584,6 @@ int enemy_has_target(
 
     return ent->has_target;
 }
-
-
-struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy_t* ent) {
-    struct hitbox_t* result = NULL;
-
-    for(size_t i = 0; i < ent->num_hitboxes; i++) {
-        BoundingBox hitbox = (BoundingBox) {
-            (Vector3) {
-                // Minimum box corner
-                (ent->position.x + ent->hitboxes[i].offset.x) - ent->hitboxes[i].size.x/2,
-                (ent->position.y + ent->hitboxes[i].offset.y) - ent->hitboxes[i].size.y/2,
-                (ent->position.z + ent->hitboxes[i].offset.z) - ent->hitboxes[i].size.z/2,
-            },
-            (Vector3) {
-                // Maximum box corner
-                (ent->position.x + ent->hitboxes[i].offset.x) + ent->hitboxes[i].size.x/2,
-                (ent->position.y + ent->hitboxes[i].offset.y) + ent->hitboxes[i].size.y/2,
-                (ent->position.z + ent->hitboxes[i].offset.z) + ent->hitboxes[i].size.z/2,
-            }
-        };
-
-        if(CheckCollisionBoxes(*boundingbox, hitbox)) {
-            result = &ent->hitboxes[i];
-            break;
-        }
-    }
-
-
-    return result;
-}
-
 
 int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int* num_in_world) {
     int num = 0;

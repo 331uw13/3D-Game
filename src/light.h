@@ -43,15 +43,14 @@ struct light_t {
 };
 
 
-void set_light(
-        struct state_t* gst,
-        struct light_t* light,
-        int ubo_index
-        );
+void set_light(struct state_t* gst, struct light_t* light, int ubo_index);
+void set_light_pos(struct state_t* gst, struct light_t* light, Vector3 new_pos);
 
 void disable_light(struct state_t* gst, struct light_t* light, int ubo_index);
 void add_decay_light(struct state_t* gst, struct light_t* light, float decay_time_mult);
 void update_decay_lights(struct state_t* gst);
+
+
 
 
 #endif

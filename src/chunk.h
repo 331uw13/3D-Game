@@ -59,8 +59,9 @@ struct chunk_t {
     int num_items;
 };
 
-void load_foliage_models(struct state_t* gst, struct terrain_t* terrain);
-void load_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
+void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain);
+void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
+
 void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
 void delete_chunk(struct chunk_t* chunk);
 void load_chunk(

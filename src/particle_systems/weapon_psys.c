@@ -42,6 +42,7 @@ void weapon_psys_prj_update(
     }
     */
    
+    //Vector3 part_old_position = part->position;
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
@@ -95,11 +96,57 @@ void weapon_psys_prj_update(
     };
 
     // TODO: Optimize this! <---
-   
+  
 
+    if(weapon->gid == PLAYER_WEAPON_GID) {
+        // Check collision with enemies.
+
+        // TODO: Chunks should take care of enemies so this can be optimized alot.
+        
+        struct enemy_t* enemy = NULL;
+        
+        for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
+            enemy = &gst->enemies[i];
+            if(!enemy->alive) {
+                continue;
+
+            }
+
+            // Check collision radius.
+            if(Vector3Distance(part->position, enemy->position) > enemy->ccheck_radius) {
+                continue;
+            }
+
+            for(int i = 0; i < ENEMY_MAX_HITBOXES; i++) {
+                struct hitbox_t* hitbox = &enemy->hitboxes[i];
+                
+                if(raycast_hitbox(
+                            enemy->position,
+                            hitbox,
+                            part->prev_position,
+                            part->position,
+                            2.0
+                            )) {
+                    // Hit.
+
+                    float damage = get_weapon_damage(weapon);
+                    enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, weapon->knockback);
+                    disable_prj = 1;
+                    goto collision_finished;
+                }
+            }
+        }
+collision_finished:
+    }
+
+    /*
     if(psys->groupid == PSYS_GROUPID_PLAYER) {
         // Check collision with enemies.
         
+        // The raycasting can be only done when it is very nearby the enemy.
+        // or it will waste alot of time that doesnt do anything useful.
+
+
         struct enemy_t* enemy = NULL;
         for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
             enemy = &gst->enemies[i];
@@ -125,6 +172,7 @@ void weapon_psys_prj_update(
             disable_prj = 1;
         }
     }
+    */
 
     if(disable_prj) {
         add_particles(gst,
@@ -135,13 +183,6 @@ void weapon_psys_prj_update(
                 part->color,
                 NULL, NO_EXTRADATA, NO_IDB);
         disable_projectile(gst, part);
-   
-        /*
-        set_grass_forcevec(gst,
-                part->forcevec_index,
-                (Vector4){
-                    0, 0, 0, -1
-                });*/
     }
 
 }

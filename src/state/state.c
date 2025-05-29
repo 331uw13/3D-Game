@@ -191,7 +191,7 @@ void state_timebuf_add(struct state_t* gst, int timebuf_elem, float time) {
         return;
     }
 
-    if(time < 0.0) {
+    if(time < -0.000005) {
         printf("\033[35m(WARNING) '%s': Adding time (%f) into %i, is negative time.\033[0m\n",
                 __func__, time, timebuf_elem);
     }
@@ -641,7 +641,6 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     printf("'%s': New render distance: %0.3f\n", __func__, new_dist);
     printf("'%s': Predicted visible chunks: %i (without frustrum culling)\n", __func__, gst->terrain.num_max_visible_chunks);
 
-
     // Allocate/Reallocate space for foliage.
     // When rendering terrain: foliage are copied into bigger arrays and then rendered all at once(per type)
     // ^ This will reduce number of draw calls.
@@ -671,7 +670,6 @@ void set_render_dist(struct state_t* gst, float new_dist) {
 
     gst->terrain.rendered_chunks = malloc(
             gst->terrain.num_max_visible_chunks * sizeof *gst->terrain.rendered_chunks);
-
 
     // Strech water plane to match render distance.
     gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);

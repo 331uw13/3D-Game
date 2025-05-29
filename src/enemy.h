@@ -41,11 +41,6 @@
 // Enemies cant spawn too close to the player.
 #define ENEMY_SPAWN_SAFE_RADIUS 600.0 
 
-// Hitbox tag
-#define HITBOX_LEGS 0
-#define HITBOX_BODY 1
-#define HITBOX_HEAD 2
-
 #define ENEMY_XP_GAIN_MAX_BONUS 10
 
 #define ENEMY_LVL0_WEAPON 0
@@ -58,6 +53,7 @@
 // Then calls 'enemies/enemy_lvl*.c ...' (depending on "enemy type") to handle the rest.
 
 #include "weapon.h"
+#include "hitbox.h"
 
 struct state_t;
 
@@ -69,15 +65,6 @@ struct enemy_travel_t {
 
     float time_to_dest;
     int dest_reached;
-};
-
-
-struct hitbox_t {
-    Vector3 size;
-    Vector3 offset;
-    float   damage_mult;
-    int     hits;
-    int     tag; // Which part does this hitbox belong to?
 };
 
 
@@ -119,6 +106,12 @@ struct enemy_t {
     Quaternion Q_target;
     float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'.
     Vector3    rotation;      // Matrix rotation.
+
+    // Collision check radius.
+    // This is used mainly for collision with projectiles.
+    // if the projectile is not inside circle of 'ccheck_radius'
+    // it doesnt perform collision check.
+    float      ccheck_radius; 
 
     // For random angles.
     // Enemy may be "searching" for target and changing rotation.
@@ -278,11 +271,6 @@ int enemy_has_target(
         void(*target_found) (struct state_t*, struct enemy_t*),
         void(*target_lost)   (struct state_t*, struct enemy_t*)
         );
-
-// Returns pointer to the hitbox that was collided with 'boundingbox'
-// or NULL if no collision.
-struct hitbox_t* check_collision_hitboxes(BoundingBox* boundingbox, struct enemy_t* ent);
-
 
 
 

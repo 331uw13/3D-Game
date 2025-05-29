@@ -178,7 +178,7 @@
 #define INITFLG_SSAO          (1<<11)
 #define INITFLG_PLAYER        (1<<12)
 #define INITFLG_NPC           (1<<13)
-
+#define INITFLG_FRACTAL_MODELS (1<<14)
 
 // 'Time buffer' is for saving render times and processing times
 // So the average can be calculated.
@@ -221,6 +221,11 @@ struct gbuffer_t {
 #define FOG_MODE_CUSTOM 1   // TODO
 
 
+#define FRACTALM_TREE_T0 0
+#define MAX_FRACTAL_MODELS 1
+#define NUM_FRACTAL_LOD 4
+
+
 
 struct weather_t {
     Vector3 wind_dir;
@@ -260,7 +265,6 @@ struct state_t {
 
 
     // ---- Weather Stuff ----
-
     struct fog_t      fog;
     struct light_t    sun;
     struct weather_t  weather;
@@ -285,6 +289,8 @@ struct state_t {
     // ---- Weapon Models ----
     struct weapon_model_t weapon_models[MAX_WEAPON_MODELS];
 
+    // ---- Generated Fractal Models ----
+    //Model fractal_models[MAX_FRACTAL_MODELS][NUM_FRACTAL_LOD];
 
     // ---- Lights ----
     // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
@@ -298,8 +304,6 @@ struct state_t {
 
     
     // ---- Enemies -----
-
-    //struct spawn_system_t spawnsys;
     struct ent_spawnsys_t enemy_spawn_systems[MAX_ENEMY_TYPES];
     Model  enemy_models[MAX_ENEMY_MODELS];
     struct enemy_t enemies[MAX_ALL_ENEMIES];

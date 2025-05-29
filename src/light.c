@@ -64,6 +64,23 @@ void set_light(
     light->ubo_index = ubo_index;
 }
 
+void set_light_pos(struct state_t* gst, struct light_t* light, Vector3 new_pos) {
+    glBindBuffer(GL_UNIFORM_BUFFER, gst->ubo[light->ubo_index]);
+
+    float pos3f[4]
+        = { new_pos.x, new_pos.y, new_pos.z, 0.0 };
+
+    // POSITION
+    size_t offset = (light->index * LIGHT_UB_STRUCT_SIZE) + (16*2);
+    size_t size = sizeof(float) * 4;
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, pos3f);
+
+    light->position = new_pos;
+
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
 void disable_light(struct state_t* gst, struct light_t* light, int ubo_index) {
 
     unsigned int ubo = gst->ubo[ubo_index];

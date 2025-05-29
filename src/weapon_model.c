@@ -221,6 +221,11 @@ void load_weapon_model(
     }
     weapon_model->recoil = atof(buf);
 
+    if(!read_cfgvar(&cfgfile, "knockback", buf, CFGBUF_SIZE)) {
+        return;
+    }
+    weapon_model->stats.knockback = atof(buf);
+
 
 
 
