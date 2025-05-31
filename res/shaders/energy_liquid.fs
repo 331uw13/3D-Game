@@ -31,7 +31,7 @@ void main()
     //color *= step(1.0-fragTexCoord.y, level);
     color *= pow(smoothstep(0.0, 1.0-fragTexCoord.y, level), 32);
 
-    float noise = voronoi3d(fragTexCoord.xyy*2.65+vec3(0.0,u_time*0.5,0.0)).x;
+    float noise = voronoi3d(fragTexCoord.xyy*4.65+vec3(0.0,u_time*0.5,0.0)).x;
     color *= noise+0.35;
 
     finalColor.rgb = color * 0.4;
