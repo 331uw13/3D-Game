@@ -599,7 +599,10 @@ void render_terrain(
         // Render chunk ground.
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
-   
+
+        // Update and render fractals.
+        chunk_update_fractals(gst, chunk);
+        chunk_render_fractals(gst, chunk, render_pass);
         
         terrain->rendered_chunks[terrain->num_rendered_chunks] = chunk;
         terrain->num_rendered_chunks++;

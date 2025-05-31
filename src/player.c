@@ -8,7 +8,7 @@
 
 #include "particle_systems/weapon_psys.h"
 
-#define NOCLIP_SPEED  3
+#define NOCLIP_SPEED  20
 
 static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
 

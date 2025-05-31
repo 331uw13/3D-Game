@@ -699,12 +699,32 @@ static void state_setup_all_shaders(struct state_t* gst) {
     {
         Shader* shader = &gst->shaders[FRACTAL_MODEL_SHADER];
         load_shader(gst,
-            "res/shaders/default.vs",
+            "res/shaders/fractal_model.vs",
             "res/shaders/fractal_model.fs",
             NO_GEOMETRY_SHADER,
             shader);
     }
  
+    // --- FRACTAL_BERRY_SHADER ---
+    {
+        Shader* shader = &gst->shaders[FRACTAL_BERRY_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/fractal_berry.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
+
+
+    // --- FRACTAL_MODEL_GBUFFER_SHADER ---
+    {
+        Shader* shader = &gst->shaders[FRACTAL_MODEL_GBUFFER_SHADER];
+        load_shader(gst,
+            "res/shaders/fractal_model.vs",
+            "res/shaders/gbuffer.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
@@ -1035,6 +1055,23 @@ static void state_setup_all_weapon_models(struct state_t* gst) {
     PRINT_CURRENT_SETUP_DONE;
 }
 
+static void state_load_misc_models(struct state_t* gst) {
+
+    // Inventory box.
+    gst->inventory_box_model = LoadModel("res/models/inventory_box.glb");
+    gst->inventory_box_model.materials[0] = LoadMaterialDefault();
+    gst->inventory_box_model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
+
+    // TODO: Remove this? or make it better
+    gst->inventory_box_selected_model = LoadModelFromMesh(GenMeshCube(1.3, 1.3, 1.3));
+    gst->inventory_box_selected_model.materials[0].maps[0].color = (Color){ 40, 240, 200, 70 };
+
+   
+    // Fractal berry
+    gst->fractal_berry_model = LoadModel("res/models/berry.glb");
+    gst->fractal_berry_model.materials[0] = LoadMaterialDefault();
+    gst->fractal_berry_model.materials[0].shader = gst->shaders[FRACTAL_BERRY_SHADER];
+}
 
 
 int state_setup_everything(struct state_t* gst) {
@@ -1068,6 +1105,11 @@ int state_setup_everything(struct state_t* gst) {
     gst->weather.wind_strength = 100.0;
     //gst->weather.sun_color = (Color){ 255, 140, 30, 255 };
 
+    gst->show_only_ssao = 0;
+    gst->default_weapon_dropped = 0;
+    gst->item_info_screen_time = 0;
+    gst->crosshair_item_info = NULL;
+
 
     state_setup_terrain(gst);
     state_setup_ssao(gst);
@@ -1082,33 +1124,23 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_gbuffers(gst);
     state_setup_all_render_targets(gst);
 
+    state_load_misc_models(gst);
+
     init_player_struct(gst, &gst->player);
     change_to_biome(gst, get_biomeid_by_ylevel(gst, gst->player.position.y));
     
     state_setup_shadow_cams(gst);
     set_render_dist(gst, gst->cfg.render_dist);
   
-    gst->crosshair_item_info = NULL;
-    gst->item_info_screen_time = 0;
 
-    gst->show_only_ssao = 0;
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);
 
     shader_setu_float(gst, SSAO_SHADER, U_RES_DIV, &gst->cfg.res_div);
 
-    // For inventories
-    gst->inventory_box_model = LoadModel("res/models/inventory_box.glb");
-    gst->inventory_box_model.materials[0] = LoadMaterialDefault();
-    gst->inventory_box_model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
-    gst->inventory_box_selected_model = LoadModelFromMesh(GenMeshCube(1.3, 1.3, 1.3));
-    gst->inventory_box_selected_model.materials[0].maps[0].color = (Color){ 40, 240, 200, 70 };
-
+    
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
-
-
-    gst->default_weapon_dropped = 0;
 
 
     gst->testmd_aim_offset = (Vector3){0};
@@ -1124,7 +1156,6 @@ int state_setup_everything(struct state_t* gst) {
 
     gst->mouse_click_time_point = GetTime();
     gst->mouse_double_click = 0;
-
 
     
 

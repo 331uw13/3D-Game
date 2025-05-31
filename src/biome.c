@@ -15,8 +15,8 @@ void setup_biomes(struct state_t* gst) {
         .id = BIOMEID_COMFY,
         .fog = (struct fog_t) {
             .mode = FOG_MODE_RENDERDIST,
-            .color_top    = (Color){ 16, 0, 25, 255 },
-            .color_bottom = (Color){ 39, 0, 37, 255 },
+            .color_top    = (Color){ 15, 60, 60, 255 },
+            .color_bottom = (Color){ 20, 80, 80, 255 },
             .density = 0 // Density is ignored when fog mode is 'FOG_MODE_RENDERDIST'
         },
         .sun = (struct light_t) {

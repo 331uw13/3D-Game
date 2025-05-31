@@ -324,8 +324,9 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec3(gst, CLOUD_PARTICLE_SHADER, U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, SKY_SHADER,            U_CAMPOS, &gst->player.cam.position);
     shader_setu_vec3(gst, FRACTAL_MODEL_SHADER,  U_CAMPOS, &gst->player.cam.position);
-    // Update screen size.
+    shader_setu_vec3(gst, FRACTAL_BERRY_SHADER,  U_CAMPOS, &gst->player.cam.position);
 
+    // Update screen size.
     Vector2 resolution = (Vector2) {
         gst->res_x, gst->res_y
     };
@@ -338,12 +339,13 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_float(gst, DEFAULT_SHADER,         U_TIME, &gst->time);
     shader_setu_float(gst, FOLIAGE_SHADER,         U_TIME, &gst->time);
     shader_setu_float(gst, FOLIAGE_WIND_SHADER,    U_TIME, &gst->time);
-    shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER,    U_TIME, &gst->time);
+    shader_setu_float(gst, GBUFFER_FOLIAGE_WIND_SHADER, U_TIME, &gst->time);
     shader_setu_float(gst, POSTPROCESS_SHADER,     U_TIME, &gst->time);
     shader_setu_float(gst, CLOUD_PARTICLE_SHADER,  U_TIME, &gst->time);
     shader_setu_float(gst, SKY_SHADER,             U_TIME, &gst->time);
     shader_setu_float(gst, ENERGY_LIQUID_SHADER,   U_TIME, &gst->time);
     shader_setu_float(gst, FRACTAL_MODEL_SHADER,   U_TIME, &gst->time);
+    shader_setu_float(gst, FRACTAL_MODEL_GBUFFER_SHADER, U_TIME, &gst->time);
 
 
 
@@ -370,6 +372,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
 
     state_update_shadow_map_uniforms(gst, DEFAULT_SHADER);
     state_update_shadow_map_uniforms(gst, FOLIAGE_SHADER);
+    state_update_shadow_map_uniforms(gst, FRACTAL_MODEL_SHADER);
     state_update_biome_texture_uniforms(gst);
 
     shader_setu_float(gst, DEFAULT_SHADER, U_TERRAIN_LOWEST, &gst->terrain.lowest_point);

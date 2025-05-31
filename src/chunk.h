@@ -5,6 +5,7 @@
 
 #include "biome.h"
 #include "item.h"
+#include "fractalgen.h"
 
 struct state_t;
 struct terrain_t;
@@ -23,6 +24,8 @@ struct terrain_t;
 #define MAX_FOLIAGE_TYPES 6
 
 #define MAX_ITEMS_PERCHUNK 64
+#define MAX_FRACTALS_PERCHUNK 16
+#define FRACTAL_SPAWN_CHANCE 100  // 0 - 100
 
 
 // This data is not directly being used to render foliages from.
@@ -57,6 +60,10 @@ struct chunk_t {
 
     struct item_t items[MAX_ITEMS_PERCHUNK];
     int num_items;
+
+    // The fractal will have special function when player interacts with it.
+    struct fractal_t fractals[MAX_FRACTALS_PERCHUNK];
+    int num_fractals;
 };
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain);
@@ -79,6 +86,9 @@ struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);
 void chunk_add_item(struct chunk_t* chunk, struct item_t* item);
 void chunk_update_items(struct state_t* gst, struct chunk_t* chunk);
 void chunk_render_items(struct state_t* gst, struct chunk_t* chunk);
+
+void chunk_update_fractals(struct state_t* gst, struct chunk_t* chunk);
+void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int render_pass);
 
 // These can be used for debug if needed.
 void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);

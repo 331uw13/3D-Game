@@ -278,6 +278,13 @@ void gui_render_devmenu(struct state_t* gst) {
         SetTargetFPS(500);
     }
 
+    guicfg.next_x = 10;
+    if(gui_button(gst, &guicfg, "Teleport to 0,0,0")) {
+        gst->player.cam.position = (Vector3){ 0, 0, 0 };
+    }
+    if(gui_button(gst, &guicfg, "Teleport to spawnpoint")) {
+        gst->player.cam.position = gst->player.spawn_point;
+    }
 
     gui_end(gst);
 }

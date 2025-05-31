@@ -21,22 +21,19 @@ struct vertexdata_t {
     int depth;
 };
 
-/*
 static void init_fractal_struct(struct state_t* gst, struct fractal_t* fmodel) {
- 
+    fmodel->num_berries = 0; 
     fmodel->material = LoadMaterialDefault();
     fmodel->material.shader = gst->shaders[FRACTAL_MODEL_SHADER];
     fmodel->transform = MatrixTranslate(0, 0, 0);
 }
-*/
 
-/*
 void delete_fractal_model(struct fractal_t* fmodel) {
     
     rlUnloadVertexArray(fmodel->mesh.vaoId);
     fmodel->mesh.vaoId = 0;
 
-    for(int i = 0; i < MAX_MESH_VERTEX_BUFFERS 9; i++) {
+    for(int i = 0; i < 9; i++) {
         rlUnloadVertexBuffer(fmodel->mesh.vboId[i]);
         fmodel->mesh.vboId[i] = 0;
     }
@@ -44,7 +41,6 @@ void delete_fractal_model(struct fractal_t* fmodel) {
     free(fmodel->mesh.colors);
     free(fmodel->mesh.vertices);
 }
-*/
 
 
 static Vector3 getvertex(Matrix mtx, float scale, float offx, float offy, float offz) {
@@ -122,10 +118,12 @@ static void add_cube_data(
 
 void fractalgen_tree_branch(
         struct state_t* gst,
+        struct fractal_t* fmodel,
         Matrix mtx,
         float height,
         float dampen_height,
         int depth,
+        int max_depth,
         Vector3 rotation,
         Vector3 rotation_add,
         float cube_scale,
@@ -148,15 +146,30 @@ void fractalgen_tree_branch(
     mtx = MatrixMultiply(offset, mtx);
     mtx = MatrixMultiply(rotm, mtx);
 
-    Vector3 p1 = (Vector3){ 0, 0, 0 };
-    p1 = Vector3Transform(p1, mtx);
-
-    height *= dampen_height;
     add_cube_data(mtx, data, num_elems, depth, height, cube_scale);
+    height *= dampen_height;
     cube_scale *= dampen_cube_scale;
 
+
+    // Branch has a chance to generate one berry
+    if(depth > 1 && depth < (max_depth-2)
+    && *num_elems > 0 /* depth checks should avoid this but just to be safe. */
+    ){
+        if((fmodel->num_berries+1 < MAX_BERRIES_PER_FRACTAL)
+        && (RSEEDRANDOMF(0, 100) < 10)) {
+           
+            fmodel->berries[fmodel->num_berries] = (struct berry_t) {
+                .position = data[*num_elems-1].tr[0].a,
+                .level = RSEEDRANDOMF(-MIN_BERRY_LEVEL, MAX_BERRY_LEVEL)
+            };
+            fmodel->num_berries++;
+        }       
+    }
+
     if(depth > 0) {
-        
+ 
+
+
         Vector3 rotv;
 
         rotv = (Vector3) {
@@ -168,8 +181,8 @@ void fractalgen_tree_branch(
 
         rotation_add.y += (M_PI/2.0) + cos(rotation.y * rotation.x);
 
-        fractalgen_tree_branch(gst, mtx,
-                height, dampen_height, depth-1,
+        fractalgen_tree_branch(gst, fmodel, mtx,
+                height, dampen_height, depth-1, max_depth,
                 rotv,
                 rotation_add,
                 cube_scale,
@@ -179,8 +192,8 @@ void fractalgen_tree_branch(
                 num_elems
                 );
 
-        fractalgen_tree_branch(gst, mtx,
-                height, dampen_height, depth-1,
+        fractalgen_tree_branch(gst, fmodel, mtx,
+                height, dampen_height, depth-1, max_depth,
                 Vector3Negate(rotv),
                 rotation_add,
                 cube_scale,
@@ -195,7 +208,6 @@ void fractalgen_tree_branch(
 
 static Vector3 get_random_rotation_adder(struct state_t* gst, Vector3 weights) {
 
-
     float rX = M_PI * weights.x;
     float rY = M_PI * weights.y;
     float rZ = M_PI * weights.z;
@@ -206,12 +218,16 @@ static Vector3 get_random_rotation_adder(struct state_t* gst, Vector3 weights) {
         RSEEDRANDOMF(-rZ, rZ)
     };
 
+    if(r.x <= 0.01) {
+        r.x = 0.1;
+    }
+
     return r;
 }
 
 void fractalgen_tree(
         struct state_t* gst,
-        Model* fmodel,
+        struct fractal_t* fmodel,
         int depth,
         Vector3 rotation_weights,
         float start_height,
@@ -223,6 +239,7 @@ void fractalgen_tree(
 ){
     double start_time = GetTime();
 
+    init_fractal_struct(gst, fmodel);
 
     Vector3 start_rotation = (Vector3){ 0, 0, 0 };
     Vector3 rotation_add = get_random_rotation_adder(gst, rotation_weights);
@@ -232,9 +249,11 @@ void fractalgen_tree(
     size_t num_elems = 0; // "How many cubes" (TODO: Rename.)
 
     fractalgen_tree_branch(gst,
+            fmodel,
             MatrixTranslate(0, 0, 0),
             start_height,
             dampen_height,
+            depth,
             depth,
             start_rotation,
             rotation_add,
@@ -245,29 +264,28 @@ void fractalgen_tree(
             &num_elems
             );
 
-    // Fill mesh data.
+    // Fill mesh->data.
     
     const int tr_count_inone = 8; // Triangle count in one shape.
 
 
-    Mesh mesh = (Mesh){ 0 };//&fmodel->mesh;
+    Mesh* mesh = &fmodel->mesh;
 
-    mesh.triangleCount = num_elems * tr_count_inone;
-    mesh.vertexCount = mesh.triangleCount * 3;
-    mesh.vertices = malloc(mesh.vertexCount * (sizeof(float) * 3));
-    mesh.texcoords = NULL;
-    mesh.normals = NULL;
-    mesh.tangents = NULL;
-    mesh.colors = NULL;
-    mesh.indices = NULL;
-    mesh.animVertices = NULL;
-    mesh.animNormals = NULL;
-    mesh.boneIds = NULL;
-    mesh.boneWeights = NULL;
-    mesh.boneMatrices = NULL;
-    mesh.boneCount = 0;
-
-    mesh.colors = malloc(mesh.vertexCount * (sizeof(unsigned char) * 4));
+    mesh->triangleCount = num_elems * tr_count_inone;
+    mesh->vertexCount = mesh->triangleCount * 3;
+    mesh->vertices = malloc(mesh->vertexCount * (sizeof(float) * 3));
+    mesh->texcoords = NULL;
+    mesh->normals = NULL;
+    mesh->tangents = NULL;
+    mesh->colors = NULL;
+    mesh->indices = NULL;
+    mesh->animVertices = NULL;
+    mesh->animNormals = NULL;
+    mesh->boneIds = NULL;
+    mesh->boneWeights = NULL;
+    mesh->boneMatrices = NULL;
+    mesh->boneCount = 0;
+    mesh->colors = malloc(mesh->vertexCount * (sizeof(unsigned char) * 4));
 
     size_t vc = 0; // Used to count vertices.
 
@@ -280,17 +298,17 @@ void fractalgen_tree(
             // Vertices.
 
             struct triangle_t* tr = &data[i].tr[k];
-            mesh.vertices[vc+0+tr_i] = tr->a.x;
-            mesh.vertices[vc+1+tr_i] = tr->a.y - start_height;
-            mesh.vertices[vc+2+tr_i] = tr->a.z;
+            mesh->vertices[vc+0+tr_i] = tr->a.x;
+            mesh->vertices[vc+1+tr_i] = tr->a.y - start_height;
+            mesh->vertices[vc+2+tr_i] = tr->a.z;
             
-            mesh.vertices[vc+3+tr_i] = tr->b.x;
-            mesh.vertices[vc+4+tr_i] = tr->b.y - start_height;
-            mesh.vertices[vc+5+tr_i] = tr->b.z;
+            mesh->vertices[vc+3+tr_i] = tr->b.x;
+            mesh->vertices[vc+4+tr_i] = tr->b.y - start_height;
+            mesh->vertices[vc+5+tr_i] = tr->b.z;
             
-            mesh.vertices[vc+6+tr_i] = tr->c.x;
-            mesh.vertices[vc+7+tr_i] = tr->c.y - start_height;
-            mesh.vertices[vc+8+tr_i] = tr->c.z;
+            mesh->vertices[vc+6+tr_i] = tr->c.x;
+            mesh->vertices[vc+7+tr_i] = tr->c.y - start_height;
+            mesh->vertices[vc+8+tr_i] = tr->c.z;
 
 
             tr_i += 9;
@@ -301,32 +319,27 @@ void fractalgen_tree(
 
 
     // Colors.
-    for(int i = 0; i < mesh.vertexCount; i++) {
+    for(int i = 0; i < mesh->vertexCount; i++) {
         int color_i = i * 4;
 
         float v_depth = (float)data[i / (tr_count_inone * 3)].depth;
 
         float t = normalize(v_depth, 0.0, (float)depth);
-        Color color = ColorLerp(start_color, end_color, t);
-        mesh.colors[color_i+0] = color.r;
-        mesh.colors[color_i+1] = color.g;  
-        mesh.colors[color_i+2] =color.b;  
-        mesh.colors[color_i+3] = 255;  
+        Color color = ColorLerp(end_color, start_color, t);
+        mesh->colors[color_i+0] = color.r;
+        mesh->colors[color_i+1] = color.g;  
+        mesh->colors[color_i+2] = color.b;  
+        mesh->colors[color_i+3] = 255;  
     }
 
    
-    SetTraceLogLevel(LOG_ALL);
-    UploadMesh(&mesh, 0);
-    SetTraceLogLevel(LOG_NONE);
+    //SetTraceLogLevel(LOG_ALL);
+    UploadMesh(mesh, 0);
+    //SetTraceLogLevel(LOG_NONE);
 
-    printf("Fractal generation finished in %0.4f seconds\033[0m\n", GetTime() - start_time);
 
+    //printf("Fractal generation finished in %0.4f seconds\033[0m\n", GetTime() - start_time);
     free(data);
-
-    *fmodel = LoadModelFromMesh(mesh);
-
-    fmodel->materials[0] = LoadMaterialDefault();
-    fmodel->materials[0].shader = gst->shaders[FRACTAL_MODEL_SHADER];
 }
 
 

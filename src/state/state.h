@@ -108,7 +108,9 @@
 #define FOLIAGE_WIND_SHADER 20
 #define ENERGY_LIQUID_SHADER 24
 #define FRACTAL_MODEL_SHADER 25
-#define MAX_SHADERS 26
+#define FRACTAL_BERRY_SHADER 26
+#define FRACTAL_MODEL_GBUFFER_SHADER 27
+#define MAX_SHADERS 28
 // ...
 
 
@@ -289,9 +291,6 @@ struct state_t {
     // ---- Weapon Models ----
     struct weapon_model_t weapon_models[MAX_WEAPON_MODELS];
 
-    // ---- Generated Fractal Models ----
-    //Model fractal_models[MAX_FRACTAL_MODELS][NUM_FRACTAL_LOD];
-
     // ---- Lights ----
     // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
     struct light_t decay_lights[MAX_DECAY_LIGHTS];
@@ -329,6 +328,7 @@ struct state_t {
 
     Model inventory_box_model;
     Model inventory_box_selected_model;
+    Model fractal_berry_model;
 
     // ---- For Rendering ----
     

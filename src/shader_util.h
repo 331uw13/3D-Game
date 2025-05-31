@@ -51,6 +51,8 @@ typedef short uloc_t;
 #define U_TERRAIN_SCALING 39
 #define U_NUM_GRASS_PERCHUNK 40
 #define U_INVENTORY_OPEN 41
+#define U_BERRY_COLOR 42
+#define U_FRACTAL_BASE_Y 43
 
 #define U_NOTFOUND -1
 

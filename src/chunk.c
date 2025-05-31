@@ -100,6 +100,9 @@ void delete_chunk(struct chunk_t* chunk) {
     for(int j = 0; j < MAX_FOLIAGE_TYPES; j++) {
         free(chunk->foliage_data[j].matrices);
     }
+    for(int i = 0; i < chunk->num_fractals; i++) {
+        delete_fractal_model(&chunk->fractals[i]);
+    }
     UnloadMesh(chunk->mesh);
 }
 
@@ -428,6 +431,58 @@ void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct 
             // No models have been made yet.
             break;
     }
+    
+    // Fractals.
+
+    chunk->num_fractals = 0;
+    if(RSEEDRANDOMF(0, 100) < FRACTAL_SPAWN_CHANCE) {
+        
+        chunk->num_fractals = GetRandomValue(1, MAX_FRACTALS_PERCHUNK-1);
+        
+        for(int i = 0; i < chunk->num_fractals; i++) {
+            struct fractal_t* fractal = &chunk->fractals[i];
+            
+            Vector3 pos = (Vector3) {
+                RSEEDRANDOMF(chunk->area.x_min, chunk->area.x_max),
+                0,
+                RSEEDRANDOMF(chunk->area.z_min, chunk->area.z_max)
+            };
+
+            pos.y = raycast_terrain(terrain, pos.x, pos.z).point.y;
+
+            float start_height = 15.0;
+            float dampen_height = 0.85;
+            float start_cube_scale = 5.0;
+            float dampen_cube_scale = 0.7;
+
+            Color start_color = (Color){ 0x20, 0x38, 0x38, 0xFF };
+            Color end_color = (Color){ 0x2F, 0xFC, 0xFC, 0xFF };
+
+            Vector3 rotation_weights = (Vector3){ 0.35, 0.2, 0.15 };
+            int depth = 8;
+
+
+            fractalgen_tree(
+                    gst,
+                    fractal,
+                    depth,
+                    rotation_weights,
+                    start_height,
+                    dampen_height,
+                    start_cube_scale,
+                    dampen_cube_scale,
+                    start_color,
+                    end_color
+                    );
+
+            fractal->scale = (Vector3){ 0.6, 0.4, 0.6 };
+            fractal->transform = MatrixTranslate(pos.x, pos.y, pos.z);
+            fractal->transform = MatrixMultiply(MatrixRotateY(RSEEDRANDOMF(-M_PI, M_PI)), fractal->transform);
+            fractal->transform = MatrixMultiply(
+                    MatrixScale(fractal->scale.x, fractal->scale.y, fractal->scale.z),
+                    fractal->transform);
+        }
+    }
 }
 
 void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk) {
@@ -558,6 +613,87 @@ void chunk_render_items(struct state_t* gst, struct chunk_t* chunk) {
     }
 
 }
+
+
+void chunk_update_fractals(struct state_t* gst, struct chunk_t* chunk) {
+    for(int i = 0; i < chunk->num_fractals; i++) {
+        struct fractal_t* fractal = &chunk->fractals[i];
+
+
+    }
+}
+
+
+void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int render_pass) {
+
+
+    for(int i = 0; i < chunk->num_fractals; i++) {
+        struct fractal_t* fractal = &chunk->fractals[i];
+ 
+        Vector3 base = (Vector3){ 
+            fractal->transform.m12,
+            fractal->transform.m13,
+            fractal->transform.m14
+        };  
+
+
+        switch(render_pass) {
+            case RENDERPASS_RESULT:
+                fractal->material.shader = gst->shaders[FRACTAL_MODEL_SHADER];
+                shader_setu_float(gst, FRACTAL_MODEL_SHADER, U_FRACTAL_BASE_Y, &base.y);
+                break;
+            
+            case RENDERPASS_SHADOWS:
+            case RENDERPASS_GBUFFER:
+                fractal->material.shader = gst->shaders[FRACTAL_MODEL_GBUFFER_SHADER];
+                shader_setu_float(gst, FRACTAL_MODEL_GBUFFER_SHADER, U_FRACTAL_BASE_Y, &base.y);
+                break;
+        }
+
+        rlDisableBackfaceCulling();
+        DrawMesh(
+                fractal->mesh,
+                fractal->material,
+                fractal->transform
+                );
+        rlEnableBackfaceCulling();
+
+
+        // Render berries only when player is very nearby.
+        if(Vector3Distance(base, gst->player.position) > 500) {
+            continue;
+        }
+       
+        //printf("(%0.3f)%s: %i\n", gst->time, __func__, fractal->num_berries);
+
+        Color berry_color = (Color){ 30, 255, 255, 255 };
+        shader_setu_color(gst, FRACTAL_BERRY_SHADER, U_BERRY_COLOR, &berry_color);
+
+        for(int j = 0; j < fractal->num_berries; j++) {
+            struct berry_t* berry = &fractal->berries[j];
+
+            berry->position.x += cos(j*8 + gst->time * 2.0) * 0.003;
+            berry->position.z += sin(j*8 + gst->time * 2.0) * 0.003;
+
+            Matrix berry_m = MatrixTranslate(
+                    berry->position.x * fractal->scale.x + base.x ,
+                    berry->position.y * fractal->scale.y + base.y ,
+                    berry->position.z * fractal->scale.z + base.z 
+                    );
+
+            berry_m = MatrixMultiply(MatrixScale(berry->level, berry->level, berry->level), berry_m);
+
+            DrawMesh(
+                    gst->fractal_berry_model.meshes[0],
+                    gst->fractal_berry_model.materials[0],
+                    berry_m
+                    );
+        }
+    }
+}
+
+
+
 
 
 
