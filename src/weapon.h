@@ -18,11 +18,6 @@
 #define INVLID_WEAPON_GID 2
 
 
-#define LQMAG_TYPE_SMALL 0
-// ... (adding more later)
-
-#define MAX_LQMAG_TYPES 1
-
 
 
 #define LQMAG_CONDITION_PERFECT 0
@@ -92,7 +87,7 @@ struct state_t;
 struct psystem_t;
 
 void update_weapon_lqmag_condition(struct weapon_t* weapon);
-void init_weapon_lqmag(struct state_t* gst, struct weapon_t* weapon, int type);
+void init_weapon_lqmag(struct state_t* gst, struct weapon_t* weapon, float capacity);
 
 #define NO_ACCURACY_MOD 0.0
 

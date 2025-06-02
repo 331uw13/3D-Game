@@ -91,6 +91,7 @@ struct player_t {
     float weapon_offset_interp;
     Matrix last_weapon_matrix;
 
+    int in_scope_view;
     
     // Pointers to items in inventory.
     struct item_t* item_in_hands;
@@ -240,6 +241,7 @@ int  playerin_biomeshift_area(struct state_t* gst, struct player_t* p);
 
 // Change currently holding item.
 void player_change_holding_item(struct state_t* gst, struct player_t* p, struct item_t* item);
+void player_set_scope_view(struct state_t* gst, struct player_t* p, int view_enabled);
 
 // TODO: Rename these.
 void player_update(struct state_t* gst, struct player_t* p);

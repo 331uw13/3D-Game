@@ -80,7 +80,8 @@
 #define ENEMY_EXPLOSION_SOUND 7
 #define POWERUP_SOUND 8
 #define CLOUDBURST_SOUND 9
-#define MAX_SOUNDS 10
+#define PLAYER_GUN_NOAMMO_SOUND 10
+#define MAX_SOUNDS 11
 //...
 
 
@@ -110,7 +111,8 @@
 #define FRACTAL_MODEL_SHADER 25
 #define FRACTAL_BERRY_SHADER 26
 #define FRACTAL_MODEL_GBUFFER_SHADER 27
-#define MAX_SHADERS 28
+#define SCOPE_CROSSHAIR_SHADER 28
+#define MAX_SHADERS 29
 // ...
 
 
@@ -416,6 +418,7 @@ struct state_t {
     int     testmd_prj_speed;
     int     testmd_firerate;
 
+    int test_counter;
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!

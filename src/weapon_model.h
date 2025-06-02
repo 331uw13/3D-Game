@@ -14,6 +14,9 @@
 #define WMODEL_SNIPER_RIFLE_0   1
 #define MAX_WEAPON_MODELS 2
 
+#define WMODEL_LOW_GRAVITY_FRICTION 0.95   // Used when aiming and inspecting weapon.
+#define WMODEL_HIGH_GRAVITY_FRICTION 0.92  // Used when changing from rest position to aiming
+
 
 struct weapon_model_t {
     int incomplete;
@@ -21,6 +24,7 @@ struct weapon_model_t {
     Model model;
     struct weapon_t stats;
 
+    int has_scope;
     float firerate;
     float firerate_timer;
     
@@ -41,7 +45,14 @@ struct weapon_model_t {
     float recoil;
 
     int item_info_index;
-  
+
+
+    // Used to add some movement for the weapon model
+    // When player is holding it.
+    Vector3 gravity_offset;
+    Vector3 gravity_velocity;
+    Vector3 render_offset;
+    float gravity_friction;
 };
 
 

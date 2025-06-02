@@ -313,6 +313,8 @@ static void state_update_biome_texture_uniforms(struct state_t* gst) {
 }
 
 
+// TODO: Optimize shader uniforms. (not everything has to be updated all the time.)
+
 void state_update_shader_uniforms(struct state_t* gst) {
 
     // Update Player view position.
@@ -333,6 +335,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     
     shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &resolution);
     shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &resolution);
+    shader_setu_vec2(gst, SCOPE_CROSSHAIR_SHADER,  U_SCREEN_SIZE, &gst->screen_size);
 
 
     // Update time
@@ -481,6 +484,7 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
     update_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS]);
+    
 
     // Update Misc.
     update_biome_envblend(gst);

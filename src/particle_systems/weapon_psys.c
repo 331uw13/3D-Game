@@ -228,7 +228,7 @@ void weapon_psys_prj_init(
     // Projectile trail.
     add_particles(gst, 
             &gst->psystems[PRJ_TRAIL_PSYS], 
-            16,
+            20,
             (Vector3){0}, (Vector3){0}, (Color){0},
             part, HAS_EXTRADATA, NO_IDB);
 

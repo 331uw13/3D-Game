@@ -20,9 +20,36 @@ static void toggle_gui(int* gui_open) {
     }
 }
 
+static void toggle_aiming(struct state_t* gst) {
+    if(!gst->player.item_in_hands) {
+        return;
+    }
+
+    if(!gst->player.item_in_hands->is_weapon_item) {
+        return;
+    }
+
+    if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+    && !gst->player.inspecting_weapon
+    && !gst->player.changing_item
+    ){
+        gst->player.is_aiming = !gst->player.is_aiming;
+        if(gst->player.item_in_hands->weapon_model.has_scope) {
+            player_set_scope_view(gst, &gst->player, gst->player.is_aiming);
+        }
+    }
+    
+    gst->player.inspecting_weapon = 0;
+    if(IsKeyDown(KEY_F)) {
+        gst->player.inspecting_weapon = 1;
+    }
+
+}
+
 void handle_userinput(struct state_t* gst) {
     
     if(gst->player.alive) {
+    
         player_update_camera(gst, &gst->player);
         player_update_movement(gst, &gst->player);
     }
@@ -41,23 +68,8 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(gst->player.item_in_hands) {
-        if(gst->player.item_in_hands->is_weapon_item) {
-            if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-            && !gst->player.inspecting_weapon
-            && !gst->player.changing_item
-            ){
-                gst->player.is_aiming = !gst->player.is_aiming;
-            }
-            
-            gst->player.inspecting_weapon = 0;
-            if(IsKeyDown(KEY_F)) {
-                gst->player.inspecting_weapon = 1;
-            }
-        }
-    }
-
-
+    toggle_aiming(gst);
+    
     if(gst->gamepad.id >= 0) {
         gst->gamepad.Lstick = (Vector2) {
             GetGamepadAxisMovement(gst->gamepad.id, GAMEPAD_AXIS_LEFT_X),

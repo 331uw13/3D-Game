@@ -25,7 +25,7 @@ struct terrain_t;
 
 #define MAX_ITEMS_PERCHUNK 64
 #define MAX_FRACTALS_PERCHUNK 16
-#define FRACTAL_SPAWN_CHANCE 100  // 0 - 100
+#define FRACTAL_SPAWN_CHANCE 50  // 0 - 100
 
 
 // This data is not directly being used to render foliages from.

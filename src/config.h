@@ -20,6 +20,10 @@ struct config_t {
 };
 
 
+// TODO: Instead of returning a buffer for every variable type.
+// And other types exists too.
+// function like 'read_cfgvar(cfgfile, "name", &ptr, VTYPE_FLOAT)'
+
 int read_cfgvar(platform_file_t* cfgfile, const char* name, char* outbuf, size_t outbuf_size);
 
 

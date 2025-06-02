@@ -25,7 +25,7 @@ void loop(struct state_t* gst) {
 
 
     while(!WindowShouldClose() && gst->running) {
-
+        gst->test_counter = 0;
         gst->dt = GetFrameTime();
         gst->time = GetTime();
 
@@ -110,6 +110,13 @@ void loop(struct state_t* gst) {
                 DrawPixel(center_x, center_y+2, GRAY);
             }
             */
+
+            if(gst->player.in_scope_view && !gst->player.any_gui_open) {
+                BeginShaderMode(gst->shaders[SCOPE_CROSSHAIR_SHADER]);
+                DrawRectangle(0, 0, gst->screen_size.x, gst->screen_size.y, BLACK);
+                EndShaderMode();
+            }
+
 
             if(gst->menu_open) {
                 gui_render_menu_screen(gst);

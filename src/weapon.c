@@ -52,10 +52,10 @@ void update_weapon_lqmag_condition(struct weapon_t* weapon) {
     weapon->lqmag.leak_value = 0.0;
 }
 
-void init_weapon_lqmag(struct state_t* gst, struct weapon_t* weapon, int type) {
+void init_weapon_lqmag(struct state_t* gst, struct weapon_t* weapon, float capacity) {
     
     weapon->lqmag.infinite = 0;
-    weapon->lqmag.capacity = 300.0;
+    weapon->lqmag.capacity = capacity;
     weapon->lqmag.ammo_level = weapon->lqmag.capacity;
 
     weapon->lqmag.condition_value = 100.0;

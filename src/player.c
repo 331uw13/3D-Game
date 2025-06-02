@@ -25,6 +25,7 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     p->cam_random_dir = (Vector2){ 0 };
     p->movement_state = MOVEMENT_STATE_STANDING;
+    
 
     // Armor and health
 
@@ -213,7 +214,8 @@ int point_in_player_view(struct state_t* gst, struct player_t* p, Vector3 point,
     Vector3 dir = Vector3Normalize(Vector3Subtract(P1, P2));
     float dot = Vector3DotProduct(dir, p->cam_forward);
 
-    // Map result of dot product to 0 - 180
+    // Map result of dot product to 0 - 180.
+    // Its easier to use.
     float f = map(dot, 1.0, -1.0, 0.0, 180.0);
 
     return (f < fov_range);
@@ -260,6 +262,44 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
 }
 
 
+static void update_weapon_gravity(struct state_t* gst, struct player_t* p, struct weapon_model_t* weapon_model) {
+
+    //weapon_model->gravity_offset.x = sin(gst->time);
+
+
+    weapon_model->gravity_offset.x += p->cam_yaw;
+    weapon_model->gravity_offset.y -= p->cam_pitch;
+
+    float weapon_mass = 10.0;
+
+
+    float dist = Vector3Distance(weapon_model->render_offset, weapon_model->gravity_offset);
+    if(!FloatEquals(dist, 0.0)) {
+        Vector3 direction = Vector3Subtract(weapon_model->render_offset, weapon_model->gravity_offset);
+        float magnitude = weapon_mass / (dist * dist);
+        magnitude = CLAMP(magnitude, -1.0, 1.0);
+
+        direction = Vector3Scale(direction, magnitude);
+
+
+        weapon_model->gravity_velocity 
+            = Vector3Add(weapon_model->gravity_velocity, Vector3Scale(direction, gst->dt*GRAVITY_CONST));
+       
+        // Decrease velocity overtime.
+        weapon_model->gravity_velocity
+            = Vector3Scale(weapon_model->gravity_velocity,
+                           pow(weapon_model->gravity_friction, gst->dt*GRAVITY_CONST));
+       
+        // Apply velocity to model offset.
+        weapon_model->gravity_offset 
+            = Vector3Add(weapon_model->gravity_offset,
+                         Vector3Scale(weapon_model->gravity_velocity, gst->dt));
+    
+
+        weapon_model->gravity_offset.z = 0.0;
+   }
+}
+
 static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
     if(!p->item_in_hands) {
         return;
@@ -280,7 +320,7 @@ static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
     struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
 
     weapon_model->firerate_timer += gst->dt;
-
+    update_weapon_gravity(gst, p, weapon_model);
 
     // Update weapon recoil animation.
     if(!weapon_model->recoil_anim_done) {
@@ -300,17 +340,18 @@ static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
 
 
     // Update interpolation between aiming model offset and rest model offset.
-    // (For weapons).
 
     const float interp_speed = 5.0;
     if(p->is_aiming) {
+        // Start to aim.
         if(p->weapon_offset_interp < 1.0) {
-            p->weapon_offset_interp += gst->dt * interp_speed;
+            p->weapon_offset_interp += gst->dt * (interp_speed * 2.0);
         }
     }
     else {
+        // Stop aiming.
         if(p->weapon_offset_interp > 0.0) {
-            p->weapon_offset_interp -= gst->dt * interp_speed;
+            p->weapon_offset_interp -= gst->dt * (interp_speed * 0.3);
         }
     }
     p->weapon_offset_interp = CLAMP(p->weapon_offset_interp, 0.0, 1.0);
@@ -319,17 +360,38 @@ static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
     // Inspecting model interpolation.
 
     if(p->inspecting_weapon) {
+        // Start to inspect weapon.
         if(p->weapon_inspect_interp < 1.0) {
             p->weapon_inspect_interp += gst->dt * 3.0;
         }
     }
     else {
+        // Stop inspecting weapon.
         if(p->weapon_inspect_interp > 0.0) {
             p->weapon_inspect_interp -= gst->dt * 3.0;
         }
     }
     p->weapon_inspect_interp = CLAMP(p->weapon_inspect_interp, 0.0, 1.0);
 
+
+
+    // Update gravity friction for weapon model.
+    // This is because it looks kind of weird to have "over shoot" when starting to aim.
+    int aiming_in_progress = (p->is_aiming && !FloatEquals(p->weapon_offset_interp, 1.0));
+   
+    // The gravity friction cannot be changed instantly
+    // because the weapon model still has the same momentum.
+    if(aiming_in_progress) {
+        weapon_model->gravity_friction -= gst->dt;
+    }
+    else {
+        weapon_model->gravity_friction += gst->dt*0.075;
+    }
+
+    weapon_model->gravity_friction 
+        = CLAMP(weapon_model->gravity_friction,
+                WMODEL_HIGH_GRAVITY_FRICTION,
+                WMODEL_LOW_GRAVITY_FRICTION);
 
 }
 
@@ -357,6 +419,7 @@ void player_update(struct state_t* gst, struct player_t* p) {
             p->changing_item = 0;
         }
     }
+
     update_weapon_in_hands(gst, p);
 }
 
@@ -384,6 +447,14 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         return;
     }
 
+    if(weapon_model->stats.lqmag.ammo_level <= 0.0) {
+        weapon_model->firerate_timer = 0.0;
+        if(gst->has_audio) {
+            PlaySound(gst->sounds[PLAYER_GUN_NOAMMO_SOUND]);
+        }
+
+        return;
+    }
 
     Vector3 prj_position = (Vector3) { 0 };
     prj_position = Vector3Transform(prj_position, p->last_weapon_matrix);
@@ -392,6 +463,8 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     prj_position.x += p->looking_at.x * movef;
     prj_position.y += p->looking_at.y * movef;
     prj_position.z += p->looking_at.z * movef;
+
+    prj_position.y -= weapon_model->aim_offset.y;
 
     add_projectile(
             gst,
@@ -449,6 +522,7 @@ void render_player(struct state_t* gst, struct player_t* p) {
         struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
 
 
+
         Matrix rest_rotation = MatrixRotateXYZ(weapon_model->rest_rotation);
         float interp = inout_cubic(p->weapon_offset_interp);
 
@@ -457,10 +531,10 @@ void render_player(struct state_t* gst, struct player_t* p) {
    
         rest_offset.y -= item_change_yoff; 
 
-
         if(p->is_aiming) {
             aim_offset.z += inout_cubic(weapon_model->recoil_anim_value) * weapon_model->recoil_anim_kickback;
         }
+
 
         Matrix model_inspect = MatrixIdentity();
 
@@ -476,12 +550,12 @@ void render_player(struct state_t* gst, struct player_t* p) {
                 interp
                 );
 
-
+        // Add offsets if player is inspecting the weapon.
         if(p->weapon_inspect_interp > 0.01) {
             offset = Vector3Lerp(
                     offset,
                     weapon_model->inspect_offset,
-                    p->weapon_inspect_interp
+                    inout_cubic(p->weapon_inspect_interp)
                     );
 
             qrot = QuaternionSlerp(
@@ -489,21 +563,28 @@ void render_player(struct state_t* gst, struct player_t* p) {
                     QuaternionFromMatrix(MatrixRotateXYZ(weapon_model->inspect_rotation)),
                     p->weapon_inspect_interp
                     );
-
         }
 
+        weapon_model->render_offset = offset;
+        
+        // Adjust gravity offset so its at the right level again.
+        Vector3 adjusted_goffset = weapon_model->gravity_offset;
+        adjusted_goffset.y -= offset.y;
+        offset = Vector3Add(offset, adjusted_goffset);
 
 
         Matrix rotation = QuaternionToMatrix(qrot);
-
         Matrix model_offset = MatrixTranslate(offset.x, offset.y, offset.z);
         model_offset = MatrixMultiply(rotation, model_offset);
         transform = MatrixMultiply(model_offset, icam_matrix);
 
+
+        
         p->last_weapon_matrix = transform;
-
-
-        render_weapon_model(gst, weapon_model, transform);
+       
+        if(!p->in_scope_view) {
+            render_weapon_model(gst, weapon_model, transform);
+        }
     }
     else {
         // The item is probably normal item.
@@ -532,6 +613,14 @@ void player_change_holding_item(struct state_t* gst, struct player_t* p, struct 
     p->item_to_change = item;
     p->item_change_timer = 0.0;
 
+    if(item->is_weapon_item) {
+        struct weapon_model_t* weapon_model = &item->weapon_model;
+
+        weapon_model->gravity_friction = WMODEL_LOW_GRAVITY_FRICTION;
+        weapon_model->gravity_offset   = (Vector3){ 0, 0, 0 };
+        weapon_model->gravity_velocity = (Vector3){ 0, 0, 0 };
+        weapon_model->render_offset    = (Vector3){ 0, 0, 0 };
+    }
 }
 
 void player_update_movement(struct state_t* gst, struct player_t* p) {
@@ -735,6 +824,7 @@ void player_update_camera(struct state_t* gst, struct player_t* p) {
         return;
     }
 
+
     Vector2 md = GetMouseDelta();
   
     if(gst->gamepad.id >= 0) {
@@ -743,8 +833,11 @@ void player_update_camera(struct state_t* gst, struct player_t* p) {
 
 
     p->cam_yaw = (-md.x * CAMERA_SENSETIVITY);
+    p->cam_pitch = (-md.y * CAMERA_SENSETIVITY);
+    
     p->looking_at = Vector3Normalize(Vector3Subtract(gst->player.cam.target, gst->player.cam.position));
-        
+
+
     CameraYaw(&gst->player.cam,   (-md.x * CAMERA_SENSETIVITY) + p->cam_random_dir.x, 0);
     CameraPitch(&gst->player.cam, (-md.y * CAMERA_SENSETIVITY) + p->cam_random_dir.y, 1, 0, 0);
     
@@ -803,8 +896,12 @@ void render_player_gunfx(struct state_t* gst, struct player_t* p) {
     if(!p->item_in_hands->is_weapon_item) {
         return;
     }
+    if(p->in_scope_view) {
+        return;
+    }
 
     struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
+
 
     if(p->gunfx_timer < 1.0) {
         p->gunfx_model.transform = p->last_weapon_matrix;
@@ -913,3 +1010,14 @@ BoundingBox get_player_boundingbox(struct player_t* p) {
     };
 }
 
+void player_set_scope_view(struct state_t* gst, struct player_t* p, int view_enabled) {
+    p->in_scope_view = view_enabled;
+
+    if(view_enabled) {
+        p->cam.fovy = 40.0;
+    }
+    else {
+        p->cam.fovy = 70.0;
+    }
+    // TODO: Animation.
+}

@@ -115,8 +115,6 @@ void load_weapon_model(
     }
     float aim_offset_z = atof(buf);
 
-
-
     if(!read_cfgvar(&cfgfile, "rest_offset_x", buf, CFGBUF_SIZE)) {
         return;
     }
@@ -148,62 +146,50 @@ void load_weapon_model(
     }
     float rest_rotation_z = atof(buf);
 
-
-
     if(!read_cfgvar(&cfgfile, "inspect_offset_x", buf, CFGBUF_SIZE)) {
         return;
     }
     float inspect_offset_x = atof(buf);
-
 
     if(!read_cfgvar(&cfgfile, "inspect_offset_y", buf, CFGBUF_SIZE)) {
         return;
     }
     float inspect_offset_y = atof(buf);
 
-
     if(!read_cfgvar(&cfgfile, "inspect_offset_z", buf, CFGBUF_SIZE)) {
         return;
     }
     float inspect_offset_z = atof(buf);
 
-    
     if(!read_cfgvar(&cfgfile, "inspect_rotation_x", buf, CFGBUF_SIZE)) {
         return;
     }
     float inspect_rotation_x = atof(buf);
-
 
     if(!read_cfgvar(&cfgfile, "inspect_rotation_y", buf, CFGBUF_SIZE)) {
         return;
     }
     float inspect_rotation_y = atof(buf);
 
-
     if(!read_cfgvar(&cfgfile, "inspect_rotation_z", buf, CFGBUF_SIZE)) {
         return;
     }
     float inspect_rotation_z = atof(buf);
-
 
     if(!read_cfgvar(&cfgfile, "energy_light_offset_x", buf, CFGBUF_SIZE)) {
         return;
     }
     float energy_light_offset_x = atof(buf);
 
-
     if(!read_cfgvar(&cfgfile, "energy_light_offset_y", buf, CFGBUF_SIZE)) {
         return;
     }
     float energy_light_offset_y = atof(buf);
 
-
     if(!read_cfgvar(&cfgfile, "energy_light_offset_z", buf, CFGBUF_SIZE)) {
         return;
     }
     float energy_light_offset_z = atof(buf);
-
-
 
     if(!read_cfgvar(&cfgfile, "prjfx_offset", buf, CFGBUF_SIZE)) {
         return;
@@ -226,7 +212,15 @@ void load_weapon_model(
     }
     weapon_model->stats.knockback = atof(buf);
 
+    if(!read_cfgvar(&cfgfile, "lqmag_capacity", buf, CFGBUF_SIZE)) {
+        return;
+    }
+    float lqmag_capacity = atof(buf);
 
+    if(!read_cfgvar(&cfgfile, "has_scope", buf, CFGBUF_SIZE)) {
+        return;
+    }
+    weapon_model->has_scope = atoi(buf);
 
 
     float accuracy_f = map(
@@ -277,8 +271,13 @@ void load_weapon_model(
         .overheat_temp = -1
     };
 
-    init_weapon_lqmag(gst, &weapon_model->stats, LQMAG_TYPE_SMALL/*ADD CONFIG VARIABLE FOR THIS*/);
+    init_weapon_lqmag(gst, &weapon_model->stats, lqmag_capacity);
     add_item_namedesc(gst, weapon_model->item_info_index, weapon_name, weapon_desc);
+
+    weapon_model->gravity_offset   = (Vector3){ 0, 0, 0 };
+    weapon_model->gravity_velocity = (Vector3){ 0, 0, 0 };
+    weapon_model->render_offset    = (Vector3){ 0, 0, 0 };
+    weapon_model->gravity_friction = WMODEL_LOW_GRAVITY_FRICTION;
 
 error:
     platform_close_file(&cfgfile);

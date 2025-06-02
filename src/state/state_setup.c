@@ -63,6 +63,7 @@ static int state_setup_all_sounds(struct state_t* gst) {
     gst->sounds[ENEMY_EXPLOSION_SOUND] = LoadSound("res/audio/enemy_explosion.wav");
     gst->sounds[POWERUP_SOUND] = LoadSound("res/audio/powerup.wav");
     gst->sounds[CLOUDBURST_SOUND] = LoadSound("res/audio/cloudburst.wav");
+    gst->sounds[PLAYER_GUN_NOAMMO_SOUND] = LoadSound("res/audio/player_gun_noammo.wav");
     
 
     SetMasterVolume(100.0);
@@ -612,6 +613,8 @@ static void state_setup_all_shaders(struct state_t* gst) {
         shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
     }
 
+    
+
     // --- PLAYER_HIT_SHADER ---
     {
         Shader* shader = &gst->shaders[PLAYER_HIT_SHADER];
@@ -725,6 +728,18 @@ static void state_setup_all_shaders(struct state_t* gst) {
             NO_GEOMETRY_SHADER,
             shader);
     }
+   
+    // --- SCOPE_CROSSHAIR_SHADER (for player) ---
+    {
+        Shader* shader = &gst->shaders[SCOPE_CROSSHAIR_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/scope_crosshair.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
+
+
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
     PRINT_CURRENT_SETUP_DONE;
