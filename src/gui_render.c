@@ -62,7 +62,7 @@ void gui_render_menu_screen(struct state_t* gst) {
 
     gui_next_x__saved(&guicfg, 0);
     
-    gui_checkbox(gst, &guicfg, "Ambient Occlusion", &gst->ssao_enabled);
+    gui_checkbox(gst, &guicfg, "Ambient Occlusion (ssao)", &gst->ssao_enabled);
 
     guicfg.next_y += 20;
 

@@ -21,10 +21,12 @@ static void toggle_gui(int* gui_open) {
 }
 
 static void toggle_aiming(struct state_t* gst) {
+    if(gst->player.inventory.open) {
+        return;
+    }
     if(!gst->player.item_in_hands) {
         return;
     }
-
     if(!gst->player.item_in_hands->is_weapon_item) {
         return;
     }

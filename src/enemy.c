@@ -332,9 +332,7 @@ void enemy_damage(
         SetSoundVolume(gst->sounds[audio_i], get_volume_dist(gst->player.position, ent->position));
         PlaySound(gst->sounds[audio_i]);
     }
-
-
-    
+ 
     if(ent->health <= 0.001) {
         ent->health = 0.0;
         ent->alive = 0;
@@ -346,6 +344,7 @@ void enemy_damage(
         ent->hit_callback(gst, ent, hit_position, hit_direction, knockback);
     }
 
+    ent->despawn_timer = 0.0;
     ent->was_hit = 1;
     printf("HITBOX:%i, hits:%i\n", hitbox->tag, hitbox->hits);
     //printf("'%s': %0.2f | Health: %0.2f\n", __func__, damage, ent->health);
@@ -397,7 +396,7 @@ void enemy_add_hitbox(
         float damage_multiplier,
         int hitbox_tag
 ){
-    if(ent->num_hitboxes+1 >= ENEMY_MAX_HITBOXES) {
+    if(ent->num_hitboxes+1 >= MAX_HITBOXES) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Trying to add too many hitboxes\033[0m\n",
                 __func__);
         return;

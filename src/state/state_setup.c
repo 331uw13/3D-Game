@@ -739,6 +739,15 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
+    // --- SCOPE_CROSSHAIR_SHADER (for player) ---
+    {
+        Shader* shader = &gst->shaders[INVBOX_SELECTED_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/invbox_selected.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
 
     gst->init_flags |= INITFLG_SHADERS;
     SetTraceLogLevel(LOG_NONE);
@@ -1078,8 +1087,11 @@ static void state_load_misc_models(struct state_t* gst) {
     gst->inventory_box_model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
     // TODO: Remove this? or make it better
-    gst->inventory_box_selected_model = LoadModelFromMesh(GenMeshCube(1.3, 1.3, 1.3));
-    gst->inventory_box_selected_model.materials[0].maps[0].color = (Color){ 40, 240, 200, 70 };
+    gst->inventory_box_selected_model = LoadModel("res/models/inventory_box_selected.glb");
+    gst->inventory_box_selected_model.materials[0] = LoadMaterialDefault();
+    gst->inventory_box_selected_model.materials[0].shader = gst->shaders[INVBOX_SELECTED_SHADER];
+
+    //gst->inventory_box_selected_model.materials[0].maps[0].color = (Color){ 40, 240, 200, 70 };
 
    
     // Fractal berry
@@ -1098,7 +1110,7 @@ int state_setup_everything(struct state_t* gst) {
     // TODO: Is this used?
     gst->ssao_res_x = 0;
     gst->ssao_res_y = 0;
-    
+    gst->old_render_dist = MIN_RENDERDIST;    
 
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);

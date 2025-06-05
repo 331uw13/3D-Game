@@ -38,7 +38,7 @@ struct weapon_model_t {
     float prjfx_offset;
  
     int   recoil_anim_done;
-    float recoil_anim_value;
+    float recoil_anim_value; // "Interpolation"
     float recoil_anim_timer;
     float recoil_anim_kickback;
 

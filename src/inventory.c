@@ -6,6 +6,7 @@
 #include <rlgl.h>
 
 
+
 void inventory_init(struct inventory_t* inv) {
     inv->open = 0;
 
@@ -16,7 +17,6 @@ void inventory_init(struct inventory_t* inv) {
 
     inv->selected_item = NULL;
     inv->hovered_item = NULL;
-
 }
 
 void inventory_open_event(struct state_t* gst, struct inventory_t* inv) {
@@ -26,14 +26,13 @@ void inventory_open_event(struct state_t* gst, struct inventory_t* inv) {
         .type = LIGHT_POINT,
         .enabled = 1,
         .color = (Color){ 255, 255, 255, 255 },
-        .strength = 0.42,
+        .strength = 0.4,
         .radius = 0.7,
         .index = INVENTORY_LIGHT_ID,
         .position = (Vector3){ 0 }
     };
-
     set_light(gst, &inv->light, LIGHTS_UBO);
-    printf("%s\n", __func__);
+    schedule_new_render_dist(gst, MIN_RENDERDIST);
 }
 
 void inventory_close_event(struct state_t* gst, struct inventory_t* inv) {
@@ -41,7 +40,7 @@ void inventory_close_event(struct state_t* gst, struct inventory_t* inv) {
 
     inv->light.enabled = 0;
     set_light(gst, &inv->light, LIGHTS_UBO);
-    printf("%s\n", __func__);
+    schedule_new_render_dist(gst, gst->old_render_dist);
 }
 
 // 3D - Inventory.
@@ -51,13 +50,15 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     
     Matrix icam_matrix = MatrixInvert(GetCameraMatrix(gst->player.cam));
 
-    float box_scale = 0.4;
 
-    float xf = 0.0;
-    float yf = 0.0;
 
-    float inv_depth = 4.0;
-    float box_size = 2.0 * box_scale;
+    float xf = 0.0;  // Used for 'current box X'
+    float yf = 0.0;  // Used for 'current box Y'
+
+    const float box_scale = 0.4;
+    const float inv_depth = 4.0;
+    const float box_size = 2.0 * box_scale;
+    const float box_padding = 0.165;
 
     // Figure out frustrum depth at inventory's box depth.
     
@@ -67,7 +68,6 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     float fov_x = 2.0 * atan(tan(fov_y / 2.0) * aspect_ratio);
     float frustrum_width = (2.0 * inv_depth * tan(fov_x / 2.0)) / 2.0 - box_size;
 
-    float box_padding = 0.1;
 
     float x_zeroto_pi = 0.0;
     float x_zeroto_pi_inc = M_PI / (float)INV_NUM_COLUMNS + 0.3;
@@ -97,8 +97,8 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
             x_zeroto_pi += x_zeroto_pi_inc;
 
             Matrix offset = MatrixTranslate(
-                    xf-(frustrum_width/2)-box_size/2,
-                    yf-1.0,
+                    xf-(frustrum_width/2)-box_size,
+                    yf-1.5,
                     -(inv_depth + depth_offset));
 
             float roty = 0.0;
@@ -115,6 +115,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 rotx = -angles.z;
             }
 
+
             Matrix rotation  = MatrixIdentity();
             rotation = MatrixMultiply(rotation, MatrixRotateX(rotx));
             rotation = MatrixMultiply(rotation, MatrixRotateY(roty));
@@ -128,6 +129,8 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
 
             float item_scale = 0.3;
             Matrix item_matrix = MatrixMultiply(MatrixScale(item_scale, item_scale, item_scale), current);
+            
+            // Item rotation.
             item_matrix = MatrixMultiply(MatrixRotateXYZ(
                         (Vector3){
                             0.57,
@@ -137,39 +140,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
 
             struct item_t* item = &inv->items[x + y * INV_NUM_COLUMNS];
 
-
-            { // TODO: This dont need to be updated every frame.
-              //         ^ Only position.
-
-                /*
-                Color lcolor = light_color;
-
-                if(inv->selected_item) {
-                    if(inv->selected_item->inv_index == item->inv_index) {
-                        lcolor = (Color){ 60, 250, 255, 255 };
-                    }
-                }
-
-                Matrix light_matrix = MatrixMultiply(
-                        MatrixTranslate(0.0, 0.9, 0.0), // Light position offset
-                        current
-                        );
-
-                struct light_t inv_light = (struct light_t) {
-                    .type = LIGHT_POINT,
-                    .enabled = 1,
-                    .color = (item->inv_index < 0) ? light_color_empty : lcolor,
-                    .strength = 0.42,
-                    .radius = 1.2,
-                    .index = INVENTORY_LIGHT_ID,
-                    .position = (Vector3){ light_matrix.m12, light_matrix.m13, light_matrix.m14 }
-                };
-                set_light(gst, &inv_light, LIGHTS_UBO);
-                */
-
-
-            }
-
+            // Render the item in current box.
             if(!item->empty && item->inv_index >= 0) {
                 if(item->is_weapon_item) {
                     render_weapon_model(gst, &item->weapon_model, item_matrix);
@@ -181,12 +152,14 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 }
             }
 
+            // Box.
             DrawMesh(
                 box->meshes[0],
                 box->materials[0],
                 current);
 
-            if(rayhit.hit) {
+            // Mouse is on box, handle input.
+            if(rayhit.hit) { 
                 inv->hovered_item = item;
 
                 if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -197,10 +170,14 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                     player_change_holding_item(gst, &gst->player, item);
                 }
 
+
+                // Render selected box indicator.
+                Matrix selected_current = MatrixMultiply(
+                        MatrixRotateXYZ((Vector3){ gst->time, 0, gst->time*3.0 }), current);
                 DrawMesh(
                         gst->inventory_box_selected_model.meshes[0],
                         gst->inventory_box_selected_model.materials[0],
-                        current
+                        selected_current
                         );
             }
             xf += box_size + box_padding;
@@ -209,8 +186,6 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
         yf += box_size + box_padding;
         xf = 0.0;
     }
-
-
 }
 
 static int find_free_space(struct inventory_t* inv) {

@@ -29,6 +29,7 @@ void loop(struct state_t* gst) {
         gst->dt = GetFrameTime();
         gst->time = GetTime();
 
+
         if(IsWindowResized()) {
             printf("\033[31m(WARNING!): Resizing window is not yet supported in runtime."
                     " Change it in config file.\033[0m\n");
@@ -51,11 +52,9 @@ void loop(struct state_t* gst) {
         }
     
       
-        state_update_frame(gst);
+        state_update_frame(gst); 
         state_update_shader_uniforms(gst);
         state_render(gst);
-
-
 
 
         BeginDrawing();

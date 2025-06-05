@@ -112,7 +112,8 @@
 #define FRACTAL_BERRY_SHADER 26
 #define FRACTAL_MODEL_GBUFFER_SHADER 27
 #define SCOPE_CROSSHAIR_SHADER 28
-#define MAX_SHADERS 29
+#define INVBOX_SELECTED_SHADER 29
+#define MAX_SHADERS 30
 // ...
 
 
@@ -381,6 +382,10 @@ struct state_t {
 
     // ---- Misc ----
 
+    int new_render_dist_scheduled;
+    float new_render_dist;
+    float old_render_dist;
+
     // This is for gui component.
     Texture  colorpick_tex;
     Image    colorpick_img;
@@ -438,6 +443,13 @@ void add_item_namedesc(struct state_t* gst, int item_type, const char* name, con
 
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 void set_render_dist(struct state_t* gst, float new_dist);
+
+// Use this function instead of 'set_render_dist' when changing it middle of rendering.
+// The game crashes if 'set_render_dist()' is used
+// NOTE: 'set_render_dist()' should be changed to use 'realloc' for more safety.
+//        also then this function can be removed.
+void schedule_new_render_dist(struct state_t* gst, float new_dist);
+
 
 // 'shader_index' can be set to negative value so its not used.
 void resample_texture(struct state_t* gst,

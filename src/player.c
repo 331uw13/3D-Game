@@ -56,6 +56,47 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     p->item_in_hands = NULL;//&p->inventory.items[0];
 
     p->xp = 999999;
+
+    for(int i = 0; i < MAX_HITBOXES; i++) {
+        p->hitboxes[i].hits = 0;
+    }
+}
+
+static void create_player_hitboxes(struct state_t* gst, struct player_t* p) {
+    
+    p->ccheck_radius = 60.0;
+
+
+    const float head_size = 2.0;
+
+    const float body_width = 3.0;
+    const float legs_width = 2.0;
+
+    const float body_height = (p->height/2.0) - head_size;
+
+
+    p->hitboxes[HITBOX_HEAD] = (struct hitbox_t) {
+        .size = (Vector3){ head_size, head_size, head_size },
+        .offset = (Vector3){ 0, 0, 0 },
+        .damage_mult = 3.0,
+        .tag = HITBOX_HEAD
+    };
+
+    p->hitboxes[HITBOX_BODY] = (struct hitbox_t) {
+        .size = (Vector3){ body_width, body_height, body_width },
+        .offset = (Vector3){ 0, -(head_size/2 + body_height/2), 0 },
+        .damage_mult = 1.0,
+        .tag = HITBOX_BODY
+    };
+
+    p->hitboxes[HITBOX_LEGS] = (struct hitbox_t) {
+        .size = (Vector3){ legs_width, body_height, legs_width },
+        .offset = (Vector3){ 0, -(head_size/2 + body_height*1.5), 0 },
+        .damage_mult = 0.75,
+        .tag = HITBOX_LEGS
+    };
+
+
 }
 
 void init_player_struct(struct state_t* gst, struct player_t* p) {
@@ -70,7 +111,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
             p->spawn_point = chunk->center_pos;
         }
     }
-    
+   
+
     p->cam = (Camera){ 0 };
     p->cam.position = p->spawn_point;
     p->cam.target = (Vector3){ 0, 0, 0 };
@@ -118,6 +160,8 @@ void init_player_struct(struct state_t* gst, struct player_t* p) {
 
     set_player_default_stats(gst, p);
     gst->init_flags |= INITFLG_PLAYER;
+    
+    create_player_hitboxes(gst, p);
 }
 
 void delete_player(struct state_t* gst, struct player_t* p) {
@@ -447,14 +491,18 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
         return;
     }
 
+    weapon_model->firerate_timer = 0.0;
+
+
     if(weapon_model->stats.lqmag.ammo_level <= 0.0) {
-        weapon_model->firerate_timer = 0.0;
         if(gst->has_audio) {
             PlaySound(gst->sounds[PLAYER_GUN_NOAMMO_SOUND]);
         }
 
+        // Out of ammo.
         return;
     }
+
 
     Vector3 prj_position = (Vector3) { 0 };
     prj_position = Vector3Transform(prj_position, p->last_weapon_matrix);
@@ -477,7 +525,6 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
 
 
     p->gunfx_timer = 0.0;
-    weapon_model->firerate_timer = 0;
 
     weapon_model->recoil_anim_value = 0.0;
     weapon_model->recoil_anim_done = 0;
@@ -488,8 +535,9 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     }
 
 
-    const float recoil_half = weapon_model->recoil / 2.0;
+    // Add recoil animation.
 
+    const float recoil_half = weapon_model->recoil / 2.0;
     p->cam_random_dir.x += RSEEDRANDOMF(-recoil_half, recoil_half);
     p->cam_random_dir.y += RSEEDRANDOMF(recoil_half, weapon_model->recoil);
 }

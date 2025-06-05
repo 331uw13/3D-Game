@@ -518,6 +518,11 @@ void state_update_frame(struct state_t* gst) {
     }
 
     gst->player.wants_to_pickup_item = 0;
+
+    if(gst->new_render_dist_scheduled) {
+        gst->new_render_dist_scheduled = 0;
+        set_render_dist(gst, gst->new_render_dist);
+    }
 }
 
 
@@ -625,6 +630,7 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
 void set_render_dist(struct state_t* gst, float new_dist) {
     new_dist = CLAMP(new_dist, MIN_RENDERDIST, MAX_RENDERDIST);
 
+    gst->old_render_dist = gst->render_dist;
     gst->render_dist = new_dist;
     rlSetClipPlanes(0.160000, gst->render_dist+3000.0);
 
@@ -669,6 +675,10 @@ void set_render_dist(struct state_t* gst, float new_dist) {
         printf("\033[35m(%p)\033[0m\n", f_rdata->matrices);
     }
 
+
+    // TODO: Realloc should be used. This will discard its contents.
+    // it is important because it stores pointers.
+
     // Allocate/Reallocate space for rendered chunks
     if(gst->terrain.rendered_chunks) {
         free(gst->terrain.rendered_chunks);
@@ -679,7 +689,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
             gst->terrain.num_max_visible_chunks * sizeof *gst->terrain.rendered_chunks);
 
     // Strech water plane to match render distance.
-    gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);
+    //gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);
 
     if(gst->fog.mode == FOG_MODE_RENDERDIST) {
         set_fog_settings(gst, &gst->fog);
@@ -735,4 +745,8 @@ void add_item_namedesc(struct state_t* gst, int item_type, const char* name, con
 
 }
 
+void schedule_new_render_dist(struct state_t* gst, float new_dist) {
+    gst->new_render_dist_scheduled = 1;
+    gst->new_render_dist = new_dist;
+}
 

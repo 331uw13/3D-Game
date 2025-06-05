@@ -79,6 +79,9 @@ struct player_t {
     float    gravity;
     int      onground;
 
+    float    ccheck_radius; // How close will collision checks start to happen?
+    struct hitbox_t hitboxes[MAX_HITBOXES]; 
+    // NOTE: 'num_hitboxes' is not needed for player.
 
     float    dash_timer;
     float    dash_timer_max; // How long to wait until player can use dash?
@@ -98,7 +101,6 @@ struct player_t {
     struct item_t* item_to_change;
     float item_change_timer;
     int   changing_item;
-
 
 
     int noclip;
@@ -122,97 +124,14 @@ struct player_t {
     Model gunfx_model;
     float gunfx_timer;
    
-    // If the player has been aiming but not fired any shots: disable aiming.
-    //float aim_idle_timer;
-
     // Player can update powerups with XP. 
     // Updated when player kills an enemy.
     int xp; 
-
-
-    //int enable_fov_effect;
-    //float fovy_change;
-    
-    /*
-    // How aiming should be disabled?
-    // When player holds <aim button> for X amount of time (see input.c)
-    // 'disable_aim_mode' is changed to DISABLE_AIM_MODE_WHEN_RELEASED
-    // if 'aim_button_hold_timer'
-    // was less than X amount of time time it will be set to DISABLE_AIM_MODE_WHEN_MOUSERIGHT
-    int   disable_aim_mode; 
-    float aim_button_hold_timer; 
-    int holding_gun;
-    */
-   
-    //int powerup_levels[MAX_POWERUP_TYPES];
-    //struct powerup_shop_t powerup_shop;
-
-    /*
-    Model gunmodel;
-    Material arms_material;
-    Material hands_material;
-
-    //Vector3 gunmodel_offset;
-    Matrix gunmodel_aim_offset_m;
-    Matrix gunmodel_rest_offset_m;
-    */
-    //struct light_t gun_light;
-
-    //Vector3 rotation_from_hit; // Rotate player camera when player gets hit.
-
-    /*
-    // TODO: re write this recoil mess.
-    float  recoil_timer;
-    float  recoil_strength;
-    float  recoil;
-    int    recoil_done;
-    int    recoil_in_progress;
-    */
-
-    /*
-    // Used when player aims
-    float gun_draw_timer; // 0.0 to 1.0 
-    float gun_draw_speed; // how fast 'gun_draw_timer' reaches 1.0
-    int   ready_to_shoot; // set to 1 when 'gun_draw_timer' finished.
-    */
 
     float health;
     float max_health;
 
     int kills[MAX_ENEMY_TYPES];
-
-    /*
-    // Some powerups may change player's projectile behaviour.
-    struct prjmod_t* prjmods;
-    size_t num_prjmods;
-    long int prjmod_indices[MAX_PRJMOD_INDICES];
-    */
-
-    // Weapon stats.
-    //struct weapon_t weapon;
-    
-    // Used to decrease accuracy if shooting rapidly.
-    // Range: WEAPON_ACCURACY_MIN - WEAPON_ACCURACY_MAX
-    //float accuracy_modifier;
-    
-    // How fast the accuracy will decrease if shooting rapidly?
-    // Range: 0.0 - 1.0
-    //float recoil_control;
-
-
-    //float time_from_last_shot;
-
-    //float gunfx_timer;
-    //Model gunfx_model;
-
-    // Some weapon related variables may be stored else where.
-    // For example the firerate because enemies use pointers to "global weapons"
-    // and not their own weapon like the player has.
-    //float firerate_timer;
-    //float firerate;
-
-    // Entities cant have this setting.
-    //int weapon_firetype; 
 
     int any_gui_open;
 
@@ -252,6 +171,8 @@ void player_update_camera(struct state_t* gst, struct player_t* p);
 
 // This function can only render in 2D:
 void render_player_stats(struct state_t* gst, struct player_t* p);
+
+// TODO: This may not be needed anymore ????
 
 BoundingBox get_player_boundingbox(struct player_t* p);
 

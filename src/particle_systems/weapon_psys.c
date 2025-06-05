@@ -81,22 +81,8 @@ void weapon_psys_prj_update(
         disable_prj = 1;
     }
 
-   
-    BoundingBox part_boundingbox = (BoundingBox) {
-        (Vector3) { // Min box corner
-            part->position.x - weapon->prj_hitbox_size.x/2,
-            part->position.y - weapon->prj_hitbox_size.y/2,
-            part->position.z - weapon->prj_hitbox_size.z/2
-        },
-        (Vector3) { // Max box corner
-            part->position.x + weapon->prj_hitbox_size.x/2,
-            part->position.y + weapon->prj_hitbox_size.y/2,
-            part->position.z + weapon->prj_hitbox_size.z/2
-        }
-    };
 
     // TODO: Optimize this! <---
-  
 
     if(weapon->gid == PLAYER_WEAPON_GID) {
         // Check collision with enemies.
@@ -117,7 +103,7 @@ void weapon_psys_prj_update(
                 continue;
             }
 
-            for(int i = 0; i < ENEMY_MAX_HITBOXES; i++) {
+            for(size_t i = 0; i < enemy->num_hitboxes; i++) {
                 struct hitbox_t* hitbox = &enemy->hitboxes[i];
                 
                 if(raycast_hitbox(
@@ -125,10 +111,9 @@ void weapon_psys_prj_update(
                             hitbox,
                             part->prev_position,
                             part->position,
-                            2.0
+                            weapon->prj_scale
                             )) {
                     // Hit.
-
                     float damage = get_weapon_damage(weapon);
                     enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, weapon->knockback);
                     disable_prj = 1;
@@ -136,8 +121,33 @@ void weapon_psys_prj_update(
                 }
             }
         }
-collision_finished:
     }
+    else
+    if(weapon->gid == ENEMY_WEAPON_GID) {
+        if(Vector3Distance(part->position, gst->player.position)
+        < gst->player.ccheck_radius) {
+            for(size_t i = 0; i < MAX_HITBOXES; i++) {
+                struct hitbox_t* hitbox = &gst->player.hitboxes[i];
+
+                if(raycast_hitbox(
+                            gst->player.position,
+                            hitbox,
+                            part->prev_position,
+                            part->position,
+                            weapon->prj_scale
+                            )) {
+                    // Hit.
+                    float damage = get_weapon_damage(weapon);
+                    player_damage(gst, &gst->player, damage);
+                    disable_prj = 1;
+                    goto collision_finished;
+                }
+
+            }
+        }
+    }
+    
+collision_finished:
 
     /*
     if(psys->groupid == PSYS_GROUPID_PLAYER) {

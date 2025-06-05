@@ -33,7 +33,6 @@
 
 #define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
 #define ENEMY_MAX_MATRICES 4
-#define ENEMY_MAX_HITBOXES 4
 
 #define ENEMY_DEATH_EXPLOSION_FORCE 15.0
 #define ENEMY_DEATH_EXPLOSION_DAMAGE 100.0
@@ -74,7 +73,7 @@ struct enemy_t {
     int enabled;
    
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
-    struct hitbox_t hitboxes[ENEMY_MAX_HITBOXES];
+    struct hitbox_t hitboxes[MAX_HITBOXES];
     size_t          num_hitboxes;
 
     float dist_to_player; // Distance to player is updated every frame when enemy gets updated.

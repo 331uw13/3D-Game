@@ -5,9 +5,11 @@
 
 
 // Hitbox tag
-#define HITBOX_LEGS 0
+#define HITBOX_HEAD 0
 #define HITBOX_BODY 1
-#define HITBOX_HEAD 2
+#define HITBOX_LEGS 2
+// TODO: Weapon hitbox should be added.
+#define MAX_HITBOXES 3
 
 
 

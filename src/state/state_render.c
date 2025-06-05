@@ -220,7 +220,22 @@ static void render_debug_lines(struct state_t* gst) {
     struct chunk_t* player_chunk = find_chunk(gst, gst->player.position);
     render_chunk_borders(gst, player_chunk, GREEN);
 
-    DrawBoundingBox(get_player_boundingbox(&gst->player), GREEN);
+
+    // Draw player hitboxes.
+    /*
+    Color hitbox_colors[] = {
+        RED,
+        YELLOW,
+        GREEN,
+    };
+    for(int i = 0; i < MAX_HITBOXES; i++) {
+        DrawCubeWiresV(
+                Vector3Add(gst->player.position, gst->player.hitboxes[i].offset),
+                gst->player.hitboxes[i].size,
+                hitbox_colors[i]
+                );
+    }
+    */
         
     
     glLineWidth(1.0);
