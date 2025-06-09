@@ -13,7 +13,7 @@
 static void disable_projectile(struct state_t* gst, struct particle_t* part) {
     disable_particle(gst, part);
     part->light.position.y += 5.0;
-    add_decay_light(gst, &part->light, 14.0);
+    //add_decay_light(gst, &part->light, 14.0);
 }
 
 
@@ -53,7 +53,7 @@ void weapon_psys_prj_update(
 
     part->light.color = part->color;
     part->light.position = part->position;
-    set_light(gst, &part->light, PRJLIGHTS_UBO);
+    //set_light(gst, &part->light, PRJLIGHTS_UBO);
 
 
     // Check collision with water
@@ -218,6 +218,7 @@ void weapon_psys_prj_init(
     part->velocity = velocity;
     part->position = origin;
 
+    /*
     // Add projectile light
     part->light = (struct light_t) {
         .enabled = 1,
@@ -228,6 +229,7 @@ void weapon_psys_prj_init(
         .index = gst->num_prj_lights
         // position is updated later.
     };
+    */
 
 
     part->scale = weapon->prj_scale;
@@ -243,9 +245,11 @@ void weapon_psys_prj_init(
             part, HAS_EXTRADATA, NO_IDB);
 
 
+    /*
     gst->num_prj_lights++;
     if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
         gst->num_prj_lights = 0;
     }
+    */
 
 }

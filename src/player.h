@@ -9,7 +9,7 @@
 #include "enemy.h"
 
 struct state_t;
-
+struct chunk_t;
 
 #define ABS_MAX_ARMOR 20
 #define ABS_MAX_HEALTH 1000
@@ -78,6 +78,8 @@ struct player_t {
     float    jump_force;
     float    gravity;
     int      onground;
+
+    struct chunk_t* chunk; // Current chunk.
 
     float    ccheck_radius; // How close will collision checks start to happen?
     struct hitbox_t hitboxes[MAX_HITBOXES]; 

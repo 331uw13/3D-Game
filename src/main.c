@@ -145,16 +145,26 @@ void loop(struct state_t* gst) {
                 int dtext_x = gst->res_x - 500;
                 const int y_inc = 25;
 
-
-                DrawText(TextFormat("NumVisibleChunks: %i / %li", gst->terrain.num_visible_chunks, gst->terrain.num_chunks),
+                struct chunk_t* current_chunk = gst->player.chunk;
+                
+                DrawText(TextFormat("Current chunk: %i", current_chunk->index),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
 
-                DrawText(TextFormat("NumRenderedEnemies: %li / %li", gst->num_enemies_rendered, gst->num_enemies),
+                DrawText(TextFormat("Visible chunks: %i / %li", gst->terrain.num_visible_chunks, gst->terrain.num_chunks),
+                        dtext_x, next_y, 20, PURPLE);
+                next_y += y_inc;
+
+                DrawText(TextFormat("Num rendered enemies: %li / %li", gst->num_enemies_rendered, gst->num_enemies),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
  
-                DrawText(TextFormat("NumItemsInChunk: %i", find_chunk(gst, gst->player.position)->num_items),
+                DrawText(TextFormat("Items in chunk: %i", current_chunk->num_items),
+                        dtext_x, next_y, 20, PURPLE);
+                next_y += y_inc;
+ 
+                DrawText(TextFormat("Lights in chunk: %i", current_chunk->num_lights),
+
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
                 
@@ -170,24 +180,24 @@ void loop(struct state_t* gst) {
                 next_y += y_inc;
                 
                 RayCollision ray = raycast_terrain(&gst->terrain, gst->player.position.x, gst->player.position.z);
-                DrawText(TextFormat("TerrainLevel=%0.3f", ray.point.y),
+                DrawText(TextFormat("Terrain level=%0.3f", ray.point.y),
                         dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
                 next_y += y_inc;
         
-                DrawText(TextFormat("CurrentBiome=%s", get_biome_name_by_id(gst->player.current_biome->id)),
+                DrawText(TextFormat("Current biome=%s", get_biome_name_by_id(gst->player.current_biome->id)),
                         dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
                 next_y += y_inc;
 
-                DrawText(TextFormat("InBiomeShiftArea: %i", playerin_biomeshift_area(gst, &gst->player)),
+                DrawText(TextFormat("In biome shift area: %i", playerin_biomeshift_area(gst, &gst->player)),
                         dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
                 next_y += y_inc;
 
 
-                DrawText(TextFormat("PSystemsRenderTime: %f", state_average_timebuf(gst, TIMEBUF_ELEM_PSYSTEMS_R)),
+                DrawText(TextFormat("PSystems render time: %f", state_average_timebuf(gst, TIMEBUF_ELEM_PSYSTEMS_R)),
                         dtext_x, next_y, 20, (Color){ 80, 120, 170, 255 });
                 next_y += y_inc;
 
-                DrawText(TextFormat("TerrainRenderTime: %f", state_average_timebuf(gst, TIMEBUF_ELEM_TERRAIN_R)),
+                DrawText(TextFormat("Terrain render time: %f", state_average_timebuf(gst, TIMEBUF_ELEM_TERRAIN_R)),
                         dtext_x, next_y, 20, (Color){ 80, 120, 170, 255 });
                 next_y += y_inc;
 
@@ -405,9 +415,6 @@ void first_setup(struct state_t* gst) {
     // (!IMPORTANT!)
     // TODO: Errors from all functions on init should be checked!
     //       alot of memory may be leaked if crash after terrain was created.
-
-    gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
-
 
 
     state_setup_everything(gst);

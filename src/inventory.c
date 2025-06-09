@@ -20,26 +20,20 @@ void inventory_init(struct inventory_t* inv) {
 }
 
 void inventory_open_event(struct state_t* gst, struct inventory_t* inv) {
-    inv->open = 1;
+    if(inv->open) {
+        return;
+    }
 
-    inv->light = (struct light_t) {
-        .type = LIGHT_POINT,
-        .enabled = 1,
-        .color = (Color){ 255, 255, 255, 255 },
-        .strength = 0.4,
-        .radius = 0.7,
-        .index = INVENTORY_LIGHT_ID,
-        .position = (Vector3){ 0 }
-    };
-    set_light(gst, &inv->light, LIGHTS_UBO);
+    inv->open = 1;
     schedule_new_render_dist(gst, MIN_RENDERDIST);
 }
 
 void inventory_close_event(struct state_t* gst, struct inventory_t* inv) {
+    if(!inv->open) {
+        return;
+    }
+    
     inv->open = 0;
-
-    inv->light.enabled = 0;
-    set_light(gst, &inv->light, LIGHTS_UBO);
     schedule_new_render_dist(gst, gst->old_render_dist);
 }
 
@@ -81,14 +75,6 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     inv->hovered_item = NULL;
 
 
-
-    Vector3 light_pos = 
-        Vector3Add(gst->player.cam.position,
-                Vector3Multiply(mouse_ray.direction, (Vector3){ 4, 4, 4 })); 
-    set_light_pos(gst, &inv->light, light_pos);
-
-
-
     for(int y = 0;  y < INV_NUM_ROWS; y++) {
         for(int x = 0; x < INV_NUM_COLUMNS; x++) {
 
@@ -115,15 +101,18 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 rotx = -angles.z;
             }
 
-
+            // This is so the box always faces the camera correctly.
             Matrix rotation  = MatrixIdentity();
             rotation = MatrixMultiply(rotation, MatrixRotateX(rotx));
             rotation = MatrixMultiply(rotation, MatrixRotateY(roty));
 
+            // Box scale.
             Matrix scale = MatrixScale(box_scale, box_scale, box_scale);
             Matrix current = MatrixMultiply(rotation, MatrixMultiply(scale, offset));
             current = MatrixMultiply(current, icam_matrix);
 
+            // Raycast sphere at the same place as box to see if mouse is on it.
+            // Raycasting the sphere is always alot faster than raycasting the mesh.
             Vector3 box_center = (Vector3){ current.m12, current.m13, current.m14 };
             RayCollision rayhit = GetRayCollisionSphere(mouse_ray, box_center, 0.25);
 
@@ -152,7 +141,6 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 }
             }
 
-            // Box.
             DrawMesh(
                 box->meshes[0],
                 box->materials[0],
@@ -171,7 +159,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 }
 
 
-                // Render selected box indicator.
+                // Selected box indicator.
                 Matrix selected_current = MatrixMultiply(
                         MatrixRotateXYZ((Vector3){ gst->time, 0, gst->time*3.0 }), current);
                 DrawMesh(

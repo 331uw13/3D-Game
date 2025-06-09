@@ -4,6 +4,8 @@
 #include <stddef.h>
 
 
+// TODO: Rewrite memory utilities.
+
 
 #define MEM_MULT 8 // how many times newsizeb should be multiplied?
                    // note: newsizeb * EDMEM_MULT may not always be the final size.

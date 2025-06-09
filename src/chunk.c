@@ -51,7 +51,11 @@ static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, s
     
     decide_chunk_biome(gst, terrain, chunk);
     setup_chunk_foliage(gst, terrain, chunk);
-   
+
+    chunk->num_lights = 0;
+    for(int i = 0; i < MAX_LIGHTS_PERCHUNK; i++) {
+        chunk->lights[i] = (struct light_t) { 0 };
+    }
 }
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
@@ -59,12 +63,12 @@ void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
 
     // BIOMEID_COMFY
 
-    terrain->foliage_max_perchunk[TF_COMFY_TREE_0] = 64;
+    terrain->foliage_max_perchunk[TF_COMFY_TREE_0] = 16;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_TREE_0], "res/models/biomes/comfy/tree_type0.glb");
     set_foliage_texture(gst, TF_COMFY_TREE_0, 0, TREEBARK_TEXID);
     set_foliage_texture(gst, TF_COMFY_TREE_0, 1, LEAF_TEXID);
 
-    terrain->foliage_max_perchunk[TF_COMFY_TREE_1] = 32;
+    terrain->foliage_max_perchunk[TF_COMFY_TREE_1] = 8;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_TREE_1], "res/models/biomes/comfy/tree_type1.glb");
     set_foliage_texture(gst, TF_COMFY_TREE_1, 0, TREEBARK_TEXID);
     set_foliage_texture(gst, TF_COMFY_TREE_1, 1, LEAF_TEXID);
@@ -75,7 +79,7 @@ void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
     set_foliage_texture(gst, TF_COMFY_ROCK_0, 0, ROCK_TEXID);
 
 
-    terrain->foliage_max_perchunk[TF_COMFY_MUSHROOM_0] = 500;
+    terrain->foliage_max_perchunk[TF_COMFY_MUSHROOM_0] = 100;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_MUSHROOM_0], "res/models/biomes/comfy/mushroom.glb");
     set_foliage_texture(gst, TF_COMFY_MUSHROOM_0, 0, TERRAIN_MUSHROOM_TEXID);
 
@@ -524,7 +528,7 @@ struct chunk_t* find_chunk(struct state_t* gst, Vector3 position) {
 
 
     size_t chunk_index = c_z * chunks_inrow + c_x;
-    if(chunk_index >= gst->terrain.num_chunks) {
+    if(chunk_index > gst->terrain.num_chunks) {
         chunk_index = gst->terrain.num_chunks;
     }
 
@@ -692,9 +696,85 @@ void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int rende
     }
 }
 
+void chunk_update_lights(struct state_t* gst, struct chunk_t* chunk) {
+    for(int i = 0; i < chunk->num_lights; i++) {
+
+        struct light_t* light = &chunk->lights[i];
+        struct chunk_t* chunk_at_lightpos = find_chunk(gst, light->position);
+
+        if(light->decay) {
+            light->strength -= gst->dt * light->decay_speed;
+            if(light->strength <= 0.0) {
+                // chunk->num_lights is decreased by this function.
+                // just continue after. probably will be fine.
+                remove_light(gst, light);
+                continue;
+            }
+        }
+
+
+        // Move light to destination chunk if it changed.
+        // TODO: what should happen if the destination chunk has too many lights?
+
+        if(light->chunk->index != chunk_at_lightpos->index) {
+            // Light's chunk has been changed by something.
+            // Move it to its right chunk.
+
+            add_light(gst, chunk_at_lightpos, *light);
+            remove_light(gst, light);
+        }
+    }
+}
 
 
 
+// Move light data of chunk to SSBO.
+void chunk_prepare_lights(struct state_t* gst, struct chunk_t* chunk) {
+
+
+    const int base_index = chunk->index * MAX_LIGHTS_PERCHUNK;
+    
+    shader_setu_int(gst, DEFAULT_SHADER, U_CHUNK_LIGHT_BASEINDEX, &base_index);
+    shader_setu_int(gst, DEFAULT_SHADER, U_NUM_CHUNK_LIGHTS, (int*)(&chunk->num_lights));
+
+
+    for(int16_t i = 0; i < chunk->num_lights; i++) {
+        struct light_t* light = &chunk->lights[i];
+        
+        // Pointer to start of light data for current chunk.
+        void* localptr = gst->light_data_ptr + ((base_index + i) * GLSL_LIGHT_STRUCT_SIZE);
+
+        float light_settings[13] = {
+            
+            // Color.
+            (float)light->color.r / 255.0,
+            (float)light->color.g / 255.0,
+            (float)light->color.b / 255.0,
+            1.0, // Alpha.
+
+            // Position.
+            light->position.x,
+            light->position.y,
+            light->position.z,
+            0.0, // <- not used but needed for padding.
+
+            // Radius and strength.
+            light->radius,
+            light->strength,
+            
+            // Not used.  
+            // (this can be used for some effect if needed in the future.)
+            0,
+            0
+        };
+
+        memmove(
+                localptr,
+                light_settings,
+                sizeof(light_settings)
+                );
+    }
+}
 
 
 

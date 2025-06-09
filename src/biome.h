@@ -20,7 +20,7 @@ struct terrain_t;
 struct biome_t {
     int id;
     struct fog_t fog;
-    struct light_t sun;
+    //struct light_t sun;
     // ...
 };
 

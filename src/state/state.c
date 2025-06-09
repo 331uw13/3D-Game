@@ -6,7 +6,7 @@
 #include "state/state_free.h"
 #include "input.h"
 #include "util.h"
-
+#include "memory.h"
 
 #include <raymath.h>
 #include <rlgl.h>
@@ -488,7 +488,6 @@ void state_update_frame(struct state_t* gst) {
 
     // Update Misc.
     update_biome_envblend(gst);
-    update_decay_lights(gst);
     update_npc(gst, &gst->npc);
     player_update(gst, &gst->player);
     state_update_shadow_cams(gst);
@@ -519,10 +518,12 @@ void state_update_frame(struct state_t* gst) {
 
     gst->player.wants_to_pickup_item = 0;
 
+    /*
     if(gst->new_render_dist_scheduled) {
         gst->new_render_dist_scheduled = 0;
         set_render_dist(gst, gst->new_render_dist);
     }
+    */
 }
 
 
@@ -553,25 +554,15 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
 
 
     // Add light from explosion.
+    //set_light(gst, &exp_light, LIGHTS_UBO);
+    //add_decay_light(gst, &exp_light, 8.0);
 
-    struct light_t exp_light = (struct light_t) {
-        .type = LIGHT_POINT,
-        .enabled = 1,
-        .position = (Vector3){ position.x, position.y+10, position.z },
-        .color = (Color){ 200, 50, 20, 255 },
-        .strength = 50.0,
-        .radius = 10.0,
-        .index = gst->next_explosion_light_index
-    };
-
-
-    set_light(gst, &exp_light, LIGHTS_UBO);
-    add_decay_light(gst, &exp_light, 8.0);
-
+    /*
     gst->next_explosion_light_index++;
     if(gst->next_explosion_light_index >= MAX_EXPLOSION_LIGHTS) {
         gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
     }
+    */
     
 
     SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, position));
@@ -632,6 +623,8 @@ void set_render_dist(struct state_t* gst, float new_dist) {
 
     gst->old_render_dist = gst->render_dist;
     gst->render_dist = new_dist;
+
+    // Small number for near plane avoids 
     rlSetClipPlanes(0.160000, gst->render_dist+3000.0);
 
     gst->menu_slider_render_dist_v = gst->render_dist;
@@ -652,7 +645,8 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     }
 
     printf("'%s': New render distance: %0.3f\n", __func__, new_dist);
-    printf("'%s': Predicted visible chunks: %i (without frustrum culling)\n", __func__, gst->terrain.num_max_visible_chunks);
+    printf("'%s': Predicted visible chunks: %i (without frustrum culling)\n",
+            __func__, gst->terrain.num_max_visible_chunks);
 
     // Allocate/Reallocate space for foliage.
     // When rendering terrain: foliage are copied into bigger arrays and then rendered all at once(per type)
@@ -666,6 +660,13 @@ void set_render_dist(struct state_t* gst, float new_dist) {
             f_rdata->matrices = NULL;
         }
 
+        if(gst->terrain.foliage_max_perchunk[i] == 0) {
+            fprintf(stderr, "\033[31m(ERROR) '%s': foliage_max_perchunk must not be zero!\n"
+                            " It has been set to 1 to avoid crashing.\033[0m\n",
+                            __func__);
+            gst->terrain.foliage_max_perchunk[i] = 1;
+        }
+
         f_rdata->matrices_size 
             = gst->terrain.num_max_visible_chunks
             * gst->terrain.foliage_max_perchunk[i];
@@ -676,25 +677,32 @@ void set_render_dist(struct state_t* gst, float new_dist) {
     }
 
 
-    // TODO: Realloc should be used. This will discard its contents.
-    // it is important because it stores pointers.
+    // Resize the 'rendered_chunks' array.
 
-    // Allocate/Reallocate space for rendered chunks
+    const size_t rchunks_new_size 
+        = gst->terrain.num_max_visible_chunks
+        * sizeof *gst->terrain.rendered_chunks;
+
     if(gst->terrain.rendered_chunks) {
-        free(gst->terrain.rendered_chunks);
-        gst->terrain.rendered_chunks = NULL;
+        struct chunk_t** rchunks_tmpptr 
+            = realloc(gst->terrain.rendered_chunks, rchunks_new_size);
+        if(!rchunks_tmpptr) {
+            fprintf(stderr, "\033[31Abort from '%s' because of memory error\033[0m\n",
+                    __func__);
+            state_abort(gst);
+            return;
+        }
+        gst->terrain.rendered_chunks = rchunks_tmpptr;
+
+    }
+    else {
+        gst->terrain.rendered_chunks = malloc(rchunks_new_size);
     }
 
-    gst->terrain.rendered_chunks = malloc(
-            gst->terrain.num_max_visible_chunks * sizeof *gst->terrain.rendered_chunks);
-
-    // Strech water plane to match render distance.
-    //gst->terrain.waterplane.transform = MatrixScale(1, 1.0, 1);
 
     if(gst->fog.mode == FOG_MODE_RENDERDIST) {
         set_fog_settings(gst, &gst->fog);
     }
-
 }
 
 void resample_texture(struct state_t* gst, 

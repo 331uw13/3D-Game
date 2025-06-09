@@ -18,15 +18,8 @@ void setup_biomes(struct state_t* gst) {
             .color_top    = (Color){ 15, 60, 60, 255 },
             .color_bottom = (Color){ 20, 80, 80, 255 },
             .density = 0 // Density is ignored when fog mode is 'FOG_MODE_RENDERDIST'
-        },
-        .sun = (struct light_t) {
-            .type = LIGHT_DIRECTIONAL,
-            .enabled = 1,
-            .color = (Color){ 240, 150, 80, 255 },
-            .position = (Vector3){ 0, 1, 0 },
-            .strength = 0.4,
-            .index = SUN_LIGHT_ID
         }
+        
     };
     Material* comfy_material = &gst->terrain.biome_materials[BIOMEID_COMFY];
     *comfy_material = LoadMaterialDefault();
@@ -43,15 +36,7 @@ void setup_biomes(struct state_t* gst) {
             .color_top    = (Color){ 25, 25, 25, 255 },
             .color_bottom = (Color){ 25, 25, 25, 255 },
             .density = 0
-        },
-        .sun = (struct light_t) {
-            .type = LIGHT_DIRECTIONAL,
-            .enabled = 1,
-            .color = (Color){ 200, 160, 100, 255 },
-            .position = (Vector3){ 0, 1, 0 },
-            .strength = 0.3,
-            .index = SUN_LIGHT_ID
-        }
+        } 
 
     };
     Material* hazy_material = &gst->terrain.biome_materials[BIOMEID_HAZY];
@@ -69,14 +54,6 @@ void setup_biomes(struct state_t* gst) {
             .color_top    = (Color){ 10, 0, 1, 255 },
             .color_bottom = (Color){ 10, 0, 1, 255 },
             .density = 0
-        },
-        .sun = (struct light_t) {
-            .type = LIGHT_DIRECTIONAL,
-            .enabled = 1,
-            .color = (Color){ 250, 50, 15, 255 },
-            .position = (Vector3){ 0, 1, 0 },
-            .strength = 0.5,
-            .index = SUN_LIGHT_ID
         }
     };
     
@@ -118,8 +95,8 @@ void change_to_biome(struct state_t* gst, int biome_id) {
     gst->fog = biomedata->fog;
     set_fog_settings(gst, &gst->fog);
 
-    gst->sun = biomedata->sun;
-    set_light(gst, &gst->sun, LIGHTS_UBO);
+    //gst->sun = biomedata->sun;
+    //set_light(gst, &gst->sun, LIGHTS_UBO);
 
     printf("'%s': \"%s\"\n", __func__, get_biome_name_by_id(biome_id));
 }
@@ -187,8 +164,8 @@ void update_biome_envblend(struct state_t* gst) {
             fog_blend(gst, &gst->fog, T, &hazy_biome->fog, &comfy_biome->fog);
             
             // Blend sun.
-            gst->sun.color = ColorLerp(hazy_biome->sun.color, comfy_biome->sun.color, T);
-            set_light(gst, &gst->sun, LIGHTS_UBO);
+            //gst->sun.color = ColorLerp(hazy_biome->sun.color, comfy_biome->sun.color, T);
+            //set_light(gst, &gst->sun, LIGHTS_UBO);
         }
         else
         if(biomeshift_id == 1) {
@@ -200,8 +177,8 @@ void update_biome_envblend(struct state_t* gst) {
             fog_blend(gst, &gst->fog, T, &evil_biome->fog, &hazy_biome->fog);
             
             // Blend sun.
-            gst->sun.color = ColorLerp(evil_biome->sun.color, hazy_biome->sun.color, T);
-            set_light(gst, &gst->sun, LIGHTS_UBO);
+            //gst->sun.color = ColorLerp(evil_biome->sun.color, hazy_biome->sun.color, T);
+            //set_light(gst, &gst->sun, LIGHTS_UBO);
         }
     }
 }

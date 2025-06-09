@@ -26,7 +26,6 @@ struct inventory_t {
 
     struct item_t items[INV_SIZE];
     
-    struct light_t light;
 };
 
 void inventory_init(struct inventory_t* inv);

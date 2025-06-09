@@ -912,11 +912,21 @@ static void state_setup_all_render_targets(struct state_t* gst) {
 }
 
 static void state_setup_all_ubos(struct state_t* gst) {
-    state_create_ubo(gst, LIGHTS_UBO,    2, MAX_NORMAL_LIGHTS * LIGHT_UB_STRUCT_SIZE);
-    state_create_ubo(gst, PRJLIGHTS_UBO, 3, MAX_PROJECTILE_LIGHTS * LIGHT_UB_STRUCT_SIZE);
-    state_create_ubo(gst, FOG_UBO,       4, FOG_UB_STRUCT_SIZE);
+    state_create_ubo(gst, FOG_UBO, 4, FOG_UB_STRUCT_SIZE);
 
     gst->init_flags |= INITFLG_UBOS;
+}
+
+static void state_setup_all_ssbos(struct state_t* gst) {
+  
+    size_t light_ssbo_size = GLSL_LIGHT_STRUCT_SIZE * (gst->terrain.num_chunks * MAX_LIGHTS_PERCHUNK);
+    state_create_ssbo(gst, CHUNK_LIGHTS_SSBO, 2, light_ssbo_size);
+
+    printf("\033[35mLights SSBO Size: %li(Bytes) / %li(KiloBytes) / %f(MegaBytes)\033[0m\n",
+            light_ssbo_size,
+            light_ssbo_size/1000,
+            (float)light_ssbo_size/1000000);
+    gst->init_flags |= INITFLG_SSBOS;
 }
 
 
@@ -1116,6 +1126,7 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_shaders(gst);
     state_setup_all_ubos(gst);
 
+    /*
     // Make sure all lights are disabled.
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
         struct light_t disabled = {
@@ -1127,6 +1138,7 @@ int state_setup_everything(struct state_t* gst) {
     for(size_t i = 0; i < MAX_DECAY_LIGHTS; i++) {
         gst->decay_lights[i].enabled = 0;
     }
+    */
 
     gst->weather.wind_dir = (Vector3){ 0, 0, 1 };
     gst->weather.wind_strength = 100.0;
@@ -1140,6 +1152,8 @@ int state_setup_everything(struct state_t* gst) {
 
     state_setup_terrain(gst);
     state_setup_ssao(gst);
+    
+    state_setup_all_ssbos(gst);
     
     state_setup_all_psystems(gst);
     state_setup_all_enemy_weapons(gst);
@@ -1161,7 +1175,6 @@ int state_setup_everything(struct state_t* gst) {
   
 
     shader_setu_int(gst, POSTPROCESS_SHADER, U_ONLY_SSAO, &gst->show_only_ssao);
-
     shader_setu_float(gst, SSAO_SHADER, U_RES_DIV, &gst->cfg.res_div);
 
 
@@ -1183,7 +1196,7 @@ int state_setup_everything(struct state_t* gst) {
 
     gst->mouse_click_time_point = GetTime();
     gst->mouse_double_click = 0;
-
+    gst->light_data_ptr = NULL;
     
 
     gst->loading_time = GetTime() - loading_time_start;

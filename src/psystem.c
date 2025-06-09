@@ -207,7 +207,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
         if((psys->time_setting == PSYS_ONESHOT) && (p->lifetime > p->max_lifetime)) {
             p->alive = 0;
             if(p->has_light) {
-                disable_light(gst, &p->light, PRJLIGHTS_UBO);
+                //disable_light(gst, &p->light, PRJLIGHTS_UBO);
             }
 
             continue;

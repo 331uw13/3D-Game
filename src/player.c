@@ -25,7 +25,6 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     p->cam_random_dir = (Vector2){ 0 };
     p->movement_state = MOVEMENT_STATE_STANDING;
-    
 
     // Armor and health
 
@@ -56,6 +55,7 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     p->item_in_hands = NULL;//&p->inventory.items[0];
 
     p->xp = 999999;
+    p->chunk = NULL;
 
     for(int i = 0; i < MAX_HITBOXES; i++) {
         p->hitboxes[i].hits = 0;
@@ -441,6 +441,7 @@ static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
 
 void player_update(struct state_t* gst, struct player_t* p) {
 
+    p->chunk = find_chunk(gst, p->position);
 
     // Update item changing animation.
     if(p->changing_item) {

@@ -36,7 +36,7 @@
 #define MAX_RENDERDIST 15000.0
 #define MIN_RENDERDIST 3400.0
 
-#define TARGET_FPS 500
+#define TARGET_FPS 1000
 #define CAMERA_SENSETIVITY 0.00125
 #define MAX_VOLUME_DIST 3000 // How far away can player hear sounds.?
 
@@ -137,8 +137,8 @@
 #define PLAYER_GUN_NLIGHT 1
 // ...
 
+// TODO: Rename this.
 // Uniform buffer objects structs sizes.
-#define LIGHT_UB_STRUCT_SIZE        (4*4 + 4*4 + 4*4 + 4*4)
 #define FOG_UB_STRUCT_SIZE          (4*4 + 4*4 + 4*4)
 //#define GRASS_FVEC_UB_STRUCT_SIZE   (4*4)
 
@@ -147,13 +147,10 @@
 
 // Uniform buffer objects.
 #define FOG_UBO 0
-#define LIGHTS_UBO 1     // "Normal" lights
-#define PRJLIGHTS_UBO 2  // Projectile lights.
-//#define FORCEVEC_UBO 3   // Used for grass.
-#define MAX_UBOS 4
+#define MAX_UBOS 1
 
 // Shader storage buffer objects.
-#define GRASSDATA_SSBO 0
+#define CHUNK_LIGHTS_SSBO 0
 #define MAX_SSBOS 1
 
 
@@ -184,10 +181,10 @@
 #define INITFLG_PLAYER        (1<<12)
 #define INITFLG_NPC           (1<<13)
 #define INITFLG_FRACTAL_MODELS (1<<14)
+#define INITFLG_SSBOS         (1<<15)
 
 // 'Time buffer' is for saving render times and processing times
 // So the average can be calculated.
-// How many to record?
 // If the 'TIME_ELEM_<something>' ends with _R it means its for rendering.
 #define TIMEBUF_SIZE 24
 #define TIMEBUF_ELEM_PSYSTEMS_R 0
@@ -260,8 +257,9 @@ struct state_t {
     struct gamepad_t gamepad;
 
     unsigned int ubo[MAX_UBOS];
-    unsigned int ssbo[MAX_SSBOS]; // <- (NOTE: CURRENTLY NOT USED)
-    size_t num_prj_lights;
+    unsigned int ssbo[MAX_SSBOS];
+
+    size_t num_prj_lights; // TODO: Remove?
 
     float mouse_click_time_point;
     int mouse_double_click;
@@ -297,7 +295,6 @@ struct state_t {
     // ---- Lights ----
     // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
     struct light_t decay_lights[MAX_DECAY_LIGHTS];
-    size_t next_explosion_light_index;
 
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
@@ -424,6 +421,9 @@ struct state_t {
     int     testmd_firerate;
 
     int test_counter;
+
+
+    void* light_data_ptr;
 };
 
 // NOTE: This function should only be used if errors happen while doing setup!

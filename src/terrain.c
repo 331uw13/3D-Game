@@ -503,6 +503,14 @@ void render_terrain(
 
     terrain->num_visible_chunks = 0;
 
+    
+
+    if(!gst->light_data_ptr) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to map light data ssbo!\033[0m\n",
+                __func__);
+        return;
+    }
+
 
     // Clear foliage render data from previous frame.
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
@@ -596,6 +604,8 @@ void render_terrain(
         }
         
 
+        chunk_prepare_lights(gst, chunk);
+
         // Render chunk ground.
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);
         DrawMesh(terrain->chunks[i].mesh, terrain->biome_materials[chunk->biome.id], translation);
@@ -646,6 +656,5 @@ void render_terrain(
     state_timebuf_add(gst, 
             TIMEBUF_ELEM_TERRAIN_R,
             GetTime() - terrain_render_timestart);
-
 }
 

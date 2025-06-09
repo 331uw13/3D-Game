@@ -334,6 +334,14 @@ void fractal_tree_test(struct state_t* gst) {
 
 void state_render(struct state_t* gst) {
 
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[CHUNK_LIGHTS_SSBO]);
+    gst->light_data_ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+    
+    if(!gst->light_data_ptr) {
+        printf("'%s' OpenGL Error: 0x%x\n", __func__, glGetError());
+        return;
+    }
+
     // ------ Shadow map.
     // TODO: This should be rendered in low resolution and then add blur.
 
@@ -555,8 +563,9 @@ void state_render(struct state_t* gst) {
     EndTextureMode();
 
 
+    // TODO: Move ssao to its own functions.
     if(!gst->ssao_enabled || gst->player.any_gui_open) {
-        return;
+        goto skip_ssao;
     }
 
     // SSAO.
@@ -626,5 +635,10 @@ void state_render(struct state_t* gst) {
             gst->res_y,
             SSAO_BLUR_SHADER);
 
+skip_ssao:
+    // Unmap light SSBO.
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    gst->light_data_ptr = NULL;
 }
 

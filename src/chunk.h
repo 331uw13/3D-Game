@@ -27,6 +27,7 @@ struct terrain_t;
 #define MAX_FRACTALS_PERCHUNK 16
 #define FRACTAL_SPAWN_CHANCE 50  // 0 - 100
 
+#define MAX_LIGHTS_PERCHUNK 256
 
 // This data is not directly being used to render foliages from.
 //   When chunks are being generated
@@ -64,6 +65,9 @@ struct chunk_t {
     // The fractal will have special function when player interacts with it.
     struct fractal_t fractals[MAX_FRACTALS_PERCHUNK];
     int num_fractals;
+
+    struct light_t lights[MAX_LIGHTS_PERCHUNK];
+    int16_t num_lights;
 };
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain);
@@ -89,6 +93,9 @@ void chunk_render_items(struct state_t* gst, struct chunk_t* chunk);
 
 void chunk_update_fractals(struct state_t* gst, struct chunk_t* chunk);
 void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int render_pass);
+
+void chunk_update_lights(struct state_t* gst, struct chunk_t* chunk);
+void chunk_prepare_lights(struct state_t* gst, struct chunk_t* chunk); // Prepare lights for rendering.
 
 // These can be used for debug if needed.
 void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);
