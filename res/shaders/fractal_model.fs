@@ -13,8 +13,10 @@ uniform vec3 u_campos;
 
 out vec4 finalColor;
 
+float u_time = time;
 vec3 fragNormal = vec3(0);
 
+#include "res/shaders/voronoi.glsl"
 #include "res/shaders/light.glsl"
 #include "res/shaders/shadow.glsl"
 #include "res/shaders/fog.glsl"

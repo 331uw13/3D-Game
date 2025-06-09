@@ -32,8 +32,8 @@ uniform float u_terrain_highest;
 
 // Output fragment color
 out vec4 finalColor;
-#include "res/shaders/light.glsl"
 #include "res/shaders/voronoi.glsl"
+#include "res/shaders/light.glsl"
 #include "res/shaders/shadow.glsl"
 #include "res/shaders/fog.glsl"
 

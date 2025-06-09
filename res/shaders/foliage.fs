@@ -12,7 +12,7 @@ uniform sampler2D texture0;
 uniform vec3 u_campos;
 
 out vec4 finalColor;
-
+float u_time = time;
 
 #include "res/shaders/voronoi.glsl"
 #include "res/shaders/light.glsl"

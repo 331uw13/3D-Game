@@ -1,43 +1,75 @@
 
 
 // NOTE: these 2 values must same as in 'src/light.h'
-#define MAX_PROJECTILE_LIGHTS  128
-#define MAX_NORMAL_LIGHTS      16
+//#define MAX_PROJECTILE_LIGHTS  128
+//#define MAX_NORMAL_LIGHTS      16
 
 
-#define LIGHT_DIRECTIONAL   0
-#define LIGHT_POINT         1
+//#define LIGHT_DIRECTIONAL   0
+//#define LIGHT_POINT         1
 
 #define AMBIENT vec3(0.135, 0.165, 0.38)
 
+uniform int u_num_chunk_lights;
+uniform int u_chunk_light_baseindex;
 
+// TODO: 'static_array_sizes' to include both in c and glsl.
+// NOTE: Make sure this is same as in 'src/chunk.h'
+#define MAX_LIGHTS_PERCHUNK 256
+#define NUM_CHUNKS 256
+
+// 40 Bytes.
 struct Light {
-                   //  Base alignment  |  Aligned offset
-    int type;      //  4                  0
-    int enabled;   //  4                  16
-    vec4 color;    //  16                 32
-    vec4 pos;      //  16                 48
-    vec4 strength; //  16                 64
-
-};
-
-// "Normal" lights
-layout (std140, binding = 2) uniform light_ub {
-    Light lights[MAX_NORMAL_LIGHTS];
-};
-
-// Projectile lights
-layout (std140, binding = 3) uniform prj_light_ub {
-    Light prj_lights[MAX_PROJECTILE_LIGHTS];
+    vec4 color;
+    vec4 position;
+    vec4 settings;
 };
 
 
-vec3 g_lightcolor = vec3(0);
-vec3 g_lightspecular = vec3(0);
+layout(std430, binding = 2) buffer chunk_lights_buffer {
+    Light lights[MAX_LIGHTS_PERCHUNK * NUM_CHUNKS];
+};
+
+
+vec3 g_lightcolor = vec3(0, 0, 0);
+vec3 g_lightspecular = vec3(0, 0, 0);
 
 
 
 void compute_lights(vec3 view_dir) {
+    
+
+
+    vec3 normal = normalize(fragNormal);
+
+    for(int k = 0; k < u_num_chunk_lights; k++) {
+        int i = u_chunk_light_baseindex + k;
+
+        vec3 light_pos = lights[i].position.xyz;
+        vec3 light_dir = normalize(light_pos - fragPosition);
+        vec3 view_dir = normalize(u_campos - fragPosition);
+        vec3 halfway_dir = normalize(light_dir - view_dir);
+
+        float light_radius = lights[i].settings.x;
+        float light_strength = lights[i].settings.y;
+
+        float dist = distance(light_pos, fragPosition) / light_radius;
+        dist = 1.0 / dist;
+   
+
+        float NdotL = max(dot(normal, light_dir), 0.0);
+
+        g_lightcolor += ((lights[i].color.rgb * NdotL) * dist) * light_strength;
+
+        float spec = pow(max(dot(view_dir, reflect(-light_dir, normal)), 0.0), 8.0);
+        g_lightspecular += (dist * lights[i].color.rgb) * spec;
+
+    }
+
+
+
+
+    /*
     vec3 normal = normalize(fragNormal);
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {
         if(lights[i].enabled == 0) {
@@ -70,8 +102,6 @@ void compute_lights(vec3 view_dir) {
             g_lightspecular += (dist * lights[i].color.rgb) * (spec * spec);
         }
     }
-
-
     for(int i = 0; i < MAX_PROJECTILE_LIGHTS; i++) {
         if(prj_lights[i].enabled == 0) {
             continue;
@@ -99,6 +129,7 @@ void compute_lights(vec3 view_dir) {
             g_lightspecular += (dist * prj_lights[i].color.rgb) * (spec * spec);
         }
    }
+   */
 
 }
 
