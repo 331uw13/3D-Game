@@ -334,9 +334,11 @@ void fractal_tree_test(struct state_t* gst) {
 
 void state_render(struct state_t* gst) {
 
+    // Map light ssbo.
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[CHUNK_LIGHTS_SSBO]);
     gst->light_data_ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-    
+
+
     if(!gst->light_data_ptr) {
         printf("'%s' OpenGL Error: 0x%x\n", __func__, glGetError());
         return;

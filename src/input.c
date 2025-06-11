@@ -102,7 +102,7 @@ void handle_userinput(struct state_t* gst) {
         //printf("Rstick: %f, %f\n", gst->gamepad.Rstick.x, gst->gamepad.Rstick.y);
         //printf("\n");
     }
-    
+   
 
     if(IsKeyPressed(KEY_F2)) {
         const char* filename = TextFormat("screenshot-%i.png", GetRandomValue(10000,99999));

@@ -156,7 +156,7 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
     if(psys->halt) {
         return;
     }
-    if(psys->num_alive_parts == 0) {  
+    if(psys->num_alive_parts == 0) {
         return;
     }
     if(!psys->update_callback) {
@@ -192,26 +192,28 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
                     __func__);
         }
 
-        if((p->lifetime+gst->dt) >= p->max_lifetime) {
+        if((p->lifetime + gst->dt) >= p->max_lifetime) {
             p->last_update = 1;
         }
 
         p->n_lifetime = normalize(p->lifetime, 0, p->max_lifetime);
-        
-        psys->num_alive_parts++;
-        psys->update_callback(gst, psys, p);
-
-        p->prev_position = p->position;
 
         p->lifetime += gst->dt;
         if((psys->time_setting == PSYS_ONESHOT) && (p->lifetime > p->max_lifetime)) {
             p->alive = 0;
             if(p->has_light) {
-                //disable_light(gst, &p->light, PRJLIGHTS_UBO);
+                p->has_light = 0;
+                remove_light(gst, &p->light);
             }
 
             continue;
         }
+
+        psys->update_callback(gst, psys, p);
+        p->prev_position = p->position;
+        
+        psys->num_alive_parts++;
+       
 
         // Update individual colors if needed.
 
@@ -377,12 +379,10 @@ void disable_particle(struct state_t* gst, struct particle_t* p) {
     p->alive = 0;
     p->lifetime = p->max_lifetime;
     
-    /*
     if(p->has_light) {
-        disable_light(gst, &p->light, PRJLIGHTS_UBO);
         p->has_light = 0;
+        remove_light(gst, &p->light);
     }
-    */
 }
 
 

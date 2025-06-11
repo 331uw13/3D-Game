@@ -424,7 +424,7 @@ error_and_close:
     platform_close_file(&fragment_file);
 
     if(!result) {
-        state_abort(gst);
+        STATE_ABORT(gst, "Shader doesnt work.");
     }
 
 error:
@@ -494,7 +494,7 @@ error_and_free:
     platform_close_file(&compute_file);
 
     if(!result) {
-        state_abort(gst);
+        STATE_ABORT(gst, "Compute shader doesnt work.");
     }
 error:
     return result;

@@ -66,7 +66,7 @@ static int state_setup_all_sounds(struct state_t* gst) {
     gst->sounds[PLAYER_GUN_NOAMMO_SOUND] = LoadSound("res/audio/player_gun_noammo.wav");
     
 
-    SetMasterVolume(100.0);
+    SetMasterVolume(50.0);
     gst->has_audio = 1;
     result = 1;
 
@@ -224,7 +224,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.25, 16, 16));
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.25, 8, 8));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -242,7 +242,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.5, 16, 16));
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.5, 8, 8));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -281,7 +281,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 BASIC_WEAPON_PSYS_SHADER
                 );
 
-        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.25, 16, 16));
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(1.25, 6, 6));
         setup_psystem_color_vbo(gst, psystem);
     }
 
@@ -850,9 +850,11 @@ static void state_setup_all_gbuffers(struct state_t* gst) {
     PRINT_CURRENT_SETUP;
 
 
-    state_setup_gbuffer(&gst->gbuffer, 
+    if(!state_setup_gbuffer(&gst->gbuffer, 
             gst->ssao_res_x, gst->ssao_res_y,
-            GBUF_FLG_ALL);
+            GBUF_FLG_ALL)) {
+        STATE_ABORT(gst, "gbuffer for ssao failed");
+    }
     
     gst->shadow_res_x = gst->res_x;
     gst->shadow_res_y = gst->res_y;
@@ -861,7 +863,7 @@ static void state_setup_all_gbuffers(struct state_t* gst) {
         if(!state_setup_gbuffer(&gst->shadow_gbuffers[i],
                 gst->shadow_res_x, gst->shadow_res_y,
                 GBUF_FLG_POSITIONS)) {
-            state_abort(gst);
+            STATE_ABORT(gst, "gbuffer for shadows failed");
         }
     }
 
@@ -912,8 +914,9 @@ static void state_setup_all_render_targets(struct state_t* gst) {
 }
 
 static void state_setup_all_ubos(struct state_t* gst) {
-    state_create_ubo(gst, FOG_UBO, 4, FOG_UB_STRUCT_SIZE);
-
+    
+    state_create_ubo(gst, BIOME_UBO, 3, GLSL_BIOME_STRUCT_SIZE);
+    state_create_ubo(gst, FOG_UBO, 4, GLSL_FOG_STRUCT_SIZE);
     gst->init_flags |= INITFLG_UBOS;
 }
 
@@ -1059,7 +1062,7 @@ static void state_setup_terrain(struct state_t* gst) {
 static void state_setup_all_item_models(struct state_t* gst) {
 
     if(!load_item_model(gst, ITEM_APPLE, APPLE_TEXID, "res/models/apple.glb"))
-    { state_abort(gst); }
+     { STATE_ABORT(gst, "Failed to load item"); }
     add_item_namedesc(gst, ITEM_APPLE, "Apple", "Healthy food.\n+25 Health boost when eaten.");
     
 
@@ -1182,6 +1185,7 @@ int state_setup_everything(struct state_t* gst) {
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
 
+    gst->biome_changed = 0;
 
     gst->testmd_aim_offset = (Vector3){0};
     gst->testmd_rest_offset = (Vector3){0};
@@ -1197,7 +1201,7 @@ int state_setup_everything(struct state_t* gst) {
     gst->mouse_click_time_point = GetTime();
     gst->mouse_double_click = 0;
     gst->light_data_ptr = NULL;
-    
+
 
     gst->loading_time = GetTime() - loading_time_start;
     printf("\033[32m'%s': Done (loading time: %0.3f)\033[0m\n", __func__, gst->loading_time);

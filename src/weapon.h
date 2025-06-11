@@ -15,7 +15,7 @@
 
 #define PLAYER_WEAPON_GID 0
 #define ENEMY_WEAPON_GID 1
-#define INVLID_WEAPON_GID 2
+#define INVALID_WEAPON_GID 2
 
 
 

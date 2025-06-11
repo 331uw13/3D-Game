@@ -10,10 +10,50 @@
 #include <raymath.h>
 
 
+/*
 static void disable_projectile(struct state_t* gst, struct particle_t* part) {
     disable_particle(gst, part);
-    part->light.position.y += 5.0;
+    
+    //part->light.position.y += 5.0;
     //add_decay_light(gst, &part->light, 14.0);
+}
+*/
+
+// For future improvements.
+#define HITOBJ_TERRAIN 0
+#define HITOBJ_ENEMY 1
+#define HITOBJ_PLAYER 2
+
+// This function handles what happens to the projectile after it hit something.
+// If 'hit_object' is HITOBJ_TERRAIN, normal is set. otherwise its zero.
+static void post_projectile_hit(
+        struct state_t* gst,
+        struct psystem_t* psys,
+        struct particle_t* part,
+        int hit_object,
+        Vector3 normal
+){
+
+    
+    if(hit_object == HITOBJ_TERRAIN) {
+        part->position = 
+            Vector3Add(part->position, Vector3Scale(normal, 4.0));
+    }
+
+
+    if(part->has_light) {
+        part->light.position = part->position;
+    }
+
+    add_particles(gst,
+            &gst->psystems[PROJECTILE_ENVHIT_PSYS],
+            1,
+            part->position,
+            (Vector3){0, 0, 0},
+            part->color,
+            NULL, NO_EXTRADATA, NO_IDB);
+   
+    disable_particle(gst, part);
 }
 
 
@@ -29,20 +69,12 @@ void weapon_psys_prj_update(
         return;
     }
 
-    if(weapon->gid >= INVLID_WEAPON_GID) {
+    if(weapon->gid >= INVALID_WEAPON_GID) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Invalid weapon id\033[0m\n",
                 __func__);
         return;
     }
 
-    /*
-    if((gst->player.powerup_levels[POWERUP_GRAVITY_PROJECTILES] > 0.0)
-    && (weapon->gid == PLAYER_WEAPON_GID)) {
-
-    }
-    */
-   
-    //Vector3 part_old_position = part->position;
 
     Vector3 vel = Vector3Scale(part->velocity, gst->dt * weapon->prj_speed);
     part->position = Vector3Add(part->position, vel);
@@ -51,43 +83,26 @@ void weapon_psys_prj_update(
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     *part->transform = MatrixMultiply(scale_matrix, translation);
 
-    part->light.color = part->color;
-    part->light.position = part->position;
-    //set_light(gst, &part->light, PRJLIGHTS_UBO);
 
-
-    // Check collision with water
-    /*
-    if(part->position.y <= gst->terrain.water_ylevel) {
-        add_particles(
-                gst,
-                &gst->psystems[WATER_SPLASH_PSYS],
-                GetRandomValue(10, 20),
-                part->position,
-                part->velocity,
-                (Color){0},
-                NULL, NO_EXTRADATA, NO_IDB
-                );
-        disable_projectile(gst, part);
-        return;
+    if(part->has_light) {
+        part->light.position = part->position;
     }
-    */
 
-    int disable_prj = 0;
 
     // Check collision with terrain
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
     if(t_hit.point.y >= part->position.y) {
-        disable_prj = 1;
+        post_projectile_hit(gst, psys, part, HITOBJ_TERRAIN, t_hit.normal);
+        return;
     }
 
 
-    // TODO: Optimize this! <---
+    // TODO: Chunks should take care of enemies so this can be optimized alot.
+    
+    const float weapon_damage = get_weapon_damage(weapon);
 
     if(weapon->gid == PLAYER_WEAPON_GID) {
         // Check collision with enemies.
-
-        // TODO: Chunks should take care of enemies so this can be optimized alot.
         
         struct enemy_t* enemy = NULL;
         
@@ -103,6 +118,7 @@ void weapon_psys_prj_update(
                 continue;
             }
 
+            // Which hitbox was hit.
             for(size_t i = 0; i < enemy->num_hitboxes; i++) {
                 struct hitbox_t* hitbox = &enemy->hitboxes[i];
                 
@@ -114,18 +130,28 @@ void weapon_psys_prj_update(
                             weapon->prj_scale
                             )) {
                     // Hit.
-                    float damage = get_weapon_damage(weapon);
-                    enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, weapon->knockback);
-                    disable_prj = 1;
-                    goto collision_finished;
+                    enemy_damage(gst,
+                            enemy,
+                            weapon_damage,
+                            hitbox,
+                            part->position,
+                            part->velocity,
+                            weapon->knockback);
+
+                    post_projectile_hit(gst, psys, part, HITOBJ_ENEMY, (Vector3){0});
+                    break;
                 }
             }
         }
     }
     else
-    if(weapon->gid == ENEMY_WEAPON_GID) {
+    if(weapon->gid == ENEMY_WEAPON_GID) { // Check collision with player.
+
+        // Check collision radius.
         if(Vector3Distance(part->position, gst->player.position)
         < gst->player.ccheck_radius) {
+            
+            // Which hitbox was hit.
             for(size_t i = 0; i < MAX_HITBOXES; i++) {
                 struct hitbox_t* hitbox = &gst->player.hitboxes[i];
 
@@ -137,64 +163,13 @@ void weapon_psys_prj_update(
                             weapon->prj_scale
                             )) {
                     // Hit.
-                    float damage = get_weapon_damage(weapon);
-                    player_damage(gst, &gst->player, damage);
-                    disable_prj = 1;
-                    goto collision_finished;
+                    player_damage(gst, &gst->player, weapon_damage);
+                    post_projectile_hit(gst, psys, part, HITOBJ_PLAYER, (Vector3){0});
+                    break;
                 }
-
             }
         }
     }
-    
-collision_finished:
-
-    /*
-    if(psys->groupid == PSYS_GROUPID_PLAYER) {
-        // Check collision with enemies.
-        
-        // The raycasting can be only done when it is very nearby the enemy.
-        // or it will waste alot of time that doesnt do anything useful.
-
-
-        struct enemy_t* enemy = NULL;
-        for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
-            enemy = &gst->enemies[i];
-            if(!enemy->alive) {
-                continue;
-            }
-
-            struct hitbox_t* hitbox = check_collision_hitboxes(&part_boundingbox, enemy);
-            if(hitbox) {
-                float damage = get_weapon_damage(weapon);
-                float knockback = 0.35;
-                enemy_damage(gst, enemy, damage, hitbox, part->position, part->velocity, knockback);
-                disable_prj = 1;
-            }
-        }
-    }
-    else
-    if(psys->groupid == PSYS_GROUPID_ENEMY) {
-        // Check collision with player.
-
-        if(CheckCollisionBoxes(part_boundingbox, get_player_boundingbox(&gst->player))) {
-            player_damage(gst, &gst->player, get_weapon_damage(weapon));
-            disable_prj = 1;
-        }
-    }
-    */
-
-    if(disable_prj) {
-        add_particles(gst,
-                &gst->psystems[PROJECTILE_ENVHIT_PSYS],
-                1,
-                part->position,
-                (Vector3){0, 0, 0},
-                part->color,
-                NULL, NO_EXTRADATA, NO_IDB);
-        disable_projectile(gst, part);
-    }
-
 }
 
 void weapon_psys_prj_init(
@@ -209,7 +184,7 @@ void weapon_psys_prj_init(
 
     struct weapon_t* weapon = (struct weapon_t*)extradata;
     if(!weapon || !has_extradata) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Missing extradata pointer\033[0m\n",
+        fprintf(stderr, "\033[31m(ERROR) '%s': Missing extradata pointer (weapon)\033[0m\n",
                 __func__);
         return;
     }
@@ -218,23 +193,22 @@ void weapon_psys_prj_init(
     part->velocity = velocity;
     part->position = origin;
 
-    /*
-    // Add projectile light
+
     part->light = (struct light_t) {
-        .enabled = 1,
-        .type = LIGHT_POINT,
         .color = weapon->color,
-        .strength = 1.25,
-        .radius = 10.0,
-        .index = gst->num_prj_lights
-        // position is updated later.
+        .position = part->position,
+        .strength = 1.0,
+        .radius = 15.0
     };
-    */
+
+    part->has_light = add_light(gst,
+            find_chunk(gst, part->position),
+            &part->light,
+            NEVER_OVERWRITE);
 
 
     part->scale = weapon->prj_scale;
     part->color = weapon->color;
-    part->has_light = 1;
     part->max_lifetime = weapon->prj_max_lifetime;
 
     // Projectile trail.
@@ -244,12 +218,5 @@ void weapon_psys_prj_init(
             (Vector3){0}, (Vector3){0}, (Color){0},
             part, HAS_EXTRADATA, NO_IDB);
 
-
-    /*
-    gst->num_prj_lights++;
-    if(gst->num_prj_lights >= MAX_PROJECTILE_LIGHTS) {
-        gst->num_prj_lights = 0;
-    }
-    */
-
 }
+

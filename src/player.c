@@ -60,6 +60,7 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     for(int i = 0; i < MAX_HITBOXES; i++) {
         p->hitboxes[i].hits = 0;
     }
+
 }
 
 static void create_player_hitboxes(struct state_t* gst, struct player_t* p) {

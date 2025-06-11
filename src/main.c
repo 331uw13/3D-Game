@@ -140,6 +140,8 @@ void loop(struct state_t* gst) {
                 gst->item_info_screen_time = 0;
             }
 
+
+
             if(gst->debug) {
                 int next_y = 50;
                 int dtext_x = gst->res_x - 500;
@@ -162,12 +164,11 @@ void loop(struct state_t* gst) {
                 DrawText(TextFormat("Items in chunk: %i", current_chunk->num_items),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
- 
+
                 DrawText(TextFormat("Lights in chunk: %i", current_chunk->num_lights),
 
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
-                
 
                 DrawText(TextFormat("X=%0.3f", gst->player.cam.position.x),
                         dtext_x, next_y, 20, (Color){ 150, 80, 200, 255 });
@@ -219,20 +220,10 @@ void loop(struct state_t* gst) {
 
 
 void cleanup(struct state_t* gst) {
-    
-
     state_free_everything(gst);
-    UnloadModel(gst->skybox);
-
-    if(gst->ssao_kernel) {
-        free(gst->ssao_kernel);
-    }
-
+    CloseWindow();
 
     printf("\033[35m -> Cleanup done...\033[0m\n");
-    
-    UnloadFont(gst->font);
-    CloseWindow();
 }
 
 #include "platform/platform.h"
@@ -398,7 +389,6 @@ void first_setup(struct state_t* gst) {
     gst->num_textures = 0;
     gst->debug = 0;
     gst->num_enemies = 0;
-    gst->num_prj_lights = 0;
     gst->dt = 0.016;
     gst->time = 0.0;
     gst->num_enemy_weapons = 0;

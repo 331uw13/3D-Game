@@ -137,17 +137,10 @@
 #define PLAYER_GUN_NLIGHT 1
 // ...
 
-// TODO: Rename this.
-// Uniform buffer objects structs sizes.
-#define FOG_UB_STRUCT_SIZE          (4*4 + 4*4 + 4*4)
-//#define GRASS_FVEC_UB_STRUCT_SIZE   (4*4)
-
-//#define MAX_GRASS_FORCEVECTORS 64 // NOTE: This must be same as in 'res/shaders/grass/grass.cs'
-//#define MAX_PRJ_FORCEVECTORS 32 // Rest are reserved for something else.
-
 // Uniform buffer objects.
-#define FOG_UBO 0
-#define MAX_UBOS 1
+#define FOG_UBO 0     // Fog data for shaders.
+#define BIOME_UBO 1   // Biome data for shaders.
+#define MAX_UBOS 2
 
 // Shader storage buffer objects.
 #define CHUNK_LIGHTS_SSBO 0
@@ -254,18 +247,17 @@ struct state_t {
     Font font;
     platform_file_t cfgfile;
     struct config_t cfg;
-    struct gamepad_t gamepad;
+    struct gamepad_t gamepad; // TODO: Finish controller support.
 
     unsigned int ubo[MAX_UBOS];
     unsigned int ssbo[MAX_SSBOS];
 
-    size_t num_prj_lights; // TODO: Remove?
 
     float mouse_click_time_point;
     int mouse_double_click;
 
     struct player_t player;
-
+    int biome_changed;
 
     // ---- Weather Stuff ----
     struct fog_t      fog;
@@ -289,12 +281,15 @@ struct state_t {
     struct item_info_t* crosshair_item_info;
     float  item_info_screen_time;
 
+
     // ---- Weapon Models ----
     struct weapon_model_t weapon_models[MAX_WEAPON_MODELS];
 
+
     // ---- Lights ----
-    // Light can be added to this array to be decayed/dimmed over time before disabling them completely.
-    struct light_t decay_lights[MAX_DECAY_LIGHTS];
+    // General usage buffer for lights.
+    struct light_t tmp_lights[MAX_TMP_LIGHTS];
+    uint16_t num_tmp_lights;
 
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
@@ -426,10 +421,13 @@ struct state_t {
     void* light_data_ptr;
 };
 
-// NOTE: This function should only be used if errors happen while doing setup!
-void state_abort(struct state_t* gst);
 
-void state_timebuf_add(struct state_t* gst, int timebuf_elem, float time);
+#define STATE_ABORT(gst, reason) state_abort(gst, reason, __func__, __FILE__)
+
+// 'from' should be the function name that calls this.
+void state_abort(struct state_t* gst, const char* reason, const char* from_func, const char* from_file);
+
+void  state_timebuf_add(struct state_t* gst, int timebuf_elem, float time);
 float state_average_timebuf(struct state_t* gst, int timebuf_elem);
 
 void state_create_ubo(struct state_t* gst, int ubo_index, int binding_point, size_t size);
@@ -439,10 +437,12 @@ void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
+// TODO: Move this?
 void add_item_namedesc(struct state_t* gst, int item_type, const char* name, const char* desc);
 
+// TODO: Make explosions bigger!
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
-void set_render_dist(struct state_t* gst, float new_dist);
+
 
 // Use this function instead of 'set_render_dist' when changing it middle of rendering.
 // The game crashes if 'set_render_dist()' is used
@@ -450,14 +450,14 @@ void set_render_dist(struct state_t* gst, float new_dist);
 //        also then this function can be removed.
 void schedule_new_render_dist(struct state_t* gst, float new_dist);
 
+void set_render_dist(struct state_t* gst, float new_dist);
+
 
 // 'shader_index' can be set to negative value so its not used.
 void resample_texture(struct state_t* gst,
         RenderTexture2D to, RenderTexture2D from,
         int src_width, int src_height,
         int dst_width, int dst_height, int shader_index);
-// Misc.
-//void state_add_crithit_marker(struct state_t* gst, Vector3 position);
 
 
 

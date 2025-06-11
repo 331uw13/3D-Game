@@ -22,7 +22,7 @@
 void* m_resize_array
       (void* ptr, size_t esizeb, size_t ptrsize, size_t newsize, long int* nsize_ptr);
 
-
+// TODO: void m_shift_array();
 
 
 // safe reallocarray function

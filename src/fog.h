@@ -1,6 +1,8 @@
 #ifndef GAME_FOG_H
 #define GAME_FOG_H
 
+#define GLSL_FOG_STRUCT_SIZE          (4*4 + 4*4 + 4*4)
+
 
 struct state_t;
 

@@ -180,6 +180,14 @@ void state_free_everything(struct state_t* gst) {
     UnloadModel(gst->inventory_box_model);
     UnloadModel(gst->inventory_box_selected_model);
     UnloadModel(gst->fractal_berry_model);
+
+    UnloadModel(gst->skybox);
+
+    if(gst->ssao_kernel) {
+        free(gst->ssao_kernel);
+    }
+
+    UnloadFont(gst->font);
 }
 
 

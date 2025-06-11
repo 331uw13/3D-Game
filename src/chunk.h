@@ -27,7 +27,7 @@ struct terrain_t;
 #define MAX_FRACTALS_PERCHUNK 16
 #define FRACTAL_SPAWN_CHANCE 50  // 0 - 100
 
-#define MAX_LIGHTS_PERCHUNK 256
+#define MAX_LIGHTS_PERCHUNK 64
 
 // This data is not directly being used to render foliages from.
 //   When chunks are being generated
@@ -66,8 +66,10 @@ struct chunk_t {
     struct fractal_t fractals[MAX_FRACTALS_PERCHUNK];
     int num_fractals;
 
-    struct light_t lights[MAX_LIGHTS_PERCHUNK];
-    int16_t num_lights;
+    // NOTE: Lights are not in order in array.
+    // 'num_lights' is how many lights was set to light ssbo.
+    struct light_t* lights[MAX_LIGHTS_PERCHUNK];
+    uint16_t num_lights;
 };
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain);
@@ -83,6 +85,7 @@ void load_chunk(
         int chunk_z,
         int chunk_triangle_count
         );
+
 
 void position_to_chunk_index(Vector3 positon, size_t* out_index);
 struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);

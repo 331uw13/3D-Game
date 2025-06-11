@@ -52,7 +52,9 @@ struct particle_t {
     void* extradata;
     
     struct light_t light;
-    int has_light;
+    int            has_light;
+
+
     int last_update;
     
     short   user_i[PSYS_MAX_USER_I];
@@ -130,7 +132,7 @@ struct psystem_t {
     unsigned int color_vbo;
 
 
-    short   user_i[PSYS_MAX_USER_I];
+    int16_t user_i[PSYS_MAX_USER_I];
     float   user_f[PSYS_MAX_USER_F];
     Vector3 user_v[PSYS_MAX_USER_V];
     void*   user_p[PSYS_MAX_USER_P]; 

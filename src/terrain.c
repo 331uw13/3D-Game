@@ -351,7 +351,7 @@ void generate_terrain(
     terrain->highest_point += fabs(terrain->lowest_point);
     terrain->lowest_point = 0.0;
 
-    setup_biome_ylevels(gst);
+    setup_biome_areas(gst);
 
 
     printf("Terrain (highest) point: %0.2f\n", terrain->highest_point);

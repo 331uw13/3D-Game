@@ -12,6 +12,7 @@
 #include <rlgl.h>
 
 #include "../particle_systems/explosion_psys.h"
+#include "../particle_systems/weapon_psys.h"
 /*
 void state_setup_gbuffer(struct state_t* gst) {
     gst->gbuffer = (struct gbuffer_t) { 0 };
@@ -164,23 +165,18 @@ void state_setup_shadow_gbuffer(struct state_t* gst) {
 
 */
 
-void state_abort(struct state_t* gst) {
-    fprintf(stderr, "\033[31m(%s)\033[0m\n", __func__);
+void state_abort(struct state_t* gst, const char* reason, const char* from_func, const char* from_file) {
+    fprintf(stderr, 
+            "(FATAL) %s called from '%s()' @ \"%s\"\n"
+            "Abort reason: %s\n"
+            "\n"
+            ,
+            __func__, from_func, from_file, reason);
 
     state_free_everything(gst);
 
-    if(IsModelValid(gst->skybox)) {
-        UnloadModel(gst->skybox);
-    }
-
-    if(gst->ssao_kernel) {
-        free(gst->ssao_kernel);
-    }
-
-    UnloadFont(gst->font);
     CloseWindow();
-
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 void state_timebuf_add(struct state_t* gst, int timebuf_elem, float time) {
@@ -408,7 +404,7 @@ void state_update_shadow_cams(struct state_t* gst) {
 
 
 
-// NOTE: DO NOT RENDER FROM HERE:
+// NOTE: Do not render from here
 void state_update_frame(struct state_t* gst) {
     
     gst->player.any_gui_open = 
@@ -563,12 +559,12 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
         gst->next_explosion_light_index = MAX_STATIC_LIGHTS;
     }
     */
-    
 
-    SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, position));
-    SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
-    PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
-
+    if(gst->has_audio) {
+        SetSoundVolume(gst->sounds[ENEMY_EXPLOSION_SOUND], get_volume_dist(gst->player.position, position));
+        SetSoundPitch(gst->sounds[ENEMY_EXPLOSION_SOUND], 1.0 - RSEEDRANDOMF(0.0, 0.3));
+        PlaySound(gst->sounds[ENEMY_EXPLOSION_SOUND]);
+    }
 
     // Calculate explosion effects to player.
     {
@@ -687,10 +683,7 @@ void set_render_dist(struct state_t* gst, float new_dist) {
         struct chunk_t** rchunks_tmpptr 
             = realloc(gst->terrain.rendered_chunks, rchunks_new_size);
         if(!rchunks_tmpptr) {
-            fprintf(stderr, "\033[31Abort from '%s' because of memory error\033[0m\n",
-                    __func__);
-            state_abort(gst);
-            return;
+            STATE_ABORT(gst, "Memory error!");
         }
         gst->terrain.rendered_chunks = rchunks_tmpptr;
 

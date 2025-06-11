@@ -286,26 +286,7 @@ void gui_render_devmenu(struct state_t* gst) {
         gst->player.cam.position = gst->player.spawn_point;
     }
 
-    if(gui_button(gst, &guicfg, "Add test light")) {
-
-        Color rng_colors[] = {
-            RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE
-        };
-
-        struct chunk_t* light_chunk = find_chunk(gst, gst->player.position);
-        struct light_t* light = add_light(gst, light_chunk, (struct light_t){
-            .color = rng_colors[GetRandomValue(0, 5)],
-            .radius = 30.0,
-            .strength = 1.0,
-            .position = gst->player.position
-        });
-    }
-
-    if(gui_button(gst, &guicfg, "Remove light from index 1")) {
-        struct chunk_t* light_chunk = find_chunk(gst, gst->player.position);
-        remove_light(gst, &light_chunk->lights[1]);
-    }
-    
+   
     gui_end(gst);
 }
 
