@@ -45,7 +45,7 @@ vec3 get_fog(vec3 current, float dist, float ylevel) {
     vec3 c = get_horizon_color(ylevel);
     c = clamp(c, vec3(0.0), vec3(1.0));
     // Try to break noticeable banding with noise.
-    float noise = fract(cos(dot(vec2(-ylevel*200, fract(dist)+ylevel*200), vec2(52.621,67.1262)))*72823.53)/50.0;
+    float noise = fract(cos(dot(vec2(-ylevel*200, fract(dist)+ylevel*200), vec2(52.621,67.1262)))*72823.53)/70.0;
     return mix(c, current, f+noise);
 };
 

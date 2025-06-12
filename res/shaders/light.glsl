@@ -1,22 +1,11 @@
 
-
-// NOTE: these 2 values must same as in 'src/light.h'
-//#define MAX_PROJECTILE_LIGHTS  128
-//#define MAX_NORMAL_LIGHTS      16
-
-
-//#define LIGHT_DIRECTIONAL   0
-//#define LIGHT_POINT         1
-
 #define AMBIENT vec3(0.135, 0.165, 0.38)
 
-uniform int u_num_chunk_lights;
-uniform int u_chunk_light_baseindex;
 
 // TODO: 'static_array_sizes' to include both in c and glsl.
-// NOTE: Make sure this is same as in 'src/chunk.h'
-#define MAX_LIGHTS_PERCHUNK 256
-#define NUM_CHUNKS 256
+
+// NOTE: Make sure this is same as in 'src/light.h'
+#define MAX_LIGHTS 256
 
 // 40 Bytes.
 struct Light {
@@ -27,8 +16,12 @@ struct Light {
 
 
 layout(std430, binding = 2) buffer chunk_lights_buffer {
-    Light lights[MAX_LIGHTS_PERCHUNK * NUM_CHUNKS];
+    Light lights[MAX_LIGHTS];
+    int   num_lights;
 };
+
+
+#include "res/shaders/biome.glsl"
 
 
 vec3 g_lightcolor = vec3(0, 0, 0);
@@ -38,20 +31,19 @@ vec3 g_lightspecular = vec3(0, 0, 0);
 
 void compute_lights(vec3 view_dir) {
     
-
-
     vec3 normal = normalize(fragNormal);
 
-    for(int k = 0; k < u_num_chunk_lights; k++) {
-        int i = u_chunk_light_baseindex + k;
+   
+    
+    for(int i = 0; i < num_lights; i++) {
 
         vec3 light_pos = lights[i].position.xyz;
         vec3 light_dir = normalize(light_pos - fragPosition);
         vec3 view_dir = normalize(u_campos - fragPosition);
         vec3 halfway_dir = normalize(light_dir - view_dir);
 
-        float light_radius = lights[i].settings.x;
-        float light_strength = lights[i].settings.y;
+        float light_radius = 15.0;//lights[i].settings.x;
+        float light_strength = 1.0;//lights[i].settings.y;
 
         float dist = distance(light_pos, fragPosition) / light_radius;
         dist = 1.0 / dist;
@@ -63,10 +55,16 @@ void compute_lights(vec3 view_dir) {
 
         float spec = pow(max(dot(view_dir, reflect(-light_dir, normal)), 0.0), 8.0);
         g_lightspecular += (dist * lights[i].color.rgb) * spec;
-
     }
+    
 
 
+    // Add one directional light. It is the sun.
+
+    vec3 sun_pos = vec3(0, 1, 0);
+    vec3 sun_dir = -normalize(-sun_pos);
+    
+    g_lightcolor += max(dot(normal, sun_dir), 0.0) * (biome.sun_color.rgb*0.5);
 
 
     /*
