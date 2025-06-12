@@ -198,20 +198,16 @@ void update_psystem(struct state_t* gst, struct psystem_t* psys) {
 
         p->n_lifetime = normalize(p->lifetime, 0, p->max_lifetime);
 
+        psys->update_callback(gst, psys, p);
+        p->prev_position = p->position;
+ 
         p->lifetime += gst->dt;
         if((psys->time_setting == PSYS_ONESHOT) && (p->lifetime > p->max_lifetime)) {
-            p->alive = 0;
-            if(p->has_light) {
-                p->has_light = 0;
-                remove_light(gst, &p->light);
-            }
-
+            disable_particle(gst, p);
             continue;
         }
 
-        psys->update_callback(gst, psys, p);
-        p->prev_position = p->position;
-        
+       
         psys->num_alive_parts++;
        
 
@@ -304,9 +300,15 @@ void render_psystem(struct state_t* gst, struct psystem_t* psys, Color global_ps
 }
 
 
-static struct particle_t* _add_particle(struct psystem_t* psys) {
+static struct particle_t* _add_particle(struct state_t* gst, struct psystem_t* psys) {
     struct particle_t* p = &psys->particles[psys->nextpart_index];
     p->transform = &psys->transforms[psys->nextpart_index];
+
+    // If the particle systems particle array runs out of space.
+    // Some particle will be overwritten. So the light must also be disabled.
+    if(p->has_light && p->light) {
+        remove_light(gst, p->light);
+    }
 
     p->position = (Vector3){ 0, 0, 0 };
     p->prev_position = (Vector3){ 0, 0, 0 };
@@ -350,7 +352,7 @@ struct particle_t* add_particles(
     struct particle_t* first_part = NULL;
 
     for(size_t i = 0; i < n; i++) {
-        struct particle_t* p = _add_particle(psys);
+        struct particle_t* p = _add_particle(gst, psys);
 
         p->origin = origin;
         p->idb = idb;
@@ -378,10 +380,9 @@ struct particle_t* add_particles(
 void disable_particle(struct state_t* gst, struct particle_t* p) {
     p->alive = 0;
     p->lifetime = p->max_lifetime;
-    
-    if(p->has_light) {
-        p->has_light = 0;
-        remove_light(gst, &p->light);
+    if(p->has_light && p->light) {
+        remove_light(gst, p->light);
+        p->light = NULL;
     }
 }
 

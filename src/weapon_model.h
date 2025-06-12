@@ -28,6 +28,7 @@ struct weapon_model_t {
     float firerate;
     float firerate_timer;
     
+    
     Vector3 aim_offset;
     Vector3 rest_offset;
     Vector3 rest_rotation;

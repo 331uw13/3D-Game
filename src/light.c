@@ -4,38 +4,43 @@
 #include "light.h"
 
 
-static uint16_t g_unique_id_counter = 0;
 
+struct light_t* add_light(struct state_t* gst, struct light_t light_settings, int can_overwrite) {
 
-int add_light(struct state_t* gst, struct chunk_t* chunk, struct light_t* light) {
-    int result = 0;
-
-    int new_index = MAX_LIGHTS_PERCHUNK-1;
-
-    for(int i = 0; i < MAX_LIGHTS_PERCHUNK; i++) {
-        if(!chunk->lights[i]) {
-            new_index = i;
-            break;
+    struct light_t* ptr = &gst->lights[gst->next_disabled_light];
+    if(ptr->enabled) {
+        // Low possibility to happen but now disabled light index must be found.
+        int found = 0;
+        for(uint16_t i = 0; i < MAX_LIGHTS; i++) {
+            struct light_t* light = &gst->lights[i];
+            if(!light->enabled) {
+                found = 1;
+                ptr = light;
+                break;
+            }
         }
 
-        if(!chunk->lights[i]->enabled) {
-            new_index = i;
-            break;
+        if(!found) {
+            if(!can_overwrite) {
+                fprintf(stderr, "\033[31m(ERROR) '%s': Light array is full.\033[0m\n",
+                        __func__);
+                return NULL;
+            }
+
+            uint16_t new_index = GetRandomValue(0, MAX_LIGHTS-1);
+            ptr = &gst->lights[new_index];
         }
     }
 
 
-    light->enabled = 1;
-    light->chunk = chunk;
-    chunk->lights[new_index] = light;
+    *ptr = light_settings;
+    ptr->enabled = 1;
 
-    result = 1;
-
-error:
-    return result;
+    return ptr;
 }
 
-void remove_light(struct state_t* gst, struct light_t* light) {
+void remove_light(struct state_t* gst, struct light_t* light) { 
+    gst->next_disabled_light = light->index;
     light->enabled = 0;
 }
 

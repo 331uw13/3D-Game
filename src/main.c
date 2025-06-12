@@ -165,7 +165,7 @@ void loop(struct state_t* gst) {
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
 
-                DrawText(TextFormat("Lights in chunk: %i", current_chunk->num_lights),
+                DrawText(TextFormat("Lights: %i", gst->num_lights_mvram),
 
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;

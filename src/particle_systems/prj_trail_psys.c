@@ -21,6 +21,7 @@ void prj_trail_psys_update(
         return;
     }
 
+
     float scalelrp = lerp(part->n_lifetime, tofollow_part->scale, 0.0);
     Matrix scale_matrix = MatrixScale(scalelrp, scalelrp, scalelrp);
 

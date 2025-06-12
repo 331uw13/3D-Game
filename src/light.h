@@ -4,20 +4,14 @@
 #include <raylib.h>
 #include <stddef.h>
 #include "lib/glad.h"
-// Modified from raylibs 'rlights'
-
-
-#define MAX_TMP_LIGHTS 32
 
 
 #define GLSL_LIGHT_STRUCT_SIZE (4*4 + 4*4 + 4*4)
-    
-// NOTE: Light updates happen in 'src/chunk.c' chunk_update_lights().
+
+#define MAX_LIGHTS 256
 
 
 struct state_t;
-struct chunk_t;
-
 
 struct light_t {
     Color   color;
@@ -25,16 +19,25 @@ struct light_t {
     float   strength;
     float   radius;
 
-    // The current chunk light is in.
-    struct chunk_t* chunk;
-
-    int index;
-    uint8_t  enabled;
+    uint16_t index; // Index to 'state.lights' array. (Do not modify!)
+    uint8_t enabled;
 };
 
+#define NEVER_OVERWRITE 0  // No permission to overwrite enabled lights if array is full.
+#define ALLOW_OVERWRITE 1  // May overwrite existing light data.
 
-int   add_light     (struct state_t* gst, struct chunk_t* chunk, struct light_t* light);
-void  remove_light  (struct state_t* gst, struct light_t* light);
+
+// WARNING: 'add_light' will return NULL if 'can_overwrite' is set to NEVER_OVERWRITE 
+// and there are no room for a new light.
+
+// 'ALLOW_OVERWRITE' is guranteed to return a pointer.
+
+
+struct light_t* add_light     (struct state_t* gst, struct light_t light_settings, int can_overwrite);
+void            remove_light  (struct state_t* gst, struct light_t* light);
+
+
+
 
 
 #endif

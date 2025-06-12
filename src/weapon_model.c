@@ -305,10 +305,6 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
     */
 
 
-    int chunk_light_baseindex = gst->player.chunk->index * MAX_LIGHTS_PERCHUNK;
-    shader_setu_int(gst, DEFAULT_SHADER, U_NUM_CHUNK_LIGHTS, (int*)(&gst->player.chunk->num_lights));
-    shader_setu_int(gst, DEFAULT_SHADER, U_CHUNK_LIGHT_BASEINDEX, &chunk_light_baseindex);
-
     // Render liquid magazine level.
     shader_setu_float(gst, ENERGY_LIQUID_SHADER, U_ENERGY_CONTAINER_LEVEL,
             &weapon_model->stats.lqmag.ammo_level);

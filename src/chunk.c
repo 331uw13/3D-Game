@@ -124,12 +124,7 @@ void load_chunk(
     chunk->mesh.texcoords = malloc(chunk->mesh.vertexCount * 2 * sizeof(float));
 
     chunk->num_items = 0;
-    chunk->num_lights = 0;
    
-    for(int i = 0; i < MAX_LIGHTS_PERCHUNK; i++) {
-        chunk->lights[i] = NULL;
-    }
-
 
     int terrain_size = terrain->heightmap.size;
 
@@ -697,69 +692,4 @@ void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int rende
         }
     }
 }
-
-void chunk_update_lights(struct state_t* gst, struct chunk_t* chunk) {
-
-}
-
-
-
-// Move light data of chunk to SSBO.
-void chunk_prepare_lights(struct state_t* gst, struct chunk_t* chunk) {
-
-    int base_index = chunk->index * MAX_LIGHTS_PERCHUNK;
-    shader_setu_int(gst, DEFAULT_SHADER, U_CHUNK_LIGHT_BASEINDEX, &base_index);
-
-    int light_counter = 0;
-
-    size_t buf_i = 0;
-    float buffer[12 * MAX_LIGHTS_PERCHUNK] = { 0 };
-
-    int num_disabled = 0;
-
-    for(int i = 0; i < MAX_LIGHTS_PERCHUNK; i++) {
-        struct light_t* light = chunk->lights[i];
-
-        if(!light) {
-            continue;
-        }
-
-        if(!light->enabled) {
-            continue;
-        }
-
-        light_counter++;
-
-        buffer[buf_i+0] = (float)light->color.r / 255.0;
-        buffer[buf_i+1] = (float)light->color.g / 255.0;
-        buffer[buf_i+2] = (float)light->color.b / 255.0;
-        buffer[buf_i+3] = 1.0;
-
-        buffer[buf_i+4] = light->position.x;
-        buffer[buf_i+5] = light->position.y;
-        buffer[buf_i+6] = light->position.z;
-        buffer[buf_i+7] = 0;
-
-        buffer[buf_i+8] = light->radius;
-        buffer[buf_i+9] = light->strength;
-        buffer[buf_i+10] = 0;
-        buffer[buf_i+11] = 0;
-
-        buf_i += 12;
-
-    }
-
-    chunk->num_lights = light_counter;
-    shader_setu_int(gst, DEFAULT_SHADER, U_NUM_CHUNK_LIGHTS, &light_counter);
-
-    void* localptr 
-        = gst->light_data_ptr + (base_index * GLSL_LIGHT_STRUCT_SIZE);
-
-    memmove(
-            localptr,
-            buffer,
-            (sizeof(float) * 12) * (light_counter)
-            );
-}
-
 

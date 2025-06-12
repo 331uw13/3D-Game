@@ -505,12 +505,6 @@ void render_terrain(
 
     
 
-    if(!gst->light_data_ptr) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to map light data ssbo!\033[0m\n",
-                __func__);
-        return;
-    }
-
 
     // Clear foliage render data from previous frame.
     for(size_t i = 0; i < MAX_FOLIAGE_TYPES; i++) {
@@ -603,8 +597,6 @@ void render_terrain(
 
         }
         
-
-        chunk_prepare_lights(gst, chunk);
 
         // Render chunk ground.
         Matrix translation = MatrixTranslate(chunk->position.x, 0, chunk->position.z);

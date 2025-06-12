@@ -41,10 +41,6 @@ static void post_projectile_hit(
     }
 
 
-    if(part->has_light) {
-        part->light.position = part->position;
-    }
-
     add_particles(gst,
             &gst->psystems[PROJECTILE_ENVHIT_PSYS],
             1,
@@ -83,11 +79,10 @@ void weapon_psys_prj_update(
     Matrix translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     *part->transform = MatrixMultiply(scale_matrix, translation);
 
-
-    if(part->has_light) {
-        part->light.position = part->position;
+    if(part->has_light && part->light) {
+        part->light->position = part->position;
     }
-
+    
 
     // Check collision with terrain
     RayCollision t_hit = raycast_terrain(&gst->terrain, part->position.x, part->position.z);
@@ -193,23 +188,20 @@ void weapon_psys_prj_init(
     part->velocity = velocity;
     part->position = origin;
 
-
-    part->light = (struct light_t) {
-        .color = weapon->color,
-        .position = part->position,
-        .strength = 1.0,
-        .radius = 15.0
-    };
-
-    part->has_light = add_light(gst,
-            find_chunk(gst, part->position),
-            &part->light,
-            NEVER_OVERWRITE);
-
-
     part->scale = weapon->prj_scale;
     part->color = weapon->color;
     part->max_lifetime = weapon->prj_max_lifetime;
+
+
+    part->light = add_light(gst, (struct light_t) {
+        .color = weapon->color,
+        .radius = 16.0,
+        .strength = 1.0,
+        .position = part->position
+    },
+    ALLOW_OVERWRITE);
+
+    part->has_light = 1;
 
     // Projectile trail.
     add_particles(gst, 

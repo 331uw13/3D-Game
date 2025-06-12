@@ -66,10 +66,6 @@ struct chunk_t {
     struct fractal_t fractals[MAX_FRACTALS_PERCHUNK];
     int num_fractals;
 
-    // NOTE: Lights are not in order in array.
-    // 'num_lights' is how many lights was set to light ssbo.
-    struct light_t* lights[MAX_LIGHTS_PERCHUNK];
-    uint16_t num_lights;
 };
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain);

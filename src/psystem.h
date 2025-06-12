@@ -51,7 +51,7 @@ struct particle_t {
 
     void* extradata;
     
-    struct light_t light;
+    struct light_t* light;
     int            has_light;
 
 

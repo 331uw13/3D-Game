@@ -216,12 +216,6 @@ struct gbuffer_t {
 #define FOG_MODE_CUSTOM 1   // TODO
 
 
-#define FRACTALM_TREE_T0 0
-#define MAX_FRACTAL_MODELS 1
-#define NUM_FRACTAL_LOD 4
-
-
-
 struct weather_t {
     Vector3 wind_dir;
     float   wind_strength;
@@ -285,16 +279,19 @@ struct state_t {
     // ---- Weapon Models ----
     struct weapon_model_t weapon_models[MAX_WEAPON_MODELS];
 
-
     // ---- Lights ----
-    // General usage buffer for lights.
-    struct light_t tmp_lights[MAX_TMP_LIGHTS];
-    uint16_t num_tmp_lights;
+    // NOTE: The light array is not in any order.
+    // some light may be disabled and the next enabled
+    // 'num_lights_mvram' is how many was moved to vram at previous frame.
+    struct light_t lights[MAX_LIGHTS];
+    int num_lights_mvram;
+    uint16_t next_disabled_light; // Used to optimize 'add_lights()'.
+
 
     struct psystem_t psystems[MAX_PSYSTEMS];
     struct terrain_t terrain;
 
-    struct npc_t npc;
+    struct npc_t npc; // <- Not done yet.
 
     
     // ---- Enemies -----
@@ -418,7 +415,6 @@ struct state_t {
     int test_counter;
 
 
-    void* light_data_ptr;
 };
 
 

@@ -402,6 +402,68 @@ void state_update_shadow_cams(struct state_t* gst) {
     }
 }
 
+static void state_update_lights(struct state_t* gst) {
+
+    // Map light ssbo.
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[CHUNK_LIGHTS_SSBO]);
+    void* light_data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+
+    if(!light_data) {
+        fprintf(stderr, "'%s' OpenGL Error: 0x%x\n", __func__, glGetError());
+        return;
+    }
+
+
+    float buffer[12 * MAX_LIGHTS] = { 0 };
+    gst->num_lights_mvram = 0;
+    
+    int counter = 0;
+
+    for(uint16_t i = 0; i < MAX_LIGHTS; i++) {
+        struct light_t* light = &gst->lights[i];
+        if(!light->enabled) {
+            continue;
+        }
+
+        // Dont send lights that are not visible.
+
+        // Color.
+        buffer[counter+0] = (float)light->color.r / 255.0;
+        buffer[counter+1] = (float)light->color.g / 255.0;
+        buffer[counter+2] = (float)light->color.b / 255.0;
+        buffer[counter+3] = 1.0;
+
+        buffer[counter+4] = light->position.x;
+        buffer[counter+5] = light->position.y;
+        buffer[counter+6] = light->position.z;
+        buffer[counter+7] = 0;
+        
+        buffer[counter+8] = light->strength;
+        buffer[counter+9] = light->radius;
+        buffer[counter+10] = 0;
+        buffer[counter+11] = 0;
+
+        counter += 12;
+        gst->num_lights_mvram++;
+    }
+
+    memmove(
+            light_data,
+            buffer,
+            sizeof(buffer)
+            );
+
+    // Set number of lights for the frame.
+    memmove(
+            light_data + sizeof(buffer),
+            &gst->num_lights_mvram,
+            sizeof(int)
+            );
+
+    // Unmap light SSBO.
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
 
 
 // NOTE: Do not render from here
@@ -430,7 +492,7 @@ void state_update_frame(struct state_t* gst) {
     */
 
 
-    // For testing purposes drop all weapon types on first update.
+    // For testing purposes drop all weapon types.
     if((gst->time - gst->loading_time) > 1.0 && !gst->default_weapon_dropped) {
 
         float drop_xoff =  0.0;
@@ -514,6 +576,9 @@ void state_update_frame(struct state_t* gst) {
 
     gst->player.wants_to_pickup_item = 0;
 
+    // Move enabled lights to lights ssbo before rendering anything.
+    state_update_lights(gst);
+    
     /*
     if(gst->new_render_dist_scheduled) {
         gst->new_render_dist_scheduled = 0;

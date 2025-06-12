@@ -922,7 +922,9 @@ static void state_setup_all_ubos(struct state_t* gst) {
 
 static void state_setup_all_ssbos(struct state_t* gst) {
   
-    size_t light_ssbo_size = GLSL_LIGHT_STRUCT_SIZE * (gst->terrain.num_chunks * MAX_LIGHTS_PERCHUNK);
+    size_t light_ssbo_size = 
+        GLSL_LIGHT_STRUCT_SIZE * MAX_LIGHTS + (4);
+
     state_create_ssbo(gst, CHUNK_LIGHTS_SSBO, 2, light_ssbo_size);
 
     printf("\033[35mLights SSBO Size: %li(Bytes) / %li(KiloBytes) / %f(MegaBytes)\033[0m\n",
@@ -1181,7 +1183,15 @@ int state_setup_everything(struct state_t* gst) {
     shader_setu_float(gst, SSAO_SHADER, U_RES_DIV, &gst->cfg.res_div);
 
 
+    gst->next_disabled_light = 0;
+    gst->num_lights_mvram = 0;
     
+    for(uint16_t i = 0; i < MAX_LIGHTS; i++) {
+        gst->lights[i].enabled = 0;
+        gst->lights[i].index = i;
+    }
+
+
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
 
@@ -1200,8 +1210,6 @@ int state_setup_everything(struct state_t* gst) {
 
     gst->mouse_click_time_point = GetTime();
     gst->mouse_double_click = 0;
-    gst->light_data_ptr = NULL;
-
 
     gst->loading_time = GetTime() - loading_time_start;
     printf("\033[32m'%s': Done (loading time: %0.3f)\033[0m\n", __func__, gst->loading_time);
