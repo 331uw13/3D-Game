@@ -64,6 +64,7 @@ void handle_userinput(struct state_t* gst) {
     // FOR TESTING
     {
         if(IsKeyPressed(KEY_U)) {
+            //spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_ASSAULT_RIFLE_0, 1);
             spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_APPLE, 1);
         }
 

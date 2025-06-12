@@ -457,6 +457,16 @@ void player_update(struct state_t* gst, struct player_t* p) {
         // Change the item when item model is out of view.
         if(p->item_change_timer > 0.5
         && (p->item_in_hands != p->item_to_change)) {
+       
+            // Disable weapon model light if it was a weapon that player was holding.
+            if(p->item_in_hands) {
+                if(p->item_in_hands->is_weapon_item) {
+                    remove_light(gst, p->item_in_hands->weapon_model.light);
+                    printf("Disable light.\n");
+                }
+            }
+
+
             p->item_in_hands = p->item_to_change;
         }
         

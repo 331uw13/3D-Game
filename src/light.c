@@ -13,7 +13,7 @@ struct light_t* add_light(struct state_t* gst, struct light_t light_settings, in
         int found = 0;
         for(uint16_t i = 0; i < MAX_LIGHTS; i++) {
             struct light_t* light = &gst->lights[i];
-            if(!light->enabled) {
+            if(!light->enabled && !light->preserve) {
                 found = 1;
                 ptr = light;
                 break;
@@ -40,7 +40,10 @@ struct light_t* add_light(struct state_t* gst, struct light_t light_settings, in
 }
 
 void remove_light(struct state_t* gst, struct light_t* light) { 
-    gst->next_disabled_light = light->index;
+    if(!light->preserve) {
+        gst->next_disabled_light = light->index;
+    }
+
     light->enabled = 0;
 }
 

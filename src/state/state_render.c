@@ -469,90 +469,61 @@ void state_render(struct state_t* gst) {
 
     // Get bloom treshold.
 
-    // TODO: Clean this up..
-
-    BeginTextureMode(gst->bloomtresh_target);
-    ClearBackground((Color){ 0, 0, 0, 255 });
-    BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
-    {
-        DrawTextureRec(
-                    gst->env_render_target.texture,
-                    (Rectangle) { 
-                        0.0, 0.0, 
-                        (float)gst->env_render_target.texture.width,
-                        -(float)gst->env_render_target.texture.height
-                    },
-                    (Vector2){ 0.0, 0.0 },
-                    WHITE
-                    );
-    }
-    EndShaderMode();
-    EndTextureMode();
-
-
+    resample_texture(gst,
+            gst->bloomtresh_target, // destination.
+            gst->env_render_target, // source.
+            gst->env_render_target.texture.width,
+            gst->env_render_target.texture.height,
+            gst->bloomtresh_target.texture.width,
+            gst->bloomtresh_target.texture.height,
+            BLOOM_TRESHOLD_SHADER
+            );
+    
     // Downsample bloom treshold
+    resample_texture(gst,
+            gst->bloom_downsamples[0], // destination.
+            gst->bloomtresh_target, // source.
+            gst->bloomtresh_target.texture.width,
+           -gst->bloomtresh_target.texture.height,
+            gst->bloom_downsamples[0].texture.width,
+            gst->bloom_downsamples[0].texture.height,
+            BLOOM_TRESHOLD_SHADER
+            );
 
-    BeginTextureMode(gst->bloom_downsamples[0]);
-    ClearBackground((Color){ 0, 0, 0, 255 });
-    BeginShaderMode(gst->shaders[BLOOM_TRESHOLD_SHADER]);
-    {
-        int src_width = gst->bloomtresh_target.texture.width;
-        int src_height = gst->bloomtresh_target.texture.height;
-
-        int dst_width = gst->bloom_downsamples[0].texture.width;
-        int dst_height = gst->bloom_downsamples[0].texture.height;
-
-        DrawTexturePro(gst->bloomtresh_target.texture,
-                (Rectangle){ 0, 0, src_width, src_height },
-                (Rectangle){ 0, 0, dst_width, dst_height },
-                (Vector2){0}, 0.0, WHITE
-                );
-    }
-    EndShaderMode();
-    EndTextureMode();
 
     // Downsample more and apply blur.
 
-    BeginTextureMode(gst->bloom_downsamples[1]);
-    ClearBackground((Color){ 0, 0, 0, 255 });
-    BeginShaderMode(gst->shaders[BLOOM_BLUR_SHADER]);
-    {
-        int src_width = gst->bloom_downsamples[0].texture.width;
-        int src_height = gst->bloom_downsamples[0].texture.height;
+    Vector2 size = (Vector2){ 
+        gst->bloom_downsamples[1].texture.width,
+        gst->bloom_downsamples[1].texture.height
+    };
+    shader_setu_vec2(gst, BLOOM_BLUR_SHADER, U_SCREEN_SIZE, &size);
+    
+    resample_texture(
+            gst,
+            gst->bloom_downsamples[1],
+            gst->bloom_downsamples[0],
+            gst->bloom_downsamples[0].texture.width,
+           -gst->bloom_downsamples[0].texture.height,
+            gst->bloom_downsamples[1].texture.width,
+            gst->bloom_downsamples[1].texture.height,
+            BLOOM_BLUR_SHADER
+            );
 
-        int dst_width = gst->bloom_downsamples[1].texture.width;
-        int dst_height = gst->bloom_downsamples[1].texture.height;
-
-        Vector2 size = (Vector2){ dst_width, dst_height };
-        shader_setu_vec2(gst, BLOOM_BLUR_SHADER, U_SCREEN_SIZE, &size);
-
-        DrawTexturePro(gst->bloom_downsamples[0].texture,
-                (Rectangle){ 0, 0, src_width, src_height },
-                (Rectangle){ 0, 0, dst_width, dst_height },
-                (Vector2){0}, 0.0, WHITE
-                );
-    }
-    EndShaderMode();
-    EndTextureMode();
 
     // Upsample blurred bloom treshold.
 
-    BeginTextureMode(gst->bloomtresh_target);
-    ClearBackground((Color){ 0, 0, 0, 255 });
-    {
-        int dst_width = gst->bloomtresh_target.texture.width;
-        int dst_height = gst->bloomtresh_target.texture.height;
 
-        int src_width = gst->bloom_downsamples[1].texture.width;
-        int src_height = gst->bloom_downsamples[1].texture.height;
+    resample_texture(gst,
+            gst->bloomtresh_target,
+            gst->bloom_downsamples[1],
+            gst->bloom_downsamples[1].texture.width,
+            gst->bloom_downsamples[1].texture.height,
+            gst->bloomtresh_target.texture.width,
+            gst->bloomtresh_target.texture.height,
+            -1 // No special shader needed.
+            );
 
-        DrawTexturePro(gst->bloom_downsamples[1].texture,
-                (Rectangle){ 0, 0, src_width, -src_height },
-                (Rectangle){ 0, 0, dst_width, -dst_height },
-                (Vector2){0}, 0.0, WHITE
-                );
-    }
-    EndTextureMode();
 
 
     // TODO: Move ssao to its own functions.
@@ -561,6 +532,8 @@ void state_render(struct state_t* gst) {
     }
 
     // SSAO.
+
+    // NOTE: This still needs ALOT of work to make it look good.
 
     // Downsample environment render target for ssao.
     // To save frame time ssao can be done in lower resolution.

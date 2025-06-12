@@ -191,7 +191,7 @@ static int find_free_space(struct inventory_t* inv) {
 }
 
 
-void inventory_move_item(struct inventory_t* inv, struct item_t* item, int index) {
+void inventory_move_item(struct state_t* gst, struct inventory_t* inv, struct item_t* item, int index) {
    
     if(index <= INV_INDEX_NEXT_FREE) {
         index = find_free_space(inv);
@@ -205,7 +205,6 @@ void inventory_move_item(struct inventory_t* inv, struct item_t* item, int index
     item->lifetime = 0.0;
     item->inv_index = index;
     inv->items[index] = *item;
-
 }
 
 

@@ -197,11 +197,12 @@ void weapon_psys_prj_init(
         .color = weapon->color,
         .radius = 16.0,
         .strength = 1.0,
-        .position = part->position
+        .position = part->position,
+        .preserve = 0
     },
-    ALLOW_OVERWRITE);
+    NEVER_OVERWRITE);
 
-    part->has_light = 1;
+    part->has_light = (part->light != NULL);
 
     // Projectile trail.
     add_particles(gst, 

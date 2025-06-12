@@ -1119,6 +1119,12 @@ static void state_load_misc_models(struct state_t* gst) {
 int state_setup_everything(struct state_t* gst) {
     int result = 0;
     
+    for(uint16_t i = 0; i < MAX_LIGHTS; i++) {
+        gst->lights[i].enabled = 0;
+        gst->lights[i].index = i;
+    }
+
+
     const float loading_time_start = GetTime();
     gst->loading_time = 0;
     gst->init_flags = 0;
@@ -1186,12 +1192,6 @@ int state_setup_everything(struct state_t* gst) {
     gst->next_disabled_light = 0;
     gst->num_lights_mvram = 0;
     
-    for(uint16_t i = 0; i < MAX_LIGHTS; i++) {
-        gst->lights[i].enabled = 0;
-        gst->lights[i].index = i;
-    }
-
-
     gst->energy_liquid_material = LoadMaterialDefault();
     gst->energy_liquid_material.shader = gst->shaders[ENERGY_LIQUID_SHADER];
 

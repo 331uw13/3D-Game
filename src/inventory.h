@@ -32,7 +32,7 @@ void inventory_init(struct inventory_t* inv);
 void inventory_render(struct state_t* gst, struct inventory_t* inv);
 
 #define INV_INDEX_NEXT_FREE -1
-void inventory_move_item(struct inventory_t* inv, struct item_t* item, int index);
+void inventory_move_item(struct state_t* gst, struct inventory_t* inv, struct item_t* item, int index);
 
 void inventory_open_event(struct state_t* gst, struct inventory_t* inv);
 void inventory_close_event(struct state_t* gst, struct inventory_t* inv);

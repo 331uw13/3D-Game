@@ -279,6 +279,16 @@ void load_weapon_model(
     weapon_model->render_offset    = (Vector3){ 0, 0, 0 };
     weapon_model->gravity_friction = WMODEL_LOW_GRAVITY_FRICTION;
 
+    weapon_model->light = add_light(gst, (struct light_t){
+        .color = weapon_model->stats.color,
+        .radius = 4.0,
+        .strength = 0.25,
+        .position = (Vector3){ 0 },
+
+        .preserve = 1
+    },
+    ALLOW_OVERWRITE);
+
 error:
     platform_close_file(&cfgfile);
 }
@@ -289,20 +299,8 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
     Vector3 light_pos = weapon_model->energy_light_offset;
     light_pos = Vector3Transform(light_pos, transform);
 
-
-    /*
-    // TODO: This can be optimized. not all info needs to be set every frame.
-    struct light_t energy_light = (struct light_t) {
-        .type = LIGHT_POINT,
-        .enabled = 1,
-        .color = weapon_model->stats.color,
-        .strength = strength,
-        .radius = 0.65,
-        .index = PLAYER_GUN_LIGHT_ID,
-        .position = light_pos
-    };
-    set_light(gst, &energy_light, LIGHTS_UBO);
-    */
+    weapon_model->light->enabled = 1;
+    weapon_model->light->position = light_pos;
 
 
     // Render liquid magazine level.

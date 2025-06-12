@@ -148,6 +148,7 @@ void update_item(struct state_t* gst, struct item_t* item) {
     }
 
 
+
     // Raycast item if player is nearby.
     if(item->dst2player < 20) {
         Vector3 raydir = Vector3Subtract(gst->player.cam.position, gst->player.cam.target);
@@ -164,9 +165,13 @@ void update_item(struct state_t* gst, struct item_t* item) {
 
             if(gst->player.wants_to_pickup_item) {
                 printf("Pickedup '%s'\n", item->info->name);
-                inventory_move_item(&gst->player.inventory, item, INV_INDEX_NEXT_FREE);
+                inventory_move_item(gst, &gst->player.inventory, item, INV_INDEX_NEXT_FREE);
             }
         }
+    }
+
+    if(item->inv_index >= 0 && item->is_weapon_item) {
+        item->weapon_model.light->enabled = 0;
     }
 }
 
