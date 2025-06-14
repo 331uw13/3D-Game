@@ -739,12 +739,22 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
-    // --- SCOPE_CROSSHAIR_SHADER (for player) ---
+    // --- INVBOX_SELECTED_SHADER ---
     {
         Shader* shader = &gst->shaders[INVBOX_SELECTED_SHADER];
         load_shader(gst,
             "res/shaders/default.vs",
             "res/shaders/invbox_selected.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
+
+    // --- INVBOX_BACKGROUND_SHADER ---
+    {
+        Shader* shader = &gst->shaders[INVBOX_BACKGROUND_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/invbox_background.fs",
             NO_GEOMETRY_SHADER,
             shader);
     }
@@ -1063,10 +1073,14 @@ static void state_setup_terrain(struct state_t* gst) {
 
 static void state_setup_all_item_models(struct state_t* gst) {
 
-    if(!load_item_model(gst, ITEM_APPLE, APPLE_TEXID, "res/models/apple.glb"))
-     { STATE_ABORT(gst, "Failed to load item"); }
+    if(!load_item_model(gst, ITEM_APPLE, APPLE_TEXID, ITEM_COMMON, "res/models/apple.glb"))
+    { STATE_ABORT(gst, "Failed to load item."); }
     add_item_namedesc(gst, ITEM_APPLE, "Apple", "Healthy food.\n+25 Health boost when eaten.");
-    
+
+    if(!load_item_model(gst, ITEM_CONTAINER, GRID4x4_TEXID, ITEM_COMMON, "res/models/container.glb"))
+    { STATE_ABORT(gst, "Failed to load item."); }
+    add_item_namedesc(gst, ITEM_CONTAINER, "Liquid Container", "General usage container\nfor dangerous materials.");
+
 
     gst->init_flags |= INITFLG_ITEM_MODELS;
 }
@@ -1101,13 +1115,13 @@ static void state_load_misc_models(struct state_t* gst) {
     gst->inventory_box_model.materials[0] = LoadMaterialDefault();
     gst->inventory_box_model.materials[0].shader = gst->shaders[DEFAULT_SHADER];
 
-    // TODO: Remove this? or make it better
     gst->inventory_box_selected_model = LoadModel("res/models/inventory_box_selected.glb");
     gst->inventory_box_selected_model.materials[0] = LoadMaterialDefault();
     gst->inventory_box_selected_model.materials[0].shader = gst->shaders[INVBOX_SELECTED_SHADER];
 
-    //gst->inventory_box_selected_model.materials[0].maps[0].color = (Color){ 40, 240, 200, 70 };
-
+    gst->inventory_box_background = LoadModelFromMesh(GenMeshPlane(2.82, 2.82, 1, 1));
+    gst->inventory_box_background.materials[0] = LoadMaterialDefault();
+    gst->inventory_box_background.materials[0].shader = gst->shaders[INVBOX_BACKGROUND_SHADER];
    
     // Fractal berry
     gst->fractal_berry_model = LoadModel("res/models/berry.glb");

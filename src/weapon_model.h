@@ -47,14 +47,14 @@ struct weapon_model_t {
 
     int item_info_index;
 
-    struct light_t* light;
-
     // Used to add some movement for the weapon model
     // When player is holding it.
     Vector3 gravity_offset;
     Vector3 gravity_velocity;
     Vector3 render_offset;
     float gravity_friction;
+
+    uint8_t rarity;
 
 };
 

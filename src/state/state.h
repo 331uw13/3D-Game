@@ -113,7 +113,8 @@
 #define FRACTAL_MODEL_GBUFFER_SHADER 27
 #define SCOPE_CROSSHAIR_SHADER 28
 #define INVBOX_SELECTED_SHADER 29
-#define MAX_SHADERS 30
+#define INVBOX_BACKGROUND_SHADER 30
+#define MAX_SHADERS 31
 // ...
 
 
@@ -274,6 +275,7 @@ struct state_t {
     struct item_info_t item_info[MAX_ITEM_TYPES + MAX_WEAPON_MODELS];
     struct item_info_t* crosshair_item_info;
     float  item_info_screen_time;
+    uint8_t item_rarities[MAX_ITEM_MODELS];
 
 
     // ---- Weapon Models ----
@@ -320,7 +322,9 @@ struct state_t {
 
     Model inventory_box_model;
     Model inventory_box_selected_model;
+    Model inventory_box_background;
     Model fractal_berry_model;
+
 
     // ---- For Rendering ----
     

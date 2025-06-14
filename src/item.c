@@ -9,6 +9,7 @@
 int load_item_model(struct state_t* gst, 
         int to_index,     // Index in gst->item_models array.
         int tex_index,    // Texture index in world.
+        uint8_t rarity,
         const char* model_filepath
 ){
     int result = 0;
@@ -25,6 +26,8 @@ int load_item_model(struct state_t* gst,
                 __func__, model_filepath);
         goto error;
     }
+
+    gst->item_rarities[to_index] = rarity;
 
     Model* model = &gst->item_models[to_index];
     *model = LoadModel(model_filepath);
@@ -50,6 +53,7 @@ struct item_t get_weapon_model_item(
         .type = -1,
         .count = 1,
         .empty = 0,
+        .rarity = weapon_model->rarity,
         .dst2player = 10000,
         .modelptr = &weapon_model->model,
         .transform = MatrixIdentity(),
@@ -63,6 +67,18 @@ struct item_t get_weapon_model_item(
     };
     
     return item;
+}
+
+Color get_item_rarity_color(struct item_t* item) {
+    
+    static const Color rarity_colors[] = {
+        (Color){ 0x33, 0xD6, 0x49, 0xFF }, // COMMON
+        (Color){ 0x33, 0xC8, 0xD6, 0xFF }, // RARE
+        (Color){ 0xCF, 0x5E, 0xDB, 0xFF }, // SPECIAL
+        (Color){ 0xF7, 0x39, 0x39, 0xFF }  // MYTHICAL
+    };
+
+    return rarity_colors[item->rarity];
 }
 
 
@@ -88,6 +104,7 @@ void spawn_item_type(struct state_t* gst,
     struct item_t new_item = (struct item_t) {
         .type = type,
         .count = count,
+        .rarity = gst->item_rarities[type],
         .empty = 0,
         .lifetime = 0.0,
         .modelptr = &gst->item_models[type],
@@ -170,9 +187,17 @@ void update_item(struct state_t* gst, struct item_t* item) {
         }
     }
 
-    if(item->inv_index >= 0 && item->is_weapon_item) {
-        item->weapon_model.light->enabled = 0;
+}
+
+void render_item(struct state_t* gst, struct item_t* item, Matrix transform) {
+    for(int i = 0; i < item->modelptr->meshCount; i++) {
+        DrawMesh(
+                item->modelptr->meshes[i],
+                item->modelptr->materials[0],
+                transform
+                );
     }
 }
+
 
 

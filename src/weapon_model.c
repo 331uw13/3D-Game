@@ -222,6 +222,12 @@ void load_weapon_model(
     }
     weapon_model->has_scope = atoi(buf);
 
+    if(!read_cfgvar(&cfgfile, "rarity", buf, CFGBUF_SIZE)) {
+        return;
+    }
+    weapon_model->rarity = atoi(buf);
+
+
 
     float accuracy_f = map(
             (float)accuracy_i,
@@ -279,16 +285,6 @@ void load_weapon_model(
     weapon_model->render_offset    = (Vector3){ 0, 0, 0 };
     weapon_model->gravity_friction = WMODEL_LOW_GRAVITY_FRICTION;
 
-    weapon_model->light = add_light(gst, (struct light_t){
-        .color = weapon_model->stats.color,
-        .radius = 4.0,
-        .strength = 0.25,
-        .position = (Vector3){ 0 },
-
-        .preserve = 1
-    },
-    ALLOW_OVERWRITE);
-
 error:
     platform_close_file(&cfgfile);
 }
@@ -298,9 +294,6 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
 
     Vector3 light_pos = weapon_model->energy_light_offset;
     light_pos = Vector3Transform(light_pos, transform);
-
-    weapon_model->light->enabled = 1;
-    weapon_model->light->position = light_pos;
 
 
     // Render liquid magazine level.

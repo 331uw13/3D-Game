@@ -7,11 +7,6 @@
 #include "weapon_model.h"
 #include "typedefs.h"
 
-// IMPORTANT NOTE: 
-// Remember to add new item name
-// into 'src/item.c' if adding new item.
-
-
 
 struct state_t;
 struct chunk_t;
@@ -20,11 +15,15 @@ struct weapon_model_t;
 #define MAX_ITEM_MODELS 16
 
 #define ITEM_APPLE 0
+#define ITEM_CONTAINER 1
 // ...
-#define MAX_ITEM_TYPES 1
+#define MAX_ITEM_TYPES 2
 
-// Special item types.
-#define ITEM_ASSAULT_RIFLE_0 (MAX_ITEM_TYPES + 0)
+
+#define ITEM_COMMON 0
+#define ITEM_RARE 1
+#define ITEM_SPECIAL 2
+#define ITEM_MYTHICAL 3
 
 
 #define ITEM_GROUND_YAXIS_PADDING 3.85
@@ -32,6 +31,11 @@ struct weapon_model_t;
 
 #define ITEM_MAX_NAME_SIZE 32
 #define ITEM_MAX_DESC_SIZE 256
+
+
+
+
+
 
 struct item_info_t {
     int item_type;
@@ -46,9 +50,10 @@ struct item_info_t {
 
 struct item_t {
 
-    int type;
     int count;
-    int empty;
+    uint16_t type;
+    uint8_t empty;
+    uint8_t rarity;
 
     float dst2player; // Distance to player.
 
@@ -73,15 +78,17 @@ int load_item_model(
         struct state_t* gst, 
         int to_index,     // Index in 'gst->item_models' array.
         int tex_index,    // Index in 'gst->textures' array.
+        uint8_t rarity,
         const char* model_filepath
         );
 
-
+// TODO: Rename this. The name is little bit misleading.
 struct item_t get_weapon_model_item(
             struct state_t* gst,
             int weapon_model_index
             );
 
+Color get_item_rarity_color(struct item_t* item);
 
 
 #define FIND_ITEM_CHUNK NULL
@@ -101,6 +108,6 @@ void drop_item(
 
 
 void update_item(struct state_t* gst, struct item_t* item);
-
+void render_item(struct state_t* gst, struct item_t* item, Matrix transform);
 
 #endif

@@ -52,6 +52,7 @@ typedef short uloc_t;
 #define U_INVENTORY_OPEN 40
 #define U_BERRY_COLOR 41
 #define U_FRACTAL_BASE_Y 42
+#define U_ITEM_RARITY_COLOR 43
 
 #define U_NOTFOUND -1
 

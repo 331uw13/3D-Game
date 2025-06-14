@@ -17,24 +17,39 @@ void inventory_init(struct inventory_t* inv) {
 
     inv->selected_item = NULL;
     inv->hovered_item = NULL;
+
+    printf("%s\n", __func__);
 }
 
-void inventory_open_event(struct state_t* gst, struct inventory_t* inv) {
+void inventory_open(struct state_t* gst, struct inventory_t* inv) {
     if(inv->open) {
         return;
     }
 
+    inv->light = add_light(gst, (struct light_t) {
+        .color = (Color){ 230, 220, 210, 255 },
+        .radius = 1.0,
+        .position = (Vector3){ 0 },
+        .strength = 0.56,
+        .preserve = 0
+    },
+    NEVER_OVERWRITE);
+
+    EnableCursor();
     inv->open = 1;
-    schedule_new_render_dist(gst, MIN_RENDERDIST);
+    //schedule_new_render_dist(gst, MIN_RENDERDIST);
 }
 
-void inventory_close_event(struct state_t* gst, struct inventory_t* inv) {
+void inventory_close(struct state_t* gst, struct inventory_t* inv) {
     if(!inv->open) {
         return;
     }
+
+    remove_light(gst, inv->light);
     
+    DisableCursor();
     inv->open = 0;
-    schedule_new_render_dist(gst, gst->old_render_dist);
+    //schedule_new_render_dist(gst, gst->old_render_dist);
 }
 
 // 3D - Inventory.
@@ -74,6 +89,10 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
 
     inv->hovered_item = NULL;
 
+    inv->light->position = Vector3Add(mouse_ray.position, Vector3Scale(mouse_ray.direction, 3.65));
+
+
+    shader_setu_float(gst, INVBOX_BACKGROUND_SHADER, U_TIME, &gst->time);
 
     for(int y = 0;  y < INV_NUM_ROWS; y++) {
         for(int x = 0; x < INV_NUM_COLUMNS; x++) {
@@ -135,11 +154,27 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                     render_weapon_model(gst, &item->weapon_model, item_matrix);
                 }
                 else {
-                    DrawMesh(item->modelptr->meshes[0],
-                            item->modelptr->materials[0],
-                            item_matrix);
+                    render_item(gst, item, item_matrix);
                 }
             }
+
+
+            Matrix bg_matrix = MatrixMultiply(MatrixRotateXYZ((Vector3){ M_PI/2.0, 0, 0 }), current);
+            bg_matrix = MatrixMultiply(MatrixTranslate(0,-1.5,0), bg_matrix);
+
+            // Box background. Indicates the item rarity.
+            
+            Color rarity_color = (Color){ 0, 0, 0, 0 };
+            if(!item->empty) {
+                rarity_color = get_item_rarity_color(item);
+            }
+            shader_setu_color(gst, INVBOX_BACKGROUND_SHADER, U_ITEM_RARITY_COLOR, &rarity_color);
+
+            DrawMesh(
+                    gst->inventory_box_background.meshes[0],
+                    gst->inventory_box_background.materials[0],
+                    bg_matrix
+                    );
 
             DrawMesh(
                 box->meshes[0],

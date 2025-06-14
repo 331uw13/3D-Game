@@ -25,7 +25,6 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     p->dash_timer_max = 4.0;
     p->cam_random_dir = (Vector2){ 0 };
     p->movement_state = MOVEMENT_STATE_STANDING;
-
     // Armor and health
 
     p->max_health = MAX_DEFAULT_HEALTH;
@@ -457,16 +456,6 @@ void player_update(struct state_t* gst, struct player_t* p) {
         // Change the item when item model is out of view.
         if(p->item_change_timer > 0.5
         && (p->item_in_hands != p->item_to_change)) {
-       
-            // Disable weapon model light if it was a weapon that player was holding.
-            if(p->item_in_hands) {
-                if(p->item_in_hands->is_weapon_item) {
-                    remove_light(gst, p->item_in_hands->weapon_model.light);
-                    printf("Disable light.\n");
-                }
-            }
-
-
             p->item_in_hands = p->item_to_change;
         }
         
@@ -653,12 +642,10 @@ void render_player(struct state_t* gst, struct player_t* p) {
 
         Matrix model_offset = MatrixTranslate(2.8333, -2.3333 - item_change_yoff, -5.5000);
         transform = MatrixMultiply(model_offset, icam_matrix);        
+    
 
-        DrawMesh(
-                p->item_in_hands->modelptr->meshes[0],
-                p->item_in_hands->modelptr->materials[0],
-                transform
-                );
+        render_item(gst, p->item_in_hands, transform);
+
     }
 
 }

@@ -211,7 +211,7 @@ struct enemy_t* create_enemy(
     entptr->weaponptr = weaponptr;
     entptr->weapon_psysptr = weapon_psysptr;
 
-    entptr->ccheck_radius = 80.0;
+    entptr->ccheck_radius = 120.0;
 
     entptr->time_from_target_found = 0.0;
     entptr->time_from_target_lost = 0.0;

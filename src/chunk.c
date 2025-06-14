@@ -604,13 +604,8 @@ void chunk_render_items(struct state_t* gst, struct chunk_t* chunk) {
             render_weapon_model(gst, &item->weapon_model, item->transform);
         }
         else {
-            DrawMesh(
-                    item->modelptr->meshes[0],
-                    item->modelptr->materials[0],
-                    item->transform
-                    );
+            render_item(gst, item, item->transform);
         }
-
     }
 
 }

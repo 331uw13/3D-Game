@@ -68,6 +68,18 @@ void handle_userinput(struct state_t* gst) {
             spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_APPLE, 1);
         }
 
+        if(IsKeyPressed(KEY_K)) {
+            spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_CONTAINER, 1);
+        }
+
+        if(IsKeyPressed(KEY_J)) {
+            struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_ASSAULT_RIFLE_0);
+            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
+        }
+        if(IsKeyPressed(KEY_H)) {
+            struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_SNIPER_RIFLE_0);
+            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
+        }
     }
 
 
@@ -113,21 +125,20 @@ void handle_userinput(struct state_t* gst) {
 
 
     if(IsKeyPressed(KEY_TAB) && gst->player.alive) {
-        toggle_gui(&gst->player.inventory.open);
-
-        if(gst->player.inventory.open) {
-            inventory_open_event(gst, &gst->player.inventory);
+        if(!gst->player.inventory.open) {
+            inventory_open(gst, &gst->player.inventory);
         }
         else {
-            inventory_close_event(gst, &gst->player.inventory);
+            inventory_close(gst, &gst->player.inventory);
         }
+
         gst->devmenu_open = 0;
     }
 
     if(IsKeyPressed(KEY_ESCAPE) && gst->player.alive) {
         toggle_gui(&gst->menu_open);
         gst->devmenu_open = 0;
-        inventory_close_event(gst, &gst->player.inventory);
+        inventory_close(gst, &gst->player.inventory);
     }
 
 
