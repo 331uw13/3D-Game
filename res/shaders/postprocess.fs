@@ -84,8 +84,8 @@ void main()
     }
 
     vec4 invtex = texture(inventory_texture, fragTexCoord);
-    if(invtex.w > 0.01) {
-        color.rgb = invtex.rgb;
+    if(invtex.w > 0.001) {
+        color.rgb = mix(color.rgb, invtex.rgb, invtex.a);
     }
 
     finalColor = color;
