@@ -512,8 +512,6 @@ void state_render(struct state_t* gst) {
 
 
     // Upsample blurred bloom treshold.
-
-
     resample_texture(gst,
             gst->bloomtresh_target,
             gst->bloom_downsamples[1],

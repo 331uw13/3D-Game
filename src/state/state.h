@@ -11,15 +11,14 @@
 #include "../psystem.h"
 #include "../terrain.h"
 #include "../enemy.h"
-#include "../item.h"
+#include "../items/item.h"
 #include "../gui.h"
 #include "../shader_util.h"
 #include "../npc.h"
 #include "../config.h"
 #include "../fog.h"
-#include "../item.h"
 #include "../fractalgen.h"
-#include "../weapon_model.h"
+#include "../items/weapon_model.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -440,14 +439,12 @@ void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 // TODO: Move this?
 void add_item_namedesc(struct state_t* gst, int item_type, const char* name, const char* desc);
 
-// TODO: Make explosions bigger!
+// TODO: Make explosions better.
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);
 
 
 // Use this function instead of 'set_render_dist' when changing it middle of rendering.
-// The game crashes if 'set_render_dist()' is used
-// NOTE: 'set_render_dist()' should be changed to use 'realloc' for more safety.
-//        also then this function can be removed.
+// Because 'terrain.rendered_chunks' contains pointers and may be resized.
 void schedule_new_render_dist(struct state_t* gst, float new_dist);
 
 void set_render_dist(struct state_t* gst, float new_dist);

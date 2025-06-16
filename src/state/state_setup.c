@@ -1077,9 +1077,9 @@ static void state_setup_all_item_models(struct state_t* gst) {
     { STATE_ABORT(gst, "Failed to load item."); }
     add_item_namedesc(gst, ITEM_APPLE, "Apple", "Healthy food.\n+25 Health boost when eaten.");
 
-    if(!load_item_model(gst, ITEM_CONTAINER, GRID4x4_TEXID, ITEM_COMMON, "res/models/container.glb"))
+    if(!load_item_model(gst, ITEM_LQCONTAINER, GRID4x4_TEXID, ITEM_COMMON, "res/models/container.glb"))
     { STATE_ABORT(gst, "Failed to load item."); }
-    add_item_namedesc(gst, ITEM_CONTAINER, "Liquid Container", "General usage container\nfor dangerous materials.");
+    add_item_namedesc(gst, ITEM_LQCONTAINER, "Liquid Container", "General usage container\nfor dangerous materials.");
 
 
     gst->init_flags |= INITFLG_ITEM_MODELS;

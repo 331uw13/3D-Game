@@ -237,8 +237,6 @@ void fractalgen_tree(
         Color start_color,
         Color end_color
 ){
-    double start_time = GetTime();
-
     init_fractal_struct(gst, fmodel);
 
     Vector3 start_rotation = (Vector3){ 0, 0, 0 };

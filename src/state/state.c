@@ -575,6 +575,8 @@ void state_update_frame(struct state_t* gst) {
     }
 
     gst->player.wants_to_pickup_item = 0;
+    gst->player.interact_action = 0;
+    gst->player.can_interact = 0;
 
     // Move enabled lights to lights ssbo before rendering anything.
     state_update_lights(gst);

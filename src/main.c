@@ -90,25 +90,6 @@ void loop(struct state_t* gst) {
             }
             EndShaderMode();
 
-            
-            /*
-            // Draw Crosshair if player is aiming.
-            if(gst->player.is_aiming) {
-                int center_x = GetScreenWidth() / 2;
-                int center_y = GetScreenHeight() / 2;
-                DrawPixel(center_x, center_y, WHITE);
-           
-                DrawPixel(center_x-1, center_y, GRAY);
-                DrawPixel(center_x, center_y-1, GRAY);
-                DrawPixel(center_x+1, center_y, GRAY);
-                DrawPixel(center_x, center_y+1, GRAY);
-          
-                DrawPixel(center_x-2, center_y, GRAY);
-                DrawPixel(center_x, center_y-2, GRAY);
-                DrawPixel(center_x+2, center_y, GRAY);
-                DrawPixel(center_x, center_y+2, GRAY);
-            }
-            */
 
             if(gst->player.in_scope_view && !gst->player.any_gui_open) {
                 BeginShaderMode(gst->shaders[SCOPE_CROSSHAIR_SHADER]);
@@ -134,7 +115,7 @@ void loop(struct state_t* gst) {
             }
 
             if(!gst->player.any_gui_open && gst->crosshair_item_info) {
-                render_item_info(gst);
+                render_crosshair_item_info(gst);
             }
             else {
                 gst->item_info_screen_time = 0;

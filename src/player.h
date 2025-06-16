@@ -5,7 +5,7 @@
 #include "weapon.h"
 #include "light.h"
 #include "inventory.h"
-#include "item.h"
+#include "items/item.h"
 #include "enemy.h"
 
 struct state_t;
@@ -18,28 +18,20 @@ struct chunk_t;
 #define MAX_DEFAULT_ARMOR  3
 #define DEFAULT_ARMOR_DAMAGE_DAMPEN 0.765
 
-#define ARMOR_DAMAGE_DAMPEN_MIN 0.95
-#define ARMOR_DAMAGE_DAMPEN_MAX 0.25
-
-#define FIRERATE_MIN 0.0005
-#define FIRERATE_MAX 0.1
-
 
 #define PLAYER_HEALTH_COLOR_LOW (Color){ 255, 50, 20, 255 }
 #define PLAYER_HEALTH_COLOR_HIGH (Color){ 50, 255, 20, 255 }
 
-#define PLAYER_WEAPON_FULLAUTO 0
-#define PLAYER_WEAPON_SEMIAUTO 1
 
-#define DISABLE_AIM_WHEN_RELEASED 0
-#define DISABLE_AIM_WHEN_MOUSERIGHT 1
+// Interact actions. (More will be added later)
+#define IACTION_HARVEST 0
 
-#define MAX_PRJMOD_INDICES 64
+#define IACTION_FOR_FRACTAL_TREE 0
+#define IACTION_FOR_MUSHROOM 1
 
-#define MOVEMENT_STATE_STANDING 0
-#define MOVEMENT_STATE_SNEAKING 1
-#define MOVEMENT_STATE_WALKING 2
-#define MOVEMENT_STATE_RUNNING 3
+
+#define INTERACTION_KEY  KEY_E
+
 
 
 struct player_t {
@@ -63,7 +55,7 @@ struct player_t {
     int      is_moving;
     int      is_aiming;
 
-    int      movement_state;
+    //int      movement_state;
 
     struct biome_t* current_biome;
 
@@ -113,13 +105,14 @@ struct player_t {
     float armor_damage_dampen;
     
     int wants_to_pickup_item;
-
+    int can_interact;
+    int interact_action;
 
     // External force may be applied to player.
     Vector3  ext_force_vel;
     Vector3  ext_force_acc;
 
-    Vector2 cam_random_dir; // For recoil.
+    Vector2 cam_random_dir; // For recoil and other effects.
 
     float accuracy_modifier; // This changes based on player movement.
 
@@ -133,10 +126,9 @@ struct player_t {
     float health;
     float max_health;
 
-    int kills[MAX_ENEMY_TYPES];
-
     int any_gui_open;
 
+    int kills[MAX_ENEMY_TYPES];
 };
 
 
@@ -163,6 +155,8 @@ int  playerin_biomeshift_area(struct state_t* gst, struct player_t* p);
 // Change currently holding item.
 void player_change_holding_item(struct state_t* gst, struct player_t* p, struct item_t* item);
 void player_set_scope_view(struct state_t* gst, struct player_t* p, int view_enabled);
+
+void player_handle_action(struct state_t* gst, struct player_t* p, int iaction_type, int iaction_for, void* ptr);
 
 // TODO: Rename these.
 void player_update(struct state_t* gst, struct player_t* p);

@@ -615,7 +615,12 @@ void chunk_update_fractals(struct state_t* gst, struct chunk_t* chunk) {
     for(int i = 0; i < chunk->num_fractals; i++) {
         struct fractal_t* fractal = &chunk->fractals[i];
 
-
+        Vector3 base = (Vector3){ fractal->transform.m12, fractal->transform.m13, fractal->transform.m14 };
+        if(Vector3Distance(base, gst->player.position) < 30
+        && point_in_player_view(gst, &gst->player, base, 60.0)) {
+         
+            player_handle_action(gst, &gst->player, IACTION_HARVEST, IACTION_FOR_FRACTAL_TREE, fractal);
+        }
     }
 }
 

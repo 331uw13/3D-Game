@@ -4,7 +4,7 @@
 #include <raylib.h>
 
 #include "biome.h"
-#include "item.h"
+#include "items/item.h"
 #include "fractalgen.h"
 
 struct state_t;

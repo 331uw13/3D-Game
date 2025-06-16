@@ -84,9 +84,6 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     Ray mouse_ray = GetScreenToWorldRay(GetMousePosition(), gst->player.cam);
    
 
-    const Color light_color = (Color) { 198, 220, 230, 255 };
-    const Color light_color_empty = (Color){ light_color.r/3, light_color.g/3, light_color.b/3, 255 };
-
     inv->hovered_item = NULL;
 
     inv->light->position = Vector3Add(mouse_ray.position, Vector3Scale(mouse_ray.direction, 3.65));
@@ -131,9 +128,8 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
             current = MatrixMultiply(current, icam_matrix);
 
             // Raycast sphere at the same place as box to see if mouse is on it.
-            // Raycasting the sphere is always alot faster than raycasting the mesh.
             Vector3 box_center = (Vector3){ current.m12, current.m13, current.m14 };
-            RayCollision rayhit = GetRayCollisionSphere(mouse_ray, box_center, 0.25);
+            RayCollision rayhit = GetRayCollisionSphere(mouse_ray, box_center, 0.42);
 
             float item_scale = 0.3;
             Matrix item_matrix = MatrixMultiply(MatrixScale(item_scale, item_scale, item_scale), current);

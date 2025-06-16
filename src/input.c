@@ -61,26 +61,6 @@ void handle_userinput(struct state_t* gst) {
         gst->player.wants_to_pickup_item = 1;
     }
 
-    // FOR TESTING
-    {
-        if(IsKeyPressed(KEY_U)) {
-            //spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_ASSAULT_RIFLE_0, 1);
-            spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_APPLE, 1);
-        }
-
-        if(IsKeyPressed(KEY_K)) {
-            spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_CONTAINER, 1);
-        }
-
-        if(IsKeyPressed(KEY_J)) {
-            struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_ASSAULT_RIFLE_0);
-            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
-        }
-        if(IsKeyPressed(KEY_H)) {
-            struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_SNIPER_RIFLE_0);
-            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
-        }
-    }
 
 
     toggle_aiming(gst);
@@ -124,7 +104,9 @@ void handle_userinput(struct state_t* gst) {
     }
 
 
-    if(IsKeyPressed(KEY_TAB) && gst->player.alive) {
+    if(IsKeyPressed(KEY_TAB)
+    && gst->player.alive
+    && !gst->player.in_scope_view) {
         if(!gst->player.inventory.open) {
             inventory_open(gst, &gst->player.inventory);
         }
@@ -143,31 +125,46 @@ void handle_userinput(struct state_t* gst) {
 
 
     // Dev mode input.
-
+    if(!DEV_MODE) {
+        fprintf(stderr, "\033[31mdeveloper mode is disabled.\033[0m\n");
+        return;
+    }
     if(IsKeyPressed(KEY_G)) {
-        if(!DEV_MODE) {
-            fprintf(stderr, "\033[31mdev mode is disabled, cant toggle noclip\033[0m\n");
-            return;
-        }
         gst->player.noclip = !gst->player.noclip;
     }
 
     if(IsKeyPressed(KEY_T)) {
-        if(!DEV_MODE) {
-            fprintf(stderr, "\033[31mdev mode is disabled, cant render debug info\033[0m\n");
-            return;
-        }
         gst->debug = !gst->debug;
         printf("\033[35m[\"DEBUG\"]: %i\033[0m\n", gst->debug);
     }
 
     if(IsKeyPressed(KEY_R) && !gst->player.any_gui_open) {
-        if(!DEV_MODE) {
-            fprintf(stderr, "\033[31mdev mode is disabled, cant open dev menu\033[0m\n");
-            return;
-        }
         toggle_gui(&gst->devmenu_open);
     }
+
+    // FOR TESTING
+    {
+        if(IsKeyPressed(KEY_U)) {
+            //spawn_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_ASSAULT_RIFLE_0, 1);
+            drop_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_APPLE, 1);
+        }
+
+        if(IsKeyPressed(KEY_K)) {
+            struct item_t lqcontainer_item = get_lqcontainer_item(gst);
+            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &lqcontainer_item);
+            //drop_item_type(gst, FIND_ITEM_CHUNK, gst->player.position, ITEM_LQCONTAINER, 1);
+        }
+
+        if(IsKeyPressed(KEY_J)) {
+            struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_ASSAULT_RIFLE_0);
+            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
+        }
+        if(IsKeyPressed(KEY_H)) {
+            struct item_t weapon_item = get_weapon_model_item(gst, WMODEL_SNIPER_RIFLE_0);
+            drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, &weapon_item);
+        }
+    }
+
 }
 
 

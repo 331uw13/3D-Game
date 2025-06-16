@@ -291,7 +291,7 @@ void gui_render_devmenu(struct state_t* gst) {
 }
 
 
-void render_item_info(struct state_t* gst) {
+void render_crosshair_item_info(struct state_t* gst) {
     if(!gst->crosshair_item_info) {
         return;
     }
@@ -309,11 +309,6 @@ void render_item_info(struct state_t* gst) {
     Vector2 name_text_m = MeasureTextEx(gst->font, 
             gst->crosshair_item_info->name,
             name_text_font_size,
-            FONT_SPACING);
-
-    Vector2 desc_text_m = MeasureTextEx(gst->font, 
-            gst->crosshair_item_info->desc,
-            desc_text_font_size,
             FONT_SPACING);
 
     gst->item_info_screen_time += gst->dt;
@@ -388,6 +383,20 @@ void gui_render_inventory_controls(struct state_t* gst, struct inventory_t* inv)
     char addtn_info[ADDTNBUF_MAX+1] = { 0 };
     size_t addtn_info_size = 0;
 
+    if(inv->hovered_item->is_special) {
+        get_item_additional_info(inv->hovered_item, addtn_info, ADDTNBUF_MAX, &addtn_info_size);
+    
+        addtn_info[addtn_info_size+1] = '\0';
+
+        Vector2 addtn_info_size = MeasureTextEx(gst->font, addtn_info, desc_font_size, FONT_SPACING);
+        if(info_box_width < addtn_info_size.x) {
+            info_box_width = addtn_info_size.x;
+        }
+
+        info_box_height += addtn_info_size.y;
+    }
+
+    /*
     if(inv->hovered_item->is_weapon_item) {
         struct weapon_model_t* weapon_model = &inv->hovered_item->weapon_model;
 
@@ -400,13 +409,8 @@ void gui_render_inventory_controls(struct state_t* gst, struct inventory_t* inv)
 
         addtn_info[addtn_info_size+1] = '\0';
         
-        Vector2 addtn_info_size = MeasureTextEx(gst->font, addtn_info, desc_font_size, FONT_SPACING);
-        if(info_box_width < addtn_info_size.x) {
-            info_box_width = addtn_info_size.x;
-        }
-
-        info_box_height += addtn_info_size.y;
     }
+    */
 
 
     float right_edge = info_box_x + info_box_width + padding + 20;

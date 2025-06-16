@@ -7,7 +7,7 @@
 struct state_t;
 struct player_t;
 
-#include "item.h"
+#include "items/item.h"
 #include "light.h"
 
 

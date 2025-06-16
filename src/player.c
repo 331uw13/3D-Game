@@ -24,7 +24,7 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
     p->dash_speed = 400.0;
     p->dash_timer_max = 4.0;
     p->cam_random_dir = (Vector2){ 0 };
-    p->movement_state = MOVEMENT_STATE_STANDING;
+    //p->movement_state = MOVEMENT_STATE_STANDING;
     // Armor and health
 
     p->max_health = MAX_DEFAULT_HEALTH;
@@ -43,6 +43,8 @@ static void set_player_default_stats(struct state_t* gst, struct player_t* p) {
 
     inventory_init(&p->inventory);
 
+    p->can_interact = 0;
+    p->interact_action = 0;
     p->weapon_offset_interp = 0.0;
     p->weapon_inspect_interp = 0.0;
     p->accuracy_modifier = 0.0;        
@@ -1068,3 +1070,80 @@ void player_set_scope_view(struct state_t* gst, struct player_t* p, int view_ena
     }
     // TODO: Animation.
 }
+
+
+void player_handle_action(struct state_t* gst, struct player_t* p, int iaction_type, int iaction_for, void* ptr) {
+    
+    if(!IsKeyDown(INTERACTION_KEY)) {
+        return;
+    }
+
+    switch(iaction_type) {
+
+        case IACTION_HARVEST:
+            switch(iaction_for) {
+            
+                case IACTION_FOR_FRACTAL_TREE:
+                    {
+                        if(!p->item_in_hands) {
+                            return;
+                        }
+                        if(!p->item_in_hands->is_lqcontainer_item) {
+                            printf("Needs a liquid container to be harvested.\n");
+                            return;
+                        }
+
+                        struct lqcontainer_t* lqcontainer = &p->item_in_hands->lqcontainer;
+
+
+
+                        struct fractal_t* fractal = (struct fractal_t*)ptr;
+                        //printf("%s %p\n", __func__, fractal);
+
+                        const float factor = gst->dt * 0.05;
+
+                        int harvested = 1;
+                        for(int i = 0; i < fractal->num_berries; i++) {
+                            if(fractal->berries[i].level <= 0.001) {
+                                continue;
+                            }
+                            harvested = 0;
+
+                            lqcontainer->level += factor * 20.0;
+                            fractal->berries[i].level -= factor;
+                            printf("\033[90m%f\033[0m\n", fractal->berries[i].level);
+                        }
+                        
+                        printf("Collecting... %f\n", lqcontainer->level);
+                        if(harvested) {
+                            printf("Done!\n");
+                        }
+                    }
+                    break;
+
+                case IACTION_FOR_MUSHROOM:
+                    {
+                    }
+                    break;
+
+                default:
+                    fprintf(stderr, "\033[33m(WARNING) '%s': Invalid action target (%i).\033[0m\n",
+                            __func__, iaction_for);
+                    break;
+            }
+            break;
+
+
+        // ... More action types can be added later :)
+
+
+        default:
+            fprintf(stderr, "\033[33m(WARNING) '%s': Invalid action type (%i).\033[0m\n",
+                    __func__, iaction_type);
+            break;
+    }
+}
+
+
+
+
