@@ -34,7 +34,7 @@ void main()
     float noise = voronoi3d(fragTexCoord.xyy*4.65+vec3(0.0,u_time*0.5,0.0)).x;
     color *= noise+0.35;
 
-    finalColor.rgb = color * 0.6;
+    finalColor.rgb = color * 0.5;
 }
 
 

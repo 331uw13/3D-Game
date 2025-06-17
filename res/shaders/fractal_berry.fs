@@ -22,8 +22,5 @@ void main()
     vec3 col;
    
     col = u_berry_color.rgb;
-    //float dist = length(u_campos - fragPosition);
-    //col = get_fog(col, dist, _YLEVEL);
-
     finalColor = vec4(col, 1.0);
 }

@@ -11,6 +11,7 @@ uniform vec2 u_screen_size;
 
 out vec4 finalColor;
 
+#include "res/shaders/voronoi.glsl"
 
 
 void main()
@@ -20,7 +21,7 @@ void main()
     vec2 texelsize = 1.0/(u_screen_size);
 
 
-    int size = 20;
+    int size = 26;
     float weight_sum = 0;
 
     vec2 uv = gl_FragCoord.xy / u_screen_size;
@@ -29,13 +30,13 @@ void main()
         for(int y = -size; y <= size; y++) {
             vec2 off = vec2(float(x), float(y));
 
-            float len = length(off) * 1.2;
-            float weight = float(size+2.0) - len;
+            float len = length(off);// * 1.2;
+            float weight = float(size+3.0) - len;
            
             vec2 texelpos = fragTexCoord + off * texelsize;
             
-            if((texelpos.y > 1.0) || (texelpos.y < 0.0)
-            || (texelpos.x > 1.0) || (texelpos.x < 0.0)) {
+            if((texelpos.y >= 1.0) || (texelpos.y <= 0.0)
+            || (texelpos.x >= 1.0) || (texelpos.x <= 0.0)) {
                 continue;
             }
 
@@ -46,8 +47,7 @@ void main()
         }
     }
 
-    color /= (weight_sum*0.75);
-
+    color /= (weight_sum*0.4);
 
 
     finalColor = vec4(color, clamp(length(color), 0.0, 1.0));

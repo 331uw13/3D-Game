@@ -11,8 +11,8 @@ out vec4 finalColor;
 uniform vec3 viewPos;
 
 
-uniform vec4 psystem_color;
-uniform float time;
+//uniform vec4 psystem_color;
+//uniform float time;
 
 
 

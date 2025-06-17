@@ -36,5 +36,5 @@ void main()
 
 
 
-    finalColor = vec4(color, 1.0);
+    finalColor = vec4(color * 1.25, 1.0);
 }
