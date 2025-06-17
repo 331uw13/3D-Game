@@ -17,6 +17,7 @@
 #include "../particle_systems/enemy_gunfx_psys.h"
 #include "../particle_systems/cloud_psys.h"
 #include "../particle_systems/prj_trail_psys.h"
+#include "../particle_systems/berry_collect_psys.h"
 #include "../terrain.h"
 
 
@@ -255,7 +256,7 @@ static void state_setup_all_psystems(struct state_t* gst) {
                 PSYS_GROUPID_ENV,
                 PSYS_ONESHOT,
                 psystem,
-                64,
+                256,
                 projectile_envhit_psys_update,
                 projectile_envhit_psys_init,
                 PRJ_ENVHIT_PSYS_SHADER
@@ -406,6 +407,24 @@ static void state_setup_all_psystems(struct state_t* gst) {
 
     }
 
+
+    // Create BERRY_COLLECT_PSYS.
+    {
+        struct psystem_t* psystem = &gst->psystems[BERRY_COLLECT_PSYS];
+        create_psystem(
+                gst,
+                PSYS_GROUPID_ENV,
+                PSYS_ONESHOT,
+                psystem,
+                1024,
+                berry_collect_psys_update,
+                berry_collect_psys_init,
+                BERRY_COLLECT_PSYS_SHADER
+                );
+
+        psystem->particle_model = LoadModelFromMesh(GenMeshSphere(0.165, 4, 4));
+        setup_psystem_color_vbo(gst, psystem);
+    }
     gst->init_flags |= INITFLG_PSYSTEMS;
 }
 
@@ -718,6 +737,19 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
+    // --- BERRY_COLLECT_PSYS_SHADER ---
+    {
+        Shader* shader = &gst->shaders[BERRY_COLLECT_PSYS_SHADER];
+        load_shader(gst,
+            "res/shaders/instance_core.vs",
+            "res/shaders/basic_weapon_psys.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+       
+        shader->locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(*shader, "mvp");
+        shader->locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(*shader, "viewPos");
+        shader->locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(*shader, "instanceTransform");
+    }
 
     // --- FRACTAL_MODEL_GBUFFER_SHADER ---
     {
@@ -906,14 +938,10 @@ static void state_setup_all_render_targets(struct state_t* gst) {
     gst->ssao_target = LoadRenderTexture(gst->ssao_res_x, gst->ssao_res_y);
 
     SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
-
-    gst->bloom_downsamples[0] = LoadRenderTexture(909, 485);    
-    gst->bloom_downsamples[1] = LoadRenderTexture(638, 340);
-
     gst->gui_render_target = LoadRenderTexture(gst->screen_size.x, gst->screen_size.y);
 
     SetTextureFilter(gst->bloom_downsamples[0].texture, TEXTURE_FILTER_BILINEAR);
-    SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
+    //SetTextureFilter(gst->bloom_downsamples[1].texture, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(gst->env_render_downsample.texture, TEXTURE_FILTER_BILINEAR);
 
@@ -935,7 +963,7 @@ static void state_setup_all_ssbos(struct state_t* gst) {
     size_t light_ssbo_size = 
         GLSL_LIGHT_STRUCT_SIZE * MAX_LIGHTS + (4);
 
-    state_create_ssbo(gst, CHUNK_LIGHTS_SSBO, 2, light_ssbo_size);
+    state_create_ssbo(gst, LIGHTS_SSBO, 2, light_ssbo_size);
 
     printf("\033[35mLights SSBO Size: %li(Bytes) / %li(KiloBytes) / %f(MegaBytes)\033[0m\n",
             light_ssbo_size,
@@ -1080,7 +1108,8 @@ static void state_setup_all_item_models(struct state_t* gst) {
     if(!load_item_model(gst, ITEM_LQCONTAINER, GRID4x4_TEXID, ITEM_COMMON, "res/models/container.glb"))
     { STATE_ABORT(gst, "Failed to load item."); }
     add_item_namedesc(gst, ITEM_LQCONTAINER, "Liquid Container", "General usage container\nfor dangerous materials.");
-
+    gst->item_models[ITEM_LQCONTAINER].materials[1] = LoadMaterialDefault();
+    gst->item_models[ITEM_LQCONTAINER].materials[1].shader = gst->shaders[ENERGY_LIQUID_SHADER];
 
     gst->init_flags |= INITFLG_ITEM_MODELS;
 }
@@ -1189,7 +1218,7 @@ int state_setup_everything(struct state_t* gst) {
 
     state_setup_all_gbuffers(gst);
     state_setup_all_render_targets(gst);
-
+    setup_bloom_targets(gst);
     state_load_misc_models(gst);
 
     init_player_struct(gst, &gst->player);
@@ -1228,6 +1257,7 @@ int state_setup_everything(struct state_t* gst) {
     gst->loading_time = GetTime() - loading_time_start;
     printf("\033[32m'%s': Done (loading time: %0.3f)\033[0m\n", __func__, gst->loading_time);
     
+    gst->berry_collect_psys_timer = 0;
 
     result = 1;
     return result;

@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "weapon_psys.h"
-
+#include "projectile_envhit_psys.h"
 
 #include "../state/state.h"
 #include "../util.h"
@@ -47,8 +47,25 @@ static void post_projectile_hit(
             part->position,
             (Vector3){0, 0, 0},
             part->color,
-            NULL, NO_EXTRADATA, NO_IDB);
-   
+            NULL, NO_EXTRADATA, PART_IDB_ENVHIT_CIRCLE);
+
+
+    Vector3 nextpart_velocity = part->velocity;
+    if(hit_object == HITOBJ_TERRAIN) {
+        nextpart_velocity = Vector3Reflect(part->velocity, normal);
+    }
+    else {
+        nextpart_velocity = Vector3Scale(nextpart_velocity, 0.75);
+    }
+
+    add_particles(gst,
+            &gst->psystems[PROJECTILE_ENVHIT_PSYS],
+            40,
+            part->position,
+            nextpart_velocity,
+            part->color,
+            NULL, NO_EXTRADATA, PART_IDB_ENVHIT_EFFECT);  
+
     disable_particle(gst, part);
 }
 

@@ -52,6 +52,7 @@ struct item_t get_empty_item() {
         .modelptr = NULL,
         .info = NULL,
         .transform = MatrixIdentity(),
+        .last_pview_transform = MatrixIdentity(),
         .position = (Vector3){ 0 },
         .velocity = (Vector3){ 0 },
         .inv_index = -1,

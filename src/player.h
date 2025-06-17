@@ -30,9 +30,6 @@ struct chunk_t;
 #define IACTION_FOR_MUSHROOM 1
 
 
-#define INTERACTION_KEY  KEY_E
-
-
 
 struct player_t {
     int render;

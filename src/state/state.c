@@ -405,11 +405,13 @@ void state_update_shadow_cams(struct state_t* gst) {
 static void state_update_lights(struct state_t* gst) {
 
     // Map light ssbo.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[CHUNK_LIGHTS_SSBO]);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gst->ssbo[LIGHTS_SSBO]);
     void* light_data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 
     if(!light_data) {
-        fprintf(stderr, "'%s' OpenGL Error: 0x%x\n", __func__, glGetError());
+        fprintf(stderr, 
+                "Failed to map light SSBO!\n"
+                "'%s' OpenGL Error: 0x%x\n", __func__, glGetError());
         return;
     }
 
@@ -542,6 +544,7 @@ void state_update_frame(struct state_t* gst) {
     update_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS]);
     update_psystem(gst, &gst->psystems[CLOUD_PSYS]);
     update_psystem(gst, &gst->psystems[PRJ_TRAIL_PSYS]);
+    update_psystem(gst, &gst->psystems[BERRY_COLLECT_PSYS]);
     
 
     // Update Misc.
@@ -644,7 +647,9 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
 
             // Apply external force from explosion to player.
             Vector3 force_dir = Vector3Normalize(Vector3Subtract(gst->player.position, position));
-            force_dir = Vector3Scale(force_dir, damage_to_player*0.5);
+            force_dir.x *= (damage_to_player*2.0);
+            force_dir.y *= (damage_to_player*0.8);
+            force_dir.z *= (damage_to_player*2.0);
             player_apply_force(gst, &gst->player, force_dir);
         }
     }

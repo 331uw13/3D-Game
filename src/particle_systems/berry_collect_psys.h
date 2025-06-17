@@ -1,30 +1,23 @@
-#ifndef PRJ_ENVHIT_PSYSTEM_H
-#define PRJ_ENVHIT_PSYSTEM_H
-
-
+#ifndef BERRY_COLLECT_H
+#define BERRY_COLLECT_H
 
 #include <raylib.h>
 
-struct psystem_t;
 struct state_t;
+struct psystem_t;
 struct particle_t;
 
-
-#define PART_IDB_ENVHIT_CIRCLE 0
-#define PART_IDB_ENVHIT_EFFECT 1
-
 // PARTICLE UPDATE
-void projectile_envhit_psys_update(
+void berry_collect_psys_update(
         struct state_t* gst,
         struct psystem_t* psys,
         struct particle_t* part
 );
 
-
 // PARTICLE INITIALIZATION
-void projectile_envhit_psys_init(
+void berry_collect_psys_init(
         struct state_t* gst,
-        struct psystem_t* psys, 
+        struct psystem_t* psys,
         struct particle_t* part,
         Vector3 origin,
         Vector3 velocity,
@@ -32,6 +25,9 @@ void projectile_envhit_psys_init(
         void* extradata, int has_extradata
 );
 
+
+// For 'psystem->user_p' array index.
+//#define BERRY_COLLECT_PSYS_FRACTAL_PTR_I 0
 
 
 #endif

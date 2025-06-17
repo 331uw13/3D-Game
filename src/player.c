@@ -7,6 +7,7 @@
 #include "util.h"
 
 #include "particle_systems/weapon_psys.h"
+#include "particle_systems/berry_collect_psys.h"
 
 #define NOCLIP_SPEED  20
 
@@ -244,7 +245,7 @@ void player_add_xp(struct state_t* gst, int xp) {
 void player_apply_force(struct state_t* gst, struct player_t* p, Vector3 force) {
     p->ext_force_acc.x += force.x;
     p->ext_force_acc.z += force.z;
-    p->ext_force_acc.y = 0;  // Gravity is handled differently.
+    p->ext_force_acc.y += force.y*0.1;  // Gravity is handled differently.
     p->ext_force_vel.y = 0;
 
     p->velocity.y = force.y * 5.0;
@@ -629,7 +630,6 @@ void render_player(struct state_t* gst, struct player_t* p) {
         model_offset = MatrixMultiply(rotation, model_offset);
         transform = MatrixMultiply(model_offset, icam_matrix);
 
-
         
         p->last_weapon_matrix = transform;
        
@@ -637,17 +637,27 @@ void render_player(struct state_t* gst, struct player_t* p) {
             render_weapon_model(gst, weapon_model, transform);
         }
     }
+    else
+    if(p->item_in_hands->is_lqcontainer_item) {
+ 
+        Matrix model_offset = MatrixTranslate(2.8333, -2.3333 - item_change_yoff, -5.5000);
+        transform = MatrixMultiply(model_offset, icam_matrix);         
+
+        render_lqcontainer(gst, &p->item_in_hands->lqcontainer, transform);       
+    }
     else {
         // The item is probably normal item.
         // This offset should work for all of them. (?)
         // TODO: (Item model config?)
 
         Matrix model_offset = MatrixTranslate(2.8333, -2.3333 - item_change_yoff, -5.5000);
-        transform = MatrixMultiply(model_offset, icam_matrix);        
-    
+        transform = MatrixMultiply(model_offset, icam_matrix);         
 
         render_item(gst, p->item_in_hands, transform);
+    }
 
+    if(p->item_in_hands) {
+        p->item_in_hands->last_pview_transform = transform;
     }
 
 }
@@ -1073,18 +1083,18 @@ void player_set_scope_view(struct state_t* gst, struct player_t* p, int view_ena
 
 
 void player_handle_action(struct state_t* gst, struct player_t* p, int iaction_type, int iaction_for, void* ptr) {
-    
-    if(!IsKeyDown(INTERACTION_KEY)) {
-        return;
-    }
 
     switch(iaction_type) {
 
         case IACTION_HARVEST:
             switch(iaction_for) {
             
+
                 case IACTION_FOR_FRACTAL_TREE:
                     {
+                        if(!IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+                            return;
+                        }
                         if(!p->item_in_hands) {
                             return;
                         }
@@ -1094,32 +1104,43 @@ void player_handle_action(struct state_t* gst, struct player_t* p, int iaction_t
                         }
 
                         struct lqcontainer_t* lqcontainer = &p->item_in_hands->lqcontainer;
-
-
-
                         struct fractal_t* fractal = (struct fractal_t*)ptr;
-                        //printf("%s %p\n", __func__, fractal);
+
+                        // Update pointer for the particle system so it can know where the berries are.
+                        //gst->psystems[BERRY_COLLECT_PSYS]
+                        //    .user_p[BERRY_COLLECT_PSYS_FRACTAL_PTR_I] = fractal;
 
                         const float factor = gst->dt * 0.05;
 
-                        int harvested = 1;
                         for(int i = 0; i < fractal->num_berries; i++) {
                             if(fractal->berries[i].level <= 0.001) {
                                 continue;
                             }
-                            harvested = 0;
 
                             lqcontainer->level += factor * 20.0;
                             fractal->berries[i].level -= factor;
-                            printf("\033[90m%f\033[0m\n", fractal->berries[i].level);
                         }
                         
-                        printf("Collecting... %f\n", lqcontainer->level);
-                        if(harvested) {
-                            printf("Done!\n");
+                        gst->berry_collect_psys_timer += gst->dt;
+                        
+                        if(gst->berry_collect_psys_timer >= 0.1) {
+                            gst->berry_collect_psys_timer = 0;
+                            add_particles(
+                                    gst,
+                                    &gst->psystems[BERRY_COLLECT_PSYS],
+                                    GetRandomValue(3, 10),
+                                    (Vector3){0},
+                                    (Vector3){0},
+                                    (Color){ 255, 20, 255, 255},
+                                    fractal,
+                                    HAS_EXTRADATA,
+                                    NO_IDB
+                                    );
                         }
                     }
                     break;
+
+
 
                 case IACTION_FOR_MUSHROOM:
                     {

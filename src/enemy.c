@@ -352,7 +352,7 @@ void enemy_damage(
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
    
-    create_explosion(gst, ent->position, 125/*damage*/, 100.0/*radius*/);
+    create_explosion(gst, ent->position, 125/*damage*/, 200.0/*radius*/);
     int xp_gain_bonus = 0;
 
     for(size_t i = 0; i < ent->num_hitboxes; i++) {
@@ -504,8 +504,8 @@ void spawn_enemy(
 
                 // Head hitbox.
                 enemy_add_hitbox(ent,
-                        (Vector3){ 13.0, 8.0, 13.0 }, // Size
-                        (Vector3){ 0.0, 0.0, 0.0 },  // Offset
+                        (Vector3){ 13.0, 13.0, 13.0 }, // Size
+                        (Vector3){ 0.0, 1.0, 0.0 },  // Offset
                         1.758,
                         HITBOX_HEAD
                         );

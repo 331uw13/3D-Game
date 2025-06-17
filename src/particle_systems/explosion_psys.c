@@ -55,7 +55,7 @@ void explosion_psys_init(
     float exp_radius = *(float*)extradata;
 
     part->position = origin;
-    const float p_r = 0.1;
+    const float p_r = 0.5;
 
     // Choose position.
 
@@ -72,7 +72,7 @@ void explosion_psys_init(
         part->velocity.y += RSEEDRANDOMF(-v_r*0.5, v_r * RSEEDRANDOMF(1.5, 3.0));
         part->velocity.z += RSEEDRANDOMF(-v_r,     v_r);
         part->accel.y = 0.2;
-        part->scale = 8.0;
+        part->scale = 10.0;
     
         part->max_lifetime = RSEEDRANDOMF(0.6, 1.25);
         part->start_color = (Color){ 255, 180, 40, 255 };

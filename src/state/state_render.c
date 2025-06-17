@@ -420,8 +420,8 @@ void state_render(struct state_t* gst) {
         
             render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
         
-            // Projectile environment hit also needs to be rendered after grass.
             render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
+            render_psystem(gst, &gst->psystems[BERRY_COLLECT_PSYS], (Color){0});
         }
 
         state_timebuf_add(gst, 
@@ -467,62 +467,7 @@ void state_render(struct state_t* gst) {
     EndTextureMode();
    
 
-    // Get bloom treshold.
-
-    resample_texture(gst,
-            gst->bloomtresh_target, // destination.
-            gst->env_render_target, // source.
-            gst->env_render_target.texture.width,
-            gst->env_render_target.texture.height,
-            gst->bloomtresh_target.texture.width,
-            gst->bloomtresh_target.texture.height,
-            BLOOM_TRESHOLD_SHADER
-            );
-    
-    // Downsample bloom treshold
-    resample_texture(gst,
-            gst->bloom_downsamples[0], // destination.
-            gst->bloomtresh_target, // source.
-            gst->bloomtresh_target.texture.width,
-           -gst->bloomtresh_target.texture.height,
-            gst->bloom_downsamples[0].texture.width,
-            gst->bloom_downsamples[0].texture.height,
-            BLOOM_TRESHOLD_SHADER
-            );
-
-
-    // Downsample more and apply blur.
-
-    Vector2 size = (Vector2){ 
-        gst->bloom_downsamples[1].texture.width,
-        gst->bloom_downsamples[1].texture.height
-    };
-    shader_setu_vec2(gst, BLOOM_BLUR_SHADER, U_SCREEN_SIZE, &size);
-    
-    resample_texture(
-            gst,
-            gst->bloom_downsamples[1],
-            gst->bloom_downsamples[0],
-            gst->bloom_downsamples[0].texture.width,
-           -gst->bloom_downsamples[0].texture.height,
-            gst->bloom_downsamples[1].texture.width,
-            gst->bloom_downsamples[1].texture.height,
-            BLOOM_BLUR_SHADER
-            );
-
-
-    // Upsample blurred bloom treshold.
-    resample_texture(gst,
-            gst->bloomtresh_target,
-            gst->bloom_downsamples[1],
-            gst->bloom_downsamples[1].texture.width,
-            gst->bloom_downsamples[1].texture.height,
-            gst->bloomtresh_target.texture.width,
-            gst->bloomtresh_target.texture.height,
-            -1 // No special shader needed.
-            );
-
-
+    render_bloom(gst);
 
     // TODO: Move ssao to its own functions.
     if(!gst->ssao_enabled || gst->player.any_gui_open) {

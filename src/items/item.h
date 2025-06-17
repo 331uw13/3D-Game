@@ -60,7 +60,7 @@ struct item_t {
 
     Model* modelptr;
     Matrix transform;
-    
+    Matrix last_pview_transform; // Latest transform used when rendered item in players hand.
     struct item_info_t* info;
 
     Vector3 position; // "Read only" position. Update the transform instead.

@@ -149,6 +149,10 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 if(item->is_weapon_item) {
                     render_weapon_model(gst, &item->weapon_model, item_matrix);
                 }
+                else
+                if(item->is_lqcontainer_item) {
+                    render_lqcontainer(gst, &item->lqcontainer, item_matrix);
+                }
                 else {
                     render_item(gst, item, item_matrix);
                 }

@@ -432,8 +432,9 @@ void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct 
             // No models have been made yet.
             break;
     }
-    
-    // Fractals.
+   
+
+    // Generate Fractals.
 
     chunk->num_fractals = 0;
     if(RSEEDRANDOMF(0, 100) < FRACTAL_SPAWN_CHANCE) {
@@ -456,8 +457,27 @@ void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct 
             float start_cube_scale = 5.0;
             float dampen_cube_scale = 0.7;
 
-            Color start_color = (Color){ 0x20, 0x38, 0x38, 0xFF };
-            Color end_color = (Color){ 0x2F, 0xFC, 0xFC, 0xFF };
+
+            // Choose type and berry color.
+            fractal->type = GetRandomValue(0, MAX_FRACTAL_TYPES-1);
+            switch(fractal->type) {
+                case FRACTAL_TYPE_ENERGY_SRC:
+                    fractal->berry_color = (Color){ 30, 255, 255, 255 };
+                    break;
+
+                case FRACTAL_TYPE_HEALTH_SRC:
+                    fractal->berry_color = (Color){ 255, 80, 120, 255 };
+                    break;
+            }
+            
+            Color start_color = (Color){
+                fractal->berry_color.r * 0.2,
+                fractal->berry_color.g * 0.2,
+                fractal->berry_color.b * 0.2,
+                255
+            };
+            Color end_color = fractal->berry_color;
+            //Color end_color = (Color){ 0x2F, 0xFC, 0xFC, 0xFF };
 
             Vector3 rotation_weights = (Vector3){ 0.35, 0.2, 0.15 };
             int depth = 8;
@@ -475,6 +495,7 @@ void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct 
                     start_color,
                     end_color
                     );
+
 
             fractal->scale = (Vector3){ 0.6, 0.4, 0.6 };
             fractal->transform = MatrixTranslate(pos.x, pos.y, pos.z);
@@ -603,6 +624,10 @@ void chunk_render_items(struct state_t* gst, struct chunk_t* chunk) {
         if(item->is_weapon_item) {
             render_weapon_model(gst, &item->weapon_model, item->transform);
         }
+        else
+        if(item->is_lqcontainer_item) {
+            render_lqcontainer(gst, &item->lqcontainer, item->transform);
+        }
         else {
             render_item(gst, item, item->transform);
         }
@@ -667,8 +692,7 @@ void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int rende
        
         //printf("(%0.3f)%s: %i\n", gst->time, __func__, fractal->num_berries);
 
-        Color berry_color = (Color){ 30, 255, 255, 255 };
-        shader_setu_color(gst, FRACTAL_BERRY_SHADER, U_BERRY_COLOR, &berry_color);
+        shader_setu_color(gst, FRACTAL_BERRY_SHADER, U_BERRY_COLOR, &fractal->berry_color);
 
         for(int j = 0; j < fractal->num_berries; j++) {
             struct berry_t* berry = &fractal->berries[j];

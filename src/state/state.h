@@ -19,6 +19,7 @@
 #include "../fog.h"
 #include "../fractalgen.h"
 #include "../items/weapon_model.h"
+#include "../bloom.h"
 
 // Enable: "Noclip", "Dev menu", "Render debug info"
 #define DEV_MODE 1
@@ -113,7 +114,8 @@
 #define SCOPE_CROSSHAIR_SHADER 28
 #define INVBOX_SELECTED_SHADER 29
 #define INVBOX_BACKGROUND_SHADER 30
-#define MAX_SHADERS 31
+#define BERRY_COLLECT_PSYS_SHADER 31
+#define MAX_SHADERS 32
 // ...
 
 
@@ -128,7 +130,8 @@
 #define ENEMY_GUNFX_PSYS 7
 #define CLOUD_PSYS 8
 #define PRJ_TRAIL_PSYS 9
-#define MAX_PSYSTEMS 10
+#define BERRY_COLLECT_PSYS 10
+#define MAX_PSYSTEMS 11
 // ...
 
 
@@ -143,11 +146,11 @@
 #define MAX_UBOS 2
 
 // Shader storage buffer objects.
-#define CHUNK_LIGHTS_SSBO 0
+#define LIGHTS_SSBO 0
 #define MAX_SSBOS 1
 
-
-#define NUM_BLOOM_DOWNSAMPLES 2
+// How many times the bloom treshold is "down sampled" before applying blur:
+#define NUM_BLOOM_DOWNSAMPLES 8
 
 // Dynamic lights in lights ubo
 #define EXPLOSION_LIGHTS_ID 3
@@ -402,6 +405,8 @@ struct state_t {
     uint64_t init_flags;  // What has been initialzied. Used by 'state_abort' function.
     int default_weapon_dropped;
 
+    // Timer to spawn particles when player is collecting berries from fractal trees.
+    float berry_collect_psys_timer;
 
     // For fine tuning weapon model config.
     Vector3 testmd_aim_offset;

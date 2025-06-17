@@ -373,7 +373,7 @@ struct particle_t* add_particles(
         }
     }
 
-    psys->num_alive_parts = n;
+    psys->num_alive_parts += n;
     return first_part;
 }
 
