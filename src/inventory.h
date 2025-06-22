@@ -25,7 +25,9 @@ struct inventory_t {
     struct item_t* hovered_item;
 
     struct item_t items[INV_SIZE];
-
+    
+    uint8_t item_drag;
+    float mouse_down_timer;
 };
 
 void inventory_init(struct inventory_t* inv);

@@ -10,71 +10,6 @@
 
 #include "lib/glad.h"
 
-/*
-static void set_enemies_render_shader(struct state_t* gst, int shader_index) {
-    for(int i = 0; i < MAX_ENEMY_MODELS; i++) {
-        for(int k = 0; k < gst->enemy_models[i].materialCount; k++) {
-            gst->enemy_models[i].materials[0].shader = gst->shaders[shader_index];
-        }
-    }
-}
-*/
-
-/*
-static int compare(const void* p1, const void* p2) {
-    const struct crithit_marker_t* a = (const struct crithit_marker_t*)p1;
-    const struct crithit_marker_t* b = (const struct crithit_marker_t*)p2;
-    
-    // if a->dst >= b->dst. a goes before b.
-    return (a->dst >= b->dst) ? -1 : 1;
-}
-
-static void _state_render_crithit_markers(struct state_t* gst) {
-    struct crithit_marker_t* marker = NULL;
-
-    struct crithit_marker_t sorted[MAX_RENDER_CRITHITS] = { 0 };
-    int num_visible = 0;
-
-    for(size_t i = 0; i < MAX_RENDER_CRITHITS; i++) {
-        marker = &gst->crithit_markers[i];
-        if(!marker->visible) {
-            continue;
-        }
-
-        marker->dst = Vector3Distance(gst->player.position, marker->position);
-
-        marker->lifetime += gst->dt;
-        if(marker->lifetime >= gst->crithit_marker_maxlifetime) {
-            marker->visible = 0;
-            continue;
-        }
-        sorted[num_visible] = *marker;
-        num_visible++;
-    }
-
-    if(num_visible == 0) {
-        return;
-    }
-
-    // Sort by distance to fix alpha blending.
-    qsort(sorted, num_visible, sizeof *sorted, compare);
-
-    for(size_t i = 0; i < num_visible; i++) {
-        struct crithit_marker_t* m = &sorted[i];
-
-        // Interpolate scale and color alpha.
-
-        float t = normalize(m->lifetime, 0, gst->crithit_marker_maxlifetime);
-        float scale = lerp(t, 4.0, 0.0);
-        float alpha = lerp(t, 255, 0.0);
-   
-
-        DrawBillboard(gst->player.cam, 
-                gst->textures[CRITICALHIT_TEXID], m->position, scale, 
-                (Color){ 180+ sin(gst->time*30)*50, 50, 25, alpha });
-    }
-}
-*/
 
 void prepare_renderpass(struct state_t* gst, int renderpass) {
     
@@ -118,6 +53,9 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
 
     // Prepare items
     for(int i = 0; i < MAX_ITEM_TYPES; i++) {
+        if(i == ITEM_WEAPON_MODEL) {
+            continue; // Weapon model is in its own struct.
+        }
         gst->item_models[i].materials[0].shader = gst->shaders[rp_shader_i];
     }
 

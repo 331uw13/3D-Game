@@ -2,6 +2,7 @@
 
 #include "inventory.h"
 #include "state/state.h"
+#include "items/item.h"
 
 #include <rlgl.h>
 
@@ -11,12 +12,15 @@ void inventory_init(struct inventory_t* inv) {
     inv->open = 0;
 
     for(int i = 0; i < INV_SIZE; i++) {
+        inv->items[i] = get_empty_item();
         inv->items[i].empty = 1;
-        inv->items[i].inv_index = -1;
+        //inv->items[i].inv_index = -1;
     }
 
     inv->selected_item = NULL;
     inv->hovered_item = NULL;
+    inv->mouse_down_timer = 0;
+    inv->item_drag = 0;
 
     printf("%s\n", __func__);
 }
@@ -30,7 +34,7 @@ void inventory_open(struct state_t* gst, struct inventory_t* inv) {
         .color = (Color){ 230, 220, 210, 255 },
         .radius = 1.0,
         .position = (Vector3){ 0 },
-        .strength = 0.56,
+        .strength = 1.0,
         .preserve = 0
     },
     NEVER_OVERWRITE);
@@ -56,6 +60,32 @@ void inventory_close(struct state_t* gst, struct inventory_t* inv) {
 void inventory_render(struct state_t* gst, struct inventory_t* inv) {
     Model* box = &gst->inventory_box_model;
 
+    if(!IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        
+        if(inv->item_drag && inv->selected_item) {
+
+            if(inv->hovered_item
+            && !inv->hovered_item->empty) { /* Try to combine items */
+                printf("%s -> %s\n", inv->selected_item->info->name, inv->hovered_item->info->name);
+                
+                combine_items(gst, inv->selected_item, inv->hovered_item);
+
+            }
+            else
+            if(inv->hovered_item) { /* Move item */
+                printf("<empty>\n");
+
+                *inv->hovered_item = *inv->selected_item;
+                *inv->selected_item = get_empty_item();
+            }
+
+
+
+        }
+   
+        inv->item_drag = 0;
+        inv->mouse_down_timer = 0;
+    }
     
     Matrix icam_matrix = MatrixInvert(GetCameraMatrix(gst->player.cam));
 
@@ -85,8 +115,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
    
 
     inv->hovered_item = NULL;
-
-    inv->light->position = Vector3Add(mouse_ray.position, Vector3Scale(mouse_ray.direction, 3.65));
+    inv->light->position = Vector3Add(mouse_ray.position, Vector3Scale(mouse_ray.direction, 2.65));
 
 
     shader_setu_float(gst, INVBOX_BACKGROUND_SHADER, U_TIME, &gst->time);
@@ -134,6 +163,22 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
             float item_scale = 0.3;
             Matrix item_matrix = MatrixMultiply(MatrixScale(item_scale, item_scale, item_scale), current);
             
+            struct item_t* item = &inv->items[x + y * INV_NUM_COLUMNS];
+ 
+            // Set dragged item to mouse.
+            if(inv->item_drag
+            && (inv->selected_item == item)) {
+                Vector3 item_mouse_pos 
+                    = Vector3Add(mouse_ray.position, Vector3Scale(mouse_ray.direction, 3.8));
+
+                item_mouse_pos = Vector3Subtract(item_mouse_pos, (Vector3){
+                    item_matrix.m12, item_matrix.m13, item_matrix.m14
+                });
+
+                Matrix mouse_offset = MatrixTranslate(item_mouse_pos.x, item_mouse_pos.y, item_mouse_pos.z);
+                item_matrix = MatrixMultiply(item_matrix, mouse_offset);
+            }   
+
             // Item rotation.
             item_matrix = MatrixMultiply(MatrixRotateXYZ(
                         (Vector3){
@@ -142,19 +187,22 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                             0.32
                         }), item_matrix);
 
-            struct item_t* item = &inv->items[x + y * INV_NUM_COLUMNS];
+
 
             // Render the item in current box.
             if(!item->empty && item->inv_index >= 0) {
-                if(item->is_weapon_item) {
-                    render_weapon_model(gst, &item->weapon_model, item_matrix);
-                }
-                else
-                if(item->is_lqcontainer_item) {
-                    render_lqcontainer(gst, &item->lqcontainer, item_matrix);
-                }
-                else {
-                    render_item(gst, item, item_matrix);
+                switch(item->type) {
+                    case ITEM_WEAPON_MODEL:
+                        render_weapon_model(gst, &item->weapon_model, item_matrix);
+                        break;
+
+                    case ITEM_LQCONTAINER:
+                        render_lqcontainer(gst, &item->lqcontainer, item_matrix);
+                        break;
+
+                    default:
+                        render_item(gst, item, item_matrix);
+                        break;
                 }
             }
 
@@ -186,13 +234,28 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
                 inv->hovered_item = item;
 
                 if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                    inv->selected_item = item;
+                    if(IsKeyDown(KEY_LEFT_ALT) && !item->empty) {
+                        drop_item(gst, FIND_ITEM_CHUNK, gst->player.position, item);
+                        *item = get_empty_item();
+                    }
+                    else {
+                        inv->selected_item = item;
+                    }
                 }
 
                 if(gst->mouse_double_click) {
                     player_change_holding_item(gst, &gst->player, item);
                 }
 
+                if(!inv->item_drag 
+                && inv->selected_item
+                && !inv->selected_item->empty
+                && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+                    inv->mouse_down_timer += gst->dt;
+                    if(inv->mouse_down_timer > 0.1) {
+                        inv->item_drag = 1;
+                    }
+                }
 
                 // Selected box indicator.
                 Matrix selected_current = MatrixMultiply(
@@ -209,6 +272,7 @@ void inventory_render(struct state_t* gst, struct inventory_t* inv) {
         yf += box_size + box_padding;
         xf = 0.0;
     }
+
 }
 
 static int find_free_space(struct inventory_t* inv) {

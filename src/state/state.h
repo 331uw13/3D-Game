@@ -278,7 +278,7 @@ struct state_t {
     struct item_info_t* crosshair_item_info;
     float  item_info_screen_time;
     uint8_t item_rarities[MAX_ITEM_MODELS];
-
+    struct item_combine_info_t item_combine_data[MAX_ITEM_MODELS];
 
     // ---- Weapon Models ----
     struct weapon_model_t weapon_models[MAX_WEAPON_MODELS];
@@ -441,8 +441,16 @@ void state_update_frame(struct state_t* gst);
 void state_update_shadow_cams(struct state_t* gst);
 void state_update_shadow_map_uniforms(struct state_t* gst, int shader_index);
 
+
 // TODO: Move this?
 void add_item_namedesc(struct state_t* gst, int item_type, const char* name, const char* desc);
+void add_item_combine_data(
+        struct state_t* gst,
+        int item_type_A,
+        int item_type_B,
+        int result_type,
+        void(*callback)(struct state_t*, struct item_t*, struct item_t*)
+        );
 
 // TODO: Make explosions better.
 void create_explosion(struct state_t* gst, Vector3 position, float damage, float radius);

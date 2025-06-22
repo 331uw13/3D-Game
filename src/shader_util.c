@@ -280,7 +280,10 @@ int load_shader(
 
     platform_init_file(&vertex_file);
     platform_init_file(&fragment_file);
-    platform_init_file(&geometry_file);
+
+    if(has_geometry_shader) {
+        platform_init_file(&geometry_file);
+    }
 
     printf("\033[36m,-> Compile and link:\n"
             "\033[36m:    \033[90m (Vertex shader)   \033[34m%s\n"
@@ -413,14 +416,13 @@ error_and_free:
     if(gs_code) {
         free(gs_code);
     }
+error_and_close:
+    platform_close_file(&vertex_file);
+    platform_close_file(&fragment_file);
 
     if(has_geometry_shader) {
         platform_close_file(&geometry_file);
     }
-
-error_and_close:
-    platform_close_file(&vertex_file);
-    platform_close_file(&fragment_file);
 
     if(!result) {
         STATE_ABORT(gst, "Shader doesnt work.");

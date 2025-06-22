@@ -1158,6 +1158,18 @@ static void state_load_misc_models(struct state_t* gst) {
     gst->fractal_berry_model.materials[0].shader = gst->shaders[FRACTAL_BERRY_SHADER];
 }
 
+#include "items/item_combine.h"
+
+static void state_setup_item_combine_options(struct state_t* gst) {
+  
+    add_item_combine_data(gst,
+            ITEM_WEAPON_MODEL,
+            ITEM_LQCONTAINER,
+            ITEM_COMBINE_RES_BY_HANDLER,
+            combine__weapon_model__lqcontainer
+            );
+   
+}
 
 int state_setup_everything(struct state_t* gst) {
     int result = 0;
@@ -1167,6 +1179,14 @@ int state_setup_everything(struct state_t* gst) {
         gst->lights[i].index = i;
     }
 
+
+    for(int i = 0; i < MAX_ITEM_MODELS; i++) {
+        for(int j = 0; j < MAX_ITEM_COMBINE_TYPES; j++) {
+            gst->item_combine_data[i].combine_callbacks[j] = NULL;
+        }
+    }
+
+    state_setup_item_combine_options(gst);
 
     const float loading_time_start = GetTime();
     gst->loading_time = 0;
@@ -1179,7 +1199,6 @@ int state_setup_everything(struct state_t* gst) {
     state_setup_all_textures(gst);
     state_setup_all_shaders(gst);
     state_setup_all_ubos(gst);
-
     /*
     // Make sure all lights are disabled.
     for(int i = 0; i < MAX_NORMAL_LIGHTS; i++) {

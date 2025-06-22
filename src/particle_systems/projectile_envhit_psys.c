@@ -74,11 +74,11 @@ void projectile_envhit_psys_init(
         part->position.x += RSEEDRANDOMF(-15.0, 15.0);
         part->position.y += RSEEDRANDOMF(-15.0, 15.0);
         part->position.z += RSEEDRANDOMF(-15.0, 15.0);
-        part->velocity = Vector3Scale(velocity, 70.0);
+        part->velocity = Vector3Scale(velocity, 80.0);
         part->velocity.x += RSEEDRANDOMF(-40.0, 40.0);
         part->velocity.y += RSEEDRANDOMF(-40.0, 40.0);
         part->velocity.z += RSEEDRANDOMF(-40.0, 40.0);
-        part->max_lifetime = RSEEDRANDOMF(0.4, 1.5);
+        part->max_lifetime = RSEEDRANDOMF(0.2, 0.95);
     }
 
 }

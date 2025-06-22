@@ -27,7 +27,7 @@ static void toggle_aiming(struct state_t* gst) {
     if(!gst->player.item_in_hands) {
         return;
     }
-    if(!gst->player.item_in_hands->is_weapon_item) {
+    if(gst->player.item_in_hands->type != ITEM_WEAPON_MODEL) {
         return;
     }
 

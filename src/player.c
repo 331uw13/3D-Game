@@ -351,7 +351,7 @@ static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
     if(!p->item_in_hands) {
         return;
     }
-    if(!p->item_in_hands->is_weapon_item) {
+    if(p->item_in_hands->type != ITEM_WEAPON_MODEL) {
         return;
     }
 
@@ -478,7 +478,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     if(!p->item_in_hands) {
         return;
     }
-    if(!p->item_in_hands->is_weapon_item) {
+    if(p->item_in_hands->type != ITEM_WEAPON_MODEL) {
         return;
     }
     if(p->weapon_inspect_interp > 0.01) {
@@ -570,7 +570,7 @@ void render_player(struct state_t* gst, struct player_t* p) {
     }
 
 
-    if(p->item_in_hands->is_weapon_item) {
+    if(p->item_in_hands->type == ITEM_WEAPON_MODEL) {
         struct weapon_model_t* weapon_model = &p->item_in_hands->weapon_model;
 
 
@@ -638,7 +638,7 @@ void render_player(struct state_t* gst, struct player_t* p) {
         }
     }
     else
-    if(p->item_in_hands->is_lqcontainer_item) {
+    if(p->item_in_hands->type == ITEM_LQCONTAINER) {
  
         Matrix model_offset = MatrixTranslate(2.8333, -2.3333 - item_change_yoff, -5.5000);
         transform = MatrixMultiply(model_offset, icam_matrix);         
@@ -672,7 +672,7 @@ void player_change_holding_item(struct state_t* gst, struct player_t* p, struct 
     p->item_to_change = item;
     p->item_change_timer = 0.0;
 
-    if(item->is_weapon_item) {
+    if(item->type == ITEM_WEAPON_MODEL) {
         struct weapon_model_t* weapon_model = &item->weapon_model;
 
         weapon_model->gravity_friction = WMODEL_LOW_GRAVITY_FRICTION;
@@ -952,7 +952,7 @@ void render_player_gunfx(struct state_t* gst, struct player_t* p) {
     if(!p->item_in_hands) {
         return;
     }
-    if(!p->item_in_hands->is_weapon_item) {
+    if(p->item_in_hands->type != ITEM_WEAPON_MODEL) {
         return;
     }
     if(p->in_scope_view) {
@@ -1098,7 +1098,7 @@ void player_handle_action(struct state_t* gst, struct player_t* p, int iaction_t
                         if(!p->item_in_hands) {
                             return;
                         }
-                        if(!p->item_in_hands->is_lqcontainer_item) {
+                        if(p->item_in_hands->type != ITEM_LQCONTAINER) {
                             printf("Needs a liquid container to be harvested.\n");
                             return;
                         }

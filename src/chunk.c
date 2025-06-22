@@ -59,12 +59,12 @@ void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
 
     // BIOMEID_COMFY
 
-    terrain->foliage_max_perchunk[TF_COMFY_TREE_0] = 8;
+    terrain->foliage_max_perchunk[TF_COMFY_TREE_0] = 16;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_TREE_0], "res/models/biomes/comfy/tree_type0.glb");
     set_foliage_texture(gst, TF_COMFY_TREE_0, 0, TREEBARK_TEXID);
     set_foliage_texture(gst, TF_COMFY_TREE_0, 1, LEAF_TEXID);
 
-    terrain->foliage_max_perchunk[TF_COMFY_TREE_1] = 8;
+    terrain->foliage_max_perchunk[TF_COMFY_TREE_1] = 14;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_TREE_1], "res/models/biomes/comfy/tree_type1.glb");
     set_foliage_texture(gst, TF_COMFY_TREE_1, 0, TREEBARK_TEXID);
     set_foliage_texture(gst, TF_COMFY_TREE_1, 1, LEAF_TEXID);
@@ -75,7 +75,7 @@ void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
     set_foliage_texture(gst, TF_COMFY_ROCK_0, 0, ROCK_TEXID);
 
 
-    terrain->foliage_max_perchunk[TF_COMFY_MUSHROOM_0] = 10;
+    terrain->foliage_max_perchunk[TF_COMFY_MUSHROOM_0] = 400;
     load_foliage_model(gst, &terrain->foliage_models[TF_COMFY_MUSHROOM_0], "res/models/biomes/comfy/mushroom.glb");
     set_foliage_texture(gst, TF_COMFY_MUSHROOM_0, 0, TERRAIN_MUSHROOM_TEXID);
 
@@ -621,15 +621,21 @@ void chunk_render_items(struct state_t* gst, struct chunk_t* chunk) {
             continue;
         }
 
-        if(item->is_weapon_item) {
-            render_weapon_model(gst, &item->weapon_model, item->transform);
-        }
-        else
-        if(item->is_lqcontainer_item) {
-            render_lqcontainer(gst, &item->lqcontainer, item->transform);
-        }
-        else {
-            render_item(gst, item, item->transform);
+
+        switch(item->type) {
+            
+            case ITEM_WEAPON_MODEL:
+                render_weapon_model(gst, &item->weapon_model, item->transform);
+                break;
+
+            case ITEM_LQCONTAINER:
+                render_lqcontainer(gst, &item->lqcontainer, item->transform);
+                break;
+
+            default:
+                render_item(gst, item, item->transform);
+                break;
+
         }
     }
 

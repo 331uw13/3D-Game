@@ -46,7 +46,7 @@ struct item_t get_empty_item() {
     struct item_t item = (struct item_t) {
         .type = -1,
         .count = 1,
-        .empty = 0,
+        .empty = 1,
         .rarity = 0,
         .dst2player = 999999,
         .modelptr = NULL,
@@ -55,53 +55,62 @@ struct item_t get_empty_item() {
         .last_pview_transform = MatrixIdentity(),
         .position = (Vector3){ 0 },
         .velocity = (Vector3){ 0 },
+        .rotation = 0,
         .inv_index = -1,
-        .is_special = 0,
-        .is_weapon_item = 0,
-        .is_lqcontainer_item = 0
+        .is_special = 0
     };
     return item;
 }
 
+// ----- Liquid Container Item -----
 struct item_t get_lqcontainer_item(struct state_t* gst) {
     struct item_t item = get_empty_item();
 
+    item.type = ITEM_LQCONTAINER;
     item.modelptr = &gst->item_models[ITEM_LQCONTAINER];
     item.info = &gst->item_info[ITEM_LQCONTAINER];
-    item.is_lqcontainer_item = 1;
     item.lqcontainer = (struct lqcontainer_t) {
         .level = 0,
         .capacity = 750,
         .content_type = LQCONTENT_EMPTY
     };
+    item.rarity = ITEM_COMMON;
     item.is_special = 1;
+    item.empty = 0;
+
     return item;
 }
 
+
+// ----- Weapon Model Item -----
 struct item_t get_weapon_model_item(struct state_t* gst, int weapon_model_index) {
     struct weapon_model_t* weapon_model = &gst->weapon_models[weapon_model_index];
     struct item_t item = get_empty_item();
 
-    item.rarity = weapon_model->rarity;
+    item.type = ITEM_WEAPON_MODEL;
     item.modelptr = &weapon_model->model;
     item.info = &gst->item_info[weapon_model->item_info_index];
-    item.is_weapon_item = 1;
     item.weapon_model = *weapon_model;
+    item.rarity = weapon_model->rarity;
     item.is_special = 1;
-    
+    item.empty = 0;
+
     return item;
 }
+
+
 
 Color get_item_rarity_color(struct item_t* item) {
     
     static const Color rarity_colors[] = {
+        (Color){ 0, 0, 0, 0 }, // NONE
         (Color){ 0x33, 0xD6, 0x49, 0xFF }, // COMMON
         (Color){ 0x33, 0xC8, 0xD6, 0xFF }, // RARE
         (Color){ 0xCF, 0x5E, 0xDB, 0xFF }, // SPECIAL
         (Color){ 0xF7, 0x39, 0x39, 0xFF }  // MYTHICAL
     };
 
-    return rarity_colors[item->rarity];
+    return item->rarity >= 0 ? rarity_colors[item->rarity] : rarity_colors[0];
 }
 
 
@@ -126,6 +135,7 @@ void drop_item_type(struct state_t* gst,
     struct item_t item = get_empty_item();
     item.type = type;
     item.count = count;
+    item.empty = 0;
     item.rarity = gst->item_rarities[type];
     item.modelptr = &gst->item_models[type];
     item.transform = MatrixTranslate(position.x, position.y, position.z);
@@ -233,38 +243,109 @@ void render_item(struct state_t* gst, struct item_t* item, Matrix transform) {
 }
 
 void get_item_additional_info(struct item_t* item, char* buffer, size_t max_size, size_t* buffer_size_ptr) {
+   
+    switch(item->type) {
+        case ITEM_WEAPON_MODEL:
+            {
+                struct weapon_model_t* weapon_model = &item->weapon_model;
+
+                const char* info = TextFormat(
+                        "Ammo: %0.1f / %0.1f\n"
+                        "Condition: <todo>\n"
+                        ,
+                        weapon_model->stats.lqmag.ammo_level,
+                        weapon_model->stats.lqmag.capacity
+                        );
+
+                append_str(buffer, max_size, buffer_size_ptr, info);
+            }
+            break;
+
+        case ITEM_LQCONTAINER:
+            {
+                struct lqcontainer_t* lqcontainer = &item->lqcontainer;
     
-    if(item->is_weapon_item) {
-        struct weapon_model_t* weapon_model = &item->weapon_model;
+                const char* info = TextFormat(
+                        "Level: %0.2f\n"
+                        "Capacity: %0.2f\n"
+                        "Content: <todo>\n"
+                        "Condition: <todo>\n"
+                        ,
+                        lqcontainer->level,
+                        lqcontainer->capacity
+                        );
 
-        const char* info = TextFormat(
-                "Ammo: %0.1f / %0.1f\n"
-                "Condition: <todo>\n"
-                ,
-                weapon_model->stats.lqmag.ammo_level,
-                weapon_model->stats.lqmag.capacity
-                );
+                append_str(buffer, max_size, buffer_size_ptr, info);
+            }
+            break;
 
-        append_str(buffer, max_size, buffer_size_ptr, info);
+            // More can be added later.
     }
-    else
-    if(item->is_lqcontainer_item) {
-        struct lqcontainer_t* lqcontainer = &item->lqcontainer;
-    
-        const char* info = TextFormat(
-                "Level: %0.2f\n"
-                "Capacity: %0.2f\n"
-                "Content: <todo>\n"
-                "Condition: <todo>\n"
-                ,
-                lqcontainer->level,
-                lqcontainer->capacity
-                );
-
-        append_str(buffer, max_size, buffer_size_ptr, info);
-    }
-
-
 }
 
+int get_item_combine_result(struct state_t* gst, int type_A, int type_B, int* found_info_index) {
+    int res = CANT_COMBINE_ITEMS;
+
+    if((type_A < 0) || (type_A >= MAX_ITEM_MODELS)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid type A.\n",
+                __func__);
+        goto error;
+    }
+    if((type_B < 0) || (type_B >= MAX_ITEM_MODELS)) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid type B.\n",
+                __func__);
+        goto error;
+    }
+
+    struct item_combine_info_t* cinfo = &gst->item_combine_data[type_A];
+    
+    if(cinfo->num_types > 0) {
+        for(int i = 0; i < cinfo->num_types; i++) {
+            if(cinfo->types[i][ICINFO_TYPE] != type_B) {
+                continue;
+            }
+
+            *found_info_index = i;
+            res = cinfo->types[i][ICINFO_RESULT];
+            break;
+        }
+    }
+
+error:
+    return res;
+}
+
+void combine_items(struct state_t* gst, struct item_t* item_A, struct item_t* item_B) {
+    if(!item_A) {
+        return;
+    }
+    if(!item_B) {
+        return;     
+    }
+
+    if(item_A->empty) {
+        return;
+    }
+    if(item_B->empty) {
+        return;
+    }
+
+    int found_info_index = 0;
+    int result_type = get_item_combine_result(gst,
+            item_A->type, 
+            item_B->type,
+            &found_info_index);
+
+    if(result_type == ITEM_COMBINE_RES_BY_HANDLER) {
+        void(*combine_callback)(struct state_t*, struct item_t*, struct item_t*)
+            = gst->item_combine_data[item_A->type].combine_callbacks[found_info_index];
+        if(combine_callback) {
+            combine_callback(gst, item_A, item_B);
+        }
+    }
+    else {
+        printf("This is not implemented yet.\n");
+    }
+
+}
 

@@ -13,157 +13,8 @@
 
 #include "../particle_systems/explosion_psys.h"
 #include "../particle_systems/weapon_psys.h"
-/*
-void state_setup_gbuffer(struct state_t* gst) {
-    gst->gbuffer = (struct gbuffer_t) { 0 };
-
-    gst->gbuffer.framebuffer = rlLoadFramebuffer();
-    if(!gst->gbuffer.framebuffer) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to create framebuffer\033[0m\n",
-                __func__);
-        return;
-    }
-
-    float scale;
-
-    switch(gst->cfg.ssao_quality) {
-        default:
-        case CFG_SSAO_QLOW:
-            scale = 2.0;
-            break;
-        
-        case CFG_SSAO_QMED:
-            scale = 1.35;
-            break;
-        
-        case CFG_SSAO_QHIGH:
-            scale = 1.0;
-            break;
-    }
-
-    gst->gbuffer.res_x = gst->res_x / scale;
-    gst->gbuffer.res_y = gst->res_y / scale;
-
-    printf("Creating gbuffer: %ix%i\n", gst->gbuffer.res_x, gst->gbuffer.res_y);
-    rlEnableFramebuffer(gst->gbuffer.framebuffer);
-    
-
-    // Use 32 bits per channel to avoid floating point precision loss.
-    
-    // Positions.
-    gst->gbuffer.position_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
-    // Normals.
-    gst->gbuffer.normal_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
-    // Diffuse specular colors. (This is not currently used.)
-    gst->gbuffer.difspec_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
-
-    // Depth.
-    gst->gbuffer.depth_tex = rlLoadTexture(NULL, gst->gbuffer.res_x, gst->gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
 
 
-    gst->gbuffer.depthbuffer = rlLoadTextureDepth(gst->gbuffer.res_x, gst->gbuffer.res_y, 1);
-
-
-    rlActiveDrawBuffers(4);
-
-    // Attach textures to the framebuffer.
-    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.position_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
-    
-    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.normal_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL1, RL_ATTACHMENT_TEXTURE2D, 0);
-
-    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.difspec_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL2, RL_ATTACHMENT_TEXTURE2D, 0);
-
-    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.depth_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL3, RL_ATTACHMENT_TEXTURE2D, 0);
-
-    // Attach depth buffer.
-    rlFramebufferAttach(gst->gbuffer.framebuffer, gst->gbuffer.depthbuffer,
-            RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
-
-
-    if(!rlFramebufferComplete(gst->gbuffer.framebuffer)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Framebuffer is not complete!\033[0m\n",
-                __func__);
-    }    
-}
-
-void state_setup_shadow_gbuffer(struct state_t* gst) {
-    gst->shadow_gbuffer = (struct gbuffer_t) { 0 };
-
-    gst->shadow_gbuffer.framebuffer = rlLoadFramebuffer();
-    if(!gst->shadow_gbuffer.framebuffer) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to create framebuffer\033[0m\n",
-                __func__);
-        return;
-    }
-
-    float scale = 1.0;
-
-    gst->shadow_gbuffer.res_x = gst->res_x / scale;
-    gst->shadow_gbuffer.res_y = gst->res_y / scale;
-
-    printf("Creating shadow gbuffer: %ix%i\n", gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y);
-    rlEnableFramebuffer(gst->shadow_gbuffer.framebuffer);
-    
-
-    // Use 32 bits per channel to avoid floating point precision loss.
-    
-    // Positions.
-    gst->shadow_gbuffer.position_tex = rlLoadTexture(NULL, gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
-    // Normals.
-    gst->shadow_gbuffer.normal_tex = rlLoadTexture(NULL, gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    
-    // Diffuse specular colors. (This is not currently used.)
-    gst->shadow_gbuffer.difspec_tex = rlLoadTexture(NULL, gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8, 1);
-
-    // Depth.
-    gst->shadow_gbuffer.depth_tex = rlLoadTexture(NULL, gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y, 
-                RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-
-
-    gst->shadow_gbuffer.depthbuffer = rlLoadTextureDepth(gst->shadow_gbuffer.res_x, gst->shadow_gbuffer.res_y, 1);
-
-
-    rlActiveDrawBuffers(4);
-
-    // Attach textures to the framebuffer.
-    rlFramebufferAttach(gst->shadow_gbuffer.framebuffer, gst->shadow_gbuffer.position_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
-    
-    rlFramebufferAttach(gst->shadow_gbuffer.framebuffer, gst->shadow_gbuffer.normal_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL1, RL_ATTACHMENT_TEXTURE2D, 0);
-
-    rlFramebufferAttach(gst->shadow_gbuffer.framebuffer, gst->shadow_gbuffer.difspec_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL2, RL_ATTACHMENT_TEXTURE2D, 0);
-
-    rlFramebufferAttach(gst->shadow_gbuffer.framebuffer, gst->shadow_gbuffer.depth_tex,
-            RL_ATTACHMENT_COLOR_CHANNEL3, RL_ATTACHMENT_TEXTURE2D, 0);
-
-    // Attach depth buffer.
-    rlFramebufferAttach(gst->shadow_gbuffer.framebuffer, gst->shadow_gbuffer.depthbuffer,
-            RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
-
-
-    if(!rlFramebufferComplete(gst->shadow_gbuffer.framebuffer)) {
-        fprintf(stderr, "\033[31m(ERROR) '%s': Framebuffer is not complete!\033[0m\n",
-                __func__);
-    }    
-}
-
-*/
 
 void state_abort(struct state_t* gst, const char* reason, const char* from_func, const char* from_file) {
     fprintf(stderr, 
@@ -383,11 +234,6 @@ void state_update_shader_uniforms(struct state_t* gst) {
         SetShaderValueV(gst->shaders[DEFAULT_SHADER], biome_ylevel_loc, &gst->terrain.biome_ylevels[i],
                 SHADER_UNIFORM_VEC2, 1);
     }
-    /*
-    struct chunk_t* last_chunk = &gst->terrain.chunks[gst->terrain.num_chunks-1];
-    Vector3 sizeoff = (Vector3){ gst->terrain.chunk_size*gst->terrain.scaling, 0, gst->terrain.chunk_size*gst->terrain.scaling };
-    printf("%f\n", Vector3Length(Vector3Add(last_chunk->center_pos, sizeoff)));
-    */
 }
 
 void state_update_shadow_cams(struct state_t* gst) {
@@ -396,7 +242,6 @@ void state_update_shadow_cams(struct state_t* gst) {
         cam->target = (Vector3){0, 0, 0};
         cam->target.x =     (gst->player.cam.position.x - cam->target.x);
         cam->target.z = 1.0+(gst->player.cam.position.z - cam->target.z);
-        //cam->target.y =     (gst->player.cam.position.y - cam->target.y);
         cam->position = gst->player.cam.position;
         cam->position.y += gst->shadow_cam_height;
     }
@@ -822,4 +667,42 @@ void schedule_new_render_dist(struct state_t* gst, float new_dist) {
     gst->new_render_dist_scheduled = 1;
     gst->new_render_dist = new_dist;
 }
+
+void add_item_combine_data(
+        struct state_t* gst,
+        int item_type_A,
+        int item_type_B,
+        int result_type,
+        void(*callback)(struct state_t*, struct item_t*, struct item_t*)
+){
+    struct item_combine_info_t* cinfo_A = &gst->item_combine_data[item_type_A];
+    struct item_combine_info_t* cinfo_B = &gst->item_combine_data[item_type_B];
+    
+    if(cinfo_A->num_types+1 >= MAX_ITEM_COMBINE_TYPES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Item(A) %i cant have any more combine options\033[0m\n",
+                __func__, item_type_A);
+        return;
+    }
+    if(cinfo_B->num_types+1 >= MAX_ITEM_COMBINE_TYPES) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Item(B) %i cant have any more combine options\033[0m\n",
+                __func__, item_type_A);
+        return;
+    }
+
+    // Set both A and B items combine info so it works both ways for 'get_item_combine_result()'
+
+    cinfo_A->types[cinfo_A->num_types][ICINFO_TYPE] = item_type_B;
+    cinfo_B->types[cinfo_B->num_types][ICINFO_TYPE] = item_type_A;
+    cinfo_A->types[cinfo_A->num_types][ICINFO_RESULT] = result_type;
+    cinfo_B->types[cinfo_B->num_types][ICINFO_RESULT] = result_type;
+
+    cinfo_A->combine_callbacks[cinfo_A->num_types] = callback;
+    cinfo_B->combine_callbacks[cinfo_B->num_types] = callback;
+
+    cinfo_A->num_types++;
+    cinfo_B->num_types++;
+}
+
+
+
 
