@@ -2,7 +2,7 @@
 // Voronoise Taken from:
 // https://github.com/MaxBittker/glsl-voronoi-noise/tree/master
 
-
+/*
 const mat2 myt = mat2(.12121212, .13131313, -.13131313, .12121212);
 const vec2 mys = vec2(1e4, 1e6);
 
@@ -11,6 +11,7 @@ vec2 rhash(vec2 uv) {
   uv *= mys;
   return fract(fract(uv / mys) * uv);
 }
+*/
 
 vec3 hash(vec3 p) {
   return fract(

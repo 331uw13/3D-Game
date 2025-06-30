@@ -39,7 +39,6 @@ void main()
             || (texelpos.x >= 1.0) || (texelpos.x <= 0.0)) {
                 continue;
             }
-
             vec3 p = texture(texture0, texelpos).rgb;
 
             color += weight * p;

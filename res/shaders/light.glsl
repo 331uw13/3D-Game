@@ -63,6 +63,6 @@ void compute_lights(vec3 view_dir) {
     vec3 sun_pos = vec3(0, 1, 0);
     vec3 sun_dir = -normalize(-sun_pos);
     
-    g_lightcolor += max(dot(normal, sun_dir), 0.0) * (biome.sun_color.rgb*0.5);
+    g_lightcolor += max(dot(normal, sun_dir), 0.0) * (biome.sun_color.rgb*0.4);
 }
 
