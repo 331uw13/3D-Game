@@ -28,9 +28,6 @@
 static void state_setup_all_enemy_models(struct state_t* gst) {
     PRINT_CURRENT_SETUP;
 
-    for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
-        gst->enemies[i].alive = 0;
-    }
 
     load_enemy_model(gst, ENEMY_LVL0, "res/models/enemy_lvl0.glb", ENEMY_LVL0_TEXID);
     load_enemy_model(gst, ENEMY_LVL1, "res/models/enemy_lvl1.glb", ENEMY_LVL1_TEXID);
@@ -771,6 +768,15 @@ static void state_setup_all_shaders(struct state_t* gst) {
             shader);
     }
 
+    // --- REDPOINT_SCOPE_SHADER (for player) ---
+    {
+        Shader* shader = &gst->shaders[REDPOINT_SCOPE_SHADER];
+        load_shader(gst,
+            "res/shaders/default.vs",
+            "res/shaders/redpoint_scope.fs",
+            NO_GEOMETRY_SHADER,
+            shader);
+    }
     // --- INVBOX_SELECTED_SHADER ---
     {
         Shader* shader = &gst->shaders[INVBOX_SELECTED_SHADER];

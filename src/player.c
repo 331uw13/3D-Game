@@ -296,13 +296,6 @@ void player_respawn(struct state_t* gst, struct player_t* p) {
     p->ext_force_acc = (Vector3){0, 0, 0};
    
     set_player_default_stats(gst, p);
-
-
-    for(size_t i = 0; i < gst->num_enemies; i++) {
-        gst->enemies[i].alive = 0;
-    }
-
-
     setup_default_enemy_spawn_settings(gst);
 
     DisableCursor();
@@ -347,6 +340,32 @@ static void update_weapon_gravity(struct state_t* gst, struct player_t* p, struc
    }
 }
 
+
+static void raycast_player_aim(struct state_t* gst, struct player_t* p) {
+    
+    const int max_steps = 1000;
+    const float step_size = 3.0;
+
+
+
+    Vector3 point = p->position;
+    Vector3 adder = Vector3Scale(p->looking_at, step_size);
+
+    for(int i = 0; i < max_steps; i++) {
+       
+        RayCollision ray = raycast_terrain(&gst->terrain, point.x, point.z);
+        if(point.y <= ray.point.y) {
+            point.y = ray.point.y;
+            break;
+        }
+
+        point = Vector3Add(point, adder);
+    }
+
+    p->aim_final_point = point;
+
+}
+
 static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
     if(!p->item_in_hands) {
         return;
@@ -354,6 +373,14 @@ static void update_weapon_in_hands(struct state_t* gst, struct player_t* p) {
     if(p->item_in_hands->type != ITEM_WEAPON_MODEL) {
         return;
     }
+
+
+    raycast_player_aim(gst, p);
+    /*
+    if(p->is_aiming) {
+        
+    }
+    */
 
     if(!p->any_gui_open
         && !p->inventory.open
@@ -516,7 +543,7 @@ void player_shoot(struct state_t* gst, struct player_t* p) {
     prj_position.y += p->looking_at.y * movef;
     prj_position.z += p->looking_at.z * movef;
 
-    prj_position.y -= weapon_model->aim_offset.y;
+    //prj_position.y -= weapon_model->aim_offset.y;
 
     add_projectile(
             gst,
@@ -1099,16 +1126,22 @@ void player_handle_action(struct state_t* gst, struct player_t* p, int iaction_t
                             return;
                         }
                         if(p->item_in_hands->type != ITEM_LQCONTAINER) {
-                            printf("Needs a liquid container to be harvested.\n");
                             return;
                         }
 
-                        struct lqcontainer_t* lqcontainer = &p->item_in_hands->lqcontainer;
                         struct fractal_t* fractal = (struct fractal_t*)ptr;
+                        struct lqcontainer_t* lqcontainer = &p->item_in_hands->lqcontainer;
+                        
+                        if(lqcontainer->content_type == LQCONTENT_EMPTY) {
+                            lqcontainer->content_type = fractal->liquid_type;
+                        }
 
-                        // Update pointer for the particle system so it can know where the berries are.
-                        //gst->psystems[BERRY_COLLECT_PSYS]
-                        //    .user_p[BERRY_COLLECT_PSYS_FRACTAL_PTR_I] = fractal;
+                        if(lqcontainer->content_type != fractal->liquid_type) {
+                            printf("Liquid container has a different type already.\n");
+                            return;
+                        }
+
+
 
                         const float factor = gst->dt * 0.05;
 

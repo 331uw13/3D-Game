@@ -109,21 +109,17 @@ void weapon_psys_prj_update(
     }
 
 
-    // TODO: Chunks should take care of enemies so this can be optimized alot.
-    
     const float weapon_damage = get_weapon_damage(weapon);
 
     if(weapon->gid == PLAYER_WEAPON_GID) {
         // Check collision with enemies.
         
         struct enemy_t* enemy = NULL;
-        
-        for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
-            enemy = &gst->enemies[i];
-            if(!enemy->alive) {
-                continue;
+        struct chunk_t* p_chunk = find_chunk(gst, part->position);
 
-            }
+        for(uint16_t i = 0; i < p_chunk->num_enemies; i++) {
+            enemy = &p_chunk->enemies[i];
+
 
             // Check collision radius.
             if(Vector3Distance(part->position, enemy->position) > enemy->ccheck_radius) {

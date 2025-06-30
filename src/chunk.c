@@ -52,6 +52,10 @@ static void finish_chunk_setup(struct state_t* gst, struct terrain_t* terrain, s
     decide_chunk_biome(gst, terrain, chunk);
     setup_chunk_foliage(gst, terrain, chunk);
 
+    chunk->num_enemies = 0;
+    for(int i = 0; i < MAX_ENEMIES_PERCHUNK; i++) {
+        chunk->enemies[i] = (struct enemy_t){ 0 };
+    }
 }
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain) {
@@ -458,18 +462,20 @@ void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct 
             float dampen_cube_scale = 0.7;
 
 
-            // Choose type and berry color.
-            fractal->type = GetRandomValue(0, MAX_FRACTAL_TYPES-1);
-            switch(fractal->type) {
-                case FRACTAL_TYPE_ENERGY_SRC:
+            fractal->liquid_type = GetRandomValue(0, MAX_LQCONTENT_TYPES-1);
+            switch(fractal->liquid_type) {
+                
+                case LQCONTENT_ENERGY:
                     fractal->berry_color = (Color){ 30, 255, 255, 255 };
                     break;
 
-                case FRACTAL_TYPE_HEALTH_SRC:
+                case LQCONTENT_HEALTH:
                     fractal->berry_color = (Color){ 255, 80, 120, 255 };
                     break;
+
+                    // ... More can be added later
             }
-            
+
             Color start_color = (Color){
                 fractal->berry_color.r * 0.2,
                 fractal->berry_color.g * 0.2,
@@ -477,9 +483,8 @@ void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct 
                 255
             };
             Color end_color = fractal->berry_color;
-            //Color end_color = (Color){ 0x2F, 0xFC, 0xFC, 0xFF };
 
-            Vector3 rotation_weights = (Vector3){ 0.35, 0.2, 0.15 };
+            Vector3 rotation_weights = (Vector3){ 0.35, 0.2, 0.185 };
             int depth = 8;
 
 
@@ -521,20 +526,14 @@ void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color colo
     DrawCubeWiresV(box, size, color);
 }
 
-void render_chunk_borders2x(struct state_t* gst, struct chunk_t* chunk, Color color) {
-    float scale = gst->terrain.chunk_size * gst->terrain.scaling;
-    Vector3 size = (Vector3){ scale*0.5, scale*0.5, scale*0.5 };
-    Vector3 box = (Vector3){ chunk->center_pos.x, chunk->position.y, chunk->center_pos.z };
-    DrawCubeWiresV(box, size, color);
-}
 
 struct chunk_t* find_chunk(struct state_t* gst, Vector3 position) {
     struct chunk_t* chunk = NULL;
 
     // Normalize coordinates to chunk positions.
 
-    int c_x = gst->player.position.x - gst->terrain.transform.m12;
-    int c_z = gst->player.position.z - gst->terrain.transform.m14;
+    int c_x = position.x - gst->terrain.transform.m12;
+    int c_z = position.z - gst->terrain.transform.m14;
     c_x /= (gst->terrain.chunk_size * gst->terrain.scaling);
     c_z /= (gst->terrain.chunk_size * gst->terrain.scaling);
     
@@ -546,8 +545,8 @@ struct chunk_t* find_chunk(struct state_t* gst, Vector3 position) {
 
 
     size_t chunk_index = c_z * chunks_inrow + c_x;
-    if(chunk_index > gst->terrain.num_chunks) {
-        chunk_index = gst->terrain.num_chunks;
+    if(chunk_index >= gst->terrain.num_chunks) {
+        chunk_index = gst->terrain.num_chunks-1;
     }
 
     chunk = &gst->terrain.chunks[chunk_index];
@@ -563,7 +562,6 @@ void chunk_add_item(struct chunk_t* chunk, struct item_t* item) {
     if(!chunk) {
         return;
     }
-
 
     // If the chunk is not full just add it to next index.
     if(chunk->num_items+1 < MAX_ITEMS_PERCHUNK) {
@@ -641,6 +639,120 @@ void chunk_render_items(struct state_t* gst, struct chunk_t* chunk) {
 
 }
 
+struct enemy_t* chunk_add_enemy(
+        struct state_t* gst,
+        struct chunk_t* chunk,
+        Vector3 position,
+        int enemy_type,
+        int enemy_mood,
+        int adder_type
+){
+    struct enemy_t* entptr = NULL;
+
+    if(!chunk) {
+        chunk = find_chunk(gst, position);
+    }
+
+    uint16_t max_enemies = 0;
+    if(adder_type == ENEMY_ADDED_BY_SYSTEM) {
+        max_enemies = MAX_ENEMIES_PERCHUNK_SAFE;
+    }
+    else
+    if(adder_type == ENEMY_ADDED_BY_CHUNK) {
+        max_enemies = MAX_ENEMIES_PERCHUNK;
+    }
+    else {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Invalid adder_type\033[0m\n",
+                __func__);
+        goto error;
+    }
+
+
+    if(chunk->num_enemies+1 >= max_enemies) {
+        fprintf(stderr, 
+                "\033[31m(ERROR) '%s': Cant add new enemy to chunk(%p) limit reached.\n",
+                __func__, chunk);
+        goto error;
+    }
+
+    entptr = &chunk->enemies[chunk->num_enemies];
+    
+    if(!create_enemy(gst, entptr, enemy_type, enemy_mood, position)) {
+        entptr = NULL;
+        goto error;
+    }
+
+    entptr->chunk = chunk;
+    entptr->index_in_chunk = chunk->num_enemies;
+    chunk->num_enemies++;
+
+error:
+    return entptr;
+}
+
+void chunk_relocate_enemy(struct enemy_t* enemy, struct chunk_t* new_chunk) {
+    if(!enemy->chunk || !new_chunk) {
+        return;
+    }
+    if(enemy->chunk->index == new_chunk->index) {
+        fprintf(stderr, "\033[35m(WARNING) '%s': Current enemy chunk and new_chunk index match."
+                "Nothing has been done.\033[0m\n", __func__);
+        return;
+    }
+
+    if(new_chunk->num_enemies+1 >= MAX_ENEMIES_PERCHUNK) {
+        fprintf(stderr, "\033[31m(ERROR) '%s': Failed to relocate enemy. new_chunk is full.\033[0m\n",
+                __func__);
+        return;
+    }
+   
+    // Copy enemy to the next chunk.
+    new_chunk->enemies[new_chunk->num_enemies] = *enemy;
+    struct enemy_t* entptr = &new_chunk->enemies[new_chunk->num_enemies];
+
+    printf("%s: %li -> %li\n", __func__, enemy->chunk->index, new_chunk->index);
+    // This will remove the enemy from its own chunk.
+    chunk_remove_enemy(enemy);
+
+    // Update the enemy info.
+    entptr->chunk = new_chunk;
+    entptr->index_in_chunk = new_chunk->num_enemies;
+   
+
+    new_chunk->num_enemies++;
+}
+
+void chunk_remove_enemy(struct enemy_t* enemy) {
+    if(enemy->chunk->num_enemies == 0) {
+        return;
+    }
+
+    for(uint16_t i = enemy->index_in_chunk; i < enemy->chunk->num_enemies-1; i++) {
+        
+        struct enemy_t* to = &enemy->chunk->enemies[i];
+        struct enemy_t* from = &enemy->chunk->enemies[i+1];
+
+        *to = *from;
+
+        if(to->index_in_chunk > 0) {
+            to->index_in_chunk--;
+        }
+    }
+
+    enemy->chunk->num_enemies--;
+}
+
+void chunk_update_enemies(struct state_t* gst, struct chunk_t* chunk) {
+    for(uint16_t i = 0; i < chunk->num_enemies; i++) {
+        update_enemy(gst, &chunk->enemies[i]);
+    }
+}
+
+void chunk_render_enemies(struct state_t* gst, struct chunk_t* chunk) {
+    for(uint16_t i = 0; i < chunk->num_enemies; i++) {
+        render_enemy(gst, &chunk->enemies[i]);
+    }
+}
 
 void chunk_update_fractals(struct state_t* gst, struct chunk_t* chunk) {
     for(int i = 0; i < chunk->num_fractals; i++) {

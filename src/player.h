@@ -52,7 +52,9 @@ struct player_t {
     int      is_moving;
     int      is_aiming;
 
-    //int      movement_state;
+    Vector3  aim_final_point; // Raycasted position of where player is aiming.
+                              // Should only be used when 'is_aiming' is true,
+                              // otherwise the data is not relevant anymore
 
     struct biome_t* current_biome;
 

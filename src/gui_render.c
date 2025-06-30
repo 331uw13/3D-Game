@@ -17,7 +17,26 @@ static void render_num_kills(struct state_t* gst) {
 void gui_render_respawn_screen(struct state_t* gst) {
     render_num_kills(gst);
 
+    struct guicfg_t guicfg;
+    gui_load_default_cfg(&guicfg);
+    
+    guicfg.next_x = 100;
+    guicfg.next_y = 200;
 
+    gui_begin(gst);
+    guicfg.font_size = 20;
+    
+
+    if(gui_button(gst, &guicfg, "Quit")) {
+        gst->running = 0;
+    }
+
+    if(gui_button(gst, &guicfg, "Respawn")) {
+        player_respawn(gst, &gst->player);
+    }
+
+    
+    gui_end(gst);
 }
 
 
@@ -65,57 +84,6 @@ void gui_render_menu_screen(struct state_t* gst) {
     gui_checkbox(gst, &guicfg, "Ambient Occlusion (ssao)", &gst->ssao_enabled);
 
     guicfg.next_y += 20;
-
-    /*
-    gui_container(gst, &guicfg, "First Container", GUI_CONTAINER_AUTO_SIZE, &container_open);
-    {
-
-        if(gui_button(gst, &guicfg, "Test Button!")) {
-            printf("Test button was clicked! %f\n", gst->time);
-        }
-
-        if(gui_checkbox(gst, &guicfg, "Checkbox", &test_check)) {
-            printf("Checkbox: %i\n", test_check);
-        }
-
-        gui_checkbox(gst, &guicfg, "Enable", &test_check2);
-        gui_checkbox(gst, &guicfg, "?", &test_check2);
-        gui_button(gst, &guicfg, "Button");
-
-    }
-    gui_end_container(gst, &guicfg);
-
-
-    gui_container(gst, &guicfg, "Container2", GUI_CONTAINER_AUTO_SIZE, &container2_open);
-    {
-        if(gui_button(gst, &guicfg, "Hello!")) {
-            printf("Hello :)\n");
-        }
-    }
-    gui_end_container(gst, &guicfg);
-
-
-    gui_container(gst, &guicfg, "Container3", GUI_CONTAINER_AUTO_SIZE, &container3_open);
-    {
-        gui_text(gst, &guicfg, "Magic numbers");
-    }
-    gui_end_container(gst, &guicfg);
-
-
-
-    gui_sliderF(gst, &guicfg, 0, "Angle", SLIDER_DEF_WIDTH, &test_value, 0.0, 100.0);
-    gui_sliderF(gst, &guicfg, 1, "Distance", SLIDER_DEF_WIDTH, &test_value2, -1000.0, 10000.0);
-
-    gui_next_x__previous(&guicfg);
-    gui_next_y__previous(&guicfg);
-    gui_sliderF(gst, &guicfg, 2, "Hmm", SLIDER_DEF_WIDTH, &test_value3, -M_PI, M_PI);
-
-    gui_next_x__saved(&guicfg, 0);
-
-    guicfg.next_y += 20;
-    gui_text(gst, &guicfg, "Another text");
-    */
-
     gui_end(gst);
 
 }
@@ -252,24 +220,32 @@ void gui_render_devmenu(struct state_t* gst) {
     guicfg.next_x = 10;
     guicfg.next_y = 100;
 
-    gui_save_pos(&guicfg, 1);
 
     for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
-        if(gui_button(gst, &guicfg, TextFormat("Spawn ENEMY_LVL%i", i))) {
+        if(gui_button(gst, &guicfg, TextFormat("Spawn ENEMY_LVL%i (Friendly)", i))) {
             const float radius = 200;
             Vector3 pos = (Vector3) {
                 gst->player.position.x + RSEEDRANDOMF(-radius, radius),
                 gst->player.position.y + RSEEDRANDOMF(-radius, radius),
                 gst->player.position.z + RSEEDRANDOMF(-radius, radius)
             };
-            spawn_enemy(gst, ENEMY_LVL0 + i, ENT_FRIENDLY, pos);
+            chunk_add_enemy(gst, FIND_ENEMY_CHUNK, pos, ENEMY_LVL0 + i, ENT_FRIENDLY, ENEMY_ADDED_BY_SYSTEM);
+        }
+    }
+    guicfg.next_y += 10;
+    
+    for(int i = 0; i < MAX_ENEMY_TYPES; i++) {
+        if(gui_button(gst, &guicfg, TextFormat("Spawn ENEMY_LVL%i (Hostile)", i))) {
+            const float radius = 800;
+            Vector3 pos = (Vector3) {
+                gst->player.position.x + RSEEDRANDOMF(-radius, radius),
+                gst->player.position.y + RSEEDRANDOMF(-radius, radius),
+                gst->player.position.z + RSEEDRANDOMF(-radius, radius)
+            };
+            chunk_add_enemy(gst, FIND_ENEMY_CHUNK, pos, ENEMY_LVL0 + i, ENT_HOSTILE, ENEMY_ADDED_BY_SYSTEM);
         }
     }
 
-
-    gui_next_x__previous(&guicfg);
-    
-    guicfg.next_y = 100;
 
     if(gui_button(gst, &guicfg, "Limit FPS 25")) {
         SetTargetFPS(25);

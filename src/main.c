@@ -138,7 +138,7 @@ void loop(struct state_t* gst) {
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
 
-                DrawText(TextFormat("Num rendered enemies: %li / %li", gst->num_enemies_rendered, gst->num_enemies),
+                DrawText(TextFormat("Enemies in chunk: %li", current_chunk->num_enemies),
                         dtext_x, next_y, 20, PURPLE);
                 next_y += y_inc;
  
@@ -173,7 +173,6 @@ void loop(struct state_t* gst) {
                 DrawText(TextFormat("In biome shift area: %i", playerin_biomeshift_area(gst, &gst->player)),
                         dtext_x, next_y, 20, (Color){ 200, 80, 170, 255 });
                 next_y += y_inc;
-
 
                 DrawText(TextFormat("PSystems render time: %f", state_average_timebuf(gst, TIMEBUF_ELEM_PSYSTEMS_R)),
                         dtext_x, next_y, 20, (Color){ 80, 120, 170, 255 });
@@ -339,6 +338,7 @@ void first_setup(struct state_t* gst) {
 
     gst->skybox = (Model){ 0 };
 
+    // TODO: Some stuff from here should be moved to 'state/state.c' state_setup_everything()
 
     SetTraceLogCallback(tracelog_callback);
     InitWindow(gst->cfg.resolution_x, gst->cfg.resolution_y, "3D-Game");
@@ -369,14 +369,13 @@ void first_setup(struct state_t* gst) {
     gst->num_textures = 0;
     gst->num_textures = 0;
     gst->debug = 0;
-    gst->num_enemies = 0;
     gst->dt = 0.016;
     gst->time = 0.0;
     gst->num_enemy_weapons = 0;
     gst->menu_open = 0;
     gst->running = 1;
     gst->xp_update_done = 1;
-    memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
+    //memset(gst->enemies, 0, MAX_ALL_ENEMIES * sizeof *gst->enemies);
 
     init_shaderutil(gst);
 
@@ -402,12 +401,13 @@ void first_setup(struct state_t* gst) {
     gst->rseed = seed;
     SetRandomSeed(seed);
 
-
+    /*
     for(size_t i = 0; i < MAX_ALL_ENEMIES; i++) {
         gst->enemies[i].modelptr = NULL;
         gst->enemies[i].alive = 0;
         gst->enemies[i].enabled = 0;
     }
+    */
 
 
     gst->gamepad.id = -1;

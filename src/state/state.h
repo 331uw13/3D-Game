@@ -115,7 +115,8 @@
 #define INVBOX_SELECTED_SHADER 29
 #define INVBOX_BACKGROUND_SHADER 30
 #define BERRY_COLLECT_PSYS_SHADER 31
-#define MAX_SHADERS 32
+#define REDPOINT_SCOPE_SHADER 32
+#define MAX_SHADERS 33
 // ...
 
 
@@ -301,10 +302,11 @@ struct state_t {
     // ---- Enemies -----
     struct ent_spawnsys_t enemy_spawn_systems[MAX_ENEMY_TYPES];
     Model  enemy_models[MAX_ENEMY_MODELS];
-    struct enemy_t enemies[MAX_ALL_ENEMIES];
+    /*
+    //struct enemy_t enemies[MAX_ALL_ENEMIES];
     size_t num_enemies;
     size_t num_enemies_rendered;
-
+    */
     struct weapon_t enemy_weapons[MAX_ENEMY_WEAPONS];
     size_t num_enemy_weapons;
 

@@ -4,6 +4,7 @@
 #include "state/state.h"
 #include "enemy.h"
 #include "util.h"
+#include "chunk.h"
 
 #include "enemies/enemy_lvl0.h"
 #include "enemies/enemy_lvl1.h"
@@ -96,8 +97,9 @@ error:
     return result;
 }
 
-struct enemy_t* create_enemy(
+int create_enemy_ext(
         struct state_t* gst,
+        struct enemy_t* entptr,
         int enemy_type,
         int mood,
         Model* modelptr,
@@ -115,28 +117,7 @@ struct enemy_t* create_enemy(
         void(*spawn_callback)(struct state_t*, struct enemy_t*),
         void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/,float/*knockback*/)
 ){
-
-
-    struct enemy_t* entptr = NULL;
-    size_t entptr_index = gst->num_enemies;
-
-    if(gst->num_enemies+1 >= MAX_ALL_ENEMIES) {
-        
-        // Try to search for available position.
-        size_t i = 0;
-        for(; i < MAX_ALL_ENEMIES; i++) {
-            if(!gst->enemies[i].alive) {
-                entptr_index = i;
-                break;
-            }
-        }
-
-        if(i == MAX_ALL_ENEMIES) {
-            fprintf(stderr, "\033[31m(ERROR) '%s': Max enemies reached.\033[0m\n",
-                    __func__);
-            goto error;
-        }
-    }
+    int result = 0;
 
     if(!modelptr) {
         fprintf(stderr, "\033[31m(ERROR) '%s': Pointer to enemy model seems to be NULL\033[0m\n",
@@ -145,34 +126,33 @@ struct enemy_t* create_enemy(
     }
 
     if(!update_callback) {
-        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing update callback\033[0m\n",
-                __func__, entptr->index);
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy is missing update callback\033[0m\n",
+                __func__);
         goto error;
     }
     if(!render_callback) {
-        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing render callback\033[0m\n",
-                __func__, entptr->index);
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy is missing render callback\033[0m\n",
+                __func__);
         goto error;
     }
     if(!death_callback) {
-        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing death callback\033[0m\n",
-                __func__, entptr->index);
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy is missing death callback\033[0m\n",
+                __func__);
         goto error;
     }
     if(!spawn_callback) {
-        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing spawn callback\033[0m\n",
-                __func__, entptr->index);
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy is missing spawn callback\033[0m\n",
+                __func__);
         goto error;
     }
     if(!hit_callback) {
-        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy(%li) is missing hit callback\033[0m\n",
-                __func__, entptr->index);
+        fprintf(stderr, "\033[31m(ERROR) '%s' Enemy is missing hit callback\033[0m\n",
+                __func__);
         goto error;
     }
 
-    entptr = &gst->enemies[entptr_index];
+    //entptr = &gst->enemies[entptr_index];
     entptr->type = enemy_type;
-    entptr->index = entptr_index;
 
     entptr->num_hitboxes = 0;
     entptr->enabled = 1;
@@ -217,7 +197,7 @@ struct enemy_t* create_enemy(
     entptr->time_from_target_lost = 0.0;
 
     entptr->travel = (struct enemy_travel_t) {
-        .start = (Vector3){0},
+        .start = entptr->position,
         .dest  = (Vector3){0},
         .travelled = 0.0,
 
@@ -231,8 +211,8 @@ struct enemy_t* create_enemy(
     }
 
 
-    printf("(INFO) '%s': Enemy (Index:%li)\n",
-            __func__, entptr->index);
+    printf("%s: ENEMY_LVL%i\n",
+            __func__, entptr->type);
   
 
     entptr->accuracy_modifier = 0.0;
@@ -240,13 +220,10 @@ struct enemy_t* create_enemy(
     entptr->firerate = firerate;
     entptr->despawn_timer = 0.0;
 
-    gst->num_enemies++;
-    if(gst->num_enemies >= MAX_ALL_ENEMIES) {
-        gst->num_enemies = MAX_ALL_ENEMIES;
-    } 
+    result = 1;
 
 error:
-    return entptr;
+    return result;
 }
 
 
@@ -275,6 +252,14 @@ void update_enemy(struct state_t* gst, struct enemy_t* ent) {
     }
 
     ent->was_hit = 0;
+
+
+
+    // Update enemy chunk if it changed.
+    struct chunk_t* entchunk = find_chunk(gst, ent->position);
+    if(entchunk->index != ent->chunk->index) {
+        chunk_relocate_enemy(ent, entchunk);
+    }
 }
 
 void render_enemy(struct state_t* gst, struct enemy_t* ent) {
@@ -297,7 +282,6 @@ void render_enemy(struct state_t* gst, struct enemy_t* ent) {
 
     if(ent->render_callback) {
         ent->render_callback(gst, ent);
-        gst->num_enemies_rendered++;
     }
 }
 
@@ -351,7 +335,7 @@ void enemy_damage(
 }
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
-   
+
     create_explosion(gst, ent->position, 125/*damage*/, 200.0/*radius*/);
     int xp_gain_bonus = 0;
 
@@ -387,6 +371,8 @@ void enemy_death(struct state_t* gst, struct enemy_t* ent) {
         gst->enemy_spawn_systems[spawnsys->next_spawnsys].can_spawn = 1;
         spawnsys->next_spawnsys = -1;
     }
+    
+    chunk_remove_enemy(ent);
 }
 
 void enemy_add_hitbox(
@@ -413,8 +399,9 @@ void enemy_add_hitbox(
     ent->num_hitboxes++;
 }
 
-void spawn_enemy(
+int create_enemy(
         struct state_t* gst,
+        struct enemy_t* entptr,
         int enemy_type,
         int mood,
         Vector3 position
@@ -427,10 +414,11 @@ void spawn_enemy(
                 if(position.y <= gst->terrain.water_ylevel) {
                     fprintf(stderr, "\033[31m(ERROR) '%s': Enemy type '%i' cannot spawn in water.\033[0m\n",
                             __func__, enemy_type);
-                    return;
+                    return 0;
                 }
 
-                struct enemy_t* ent = create_enemy(gst,
+                if(!create_enemy_ext(gst,
+                        entptr,
                         enemy_type,
                         mood,
                         &gst->enemy_models[enemy_type],
@@ -447,28 +435,27 @@ void spawn_enemy(
                         enemy_lvl0_death,
                         enemy_lvl0_created,
                         enemy_lvl0_hit
-                        );
-                if(!ent) {
-                    return;
+                )) {
+                    return 0;
                 }
 
                 // Head hitbox.
-                enemy_add_hitbox(ent,
+                enemy_add_hitbox(entptr,
                         (Vector3){ 33.0, 18.0, 33.0 },
                         (Vector3){ 0.0, 26.0, 0.0 },
-                        1.758,
+                        1.758, // Damage multiplier.
                         HITBOX_HEAD
                         );
 
                 // Legs hitbox.
-                enemy_add_hitbox(ent,
+                enemy_add_hitbox(entptr,
                         (Vector3){ 35.0, 12.0, 35.0 }, // Size
-                        (Vector3){ 0.0, 5.0, 0.0 },   // Offset
-                        0.25,
+                        (Vector3){ 0.0, 5.0, 0.0 },    // Offset
+                        0.25, // Damage multiplier.
                         HITBOX_LEGS
                         );
 
-                ent->spawn_callback(gst, ent);
+                entptr->spawn_callback(gst, entptr);
             }
             break;
 
@@ -477,10 +464,11 @@ void spawn_enemy(
                 if(position.y <= gst->terrain.water_ylevel) {
                     fprintf(stderr, "\033[31m(ERROR) '%s': Enemy type '%i' cannot spawn in water.\033[0m\n",
                             __func__, enemy_type);
-                    return;
+                    return 0;
                 }
 
-                struct enemy_t* ent = create_enemy(gst,
+                if(!create_enemy_ext(gst,
+                        entptr,
                         enemy_type,
                         mood,
                         &gst->enemy_models[enemy_type],
@@ -491,26 +479,25 @@ void spawn_enemy(
                         60,    /* XP Gain */
                         680.0, /* Target Range */
                         90.0,  /* Target FOV */
-                        0.085, /* Firerate */
+                        0.3,   /* Firerate */
                         enemy_lvl1_update,
                         enemy_lvl1_render,
                         enemy_lvl1_death,
                         enemy_lvl1_created,
                         enemy_lvl1_hit
-                        );
-                if(!ent) {
-                    return;
+                )) { 
+                    return 0;
                 }
 
                 // Head hitbox.
-                enemy_add_hitbox(ent,
+                enemy_add_hitbox(entptr,
                         (Vector3){ 13.0, 13.0, 13.0 }, // Size
-                        (Vector3){ 0.0, 1.0, 0.0 },  // Offset
-                        1.758,
+                        (Vector3){ 0.0, 1.0, 0.0 },    // Offset
+                        1.758, // Damage multiplier.
                         HITBOX_HEAD
                         );
 
-                ent->spawn_callback(gst, ent);
+                entptr->spawn_callback(gst, entptr);
             }
             break;
 
@@ -520,6 +507,8 @@ void spawn_enemy(
                     __func__, enemy_type);
             break;
     }
+
+    return 1;
 }
 
 
@@ -587,6 +576,8 @@ int enemy_has_target(
 int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int* num_in_world) {
     int num = 0;
 
+    printf("%s: Not reimplemented.\n", __func__);
+    /*
     for(size_t i = 0; i < gst->num_enemies; i++) {
         if(!gst->enemies[i].alive || !gst->enemies[i].enabled) {
             continue;
@@ -603,6 +594,7 @@ int num_enemies_in_radius(struct state_t* gst, int enemy_type, float radius, int
             *num_in_world += 1;
         }
     }
+    */
 
     return num;
 }
@@ -641,46 +633,12 @@ static Vector3 get_good_spawn_pos(struct state_t* gst, float spawn_radius) {
 
 void update_enemy_spawn_systems(struct state_t* gst) {
 
-    for(int enemy_type = 0; enemy_type < MAX_ENEMY_TYPES; enemy_type++) {
-        struct ent_spawnsys_t* spawnsys = &gst->enemy_spawn_systems[enemy_type];
+    printf("%s not implemented yet.\n", __func__);
 
-        if(!spawnsys->can_spawn) {
-            continue;
-        }
-
-        spawnsys->spawn_timer += gst->dt;
-        if(spawnsys->spawn_timer >= spawnsys->spawn_delay) {
-            spawnsys->spawn_timer = 0.0;
-
-            int to_spawn = GetRandomValue(spawnsys->num_spawns_min, spawnsys->num_spawns_max);
-
-            int in_world = 0;
-            int in_radius = num_enemies_in_radius(gst, enemy_type, spawnsys->spawn_radius, &in_world);
-
-            if(in_world >= spawnsys->max_in_world) {
-                fprintf(stderr, "\033[35m(WARNING) '%s': Too many 'EnemyLVL%i' in world\033[0m\n",
-                        __func__, enemy_type);
-                continue;
-            }
-
-            if(in_radius >= spawnsys->max_in_spawn_radius) {
-                fprintf(stderr, "\033[35m(WARNING) '%s': Too many 'EnemyLVL%i' in spawn radius\033[0m\n",
-                        __func__, enemy_type);
-                continue;
-            }
-
-            to_spawn = CLAMP(to_spawn, 0, spawnsys->max_in_spawn_radius);
-
-            for(int i = 0; i < to_spawn; i++) {
-                spawn_enemy(gst, enemy_type, ENT_HOSTILE, get_good_spawn_pos(gst, spawnsys->spawn_radius));
-            }
-
-            printf("\033[36m(SpawnSystem): Spawned EnemyLVL%i (%i)\033[0m\n", enemy_type, to_spawn);
-        }
-    }
 }
 
 void setup_default_enemy_spawn_settings(struct state_t* gst) {
+
 
     // --- ENEMY_LVL0 Defaults ---
     {

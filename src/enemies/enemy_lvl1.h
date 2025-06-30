@@ -4,6 +4,8 @@
 #include "../enemy.h"
 
 
+// TODO: Move matrix to enemy.h
+
 // Index for 'enemy->matrix'.  'MI' short for "Matrix Index".
 #define ENEMY_LVL1_BODY_MI 0
 #define ENEMY_LVL1_JOINT_MI 1

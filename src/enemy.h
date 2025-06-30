@@ -14,9 +14,6 @@
 #define ENT_TRAVELING_DISABLED 0
 #define ENT_TRAVELING_ENABLED 1
 
-// "mood" for enemy.
-#define ENT_FRIENDLY 0
-#define ENT_HOSTILE 1
 
 // Enemy types.
 #define ENEMY_LVL0 0
@@ -24,18 +21,21 @@
 #define MAX_ENEMY_TYPES 2
 
 
+// "mood" for enemy.
+#define ENT_FRIENDLY 0
+#define ENT_HOSTILE 1
+
+
 #define ENEMY_DESPAWN_RADIUS 1000.0
 #define ENEMY_DESPAWN_TIME 60 // (in seconds)
 
-
+// TODO: REMOVE:
 #define ENEMY_LVL0_MAX_HEALTH 100
 #define ENEMY_LVL1_MAX_HEALTH 60
 
-#define ENEMY_WEAPON_COLOR ((Color){255, 0, 255, 255})
+
 #define ENEMY_MAX_MATRICES 4
 
-#define ENEMY_DEATH_EXPLOSION_FORCE 15.0
-#define ENEMY_DEATH_EXPLOSION_DAMAGE 100.0
 
 // Enemies cant spawn too close to the player.
 #define ENEMY_SPAWN_SAFE_RADIUS 600.0 
@@ -55,6 +55,7 @@
 #include "hitbox.h"
 
 struct state_t;
+struct chunk_t;
 
 
 struct enemy_travel_t {
@@ -71,7 +72,10 @@ struct enemy_t {
     Model* modelptr;
     int type;
     int enabled;
-   
+  
+    struct chunk_t* chunk;
+    uint16_t        index_in_chunk;
+
     Vector3 position; // <- NOTE: "read only". modify the model's transform instead.
     struct hitbox_t hitboxes[MAX_HITBOXES];
     size_t          num_hitboxes;
@@ -90,25 +94,22 @@ struct enemy_t {
     float health;
     float max_health;
 
-    float despawn_timer;
-
-    // When enemy gets hit. velocity may be applied.
     Vector3 knockback_velocity;
-    
     float time_from_hit;
 
-    int xp_gain; // How much xp the player gains when killing this enemy?
+    int xp_gain;
+    float despawn_timer;
 
     // Used for rotating enemy.
     Quaternion Q_now;
     Quaternion Q_prev;
     Quaternion Q_target;
     float      angle_change;  // How much 'Q_prev' is changed to 'Q_target'.
-    Vector3    rotation;      // Matrix rotation.
+    Vector3    rotation;
 
     // Collision check radius.
     // This is used mainly for collision with projectiles.
-    // if the projectile is not inside circle of 'ccheck_radius'
+    // if the projectile is not inside sphere with radius of 'ccheck_radius'
     // it doesnt perform collision check.
     float      ccheck_radius; 
 
@@ -139,7 +140,7 @@ struct enemy_t {
     int mood;
     int has_target;
 
-    size_t index; // Index in gst->enemies array.
+    //size_t index; // Index in gst->enemies array.
 
     float time_from_target_found;
     float time_from_target_lost;
@@ -191,8 +192,9 @@ struct ent_spawnsys_t {
 int load_enemy_model(struct state_t* gst, u32 enemy_type, const char* model_filepath, int texture_id);
 
 
-struct enemy_t* create_enemy(
+int create_enemy_ext(
         struct state_t* gst,
+        struct enemy_t* entptr,
         int enemy_type,
         int mood,
         Model* model,
@@ -211,6 +213,14 @@ struct enemy_t* create_enemy(
         void(*hit_callback)(struct state_t*, struct enemy_t*, Vector3/*hit pos*/, Vector3/*hit dir*/,float/*knockback*/)
 );
 
+// Simpler function to use than 'create_enemy_ext'
+int create_enemy(
+        struct state_t* gst,
+        struct enemy_t* entptr,
+        int enemy_type,
+        int mood,
+        Vector3 position
+);
 
 void enemy_add_hitbox(
         struct enemy_t* ent, 
@@ -220,13 +230,6 @@ void enemy_add_hitbox(
         int hitbox_tag
 );
 
-// Simpler function to use than 'create_enemy'
-void spawn_enemy(
-        struct state_t* gst,
-        int enemy_type,
-        int mood,
-        Vector3 position
-);
 
 void update_enemy(struct state_t* gst, struct enemy_t* ent);
 void render_enemy(struct state_t* gst, struct enemy_t* ent);

@@ -75,39 +75,26 @@ void prepare_renderpass(struct state_t* gst, int renderpass) {
 static void render_scene(struct state_t* gst, int renderpass) {
 
     prepare_renderpass(gst, renderpass);
-    
-    // Render huge sphere, 
-    // ssao algorithm freaks out if there is nothing behind
-    // because it doesnt have valid depth.
+   
+    // Skybox sphere.
     rlDisableDepthMask();
     rlDisableBackfaceCulling();
     DrawModel(gst->skybox, gst->player.cam.position, gst->render_dist, BLACK);
     rlEnableDepthMask();
     rlEnableBackfaceCulling();
-    
-    // Enemies.
-    // TODO: Instanced rendering for enemies.
 
-    gst->num_enemies_rendered = 0;
 
-    for(size_t i = 0; i < gst->num_enemies; i++) {
-        struct enemy_t* ent = &gst->enemies[i];
-        render_enemy(gst, ent);
-    }
-
-    /*
-    int terrain_render_setting = 
-        (renderpass == RENDERPASS_SHADOWS) ?
-            RENDER_TERRAIN_FOR_SHADOWS : RENDER_TERRAIN_FOR_PLAYER;
-    */
     render_terrain(gst, &gst->terrain, renderpass);
     render_npc(gst, &gst->npc);
-    render_player(gst, &gst->player);
 
-    // Render chunks items.
+
+    // Render Items and Enemies.
     for(int i = 0; i < gst->terrain.num_rendered_chunks; i++) {
-        chunk_render_items(gst, gst->terrain.rendered_chunks[i]);
+        struct chunk_t* chunk = gst->terrain.rendered_chunks[i];
+        chunk_render_items(gst, chunk);
+        chunk_render_enemies(gst, chunk);
     }
+
 }
 
 
@@ -115,6 +102,7 @@ static void render_debug_lines(struct state_t* gst) {
 
     glLineWidth(2.0);
 
+    /*
     for(size_t i = 0; i < gst->num_enemies; i++) {
         struct enemy_t* ent = &gst->enemies[i];
         if(!ent->alive) {
@@ -146,6 +134,12 @@ static void render_debug_lines(struct state_t* gst) {
         }
 
     }
+    */
+
+
+    // Raycasted aim point.
+    DrawSphere(gst->player.aim_final_point, 2.0, RED);
+
 
     // Chunk borders.
     for(size_t i = 0; i < gst->terrain.num_chunks; i++) {
@@ -180,96 +174,6 @@ static void render_debug_lines(struct state_t* gst) {
 }
 
 
-/*
-static int branch_counter = 0;
-
-#define NUM_BRANCHES 2
-#define N_INCREMENT ((2*M_PI)/(float)NUM_BRANCHES)
-
-#define POSITIVE 1.0
-#define NEGATIVE -1.0
-
-static struct line_t lines[1024*15] = { 0 };
-static size_t num_lines = 0;
-static float branch_N = 0.0;
-
-void branch(struct state_t* gst, Matrix mtx, float height, int depth, Vector3 rotation) {
-
-    Vector3 p0 = (Vector3) {
-        mtx.m12, mtx.m13, mtx.m14
-    };
-
-    Matrix offset = MatrixTranslate(0, height, 0);
-    Matrix rotm = MatrixRotateXYZ(rotation);
-    mtx = MatrixMultiply(offset, mtx);
-    mtx = MatrixMultiply(rotm, mtx);
-
-    Vector3 p1 = (Vector3) { 0, 0, 0 };
-    p1 = Vector3Transform(p1, mtx);
-
-
-    Color color = ColorLerp(
-        (Color){ 120, 50, 10, 255},
-        (Color){ 20, 80, 120, 255},
-        pow(normalize(depth, 0, 12), 0.7)
-    );
-
-    DrawLine3D(
-            p0, p1,
-            color
-            );
-    
-    if(depth > 0) {
-
-        height *= gst->fractal_height;
-
-        Vector3 rot = (Vector3) {
-            gst->fractal_rx,
-            gst->fractal_ry,
-            gst->fractal_rz
-        };
-
-        branch(gst, mtx, height, depth-1,  rot);
-        branch(gst, mtx, height, depth-1,  Vector3Negate(rot));
- 
-
-        // TODO: Something for this.
-        rot = (Vector3) {
-            gst->fractal_rx,
-            gst->fractal_ry + 1.57,
-            gst->fractal_rz
-        };
-
-        branch(gst, mtx, height, depth-1,  rot);
-        branch(gst, mtx, height, depth-1,  Vector3Negate(rot));
-    }
-
-
-}
-
-
-// Generate fractal.
-void fractal_tree_test(struct state_t* gst) {
-    
-    glLineWidth(1.5);
-    
-
-    Vector3 p = gst->player.spawn_point;
-    p.y = raycast_terrain(&gst->terrain, p.x, p.z).point.y;
-
-    branch_counter = 0;
-    branch_N = 0;
-
-    p.y -= 20.0;
-
-    int depth = 8;
-    branch(gst, MatrixTranslate(p.x, p.y, p.z), 20, depth, (Vector3){0});
-
- 
-}
-*/
-
-
 void state_render(struct state_t* gst) {
 
 
@@ -288,6 +192,7 @@ void state_render(struct state_t* gst) {
         BeginMode3D(gst->shadow_cams[i]);
         {
             render_scene(gst, RENDERPASS_SHADOWS);
+            render_player(gst, &gst->player);
         }
         EndMode3D();
         rlDisableFramebuffer();
@@ -309,6 +214,7 @@ void state_render(struct state_t* gst) {
         {
             rlEnableShader(gst->shaders[GBUFFER_SHADER].id);
             render_scene(gst, RENDERPASS_GBUFFER);
+            render_player(gst, &gst->player);
         }
         EndMode3D();
         rlDisableFramebuffer();
@@ -361,12 +267,14 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[PROJECTILE_ENVHIT_PSYS], (Color){0});
             render_psystem(gst, &gst->psystems[BERRY_COLLECT_PSYS], (Color){0});
         }
+        
 
         state_timebuf_add(gst, 
                 TIMEBUF_ELEM_PSYSTEMS_R,
                 GetTime() - psys_render_timestart);
             
 
+            render_player(gst, &gst->player);
         render_player_gunfx(gst, &gst->player);
 
 

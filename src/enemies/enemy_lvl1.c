@@ -102,6 +102,7 @@ void enemy_lvl1_update(struct state_t* gst, struct enemy_t* ent) {
 
     enemy_has_target(gst, ent, &ent->matrix[ENEMY_LVL1_BODY_MI], enemy_target_found, enemy_target_lost);
 
+    
 
     ent->position.x += ent->knockback_velocity.x;
     ent->position.y += ent->knockback_velocity.y;
@@ -283,7 +284,7 @@ void enemy_lvl1_hit(struct state_t* gst, struct enemy_t* ent,
 }
 
 void enemy_lvl1_death(struct state_t* gst, struct enemy_t* ent) {
-    printf("(INFO) '%s': Enemy %li Died\n", __func__, ent->index);
+    printf("(INFO) '%s': Enemy %p Died\n", __func__, ent);
     
 }
 

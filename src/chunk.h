@@ -6,6 +6,7 @@
 #include "biome.h"
 #include "items/item.h"
 #include "fractalgen.h"
+#include "enemy.h"
 
 struct state_t;
 struct terrain_t;
@@ -24,6 +25,8 @@ struct terrain_t;
 #define MAX_FOLIAGE_TYPES 6
 
 #define MAX_ITEMS_PERCHUNK 64
+#define MAX_ENEMIES_PERCHUNK 40      // Completely max number of enemies in the chunk.
+#define MAX_ENEMIES_PERCHUNK_SAFE 32 // The array must have some free room left for enemies who can move around.
 #define MAX_FRACTALS_PERCHUNK 32
 #define FRACTAL_SPAWN_CHANCE 50  // 0 - 100
 
@@ -62,6 +65,9 @@ struct chunk_t {
     struct item_t items[MAX_ITEMS_PERCHUNK];
     int num_items;
 
+    struct enemy_t enemies[MAX_ENEMIES_PERCHUNK];
+    uint16_t num_enemies;
+
     // The fractal will have special function when player interacts with it.
     struct fractal_t fractals[MAX_FRACTALS_PERCHUNK];
     int num_fractals;
@@ -70,8 +76,8 @@ struct chunk_t {
 
 void load_chunk_foliage_models(struct state_t* gst, struct terrain_t* terrain);
 void setup_chunk_foliage(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
-
 void decide_chunk_biome(struct state_t* gst, struct terrain_t* terrain, struct chunk_t* chunk);
+
 void delete_chunk(struct chunk_t* chunk);
 void load_chunk(
         struct state_t* gst,
@@ -83,21 +89,53 @@ void load_chunk(
         );
 
 
-void position_to_chunk_index(Vector3 positon, size_t* out_index);
 struct chunk_t* find_chunk(struct state_t* gst, Vector3 position);
+void position_to_chunk_index(Vector3 positon, size_t* out_index);
 
+// --- Items ---
 void chunk_add_item(struct chunk_t* chunk, struct item_t* item);
 void chunk_update_items(struct state_t* gst, struct chunk_t* chunk);
 void chunk_render_items(struct state_t* gst, struct chunk_t* chunk);
 
+
+// --- Enemies ---
+
+// 'adder_type' for 'chunk_add_enemy' (TODO: add overwrite option for important enemies)
+#define ENEMY_ADDED_BY_SYSTEM 0 // (Enemy is spawned) Uses MAX_ENEMIES_PERCHUNK_SAFE.
+#define ENEMY_ADDED_BY_CHUNK 1  // (Enemy moved from another chunk) Uses MAX_ENEMIES_PERCHUNK.
+#define FIND_ENEMY_CHUNK NULL
+
+struct enemy_t* chunk_add_enemy(
+        struct state_t* gst,
+        struct chunk_t* chunk,
+        Vector3 position,
+        int enemy_type,
+        int enemy_mood,
+        int adder_type
+        );
+
+// Moves enemy from enemy->chunk to new_chunk.
+// Nothing is done if the chunk indices match.
+void chunk_relocate_enemy(struct enemy_t* enemy, struct chunk_t* new_chunk);
+
+void chunk_remove_enemy(struct enemy_t* enemy);
+void chunk_update_enemies(struct state_t* gst, struct chunk_t* chunk);
+void chunk_render_enemies(struct state_t* gst, struct chunk_t* chunk);
+
+
+// --- Fractals ---
 void chunk_update_fractals(struct state_t* gst, struct chunk_t* chunk);
 void chunk_render_fractals(struct state_t* gst, struct chunk_t* chunk, int render_pass);
 
+
+// --- Lights ---
 void chunk_update_lights(struct state_t* gst, struct chunk_t* chunk);
 void chunk_prepare_lights(struct state_t* gst, struct chunk_t* chunk); // Prepare lights for rendering.
 
+
+
 // These can be used for debug if needed.
 void render_chunk_borders(struct state_t* gst, struct chunk_t* chunk, Color color);
-void render_chunk_borders2x(struct state_t* gst, struct chunk_t* chunk, Color color);
+
 
 #endif

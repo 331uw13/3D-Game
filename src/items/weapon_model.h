@@ -10,6 +10,16 @@
 // Enemies dont need it.
 
 
+/*
+
+   About actual weapon model files.
+   * first mesh should be the gun.
+   * second mesh is the liquid magazine level.
+   * (optional) third mesh redpoint scope. usually a plane where to render the red point.
+
+
+*/
+
 #define WMODEL_ASSAULT_RIFLE_0  0
 #define WMODEL_SNIPER_RIFLE_0   1
 #define MAX_WEAPON_MODELS 2
@@ -22,6 +32,8 @@ struct weapon_model_t {
     int incomplete;
 
     Model model;
+    int has_redpoint_scope;
+
     struct weapon_t stats;
 
     int has_scope;

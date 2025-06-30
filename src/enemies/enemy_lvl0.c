@@ -262,7 +262,7 @@ void enemy_lvl0_hit(struct state_t* gst, struct enemy_t* ent,
 }
 
 void enemy_lvl0_death(struct state_t* gst, struct enemy_t* ent) {
-    printf("(INFO) '%s': Enemy %li Died\n", __func__, ent->index);
+    printf("(INFO) '%s': Enemy %p Died\n", __func__, ent);
     
 }
 

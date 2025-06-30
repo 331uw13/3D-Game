@@ -4,6 +4,8 @@
 #include "weapon_model.h"
 #include "state/state.h"
 
+#include <rlgl.h>
+
 #define CFGBUF_SIZE 256
 
 #define CFG_ACCURACY_MIN 0
@@ -57,10 +59,25 @@ void load_weapon_model(
 
     weapon_model->model = LoadModel(buf);
     weapon_model->model.materials[0] = LoadMaterialDefault();
-    
+    weapon_model->model.materials[0].maps[0].color = (Color){ 80, 80, 70, 255 };
+
     // This material is for "liquid magazine"
     weapon_model->model.materials[1] = LoadMaterialDefault();
     weapon_model->model.materials[1].shader = gst->shaders[ENERGY_LIQUID_SHADER];
+
+    
+    if(weapon_model->model.meshCount == 3) {
+        weapon_model->has_redpoint_scope = 1;
+        
+        weapon_model->model.materials[2] = LoadMaterialDefault();
+        weapon_model->model.materials[2].shader = gst->shaders[REDPOINT_SCOPE_SHADER];
+
+    }
+    else {
+        weapon_model->has_redpoint_scope = 0;
+    }
+    //printf("%i\n", weapon_model->model.meshCount);
+
 
     // Setup stats.
 
@@ -312,13 +329,24 @@ void render_weapon_model(struct state_t* gst, struct weapon_model_t* weapon_mode
             transform
             );
 
+    if(weapon_model->has_redpoint_scope) {
+        rlDisableDepthMask();
+        rlDisableBackfaceCulling();
+        DrawMesh(
+               weapon_model->model.meshes[2],
+               weapon_model->model.materials[2],
+               transform
+               );
+        rlEnableDepthMask();
+        rlEnableBackfaceCulling();
+    }
+
     // Rest of the model.
     DrawMesh(
             weapon_model->model.meshes[0],
             weapon_model->model.materials[0],
             transform
             );
-
 }
 
 void use_weapon_model_test_offsets(struct state_t* gst, struct weapon_model_t* weapon_model) {

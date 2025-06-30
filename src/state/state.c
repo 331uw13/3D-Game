@@ -183,6 +183,7 @@ void state_update_shader_uniforms(struct state_t* gst) {
     shader_setu_vec2(gst, POSTPROCESS_SHADER,      U_SCREEN_SIZE, &resolution);
     shader_setu_vec2(gst, SSAO_SHADER,             U_SCREEN_SIZE, &resolution);
     shader_setu_vec2(gst, SCOPE_CROSSHAIR_SHADER,  U_SCREEN_SIZE, &gst->screen_size);
+    shader_setu_vec2(gst, REDPOINT_SCOPE_SHADER,   U_SCREEN_SIZE, &gst->screen_size);
 
 
     // Update time
@@ -317,7 +318,7 @@ static void state_update_lights(struct state_t* gst) {
 void state_update_frame(struct state_t* gst) {
     
     gst->player.any_gui_open = 
-        gst->menu_open || gst->player.inventory.open;
+        !gst->player.alive || gst->menu_open || gst->player.inventory.open;
 
 
     handle_userinput(gst);
@@ -329,10 +330,10 @@ void state_update_frame(struct state_t* gst) {
     gst->crosshair_item_info = NULL;
 
 
-    // For testing new weapon model configs.
     /*
+    // For testing new weapon model configs.
     if(gst->player.item_in_hands) {
-        if(gst->player.item_in_hands->is_weapon_item) {
+        if(gst->player.item_in_hands->type == ITEM_WEAPON_MODEL) {
             use_weapon_model_test_offsets(gst, &gst->player.item_in_hands->weapon_model);
         }
     }
@@ -363,19 +364,15 @@ void state_update_frame(struct state_t* gst) {
         gst->default_weapon_dropped = 1;
     }
 
-    // Update Enemies.
-    for(size_t i = 0; i < gst->num_enemies; i++) {
-        update_enemy(gst, &gst->enemies[i]);
-    }
-
     //update_enemy_spawn_systems(gst); 
 
 
-    // Update Items.
+    // Update Items and Enemies.
     for(int i = 0; i < gst->terrain.num_rendered_chunks; i++) {
-        chunk_update_items(gst, gst->terrain.rendered_chunks[i]);
+        struct chunk_t* chunk = gst->terrain.rendered_chunks[i];
+        chunk_update_items(gst, chunk);
+        chunk_update_enemies(gst, chunk);
     }
-    
 
     // Particle Systems.
     // (updated only if needed)
@@ -502,6 +499,7 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
 
     // Calculate explosion effects to enemies nearby.
 
+    /*
     for(size_t i = 0; i < gst->num_enemies; i++) {
         struct enemy_t* ent = &gst->enemies[i];
         if(!ent->alive) {
@@ -527,6 +525,7 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
                 Vector3Subtract(ent->position, position),
                 exp_knockback_to_ent);
     }
+    */
 
 }
 
