@@ -13,8 +13,10 @@ void enemy_hit_psys_update(
         struct particle_t* part
 ){
 
+    part->color.a = 100+100*(sin(part->lifetime*50)*0.5+0.5);
+
     float ntime = normalize(part->lifetime, 0.0, part->max_lifetime);
-    float st = lerp(ntime,  1.0, 0.0);
+    float st = lerp(ntime,  3.0, 0.0);
 
     part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt*40));
 
@@ -39,12 +41,15 @@ void enemy_hit_psys_init(
 
     part->color = part_color;
 
-    const float p_r = 3.5;
+    const float p_r = 1.0;
     part->position = origin;
     part->position.x += RSEEDRANDOMF(-p_r, p_r);
     part->position.y += RSEEDRANDOMF(-p_r, p_r);
     part->position.z += RSEEDRANDOMF(-p_r, p_r);
    
+    part->position.x -= part->velocity.x * 5;
+    part->position.y -= part->velocity.y * 5;
+    part->position.z -= part->velocity.z * 5;
     
     const float v_r = 1.0;
     part->velocity = Vector3Normalize(Vector3Negate(velocity));
@@ -52,8 +57,10 @@ void enemy_hit_psys_init(
     part->velocity.y += RSEEDRANDOMF(-v_r, v_r);
     part->velocity.z += RSEEDRANDOMF(-v_r, v_r);
     
+    part->velocity = Vector3Scale(part->velocity, 2.0);
+    
 
-    part->max_lifetime = RSEEDRANDOMF(0.485, 0.65);
+    part->max_lifetime = RSEEDRANDOMF(0.25, 1.5);
 }
 
 

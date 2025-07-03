@@ -498,22 +498,27 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
 
 
     // Calculate explosion effects to enemies nearby.
+    // TODO: This should check if its at the chunk border
+    //       all enemies at the next chunk will not get any effect.
 
-    /*
-    for(size_t i = 0; i < gst->num_enemies; i++) {
-        struct enemy_t* ent = &gst->enemies[i];
+    struct chunk_t* chunk = find_chunk(gst, position);
+    for(uint16_t i = 0; i < chunk->num_enemies; i++) {
+        struct enemy_t* ent = &chunk->enemies[i];
+
         if(!ent->alive) {
             continue;
         }
 
         float effect_to_ent = get_explosion_effect(position, ent->position, radius);
-        float exp_damage_to_ent = effect_to_ent * damage;
-        float exp_knockback_to_ent = effect_to_ent * 10.0;
+        float exp_damage_to_ent = effect_to_ent * 20.0;
+        float exp_knockback_to_ent = effect_to_ent * 30.0;
 
         if(effect_to_ent <= 0.0) {
             continue;
         }
-        printf("Explosion Damage to ent: %0.2f\n", exp_damage_to_ent);
+
+
+        printf("Explosion Damage: %0.3f\n", exp_damage_to_ent);
         struct hitbox_t* hitbox = &ent->hitboxes[HITBOX_BODY];
 
         enemy_damage(
@@ -525,8 +530,6 @@ void create_explosion(struct state_t* gst, Vector3 position, float damage, float
                 Vector3Subtract(ent->position, position),
                 exp_knockback_to_ent);
     }
-    */
-
 }
 
 

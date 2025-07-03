@@ -260,7 +260,7 @@ void state_render(struct state_t* gst) {
             render_psystem(gst, &gst->psystems[ENEMY_WEAPON_PSYS], (Color){0});
 
             render_psystem(gst, &gst->psystems[PLAYER_HIT_PSYS], (Color){ 255, 20, 20, 255});
-            render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){ 255, 120, 20, 255});
+            render_psystem(gst, &gst->psystems[ENEMY_HIT_PSYS], (Color){0});
         
             render_psystem(gst, &gst->psystems[ENEMY_GUNFX_PSYS], (Color){0});
         

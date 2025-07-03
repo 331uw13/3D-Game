@@ -302,10 +302,10 @@ void enemy_damage(
 
     add_particles(gst,
             &gst->psystems[ENEMY_HIT_PSYS],
-            GetRandomValue(30, 50),
+            GetRandomValue(30, 80),
             hit_position,
             hit_direction,
-            (Color){ 255, 120, 0, 255 },
+            ent->weaponptr->color,
             NULL, NO_EXTRADATA, NO_IDB
             );
 
@@ -336,6 +336,7 @@ void enemy_damage(
 
 void enemy_death(struct state_t* gst, struct enemy_t* ent) {
 
+    ent->alive = 0;
     create_explosion(gst, ent->position, 125/*damage*/, 200.0/*radius*/);
     int xp_gain_bonus = 0;
 

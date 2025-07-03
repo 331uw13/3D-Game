@@ -261,6 +261,10 @@ void gui_render_devmenu(struct state_t* gst) {
     if(gui_button(gst, &guicfg, "Teleport to spawnpoint")) {
         gst->player.cam.position = gst->player.spawn_point;
     }
+    if(gui_button(gst, &guicfg, "Spawn NPC")) {
+        gst->npc.position = gst->player.position;
+        gst->npc.active = 1;
+    }
 
    
     gui_end(gst);

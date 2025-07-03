@@ -36,6 +36,8 @@ void setup_npc(struct state_t* gst, struct npc_t* npc) {
     npc->travel.dest_reached = 1;
 
     gst->init_flags |= INITFLG_NPC;
+
+    printf("%s\n", __func__);
 }
 
 void delete_npc(struct state_t* gst, struct npc_t* npc) {

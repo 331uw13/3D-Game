@@ -22,28 +22,16 @@ void projectile_envhit_psys_update(
     Matrix scale_matrix;
     Matrix translation;
 
-    if(part->idb == PART_IDB_ENVHIT_CIRCLE) {
 
-        float st = lerp(part->scale / scale_duration, 0.0, 30.0);
-        float alpha = lerp(normalize(part->lifetime, 0, part->max_lifetime), 1.0, 0.0);
+    part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt));
+    //part->velocity = Vector3Scale(part->velocity, pow(0.9995, gst->dt*GRAVITY_CONST));
 
-        alpha = 1.0-pow(1.0-alpha, 5.0);
-        part->color.a = alpha * 255;
+    part->velocity = Vector3Scale(part->velocity, part->accel.x);
+    part->accel.x *= pow(0.99999, gst->dt*GRAVITY_CONST);
 
-        scale_matrix = MatrixScale(st, st, st);
-        translation = MatrixTranslate(part->position.x, part->position.y, part->position.z); 
-    }
-    else
-    if(part->idb == PART_IDB_ENVHIT_EFFECT) {
-       
-        part->position = Vector3Add(part->position, Vector3Scale(part->velocity, gst->dt));
-        part->velocity = Vector3Scale(part->velocity, pow(0.9995, gst->dt*500));
-
-
-        float st = lerp(part->scale / scale_duration, 8.0, 0.0);
-        scale_matrix = MatrixScale(st, st, st);
-        translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
-    }
+    float st = lerp(part->scale / scale_duration, 8.0, 0.0);
+    scale_matrix = MatrixScale(st, st, st);
+    translation = MatrixTranslate(part->position.x, part->position.y, part->position.z);
     *part->transform = MatrixMultiply(scale_matrix, translation);
 }
 
@@ -63,24 +51,22 @@ void projectile_envhit_psys_init(
     part->position = origin;
     part->color = part_color;
         
-    
-    if(part->idb == PART_IDB_ENVHIT_CIRCLE) {
-        part->scale = 0.0;
-        part->max_lifetime = 0.375;
-    }
-    else
-    if(part->idb == PART_IDB_ENVHIT_EFFECT) {
-        part->scale = 0.0;
-        part->position.x += RSEEDRANDOMF(-15.0, 15.0);
-        part->position.y += RSEEDRANDOMF(-15.0, 15.0);
-        part->position.z += RSEEDRANDOMF(-15.0, 15.0);
-        part->velocity = Vector3Scale(velocity, 80.0);
-        part->velocity.x += RSEEDRANDOMF(-40.0, 40.0);
-        part->velocity.y += RSEEDRANDOMF(-40.0, 40.0);
-        part->velocity.z += RSEEDRANDOMF(-40.0, 40.0);
-        part->max_lifetime = RSEEDRANDOMF(0.2, 0.95);
-    }
+   
+    part->velocity = Vector3Scale(velocity, 120.0);
+    part->scale = 0.0;
+    part->accel.x = 1.0;
 
+    const float P = 5.0;
+    part->position.x += RSEEDRANDOMF(-P, P);
+    part->position.y += RSEEDRANDOMF(-P, P);
+    part->position.z += RSEEDRANDOMF(-P, P);
+    
+    const float V = 100.0;
+    part->velocity.x += RSEEDRANDOMF(-V, V);
+    part->velocity.y += RSEEDRANDOMF(-V, V);
+    part->velocity.z += RSEEDRANDOMF(-V, V);
+
+    part->max_lifetime = RSEEDRANDOMF(0.2, 0.65);
 }
 
 

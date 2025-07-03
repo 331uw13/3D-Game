@@ -9,10 +9,6 @@ struct psystem_t;
 struct state_t;
 struct particle_t;
 
-
-#define PART_IDB_ENVHIT_CIRCLE 0
-#define PART_IDB_ENVHIT_EFFECT 1
-
 // PARTICLE UPDATE
 void projectile_envhit_psys_update(
         struct state_t* gst,

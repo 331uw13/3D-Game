@@ -41,15 +41,6 @@ static void post_projectile_hit(
     }
 
 
-    add_particles(gst,
-            &gst->psystems[PROJECTILE_ENVHIT_PSYS],
-            1,
-            part->position,
-            (Vector3){0, 0, 0},
-            part->color,
-            NULL, NO_EXTRADATA, PART_IDB_ENVHIT_CIRCLE);
-
-
     Vector3 nextpart_velocity = part->velocity;
     if(hit_object == HITOBJ_TERRAIN) {
         nextpart_velocity = Vector3Reflect(part->velocity, normal);
@@ -64,7 +55,7 @@ static void post_projectile_hit(
             part->position,
             nextpart_velocity,
             part->color,
-            NULL, NO_EXTRADATA, PART_IDB_ENVHIT_EFFECT);  
+            NULL, NO_EXTRADATA, NO_IDB);  
 
     disable_particle(gst, part);
 }
