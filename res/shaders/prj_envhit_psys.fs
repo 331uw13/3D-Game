@@ -21,5 +21,5 @@ void main()
 {
     vec3 col = fragColor.rgb;
     float v = voronoi3d(vec3(0.0, time*10, 0.0) + fragPosition*0.085).x;
-    finalColor = vec4(col*2.0, (fragColor.a) * (v*v));
+    finalColor = vec4(col*2.0, 0.5);
 }
